@@ -1,0 +1,714 @@
+_name_or_path:
+    value: /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B
+_wandb:
+    value:
+        cli_version: 0.25.1
+        e:
+            fztrphgd5oqbpx0ysp3wcb305um39b0m:
+                args:
+                    - --model_name_or_path
+                    - /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B
+                    - --version
+                    - qwen_2
+                    - --vision_tower_aux_list
+                    - '["google/siglip2-so400m-patch14-224"]'
+                    - --vision_tower_aux_token_len_list
+                    - '[256]'
+                    - --mm_projector_type
+                    - mlp2x_gelu
+                    - --mm_use_im_start_end
+                    - "True"
+                    - --mm_use_im_patch_token
+                    - "False"
+                    - --vision_loss
+                    - diffusion-loss
+                    - --vision_loss_mode
+                    - query
+                    - --vision_coef
+                    - "1.0"
+                    - --diffusion_model_hidden_size
+                    - "2048"
+                    - --diffusion_model_channels
+                    - "1152"
+                    - --diffusion_model_z_channels
+                    - "2048"
+                    - --diffusion_model_depth
+                    - "32"
+                    - --diffusion_model_heads
+                    - "32"
+                    - --dit_cls
+                    - DiT
+                    - --use_aurora
+                    - "True"
+                    - --aurora_max_slots
+                    - "10"
+                    - --aurora_n_register
+                    - "8"
+                    - --coco_annotation_path
+                    - /home/jovyan/data/coco/annotations/instances_train2017.json
+                    - --aurora_dino_feature_root
+                    - /home/jovyan/processed_coco/training_data_v4_patch_dino
+                    - --aurora_dino_feature_name
+                    - dino_256x768_fp16.pt
+                    - --data_path
+                    - /home/jovyan/processed_coco/training_data_v4_patch/training_manifest_patch_v4_0_to_None.json
+                    - --image_folder
+                    - /home/jovyan/processed_coco/training_data_v4_patch
+                    - --image_aspect_ratio
+                    - square
+                    - --max_images_per_sample
+                    - "1"
+                    - --output_dir
+                    - /home/jovyan/Scale-RAE/checkpoints/aurora_train_bs2_safe
+                    - --num_train_epochs
+                    - "1"
+                    - --max_steps
+                    - "100000"
+                    - --per_device_train_batch_size
+                    - "2"
+                    - --per_device_eval_batch_size
+                    - "256"
+                    - --gradient_accumulation_steps
+                    - "2"
+                    - --learning_rate
+                    - "1e-5"
+                    - --diff_head_lr
+                    - "5e-5"
+                    - --weight_decay
+                    - "0.01"
+                    - --warmup_ratio
+                    - "0.05"
+                    - --lr_scheduler_type
+                    - cosine
+                    - --max_grad_norm
+                    - "1.0"
+                    - --bf16
+                    - "True"
+                    - --tf32
+                    - "True"
+                    - --model_max_length
+                    - "2048"
+                    - --gradient_checkpointing
+                    - "False"
+                    - --aurora_inpaint_warmup_steps
+                    - "1000"
+                    - --aurora_inpaint_ramp_steps
+                    - "4000"
+                    - --aurora_eval_num_images
+                    - "100"
+                    - --aurora_eval_log_image_count
+                    - "100"
+                    - --aurora_eval_visual_batch_size
+                    - "4"
+                    - --aurora_eval_log_reconstructions
+                    - "True"
+                    - --aurora_eval_decoder_repo
+                    - nyu-visionx/siglip2_decoder
+                    - --group_by_modality_length
+                    - "False"
+                    - --save_strategy
+                    - steps
+                    - --save_steps
+                    - "1000"
+                    - --save_total_limit
+                    - "3"
+                    - --evaluation_strategy
+                    - steps
+                    - --eval_steps
+                    - "1000"
+                    - --logging_steps
+                    - "1"
+                    - --report_to
+                    - wandb
+                    - --run_name
+                    - aurora_train_bs2_safe
+                    - --dataloader_num_workers
+                    - "4"
+                    - --remove_unused_columns
+                    - "False"
+                    - --ddp_find_unused_parameters
+                    - "False"
+                cpu_count: 144
+                cpu_count_logical: 288
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "46086829899776"
+                        used: "1238563434496"
+                email: kt01054197938@gmail.com
+                executable: /home/jovyan/.conda/envs/scale_rae/bin/python
+                git:
+                    commit: dab38002b4b42c2d2262776785276d410599a443
+                    remote: https://github.com/ZitengWangNYU/Scale-RAE.git
+                gpu: NVIDIA B200
+                gpu_count: 2
+                gpu_nvidia:
+                    - architecture: Blackwell
+                      cudaCores: 18944
+                      memoryTotal: "192265846784"
+                      name: NVIDIA B200
+                      uuid: GPU-1a497937-f70c-4ed6-2ce1-2353bf3fb64d
+                    - architecture: Blackwell
+                      cudaCores: 18944
+                      memoryTotal: "192265846784"
+                      name: NVIDIA B200
+                      uuid: GPU-d05d302b-6637-adec-96ce-1f5a4ff296aa
+                host: gwangyeol-0
+                memory:
+                    total: "2434587205632"
+                os: Linux-6.8.0-87-generic-x86_64-with-glibc2.35
+                program: -m scale_rae.train.aurora_trainer
+                python: CPython 3.10.20
+                root: /home/jovyan/Scale-RAE
+                startedAt: "2026-03-31T15:02:09.099397Z"
+                writerId: fztrphgd5oqbpx0ysp3wcb305um39b0m
+        m:
+            - "1": train/global_step
+              "6":
+                - 3
+              "7": []
+            - "2": '*'
+              "5": 1
+              "6":
+                - 1
+              "7": []
+        python_version: 3.10.20
+        t:
+            "1":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 53
+                - 63
+                - 71
+                - 83
+                - 98
+            "2":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 53
+                - 63
+                - 71
+                - 83
+                - 98
+            "3":
+                - 7
+                - 13
+                - 61
+                - 66
+            "4": 3.10.20
+            "5": 0.25.1
+            "6": 4.37.0
+            "9":
+                "1": transformers_trainer
+            "12": 0.25.1
+            "13": linux-x86_64
+adafactor:
+    value: false
+adam_beta1:
+    value: 0.9
+adam_beta2:
+    value: 0.999
+adam_epsilon:
+    value: 1e-08
+add_cross_attention:
+    value: false
+architectures:
+    value:
+        - CambrianQwenForCausalLM
+attention_dropout:
+    value: 0
+aurora_cmd_length:
+    value: 8
+aurora_dino_dim:
+    value: 768
+aurora_dino_model_name:
+    value: facebook/dinov2-base
+aurora_eval_decoder_repo:
+    value: nyu-visionx/siglip2_decoder
+aurora_eval_log_image_count:
+    value: 100
+aurora_eval_log_reconstructions:
+    value: true
+aurora_eval_num_images:
+    value: 100
+aurora_eval_visual_batch_size:
+    value: 4
+aurora_inpaint_ramp_steps:
+    value: 4000
+aurora_inpaint_warmup_steps:
+    value: 1000
+aurora_inpaint_weight:
+    value: 0.5
+aurora_mask_penalty:
+    value: 10
+aurora_max_slots:
+    value: 10
+aurora_n_register:
+    value: 8
+auto_find_batch_size:
+    value: false
+bad_words_ids:
+    value: null
+begin_suppress_tokens:
+    value: null
+bf16:
+    value: true
+bf16_full_eval:
+    value: false
+bos_token_id:
+    value: 151643
+cache_dir:
+    value: null
+chunk_size_feed_forward:
+    value: 0
+connector_only:
+    value: true
+cross_attention_hidden_size:
+    value: null
+data_seed:
+    value: null
+dataloader_drop_last:
+    value: false
+dataloader_num_workers:
+    value: 4
+dataloader_persistent_workers:
+    value: false
+dataloader_pin_memory:
+    value: true
+ddp_backend:
+    value: null
+ddp_broadcast_buffers:
+    value: null
+ddp_bucket_cap_mb:
+    value: null
+ddp_find_unused_parameters:
+    value: false
+ddp_timeout:
+    value: 1800
+ddt_encoder_depth:
+    value: 2
+debug:
+    value: []
+decoder_start_token_id:
+    value: null
+deepspeed:
+    value: null
+diff_head_lr:
+    value: 5e-05
+diffusion_base_dim:
+    value: null
+diffusion_class_dropout_prob:
+    value: 0.1
+diffusion_model_channels:
+    value: 1152
+diffusion_model_depth:
+    value: 32
+diffusion_model_heads:
+    value: 32
+diffusion_model_hidden_size:
+    value: 2048
+diffusion_model_z_channels:
+    value: 2048
+diffusion_split_per_token:
+    value: 256
+disable_tqdm:
+    value: false
+dispatch_batches:
+    value: null
+dit_cls:
+    value: DiT
+diversity_penalty:
+    value: 0
+do_eval:
+    value: true
+do_predict:
+    value: false
+do_sample:
+    value: false
+do_train:
+    value: false
+early_stopping:
+    value: false
+encoder_no_repeat_ngram_size:
+    value: 0
+eos_token_id:
+    value: 151645
+eval_accumulation_steps:
+    value: null
+eval_delay:
+    value: 0
+eval_steps:
+    value: 1000
+evaluation_strategy:
+    value: steps
+exponential_decay_length_penalty:
+    value: null
+finetuning_task:
+    value: null
+forced_bos_token_id:
+    value: null
+forced_eos_token_id:
+    value: null
+fp16:
+    value: false
+fp16_backend:
+    value: auto
+fp16_full_eval:
+    value: false
+fp16_opt_level:
+    value: O1
+freeze_mm_mlp_adapter:
+    value: false
+fsdp:
+    value: []
+fsdp_config:
+    value:
+        min_num_params: 0
+        xla: false
+        xla_fsdp_grad_ckpt: false
+fsdp_min_num_params:
+    value: 0
+fsdp_transformer_layer_cls_to_wrap:
+    value: null
+full_determinism:
+    value: false
+gradient_accumulation_steps:
+    value: 2
+gradient_checkpointing:
+    value: false
+gradient_checkpointing_kwargs:
+    value: null
+greater_is_better:
+    value: null
+group_by_length:
+    value: false
+group_by_modality_length:
+    value: false
+half_precision_backend:
+    value: auto
+hidden_act:
+    value: silu
+hidden_size:
+    value: 1536
+hub_always_push:
+    value: false
+hub_model_id:
+    value: null
+hub_private_repo:
+    value: false
+hub_strategy:
+    value: every_save
+hub_token:
+    value: <HUB_TOKEN>
+id2label:
+    value:
+        "0": LABEL_0
+        "1": LABEL_1
+ignore_data_skip:
+    value: false
+image_aspect_ratio:
+    value: square
+image_position:
+    value: 35
+include_inputs_for_metrics:
+    value: false
+include_num_input_tokens_seen:
+    value: false
+include_tokens_per_second:
+    value: false
+initializer_range:
+    value: 0.02
+intermediate_size:
+    value: 8960
+is_decoder:
+    value: false
+is_encoder_decoder:
+    value: false
+jit_mode_eval:
+    value: false
+label_names:
+    value: null
+label_smoothing_factor:
+    value: 0
+label2id:
+    value:
+        LABEL_0: 0
+        LABEL_1: 1
+learning_rate:
+    value: 1e-05
+length_column_name:
+    value: length
+length_penalty:
+    value: 1
+load_best_model_at_end:
+    value: false
+local_rank:
+    value: 0
+log_level:
+    value: passive
+log_level_replica:
+    value: warning
+log_on_each_node:
+    value: true
+logging_dir:
+    value: /home/jovyan/Scale-RAE/checkpoints/aurora_train_bs2_safe/runs/Mar31_15-00-32_gwangyeol-0
+logging_first_step:
+    value: false
+logging_nan_inf_filter:
+    value: true
+logging_steps:
+    value: 1
+logging_strategy:
+    value: steps
+lr_scheduler_type:
+    value: cosine
+max_grad_norm:
+    value: 1
+max_length:
+    value: 20
+max_position_embeddings:
+    value: 32768
+max_steps:
+    value: 100000
+max_window_layers:
+    value: 21
+metric_for_best_model:
+    value: null
+min_length:
+    value: 0
+miv_token_len:
+    value: 196
+mm_hidden_size:
+    value: 1152
+mm_projector_lr:
+    value: null
+mm_projector_type:
+    value: mlp2x_gelu
+mm_use_im_patch_token:
+    value: false
+mm_use_im_start_end:
+    value: true
+mm_vision_sampler_lr:
+    value: null
+mm_vision_select_feature:
+    value: patch
+mm_vision_select_layer:
+    value: -1
+mm_vision_tower_aux_list:
+    value:
+        - google/siglip2-so400m-patch14-224
+mm_vision_tower_aux_token_len_list:
+    value:
+        - 256
+mm_vision_tower_lr:
+    value: 2e-06
+model_max_length:
+    value: 2048
+model_type:
+    value: cambrian_qwen
+mp_parameters:
+    value: ""
+neftune_noise_alpha:
+    value: null
+no_cuda:
+    value: false
+no_repeat_ngram_size:
+    value: 0
+num_attention_heads:
+    value: 12
+num_beam_groups:
+    value: 1
+num_beams:
+    value: 1
+num_hidden_layers:
+    value: 28
+num_key_value_heads:
+    value: 2
+num_return_sequences:
+    value: 1
+num_train_epochs:
+    value: 1
+optim:
+    value: adamw_torch
+optim_args:
+    value: null
+output_attentions:
+    value: false
+output_dir:
+    value: /home/jovyan/Scale-RAE/checkpoints/aurora_train_bs2_safe
+output_hidden_states:
+    value: false
+output_scores:
+    value: false
+overwrite_output_dir:
+    value: false
+pad_token_id:
+    value: null
+past_index:
+    value: -1
+per_device_eval_batch_size:
+    value: 256
+per_device_train_batch_size:
+    value: 2
+per_gpu_eval_batch_size:
+    value: null
+per_gpu_train_batch_size:
+    value: null
+prediction_loss_only:
+    value: false
+prefix:
+    value: null
+pretrain_adapter_and_vision_head:
+    value: null
+problem_type:
+    value: null
+push_to_hub:
+    value: false
+push_to_hub_model_id:
+    value: null
+push_to_hub_organization:
+    value: null
+push_to_hub_token:
+    value: <PUSH_TO_HUB_TOKEN>
+ray_scope:
+    value: last
+remove_invalid_values:
+    value: false
+remove_unused_columns:
+    value: false
+repetition_penalty:
+    value: 1
+report_to:
+    value:
+        - wandb
+resume_from_checkpoint:
+    value: null
+return_dict:
+    value: true
+return_dict_in_generate:
+    value: false
+rms_norm_eps:
+    value: 1e-06
+rope_scaling:
+    value: null
+rope_theta:
+    value: 1e+06
+run_name:
+    value: aurora_train_bs2_safe
+save_on_each_node:
+    value: false
+save_only_model:
+    value: false
+save_safetensors:
+    value: true
+save_steps:
+    value: 1000
+save_strategy:
+    value: steps
+save_total_limit:
+    value: 3
+seed:
+    value: 42
+sep_token_id:
+    value: null
+si_token_len:
+    value: 729
+skip_memory_metrics:
+    value: true
+sliding_window:
+    value: 32768
+split_batches:
+    value: false
+suppress_tokens:
+    value: null
+task_specific_params:
+    value: null
+temperature:
+    value: 1
+tf_legacy_loss:
+    value: false
+tf32:
+    value: true
+tie_encoder_decoder:
+    value: false
+tie_word_embeddings:
+    value: true
+tokenizer_class:
+    value: null
+tokenizer_model_max_length:
+    value: 512
+tokenizer_padding_side:
+    value: right
+top_k:
+    value: 50
+top_p:
+    value: 1
+torch_compile:
+    value: false
+torch_compile_backend:
+    value: null
+torch_compile_mode:
+    value: null
+torch_dtype:
+    value: bfloat16
+torchdynamo:
+    value: null
+torchscript:
+    value: false
+tpu_metrics_debug:
+    value: false
+tpu_num_cores:
+    value: null
+transformers_version:
+    value: 4.37.0
+tune_adapter_and_vision_head:
+    value: false
+tune_mm_mlp_adapter:
+    value: false
+typical_p:
+    value: 1
+unfreeze_mm_vision_tower:
+    value: false
+use_aurora:
+    value: true
+use_bfloat16:
+    value: false
+use_cache:
+    value: false
+use_cpu:
+    value: false
+use_ipex:
+    value: false
+use_legacy_prediction_loop:
+    value: false
+use_mm_proj:
+    value: true
+use_mps_device:
+    value: false
+use_sliding_window:
+    value: false
+vision_coef:
+    value: 1
+vision_hidden_size:
+    value: 1024
+vision_loss:
+    value: diffusion-loss
+vision_loss_mode:
+    value: query
+vision_tower_aux_token_len_list:
+    value:
+        - 256
+vocab_size:
+    value: 151667
+warmup_ratio:
+    value: 0.05
+warmup_steps:
+    value: 0
+weight_decay:
+    value: 0.01
