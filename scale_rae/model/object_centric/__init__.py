@@ -1,10 +1,8 @@
-from .slot_head import SlotHead, SlotSupervisionProjector
 from .aurora_utils import (
-    build_phase3_mask,
-    build_phase3_cache_attention_bias,
-    build_full_attention_mask,
-    build_bidirectional_mask,
-    check_stopping,
+    build_aurora_v2_attention_mask,
+    sample_k_for_batch,
+    hungarian_match,
+    compute_mask_loss,
     compute_diversity_loss,
-    match_slot_to_mask,
+    extract_attention_maps,
 )

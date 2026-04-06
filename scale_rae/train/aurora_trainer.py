@@ -6,7 +6,6 @@ import json
 import logging
 import math
 import os
-import pathlib
 import re
 import random
 from bisect import bisect_right
@@ -15,19 +14,23 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence
 
 import numpy as np
-import tokenizers
 import torch
 import torch.nn.functional as F
 import transformers
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset, Sampler
-from transformers import AutoImageProcessor, Trainer
+from transformers import Trainer
 from transformers.trainer import ALL_LAYERNORM_LAYERS, get_parameter_names, is_sagemaker_mp_enabled
+from transformers.training_args import ParallelMode
 from transformers.trainer_utils import seed_worker
+from transformers.utils import is_torch_npu_available, is_torch_tpu_available
 
 from scale_rae.model.language_model.scale_rae_qwen2 import ScaleRAEQwenForCausalLM
 
 logger_module = logging.getLogger(__name__)
+
+if is_torch_tpu_available(check_device=False):
+    import torch_xla.core.xla_model as xm
 
 
 def _is_aurora_diffusion_condition_param(name: str) -> bool:
@@ -81,14 +84,12 @@ class ModelArguments:
     aurora_max_slots: int = field(default=10)
     aurora_n_register: int = field(default=8)
     aurora_cmd_length: int = field(default=8)
-    aurora_dino_model_name: str = field(default="facebook/dinov2-base")
-    aurora_dino_dim: int = field(default=768)
+    aurora_mask_loss_weight: float = field(default=1.0)
+    aurora_diversity_loss_weight: float = field(default=0.1)
     aurora_inpaint_weight: float = field(default=0.5)
-    aurora_mask_penalty: float = field(default=10.0)
-    aurora_loss_full_scale: float = field(default=4096.0)
-    aurora_detach_generation_grad: bool = field(default=True)
-    aurora_detach_slot_chain_grad: bool = field(default=True)
     aurora_fail_on_nan: bool = field(default=True)
+    aurora_training_stage: int = field(default=1)
+    aurora_grad_clip_max_norm: float = field(default=1.0)
 
 
 @dataclass
@@ -104,11 +105,8 @@ class DataArguments:
     max_images_per_sample: int = field(default=1)
     coco_annotation_path: Optional[str] = field(default=None)
     aurora_min_area: float = field(default=1024.0)
-    aurora_dino_feature_root: Optional[str] = field(default=None)
-    aurora_dino_feature_name: str = field(default="dino_256x768_fp16.pt")
 
     image_processor_aux_list: Optional[list] = field(default=None, repr=False, init=False)
-    aurora_dino_processor: Optional[object] = field(default=None, repr=False, init=False)
     vision_tower_aux_token_len_list: Optional[list] = field(default=None, repr=False, init=False)
     is_multimodal: bool = field(default=False, init=False)
 
@@ -128,6 +126,8 @@ class TrainingArguments(transformers.TrainingArguments):
     aurora_eval_log_image_count: int = field(default=100)
     aurora_eval_visual_batch_size: int = field(default=4)
     aurora_eval_log_reconstructions: bool = field(default=True)
+    aurora_eval_log_attention_overlays: bool = field(default=True)
+    aurora_eval_attention_overlay_count: int = field(default=50)
     aurora_eval_decoder_repo: str = field(default="nyu-visionx/siglip2_decoder")
 
 
@@ -226,58 +226,14 @@ def build_gt_patch_masks(
     width, height = image_size
     for idx, ann in enumerate(anns[:max_objects]):
         mask_np = decode_segmentation(ann["segmentation"], height=height, width=width)
-        patch_masks[idx] = mask_to_patch_mask(torch.from_numpy(mask_np), grid_size=grid_size)
+        patch_masks[idx] = mask_to_patch_mask(torch.tensor(mask_np), grid_size=grid_size)
     return patch_masks
 
 
 def load_mask_image(mask_path: str, grid_size: int) -> torch.Tensor:
     mask = Image.open(mask_path).convert("L")
     mask_np = (np.array(mask, dtype=np.float32) > 127).astype(np.float32)
-    return mask_to_patch_mask(torch.from_numpy(mask_np), grid_size=grid_size)
-
-
-def load_precomputed_dino(
-    data_args: DataArguments,
-    image_id: str,
-) -> Optional[torch.Tensor]:
-    root = getattr(data_args, "aurora_dino_feature_root", None)
-    if not root:
-        return None
-
-    feature_name = getattr(data_args, "aurora_dino_feature_name", "dino_256x768_fp16.pt")
-    normalized_id = normalize_image_id(image_id)
-    candidate_ids = []
-    for candidate in [str(image_id), normalized_id, normalized_id.zfill(12)]:
-        if candidate and candidate not in candidate_ids:
-            candidate_ids.append(candidate)
-
-    feature_path = None
-    for candidate_id in candidate_ids:
-        candidate_path = pathlib.Path(root) / candidate_id / feature_name
-        if candidate_path.exists():
-            feature_path = candidate_path
-            break
-    if feature_path is None:
-        raise FileNotFoundError(
-            f"Missing precomputed DINO feature under {root} for image id {image_id}. "
-            f"Tried: {candidate_ids}"
-        )
-
-    obj = torch.load(feature_path, map_location="cpu")
-    if isinstance(obj, dict):
-        features = obj.get("features", None)
-    else:
-        features = obj
-    if features is None:
-        raise ValueError(f"DINO feature file has no 'features' entry: {feature_path}")
-
-    features = torch.as_tensor(features)
-    if features.dim() != 2:
-        raise ValueError(
-            f"Expected cached DINO features to be 2D [N, C], got {tuple(features.shape)} "
-            f"from {feature_path}"
-        )
-    return features.to(dtype=torch.float32)
+    return mask_to_patch_mask(torch.tensor(mask_np), grid_size=grid_size)
 
 
 class AURORADataset(Dataset):
@@ -411,15 +367,6 @@ class AURORADataset(Dataset):
             "image_id": image_id,
         }
 
-        cached_dino = load_precomputed_dino(self.data_args, image_id)
-        if cached_dino is not None:
-            sample["dino_features"] = cached_dino
-        elif self.data_args.aurora_dino_processor is not None:
-            sample["pixel_values_dino"] = self.data_args.aurora_dino_processor(
-                images=image,
-                return_tensors="pt",
-            )["pixel_values"][0]
-
         target_path = dat.get("target_path")
         mask_path = dat.get("mask_path")
         if target_path and mask_path:
@@ -517,15 +464,6 @@ class COCOReconstructionDataset(Dataset):
             "image_id": image_id,
         }
 
-        cached_dino = load_precomputed_dino(self.data_args, image_id)
-        if cached_dino is not None:
-            sample["dino_features"] = cached_dino
-        elif self.data_args.aurora_dino_processor is not None:
-            sample["pixel_values_dino"] = self.data_args.aurora_dino_processor(
-                images=image,
-                return_tensors="pt",
-            )["pixel_values"][0]
-
         return sample
 
 
@@ -599,6 +537,8 @@ class AlternatingTaskBatchSampler(Sampler[List[int]]):
         self.seed = int(seed)
         self.step_provider = step_provider
         self._iteration_index = 0
+        # Required by accelerate's prepare_data_loader
+        self.sampler = None
 
         global_batch = self.batch_size * self.num_processes
         total_samples = max(len(dataset), 1)
@@ -688,12 +628,6 @@ class AURORADataCollator:
             "gt_masks_patches": torch.stack([inst["gt_masks_patches"] for inst in instances]),
             "image_ids": [inst["image_id"] for inst in instances],
         }
-        if all("dino_features" in inst for inst in instances):
-            batch["dino_features"] = torch.stack([inst["dino_features"] for inst in instances])
-        elif all("pixel_values_dino" in inst for inst in instances):
-            batch["pixel_values_dino"] = torch.stack([inst["pixel_values_dino"] for inst in instances])
-        elif any(("dino_features" in inst) or ("pixel_values_dino" in inst) for inst in instances):
-            raise ValueError("Mixed DINO supervision formats in the same batch are not supported.")
 
         has_inpaint = torch.tensor(
             [
@@ -720,6 +654,67 @@ class AURORADataCollator:
 
 
 class AURORATrainer(Trainer):
+    def _load_rng_state(self, checkpoint):
+        # PyTorch 2.6 changed torch.load default behavior to weights_only=True.
+        # Our RNG checkpoint contains numpy/python RNG tuples, so explicitly opt out
+        # when loading trusted local resume checkpoints.
+        if checkpoint is None:
+            return
+
+        if self.args.world_size > 1:
+            process_index = self.args.process_index
+            rng_file = os.path.join(checkpoint, f"rng_state_{process_index}.pth")
+            if not os.path.isfile(rng_file):
+                logger_module.info(
+                    "Didn't find an RNG file for process %s, if you are resuming a training "
+                    "that wasn't launched in a distributed fashion, reproducibility is not guaranteed.",
+                    process_index,
+                )
+                return
+        else:
+            rng_file = os.path.join(checkpoint, "rng_state.pth")
+            if not os.path.isfile(rng_file):
+                logger_module.info(
+                    "Didn't find an RNG file, if you are resuming a training that was launched "
+                    "in a distributed fashion, reproducibility is not guaranteed."
+                )
+                return
+
+        try:
+            checkpoint_rng_state = torch.load(rng_file, weights_only=False)
+        except TypeError:
+            checkpoint_rng_state = torch.load(rng_file)
+
+        random.setstate(checkpoint_rng_state["python"])
+        np.random.set_state(checkpoint_rng_state["numpy"])
+        torch.random.set_rng_state(checkpoint_rng_state["cpu"])
+        if torch.cuda.is_available():
+            if self.args.parallel_mode == ParallelMode.DISTRIBUTED:
+                torch.cuda.random.set_rng_state_all(checkpoint_rng_state["cuda"])
+            else:
+                try:
+                    torch.cuda.random.set_rng_state(checkpoint_rng_state["cuda"])
+                except Exception as exc:
+                    logger_module.info(
+                        "Didn't manage to restore GPU RNG state: %s\n"
+                        "This won't yield the same results as if training had not been interrupted.",
+                        exc,
+                    )
+        if is_torch_tpu_available():
+            xm.set_rng_state(checkpoint_rng_state["xla"])
+        if is_torch_npu_available():
+            if self.args.parallel_mode == ParallelMode.DISTRIBUTED:
+                torch.npu.random.set_rng_state_all(checkpoint_rng_state["npu"])
+            else:
+                try:
+                    torch.npu.random.set_rng_state(checkpoint_rng_state["npu"])
+                except Exception as exc:
+                    logger_module.info(
+                        "Didn't manage to restore NPU RNG state: %s\n"
+                        "This won't yield the same results as if training had not been interrupted.",
+                        exc,
+                    )
+
     def create_optimizer(self):
         if is_sagemaker_mp_enabled():
             return super().create_optimizer()
@@ -795,10 +790,39 @@ class AURORATrainer(Trainer):
                 ", ".join(cleaned[:8]) + (" ..." if len(cleaned) > 8 else ""),
             )
 
+    def _clip_aurora_gradients(self, model) -> None:
+        inner = model.module if hasattr(model, "module") else model
+        max_norm = float(getattr(inner.config, 'aurora_grad_clip_max_norm', 1.0))
+        if max_norm <= 0:
+            return
+        aurora_params = [
+            p for n, p in inner.named_parameters()
+            if p.requires_grad and p.grad is not None and "aurora" in n
+        ]
+        if aurora_params:
+            torch.nn.utils.clip_grad_norm_(aurora_params, max_norm=max_norm)
+
     def training_step(self, model, inputs):
+        inner = model.module if hasattr(model, "module") else model
+        inner._aurora_global_step = int(getattr(self.state, "global_step", 0))
         loss = super().training_step(model, inputs)
+        self._clip_aurora_gradients(model)
         self._sanitize_nonfinite_gradients(model)
         return loss
+
+    def switch_to_stage2(self, model=None):
+        """Switch AURORA training from stage 1 to stage 2.
+        Call this between training runs or at a specific step.
+        Unfreezes latent_queries and enables inpainting supervision."""
+        if model is None:
+            model = self.model
+        inner = model.module if hasattr(model, "module") else model
+        inner.config.aurora_training_stage = 2
+        if inner.get_model().latent_queries is not None:
+            inner.get_model().latent_queries.requires_grad_(True)
+            logger_module.info(
+                "[AURORA] Switched to Stage 2: latent_queries unfrozen, inpainting supervision enabled."
+            )
 
     def _get_train_batch_size(self) -> int:
         return max(int(getattr(self, "_train_batch_size", self.args.train_batch_size)), 1)
@@ -833,7 +857,10 @@ class AURORATrainer(Trainer):
             "persistent_workers": self.args.dataloader_persistent_workers,
             "worker_init_fn": seed_worker,
         }
-        return self.accelerator.prepare(DataLoader(train_dataset, **dataloader_params))
+        # Skip accelerate.prepare — it tries to replace batch_sampler internals
+        # which is incompatible with our custom AlternatingTaskBatchSampler.
+        # DDP already handles gradient sync at the model level.
+        return DataLoader(train_dataset, **dataloader_params)
 
     def _wandb_enabled(self) -> bool:
         if not self.is_world_process_zero():
@@ -936,6 +963,115 @@ class AURORATrainer(Trainer):
         recon = torch.nan_to_num(recon, nan=0.0, posinf=1.0, neginf=0.0)
         return recon.clamp(0.0, 1.0).detach().cpu().float()
 
+    def _aurora_match_attention_maps(
+        self,
+        pred_attn: torch.Tensor,
+        gt_masks: torch.Tensor,
+    ) -> Dict[str, object]:
+        gt_masks = gt_masks.detach().cpu().float()
+        pred_attn = pred_attn.detach().cpu().float()
+
+        valid_gt_indices = [
+            idx for idx in range(gt_masks.shape[0])
+            if torch.count_nonzero(gt_masks[idx] > 0.5).item() > 0
+        ]
+        if not valid_gt_indices:
+            return {"gt_indices": [], "gt_ious": [], "pairs": []}
+
+        gt_valid = gt_masks[valid_gt_indices]
+        num_gt = gt_valid.shape[0]
+        gt_ious = torch.zeros(num_gt, dtype=torch.float32)
+        if pred_attn.numel() == 0 or pred_attn.shape[0] == 0:
+            return {"gt_indices": valid_gt_indices, "gt_ious": gt_ious.tolist(), "pairs": []}
+
+        num_pred = pred_attn.shape[0]
+        pair_iou = torch.zeros(num_pred, num_gt, dtype=torch.float32)
+        for gt_idx in range(num_gt):
+            gt_bin = gt_valid[gt_idx] > 0.5
+            k = int(gt_bin.sum().item())
+            if k <= 0:
+                continue
+            topk = torch.topk(pred_attn, k=min(k, pred_attn.shape[-1]), dim=-1).indices
+            pred_bin = torch.zeros_like(pred_attn, dtype=torch.float32)
+            pred_bin.scatter_(1, topk, 1.0)
+            gt_bin_f = gt_bin.unsqueeze(0).float()
+            intersection = (pred_bin * gt_bin_f).sum(dim=-1)
+            union = (pred_bin + gt_bin_f).clamp(max=1.0).sum(dim=-1).clamp_min(1.0)
+            pair_iou[:, gt_idx] = intersection / union
+
+        used_pred = set()
+        used_gt = set()
+        pairs = []
+        max_matches = min(num_pred, num_gt)
+        for _ in range(max_matches):
+            best_iou = -1.0
+            best_pred = -1
+            best_gt = -1
+            for pred_idx in range(num_pred):
+                if pred_idx in used_pred:
+                    continue
+                for gt_idx in range(num_gt):
+                    if gt_idx in used_gt:
+                        continue
+                    value = float(pair_iou[pred_idx, gt_idx].item())
+                    if value > best_iou:
+                        best_iou = value
+                        best_pred = pred_idx
+                        best_gt = gt_idx
+            if best_pred < 0 or best_gt < 0:
+                break
+            used_pred.add(best_pred)
+            used_gt.add(best_gt)
+            gt_ious[best_gt] = max(best_iou, 0.0)
+            pairs.append(
+                {
+                    "pred_idx": best_pred,
+                    "gt_idx": valid_gt_indices[best_gt],
+                    "iou": float(gt_ious[best_gt].item()),
+                }
+            )
+
+        return {
+            "gt_indices": valid_gt_indices,
+            "gt_ious": gt_ious.tolist(),
+            "pairs": pairs,
+        }
+
+    def _aurora_patch_map_to_image(
+        self,
+        patch_map: torch.Tensor,
+        height: int,
+        width: int,
+    ) -> torch.Tensor:
+        patch_map = torch.nan_to_num(patch_map.detach().cpu().float(), nan=0.0, posinf=0.0, neginf=0.0)
+        side = int(round(math.sqrt(patch_map.numel())))
+        if side * side != patch_map.numel():
+            raise ValueError(f"Expected a square patch map, got {patch_map.numel()} patches")
+        dense_map = patch_map.view(1, 1, side, side)
+        dense_map = F.interpolate(dense_map, size=(height, width), mode="bilinear", align_corners=False)
+        dense_map = dense_map.squeeze(0).squeeze(0).clamp(min=0.0)
+        max_value = float(dense_map.amax().item())
+        if max_value > 0.0:
+            dense_map = dense_map / max_value
+        return dense_map
+
+    def _make_aurora_attention_overlay(
+        self,
+        image: torch.Tensor,
+        patch_map: torch.Tensor,
+        color: Sequence[float],
+    ) -> torch.Tensor:
+        base = torch.nan_to_num(image.detach().cpu().float(), nan=0.0, posinf=1.0, neginf=0.0).clamp(0.0, 1.0)
+        heat = self._aurora_patch_map_to_image(
+            patch_map,
+            height=base.shape[-2],
+            width=base.shape[-1],
+        )
+        color_tensor = torch.tensor(color, dtype=base.dtype).view(3, 1, 1)
+        alpha = 0.55 * heat.unsqueeze(0)
+        blended = base * (1.0 - alpha) + color_tensor * alpha
+        return blended.clamp(0.0, 1.0)
+
     def _maybe_log_aurora_reconstructions(self, model, eval_dataset=None, metric_key_prefix: str = "eval") -> None:
         if not getattr(self.args, "aurora_eval_log_reconstructions", True):
             return
@@ -973,7 +1109,7 @@ class AURORATrainer(Trainer):
         )
 
         inner = model.module if hasattr(model, "module") else model
-        device = inner.aurora_cmd_query.device
+        device = inner.aurora_cmd_embeddings.device
         was_training = inner.training
         rows = []
 
@@ -989,37 +1125,17 @@ class AURORATrainer(Trainer):
                         device=device,
                     )
                     source_images = self._denormalize_aurora_images(batch["images"], mean, std)
-                    pred_slots = output.get("K_per_sample")
-                    if torch.is_tensor(pred_slots):
-                        pred_slots = pred_slots.detach().cpu().tolist()
-                    else:
-                        pred_slots = [
-                            int(output.get("K_actual", len(output.get("slots", []))))
-                            for _ in range(source_images.shape[0])
-                        ]
-                    target_images = None
-                    has_inpaint = batch.get("has_inpaint")
-                    gt_slots = batch.get("n_objects")
-                    if torch.is_tensor(gt_slots):
-                        gt_slots = gt_slots.detach().cpu().tolist()
-                    if "target_images" in batch:
-                        target_images = self._denormalize_aurora_images(batch["target_images"], mean, std)
 
                     for idx in range(source_images.shape[0]):
                         if len(rows) >= max_items:
                             break
-                        row = [
-                            batch["image_ids"][idx],
-                            wandb.Image(source_images[idx].permute(1, 2, 0).numpy()),
-                            wandb.Image(recon_images[idx].permute(1, 2, 0).numpy()),
-                        ]
-                        if target_images is not None and (has_inpaint is None or bool(has_inpaint[idx])):
-                            row.append(wandb.Image(target_images[idx].permute(1, 2, 0).numpy()))
-                        else:
-                            row.append("")
-                        row.append(int(pred_slots[idx]))
-                        row.append(int(gt_slots[idx]) if gt_slots is not None else "")
-                        rows.append(row)
+                        rows.append(
+                            [
+                                batch["image_ids"][idx],
+                                wandb.Image(source_images[idx].permute(1, 2, 0).numpy()),
+                                wandb.Image(recon_images[idx].permute(1, 2, 0).numpy()),
+                            ]
+                        )
                     if len(rows) >= max_items:
                         break
         finally:
@@ -1028,14 +1144,87 @@ class AURORATrainer(Trainer):
         if not rows:
             return
 
-        columns = ["image_id", "source", "reconstruction", "target", "pred_slots", "gt_slots"]
+        columns = ["image_id", "source", "reconstruction"]
         table = wandb.Table(columns=columns, data=rows)
         wandb.log(
             {f"{metric_key_prefix}/reconstructions": table},
             step=int(getattr(self.state, "global_step", 0)),
         )
 
-    def _compute_aurora_slot_count_metrics(
+    def _compute_aurora_reconstruction_metrics(
+        self,
+        model,
+        eval_dataset=None,
+        metric_key_prefix: str = "eval",
+    ) -> Dict[str, float]:
+        if not self.is_world_process_zero():
+            return {}
+
+        dataset = eval_dataset if eval_dataset is not None else self.eval_dataset
+        if dataset is None or len(dataset) == 0:
+            return {}
+
+        decoder = self._get_aurora_eval_decoder(model)
+        if decoder is None:
+            return {}
+
+        eval_batch_size = max(int(getattr(self.args, "aurora_eval_visual_batch_size", 4)), 1)
+        mean, std = self._get_aurora_image_stats(dataset)
+        loader = DataLoader(
+            dataset,
+            batch_size=eval_batch_size,
+            shuffle=False,
+            collate_fn=self.data_collator,
+            num_workers=0,
+        )
+
+        inner = model.module if hasattr(model, "module") else model
+        device = inner.aurora_cmd_embeddings.device
+        was_training = inner.training
+
+        total = 0
+        l1_sum = 0.0
+        mse_sum = 0.0
+        psnr_sum = 0.0
+
+        try:
+            inner.eval()
+            with torch.no_grad():
+                for batch in loader:
+                    images = batch["images"].to(device)
+                    output = inner.generate_aurora(images, guidance_level=1.0)
+                    recon_images = self._decode_aurora_generated_images(
+                        decoder,
+                        output.get("generated"),
+                        device=device,
+                    )
+                    source_images = self._denormalize_aurora_images(batch["images"], mean, std)
+                    if recon_images.numel() == 0 or source_images.numel() == 0:
+                        continue
+
+                    recon_images = recon_images.to(dtype=torch.float32)
+                    source_images = source_images.to(dtype=torch.float32)
+                    per_image_l1 = torch.mean(torch.abs(recon_images - source_images), dim=(1, 2, 3))
+                    per_image_mse = torch.mean((recon_images - source_images) ** 2, dim=(1, 2, 3))
+                    per_image_psnr = -10.0 * torch.log10(per_image_mse.clamp_min(1e-8))
+
+                    total += per_image_l1.numel()
+                    l1_sum += per_image_l1.sum().item()
+                    mse_sum += per_image_mse.sum().item()
+                    psnr_sum += per_image_psnr.sum().item()
+        finally:
+            inner.train(was_training)
+
+        if total == 0:
+            return {}
+
+        return {
+            f"{metric_key_prefix}_recon_pixel_l1": l1_sum / total,
+            f"{metric_key_prefix}_recon_pixel_mse": mse_sum / total,
+            f"{metric_key_prefix}_recon_psnr": psnr_sum / total,
+        }
+
+    def _compute_aurora_attention_metrics(
         self,
         model,
         eval_dataset=None,
@@ -1058,61 +1247,169 @@ class AURORATrainer(Trainer):
         )
 
         inner = model.module if hasattr(model, "module") else model
-        device = inner.aurora_cmd_query.device
+        device = inner.aurora_cmd_embeddings.device
         was_training = inner.training
 
-        exact = 0
-        under = 0
-        over = 0
-        total = 0
-        abs_error = 0.0
-        pred_sum = 0.0
-        gt_sum = 0.0
+        object_total = 0
+        iou_sum = 0.0
+        iou_50 = 0
 
         try:
             inner.eval()
             with torch.no_grad():
                 for batch in loader:
                     images = batch["images"].to(device)
-                    k_gt = batch["n_objects"].to(device=device, dtype=torch.long)
+                    gt_masks = batch["gt_masks_patches"]
+                    k_gt = batch["n_objects"]
                     output = inner.generate_aurora(images, guidance_level=1.0, return_generated=False)
-                    k_pred = output.get("K_per_sample")
-                    if torch.is_tensor(k_pred):
-                        k_pred = k_pred.to(device=device, dtype=torch.long)
+                    attn_maps = output.get("attn_maps")
+                    if attn_maps is not None and attn_maps.numel() > 0:
+                        pred_attn = attn_maps.detach().cpu().float()  # (B, K, P)
                     else:
-                        k_pred = torch.full_like(
-                            k_gt,
-                            fill_value=int(output.get("K_actual", len(output.get("slots", [])))),
+                        pred_attn = torch.zeros(
+                            images.shape[0],
+                            0,
+                            gt_masks.shape[-1],
+                            dtype=torch.float32,
                         )
 
-                    k_pred = k_pred.view(-1)
-                    k_gt = k_gt.view(-1)
-                    if k_pred.numel() != k_gt.numel():
-                        raise ValueError(
-                            f"Mismatched slot count batch sizes: predicted {k_pred.numel()} vs gt {k_gt.numel()}"
+                    for sample_idx in range(images.shape[0]):
+                        gt_count = int(k_gt[sample_idx].item())
+                        match_info = self._aurora_match_attention_maps(
+                            pred_attn[sample_idx],
+                            gt_masks[sample_idx, :gt_count],
                         )
-
-                    total += k_gt.numel()
-                    abs_error += torch.abs(k_pred - k_gt).sum().item()
-                    exact += (k_pred == k_gt).sum().item()
-                    under += (k_pred < k_gt).sum().item()
-                    over += (k_pred > k_gt).sum().item()
-                    pred_sum += k_pred.sum().item()
-                    gt_sum += k_gt.sum().item()
+                        gt_ious = match_info["gt_ious"]
+                        if not gt_ious:
+                            continue
+                        object_total += len(gt_ious)
+                        iou_sum += float(sum(gt_ious))
+                        iou_50 += sum(1 for iou in gt_ious if iou >= 0.5)
         finally:
             inner.train(was_training)
 
-        if total == 0:
+        if object_total == 0:
             return {}
 
         return {
-            f"{metric_key_prefix}_k_exact": exact / total,
-            f"{metric_key_prefix}_k_mae": abs_error / total,
-            f"{metric_key_prefix}_k_under_rate": under / total,
-            f"{metric_key_prefix}_k_over_rate": over / total,
-            f"{metric_key_prefix}_k_pred_mean": pred_sum / total,
-            f"{metric_key_prefix}_k_gt_mean": gt_sum / total,
+            f"{metric_key_prefix}_attn_patch_iou": iou_sum / object_total,
+            f"{metric_key_prefix}_attn_patch_iou_50": iou_50 / object_total,
         }
+
+    def _maybe_log_aurora_attention_overlays(
+        self,
+        model,
+        eval_dataset=None,
+        metric_key_prefix: str = "eval",
+    ) -> None:
+        if not getattr(self.args, "aurora_eval_log_attention_overlays", True):
+            return
+        if not self._wandb_enabled():
+            return
+
+        dataset = eval_dataset if eval_dataset is not None else self.eval_dataset
+        if dataset is None or len(dataset) == 0:
+            return
+
+        try:
+            import wandb
+        except Exception:  # pragma: no cover - guarded in _wandb_enabled
+            return
+
+        max_rows = max(int(getattr(self.args, "aurora_eval_attention_overlay_count", 50)), 0)
+        if max_rows == 0:
+            return
+
+        visual_batch_size = max(int(getattr(self.args, "aurora_eval_visual_batch_size", 4)), 1)
+        mean, std = self._get_aurora_image_stats(dataset)
+        loader = DataLoader(
+            dataset,
+            batch_size=visual_batch_size,
+            shuffle=False,
+            collate_fn=self.data_collator,
+            num_workers=0,
+        )
+
+        inner = model.module if hasattr(model, "module") else model
+        device = inner.aurora_cmd_embeddings.device
+        was_training = inner.training
+        rows = []
+
+        try:
+            inner.eval()
+            with torch.no_grad():
+                for batch in loader:
+                    images = batch["images"].to(device)
+                    gt_masks = batch["gt_masks_patches"]
+                    k_gt = batch["n_objects"]
+                    source_images = self._denormalize_aurora_images(batch["images"], mean, std)
+                    output = inner.generate_aurora(images, guidance_level=1.0, return_generated=False)
+                    attn_maps = output.get("attn_maps")
+
+                    if attn_maps is not None and attn_maps.numel() > 0:
+                        pred_attn = attn_maps.detach().cpu().float()  # (B, K, P)
+                    else:
+                        pred_attn = torch.zeros(
+                            images.shape[0],
+                            0,
+                            gt_masks.shape[-1],
+                            dtype=torch.float32,
+                        )
+
+                    for sample_idx in range(images.shape[0]):
+                        match_info = self._aurora_match_attention_maps(
+                            pred_attn[sample_idx],
+                            gt_masks[sample_idx, : int(k_gt[sample_idx].item())],
+                        )
+                        source = source_images[sample_idx]
+                        for pair in match_info["pairs"]:
+                            if len(rows) >= max_rows:
+                                break
+                            pred_overlay = self._make_aurora_attention_overlay(
+                                source,
+                                pred_attn[sample_idx, pair["pred_idx"]],
+                                color=(1.0, 0.15, 0.15),
+                            )
+                            gt_overlay = self._make_aurora_attention_overlay(
+                                source,
+                                gt_masks[sample_idx, pair["gt_idx"]],
+                                color=(0.15, 0.85, 0.25),
+                            )
+                            rows.append(
+                                [
+                                    batch["image_ids"][sample_idx],
+                                    int(pair["gt_idx"]),
+                                    int(pair["pred_idx"]),
+                                    float(pair["iou"]),
+                                    wandb.Image(source.permute(1, 2, 0).numpy()),
+                                    wandb.Image(pred_overlay.permute(1, 2, 0).numpy()),
+                                    wandb.Image(gt_overlay.permute(1, 2, 0).numpy()),
+                                ]
+                            )
+                        if len(rows) >= max_rows:
+                            break
+                    if len(rows) >= max_rows:
+                        break
+        finally:
+            inner.train(was_training)
+
+        if not rows:
+            return
+
+        columns = [
+            "image_id",
+            "gt_index",
+            "pred_index",
+            "attn_patch_iou",
+            "source",
+            "pred_overlay",
+            "gt_overlay",
+        ]
+        table = wandb.Table(columns=columns, data=rows)
+        wandb.log(
+            {f"{metric_key_prefix}/attention_overlays": table},
+            step=int(getattr(self.state, "global_step", 0)),
+        )
 
     def _compute_aurora_inpaint_weight(self, model) -> float:
         inner = model.module if hasattr(model, "module") else model
@@ -1133,17 +1430,18 @@ class AURORATrainer(Trainer):
 
     def compute_loss(self, model, inputs, return_outputs=False):
         images = inputs.pop("images")
-        current_inpaint_weight = self._compute_aurora_inpaint_weight(model)
         n_objects_tensor = inputs.pop("n_objects", None)
+        inner = model.module if hasattr(model, "module") else model
+        inpaint_weight = 0.0
+        if int(getattr(inner.config, "aurora_training_stage", 1)) >= 2:
+            inpaint_weight = self._compute_aurora_inpaint_weight(model)
         kwargs = {
             "n_objects": n_objects_tensor,
             "gt_masks_patches": inputs.pop("gt_masks_patches", None),
             "target_images": inputs.pop("target_images", None),
             "inpaint_mask_patches": inputs.pop("inpaint_mask_patches", None),
             "has_inpaint": inputs.pop("has_inpaint", None),
-            "dino_features": inputs.pop("dino_features", None),
-            "pixel_values_dino": inputs.pop("pixel_values_dino", None),
-            "aurora_inpaint_weight_override": current_inpaint_weight,
+            "aurora_inpaint_weight_override": inpaint_weight,
         }
 
         outputs = model(
@@ -1154,14 +1452,10 @@ class AURORATrainer(Trainer):
         )
         loss = outputs.loss if hasattr(outputs, "loss") else outputs[0]
 
-        inner = model.module if hasattr(model, "module") else model
         custom = getattr(self, "_custom_losses", {})
         for key, attr in [
-            ("loss_full", "loss_image_diff"),
-            ("loss_full_raw", "aurora_loss_full_raw"),
-            ("loss_slot_feat", "aurora_loss_slot_feat"),
-            ("loss_slot_attn", "aurora_loss_slot_attn"),
-            ("loss_stop", "aurora_loss_stop"),
+            ("loss_recon", "aurora_loss_recon"),
+            ("loss_mask", "aurora_loss_mask"),
             ("loss_div", "aurora_loss_div"),
             ("loss_inpaint", "aurora_loss_inpaint"),
         ]:
@@ -1170,9 +1464,13 @@ class AURORATrainer(Trainer):
                 custom.setdefault(key, []).append(
                     value.item() if torch.is_tensor(value) else float(value)
                 )
-        custom.setdefault("inpaint_weight", []).append(float(current_inpaint_weight))
-        if n_objects_tensor is not None and torch.is_tensor(n_objects_tensor):
-            custom.setdefault("n_objects_avg", []).append(float(n_objects_tensor.float().mean().item()))
+        current_inpaint_weight = getattr(inner, "aurora_inpaint_weight", None)
+        if current_inpaint_weight is not None and int(getattr(inner.config, "aurora_training_stage", 1)) >= 2:
+            custom.setdefault("inpaint_weight", []).append(
+                current_inpaint_weight.item()
+                if torch.is_tensor(current_inpaint_weight)
+                else float(current_inpaint_weight)
+            )
         self._custom_losses = custom
         return (loss, outputs) if return_outputs else loss
 
@@ -1199,39 +1497,69 @@ class AURORATrainer(Trainer):
 
     def log(self, logs: Dict[str, float]) -> None:
         custom = getattr(self, "_custom_losses", {})
+        prefix = getattr(self, "_custom_loss_prefix", None)
         for key, values in custom.items():
             if values:
-                logs[key] = sum(values) / len(values)
+                metric_name = f"{prefix}_{key}" if prefix else key
+                logs[metric_name] = sum(values) / len(values)
         custom.clear()
         super().log(logs)
 
     def evaluate(self, eval_dataset=None, ignore_keys=None, metric_key_prefix: str = "eval"):
-        metrics = super().evaluate(
-            eval_dataset=eval_dataset,
-            ignore_keys=ignore_keys,
-            metric_key_prefix=metric_key_prefix,
-        )
-        slot_metrics = {}
+        prev_custom = getattr(self, "_custom_losses", {})
+        prev_prefix = getattr(self, "_custom_loss_prefix", None)
+        self._custom_losses = {}
+        self._custom_loss_prefix = metric_key_prefix
         try:
-            slot_metrics = self._compute_aurora_slot_count_metrics(
-                self.model,
+            metrics = super().evaluate(
                 eval_dataset=eval_dataset,
+                ignore_keys=ignore_keys,
                 metric_key_prefix=metric_key_prefix,
             )
-        except Exception as exc:  # pragma: no cover - best effort metrics only
-            logger_module.warning("[AURORA] Failed to compute slot count metrics: %s", exc)
-        if slot_metrics:
-            metrics.update(slot_metrics)
-            self.log(slot_metrics)
-        try:
-            self._maybe_log_aurora_reconstructions(
-                self.model,
-                eval_dataset=eval_dataset,
-                metric_key_prefix=metric_key_prefix,
-            )
-        except Exception as exc:  # pragma: no cover - best effort logging only
-            logger_module.warning("[AURORA] Failed to log reconstruction images: %s", exc)
-        return metrics
+            recon_metrics = {}
+            try:
+                recon_metrics = self._compute_aurora_reconstruction_metrics(
+                    self.model,
+                    eval_dataset=eval_dataset,
+                    metric_key_prefix=metric_key_prefix,
+                )
+            except Exception as exc:  # pragma: no cover - best effort metrics only
+                logger_module.warning("[AURORA] Failed to compute reconstruction metrics: %s", exc)
+            if recon_metrics:
+                metrics.update(recon_metrics)
+                self.log(recon_metrics)
+            attn_metrics = {}
+            try:
+                attn_metrics = self._compute_aurora_attention_metrics(
+                    self.model,
+                    eval_dataset=eval_dataset,
+                    metric_key_prefix=metric_key_prefix,
+                )
+            except Exception as exc:  # pragma: no cover - best effort metrics only
+                logger_module.warning("[AURORA] Failed to compute attention metrics: %s", exc)
+            if attn_metrics:
+                metrics.update(attn_metrics)
+                self.log(attn_metrics)
+            try:
+                self._maybe_log_aurora_attention_overlays(
+                    self.model,
+                    eval_dataset=eval_dataset,
+                    metric_key_prefix=metric_key_prefix,
+                )
+            except Exception as exc:  # pragma: no cover - best effort logging only
+                logger_module.warning("[AURORA] Failed to log attention overlays: %s", exc)
+            try:
+                self._maybe_log_aurora_reconstructions(
+                    self.model,
+                    eval_dataset=eval_dataset,
+                    metric_key_prefix=metric_key_prefix,
+                )
+            except Exception as exc:  # pragma: no cover - best effort logging only
+                logger_module.warning("[AURORA] Failed to log reconstruction images: %s", exc)
+            return metrics
+        finally:
+            self._custom_loss_prefix = prev_prefix
+            self._custom_losses = prev_custom
 
 
 def make_data_module(tokenizer, data_args, model_configs, training_args=None) -> Dict:
@@ -1299,9 +1627,60 @@ def make_data_module(tokenizer, data_args, model_configs, training_args=None) ->
     eval_limit = 100
     if training_args is not None:
         eval_limit = max(int(getattr(training_args, "aurora_eval_num_images", 100)), 0)
-    eval_source = recon_dataset if recon_dataset is not None and len(recon_dataset) > 0 else train_dataset
-    eval_size = min(eval_limit, len(eval_source))
-    eval_dataset = torch.utils.data.Subset(eval_source, list(range(eval_size)))
+
+    if eval_limit == 0:
+        eval_dataset = torch.utils.data.Subset(train_dataset, [])
+    elif isinstance(train_dataset, AURORAMixedDataset):
+        active_indices = [idx for idx, dataset in enumerate(datasets) if len(dataset) > 0]
+        quotas = [0 for _ in datasets]
+        target_total = min(eval_limit, len(train_dataset))
+        if active_indices and target_total > 0:
+            base = target_total // len(active_indices)
+            remainder = target_total % len(active_indices)
+            for offset, dataset_idx in enumerate(active_indices):
+                requested = base + (1 if offset < remainder else 0)
+                quotas[dataset_idx] = min(len(datasets[dataset_idx]), requested)
+
+            remaining = target_total - sum(quotas)
+            while remaining > 0:
+                progressed = False
+                for dataset_idx in active_indices:
+                    if quotas[dataset_idx] >= len(datasets[dataset_idx]):
+                        continue
+                    quotas[dataset_idx] += 1
+                    remaining -= 1
+                    progressed = True
+                    if remaining == 0:
+                        break
+                if not progressed:
+                    break
+
+        eval_indices: List[int] = []
+        eval_mix_summary = []
+        for dataset_idx, (task_name, dataset) in enumerate(zip(task_names, datasets)):
+            quota = quotas[dataset_idx]
+            if quota <= 0:
+                continue
+            task_range = train_dataset.get_task_range(task_name)
+            if task_range is None:
+                continue
+            start, _ = task_range
+            if quota >= len(dataset):
+                local_indices = list(range(len(dataset)))
+            else:
+                local_indices = torch.linspace(0, len(dataset) - 1, steps=quota).round().long().tolist()
+            eval_indices.extend(start + int(local_idx) for local_idx in local_indices)
+            eval_mix_summary.append(f"{task_name}={len(local_indices)}")
+
+        eval_dataset = torch.utils.data.Subset(train_dataset, eval_indices)
+        logger_module.info(
+            "[AURORA] Eval subset: %d samples (%s)",
+            len(eval_indices),
+            ", ".join(eval_mix_summary) if eval_mix_summary else "empty",
+        )
+    else:
+        eval_size = min(eval_limit, len(train_dataset))
+        eval_dataset = torch.utils.data.Subset(train_dataset, list(range(eval_size)))
     return dict(
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
@@ -1311,15 +1690,15 @@ def make_data_module(tokenizer, data_args, model_configs, training_args=None) ->
 
 def freeze_for_aurora_phase1(model):
     model.requires_grad_(False)
+    stage = int(getattr(model.config, "aurora_training_stage", 1))
     trainable_keywords = [
-        "aurora_cmd_query",
-        "aurora_op_init",
-        "aurora_register_init",
-        "aurora_null_slot",
-        "aurora_slot_head",
-        "aurora_supervision_proj",
+        "aurora_cmd_embeddings",
+        "aurora_obj_embedding_pool",
+        "aurora_reg_embeddings",
         "diff_head_projector",
     ]
+    if stage >= 2:
+        trainable_keywords.append("latent_queries")
     n_trainable = 0
     for name, param in model.named_parameters():
         if any(keyword in name for keyword in trainable_keywords) or _is_aurora_diffusion_condition_param(name):
@@ -1327,7 +1706,7 @@ def freeze_for_aurora_phase1(model):
             if param.is_floating_point() and param.dtype != torch.float32:
                 param.data = param.data.to(torch.float32)
             n_trainable += param.numel()
-    logger_module.info("[AURORA] Phase 1 trainable params: %d", n_trainable)
+    logger_module.info("[AURORA] Stage %d trainable params: %d", stage, n_trainable)
     return model
 
 
@@ -1363,14 +1742,12 @@ def train():
     config.aurora_max_slots = model_args.aurora_max_slots
     config.aurora_n_register = model_args.aurora_n_register
     config.aurora_cmd_length = model_args.aurora_cmd_length
-    config.aurora_dino_model_name = model_args.aurora_dino_model_name
-    config.aurora_dino_dim = model_args.aurora_dino_dim
+    config.aurora_mask_loss_weight = model_args.aurora_mask_loss_weight
+    config.aurora_diversity_loss_weight = model_args.aurora_diversity_loss_weight
     config.aurora_inpaint_weight = model_args.aurora_inpaint_weight
-    config.aurora_mask_penalty = model_args.aurora_mask_penalty
-    config.aurora_loss_full_scale = model_args.aurora_loss_full_scale
-    config.aurora_detach_generation_grad = model_args.aurora_detach_generation_grad
-    config.aurora_detach_slot_chain_grad = model_args.aurora_detach_slot_chain_grad
     config.aurora_fail_on_nan = model_args.aurora_fail_on_nan
+    config.aurora_training_stage = model_args.aurora_training_stage
+    config.aurora_grad_clip_max_norm = model_args.aurora_grad_clip_max_norm
 
     model = ScaleRAEQwenForCausalLM.from_pretrained(
         model_args.model_name_or_path,
@@ -1400,15 +1777,9 @@ def train():
         vision_tower_aux_list = model.get_vision_tower_aux_list()
         if not training_args.unfreeze_mm_vision_tower:
             for vt in vision_tower_aux_list:
-                vt.to(dtype=compute_dtype)
+                vt.to(dtype=compute_dtype, device=training_args.device)
 
         data_args.image_processor_aux_list = [vt.image_processor for vt in vision_tower_aux_list]
-        if not data_args.aurora_dino_feature_root:
-            data_args.aurora_dino_processor = AutoImageProcessor.from_pretrained(
-                model_args.aurora_dino_model_name
-            )
-        else:
-            data_args.aurora_dino_processor = None
         data_args.is_multimodal = True
         data_args.vision_tower_aux_token_len_list = model_args.vision_tower_aux_token_len_list
 

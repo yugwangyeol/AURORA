@@ -34,15 +34,12 @@ logger = logging.get_logger(__name__)
 
 from ..scale_rae_arch import ScaleRAEMetaModel, ScaleRAEMetaForCausalLM, apply_custom_kernel
 from ..object_centric import (
-    SlotHead,
-    SlotSupervisionProjector,
-    build_phase3_mask,
-    build_phase3_cache_attention_bias,
-    build_full_attention_mask,
-    build_bidirectional_mask,
-    check_stopping,
+    build_aurora_v2_attention_mask,
+    sample_k_for_batch,
+    hungarian_match,
+    compute_mask_loss,
     compute_diversity_loss,
-    match_slot_to_mask,
+    extract_attention_maps,
 )
 
 from scale_rae.utils import IS_XLA_AVAILABLE
@@ -52,113 +49,16 @@ if IS_XLA_AVAILABLE:
 
 
 
-def check_params_for_nan(model: nn.Module, model_name: str = "Model"):
-    """
-    Iterates through model parameters and checks if any contain NaN values.
-
-    Args:
-        model (nn.Module): The PyTorch model instance to check.
-        model_name (str): Optional name for the model for clearer print statements.
-
-    Returns:
-        bool: True if any NaNs were found in parameters, False otherwise.
-    """
-    found_nan = False
-    print(f"\n--- Checking parameters for NaNs in {model_name} ---")
-    for name, param in model.named_parameters():
-        if not param.requires_grad: # Skip parameters that don't require gradients (e.g., buffers)
-            continue
-        if torch.isnan(param.data).any():
-            print(f"!!! NaN detected in parameter: {name}, shape: {param.shape}")
-            found_nan = True
-        # Optional: Check for Infs too
-        # if torch.isinf(param.data).any():
-        #     print(f"!!! Inf detected in parameter: {name}, shape: {param.shape}")
-        #     found_nan = True # Treat Inf as problematic too
-
-    if not found_nan:
-        print(f"--- No NaNs found in the parameters of {model_name}. ---")
-    else:
-         print(f"--- NaN detected in parameters of {model_name}! ---")
-    return found_nan
-
 
 def ensure_float32(module: nn.Module):
-    """
-    Recursively iterates through a module's parameters and buffers,
-    ensuring they are float32.
+    """Convert all floating-point parameters and buffers to float32."""
+    for param in module.parameters(recurse=True):
+        if param.is_floating_point() and param.dtype != torch.float32:
+            param.data = param.data.to(torch.float32)
+    for buf in module.buffers(recurse=True):
+        if buf.is_floating_point() and buf.dtype != torch.float32:
+            buf.data = buf.data.to(torch.float32)
 
-    Args:
-        module (nn.Module): The PyTorch module to convert.
-    """
-    xm.mark_step()  # Mark the step for XLA
-
-    print(f"Attempting to convert module '{module.__class__.__name__}' and its children to float32...")
-    conversion_count = 0
-    buffer_conversion_count = 0
-
-    for name, param in module.named_parameters(recurse=True):
-
-        print("I am at least surverying", name, param.dtype)
-
-        if param.dtype != torch.float32:
-            try:
-                print("converting:", name)
-                param.data = param.data.to(torch.float32)
-                # Ensure requires_grad status is preserved if it was True
-                if param.requires_grad:
-                     param.requires_grad_(True)
-                conversion_count += 1
-            except Exception as e:
-                 print(f"  Failed to convert parameter '{name}': {e}")
-
-
-
-    print(f"Completed conversion. Converted {conversion_count} parameters and {buffer_conversion_count} buffers.")
-
-    # --- Verification Step (Optional but recommended) ---
-    print("\nVerifying dtypes after conversion...")
-    all_float32 = True
-    for name, param in module.named_parameters(recurse=True):
-        if param.dtype != torch.float32:
-            print(f"  Verification FAILED: Parameter '{name}' is still {param.dtype}")
-            all_float32 = False
-    for name, buf in module.named_buffers(recurse=True):
-        if torch.is_floating_point(buf) and buf.dtype != torch.float32:
-            print(f"  Verification FAILED: Buffer '{name}' is still {buf.dtype}")
-            all_float32 = False
-
-    if all_float32:
-        print("  Verification PASSED: All parameters and float buffers are now float32.")
-    else:
-         print("  Verification FAILED: Not all parameters/buffers were converted to float32.")
-
-    xm.mark_step()  # Mark the step for XLA
-
-
-def test_rectified_flow_projector(rf_proj):
-    """
-    Test the RectifiedFlowProjector class.
-    """
-    # Create a dummy input tensor
-    z = torch.randn(6, rf_proj.z_channels)
-    x = torch.randn(6, rf_proj.diffusion_tokens, rf_proj.diffusion_channels)
-
-    print("z and y dypes are:", z.dtype, x.dtype)
-
-    # Forward pass
-    output = rf_proj(z, x)
-    print(f"--- [FORWARD] output shape: {output.shape} --")
-    
-    
-    # loss compute 
-    loss = rf_proj.training_loss(z, x)
-    print(f"--- [LOSS] loss: {loss} --")
-    
-    # inference
-    
-    x_end = rf_proj.infer(z)
-    print(f"--- [INFER] x_end shape: {x_end.shape} --")
 
 
 
@@ -170,19 +70,15 @@ class ScaleRAEQwenConfig(Qwen2Config):
     vision_loss_mode = "causal"
     vision_tower_aux_token_len_list = [256]  # Default vision token length
     use_aurora = False
-    aurora_max_slots = 10
-    aurora_n_register = 8
-    aurora_cmd_length = 8
-    aurora_stop_entropy_threshold = 0.92
-    aurora_stop_similarity_threshold = 0.95
+    aurora_max_slots = 10        # K_max: object embedding pool size
+    aurora_n_register = 8        # R: number of register tokens
+    aurora_cmd_length = 8        # C: number of cmd tokens
+    aurora_mask_loss_weight = 1.0    # λ_mask
+    aurora_diversity_loss_weight = 0.1  # λ_div
     aurora_inpaint_weight = 0.5
-    aurora_mask_penalty = 10.0
-    aurora_dino_dim = 768
-    aurora_dino_model_name = "facebook/dinov2-base"
-    aurora_loss_full_scale = 4096.0
-    aurora_detach_generation_grad = True
-    aurora_detach_slot_chain_grad = True
     aurora_fail_on_nan = True
+    aurora_training_stage = 1    # 1 = decomposition, 2 = inpainting
+    aurora_grad_clip_max_norm = 1.0
 
 
 class ScaleRAEQwenModel(ScaleRAEMetaModel, Qwen2Model):
@@ -709,12 +605,10 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         target_images: Optional[torch.Tensor] = None,
         inpaint_mask_patches: Optional[torch.Tensor] = None,
         has_inpaint: Optional[torch.Tensor] = None,
-        dino_features: Optional[torch.Tensor] = None,
-        pixel_values_dino: Optional[torch.Tensor] = None,
         aurora_inpaint_weight_override: Optional[float] = None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
 
-        # AURORA routing
+        # AURORA v2 routing
         if getattr(self.config, 'use_aurora', False) and not decoding and images is not None:
             aurora_loss, aurora_info = self._forward_aurora(
                 images=images,
@@ -723,8 +617,6 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
                 target_images=target_images,
                 inpaint_mask_patches=inpaint_mask_patches,
                 has_inpaint=has_inpaint,
-                dino_features=dino_features,
-                pixel_values_dino=pixel_values_dino,
                 aurora_inpaint_weight_override=aurora_inpaint_weight_override,
             )
             return CausalLMOutputWithPast(
@@ -1666,54 +1558,38 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
     # ================================================================
 
     def _init_aurora(self):
+        """Initialise AURORA v2 learnable tokens and freeze base model."""
         D = self.config.hidden_size
         embed_std = 1.0 / math.sqrt(D)
         self.aurora_C = getattr(self.config, 'aurora_cmd_length', 8)
         self.aurora_K_max = getattr(self.config, 'aurora_max_slots', 10)
         self.aurora_N_reg = getattr(self.config, 'aurora_n_register', 8)
-        self.aurora_mask_penalty = getattr(self.config, 'aurora_mask_penalty', 10.0)
-        self.aurora_dino_dim = getattr(self.config, 'aurora_dino_dim', 768)
-        self.aurora_dino_model_name = getattr(
-            self.config, 'aurora_dino_model_name', 'facebook/dinov2-base'
-        )
 
-        self.aurora_cmd_query = nn.Parameter(torch.randn(self.aurora_C, D) * embed_std)
-        self.aurora_op_init = nn.Parameter(torch.randn(1, D) * embed_std)
-        self.aurora_register_init = nn.Parameter(torch.randn(self.aurora_N_reg, D) * embed_std)
-        self.aurora_null_slot = nn.Parameter(torch.zeros(1, 1, D))
-        self.aurora_slot_head = SlotHead(D, n_heads=8)
-        self.aurora_supervision_proj = SlotSupervisionProjector(D, self.aurora_dino_dim)
-        self._aurora_dino_encoder = None
-        self._aurora_warned_no_dino = False
+        # Learnable tokens (v2)
+        self.aurora_cmd_embeddings = nn.Parameter(torch.randn(self.aurora_C, D) * embed_std)
+        self.aurora_obj_embedding_pool = nn.Parameter(torch.randn(self.aurora_K_max, D) * embed_std)
+        self.aurora_reg_embeddings = nn.Parameter(torch.randn(self.aurora_N_reg, D) * embed_std)
+
         self._aurora_warned_nan_diff_loss = False
-        self._aurora_warned_nan_slot_feat = False
         self._aurora_warned_nan_total_loss = False
+        self._aurora_global_step = 0
 
+        # Freeze rae_query (latent_queries) — used as frozen conditioning for DiT
+        stage = int(getattr(self.config, 'aurora_training_stage', 1))
         if self.get_model().latent_queries is not None:
-            self.get_model().latent_queries.requires_grad_(False)
+            self.get_model().latent_queries.requires_grad_(stage >= 2)
 
         print(
-            f"[AURORA] Initialised — D={D}, C={self.aurora_C}, "
+            f"[AURORA v2] Initialised — D={D}, C={self.aurora_C}, "
             f"K_max={self.aurora_K_max}, N_reg={self.aurora_N_reg}, "
-            f"dino_dim={self.aurora_dino_dim}"
+            f"stage={stage}"
         )
-
-    def _get_aurora_dino_encoder(self):
-        if self._aurora_dino_encoder is None:
-            from transformers import Dinov2Model
-
-            encoder = Dinov2Model.from_pretrained(self.aurora_dino_model_name)
-            encoder.requires_grad_(False)
-            encoder.eval()
-            self._aurora_dino_encoder = encoder
-        return self._aurora_dino_encoder
 
     def _aurora_check_finite(self, tensor: Optional[torch.Tensor], name: str):
         if tensor is None or not torch.is_tensor(tensor):
             return
         if torch.isfinite(tensor).all():
             return
-
         message = f"[AURORA] Non-finite values detected in {name}."
         if getattr(self.config, 'aurora_fail_on_nan', True):
             raise FloatingPointError(message)
@@ -1743,96 +1619,14 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         gt_siglip = raw_features.detach()
         return raw_features.detach(), img_features.detach(), gt_siglip
 
-    def _encode_dino_aurora(
-        self,
-        pixel_values_dino: Optional[torch.Tensor] = None,
-        dino_features: Optional[torch.Tensor] = None,
-    ):
-        if dino_features is not None:
-            if dino_features.dim() == 2:
-                dino_features = dino_features.unsqueeze(0)
-            dino_features = dino_features.to(device=self.aurora_cmd_query.device, dtype=torch.float32)
-        elif pixel_values_dino is not None:
-            if pixel_values_dino.dim() == 3:
-                pixel_values_dino = pixel_values_dino.unsqueeze(0)
-
-            encoder = self._get_aurora_dino_encoder().to(pixel_values_dino.device)
-            with torch.no_grad():
-                outputs = encoder(
-                    pixel_values_dino.to(
-                        device=pixel_values_dino.device,
-                        dtype=next(encoder.parameters()).dtype,
-                    )
-                )
-                dino_features = outputs.last_hidden_state[:, 1:, :]
-        else:
-            return None
-
-        if dino_features.shape[1] != self.num_image_tokens:
-            side = int(math.sqrt(dino_features.shape[1]))
-            tgt = int(math.sqrt(self.num_image_tokens))
-            dino_features = dino_features.view(
-                dino_features.shape[0], side, side, dino_features.shape[-1]
-            ).permute(0, 3, 1, 2)
-            dino_features = F.interpolate(
-                dino_features,
-                size=(tgt, tgt),
-                mode='bilinear',
-                align_corners=False,
-            ).permute(0, 2, 3, 1).reshape(
-                dino_features.shape[0], self.num_image_tokens, -1
-            )
-
-        return dino_features.detach().to(self.aurora_cmd_query.device)
-
-    def _aurora_cache_length(self, kv_cache) -> int:
-        if kv_cache is None:
-            return 0
-        if isinstance(kv_cache, Cache):
-            return kv_cache.get_seq_length()
-        first_layer = kv_cache[0]
-        return first_layer[0].shape[-2]
-
-    def _aurora_detach_cache(self, kv_cache):
-        if kv_cache is None:
-            return None
-        if isinstance(kv_cache, Cache):
-            legacy_cache = kv_cache.to_legacy_cache()
-            return self._aurora_detach_cache(legacy_cache)
-        if torch.is_tensor(kv_cache):
-            return kv_cache.detach()
-        if isinstance(kv_cache, tuple):
-            return tuple(self._aurora_detach_cache(item) for item in kv_cache)
-        if isinstance(kv_cache, list):
-            return [self._aurora_detach_cache(item) for item in kv_cache]
-        return kv_cache
-
     def _aurora_model_dtype(self) -> torch.dtype:
         return next(self.model.parameters()).dtype
-
-    def _aurora_run_phase1(self, img_features: torch.Tensor):
-        B = img_features.shape[0]
-        device = img_features.device
-        cmd_embeds = self.aurora_cmd_query.unsqueeze(0).expand(B, -1, -1)
-        phase1_input = torch.cat([img_features, cmd_embeds], dim=1).to(dtype=self._aurora_model_dtype())
-        phase1_bias = build_bidirectional_mask(
-            phase1_input.shape[1], device=device
-        ).to(dtype=phase1_input.dtype).expand(B, -1, -1, -1)
-
-        out = self.model(
-            inputs_embeds=phase1_input,
-            attention_bias=phase1_bias,
-            use_cache=True,
-            return_dict=True,
-        )
-        img_hidden = out.last_hidden_state[:, :self.num_image_tokens, :]
-        return cmd_embeds, img_hidden, out.past_key_values
 
     def _aurora_compute_diffusion_loss(
         self,
         hidden: torch.Tensor,
         target_features: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> torch.Tensor:
         self._aurora_check_finite(hidden, "rae_hidden")
         cond = hidden
         if getattr(self, 'use_diff_head_projector', False):
@@ -1851,437 +1645,155 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
             loss = torch.nan_to_num(loss, nan=1e4, posinf=1e4, neginf=1e4)
         if torch.is_tensor(loss) and loss.dim() > 0:
             loss = loss.mean()
-        return loss.float(), cond
+        return loss.float()
 
-    def _aurora_full_forward_from_slots(
+    def _aurora_positions(self, K: int) -> Dict[str, int]:
+        N_img = self.num_image_tokens
+        N_rae = self.get_model().latent_queries.shape[0]
+        img_s, img_e = 0, N_img
+        obj_s = N_img + self.aurora_C
+        obj_e = obj_s + K
+        reg_s = obj_e
+        reg_e = reg_s + self.aurora_N_reg
+        rae_s = reg_e
+        rae_e = rae_s + N_rae
+        return {
+            "img_s": img_s,
+            "img_e": img_e,
+            "obj_s": obj_s,
+            "obj_e": obj_e,
+            "reg_s": reg_s,
+            "reg_e": reg_e,
+            "rae_s": rae_s,
+            "rae_e": rae_e,
+        }
+
+    def _aurora_run_pass(
         self,
         img_features: torch.Tensor,
-        slots: List[torch.Tensor],
-        detach_cmd: bool = False,
+        obj_embeds: torch.Tensor,
+        reg_embeds: torch.Tensor,
     ) -> torch.Tensor:
-        B, _, D = img_features.shape
+        """Run one AURORA pass with explicit object/register token inputs."""
+        B = img_features.shape[0]
         device = img_features.device
         N_img = self.num_image_tokens
         N_rae = self.get_model().latent_queries.shape[0]
+        K = obj_embeds.shape[1]
 
-        slot_embeds = (
-            torch.cat(slots, dim=1)
-            if len(slots) > 0
-            else img_features.new_zeros(B, 0, D)
-        )
-        reg_embeds = self.aurora_register_init.unsqueeze(0).expand(B, -1, -1)
-        cmd_embeds = self.aurora_cmd_query.unsqueeze(0).expand(B, -1, -1)
-        if detach_cmd:
-            cmd_embeds = cmd_embeds.detach()
+        cmd_embeds = self.aurora_cmd_embeddings.unsqueeze(0).expand(B, -1, -1)
         rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1)
-
-        full_input = torch.cat(
-            [img_features, cmd_embeds, slot_embeds, reg_embeds, rae_embeds], dim=1
+        inputs_embeds = torch.cat(
+            [img_features, cmd_embeds, obj_embeds, reg_embeds, rae_embeds],
+            dim=1,
         ).to(dtype=self._aurora_model_dtype())
-        full_bias = build_full_attention_mask(
-            N_img,
-            self.aurora_C,
-            slot_embeds.shape[1],
-            self.aurora_N_reg,
-            N_rae,
-            device,
-        ).to(dtype=full_input.dtype).expand(B, -1, -1, -1)
+
+        attn_bias = build_aurora_v2_attention_mask(
+            n_img=N_img,
+            n_cmd=self.aurora_C,
+            n_obj=K,
+            n_reg=self.aurora_N_reg,
+            n_rae=N_rae,
+            device=device,
+            dtype=inputs_embeds.dtype,
+        ).expand(B, -1, -1, -1)
 
         out = self.model(
-            inputs_embeds=full_input,
-            attention_bias=full_bias,
+            inputs_embeds=inputs_embeds,
+            attention_bias=attn_bias,
             use_cache=False,
             return_dict=True,
         )
-        return out.last_hidden_state[:, -N_rae:, :]
+        return out.last_hidden_state
 
-    def _forward_aurora_inpainting(
+    def _aurora_pick_slot_from_masks(
         self,
-        img_features: torch.Tensor,
-        target_images: torch.Tensor,
-        inpaint_mask_patches: torch.Tensor,
-        collected_slots: List[torch.Tensor],
-        collected_attn_maps: List[torch.Tensor],
-        n_objects: torch.Tensor,
+        pred_maps: torch.Tensor,
+        target_masks: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Pick the object slot with the highest soft IoU against a target mask."""
+        if pred_maps.dim() != 3:
+            raise ValueError(f"pred_maps must be [B, K, P], got {tuple(pred_maps.shape)}")
+        if target_masks.dim() != 2:
+            raise ValueError(f"target_masks must be [B, P], got {tuple(target_masks.shape)}")
+        if pred_maps.shape[0] != target_masks.shape[0]:
+            raise ValueError(
+                f"Batch mismatch: pred_maps={tuple(pred_maps.shape)} target_masks={tuple(target_masks.shape)}"
+            )
+
+        pred = pred_maps.float().clamp(0.0, 1.0)
+        target = target_masks.float().unsqueeze(1).clamp(0.0, 1.0)
+        intersection = torch.minimum(pred, target).sum(dim=-1)
+        union = pred.sum(dim=-1) + target.sum(dim=-1) - intersection
+        scores = intersection / union.clamp_min(1e-6)
+        return scores.argmax(dim=1), scores
+
+    def _aurora_drop_slots(
+        self,
+        obj_hidden: torch.Tensor,
+        remove_indices: torch.Tensor,
     ) -> torch.Tensor:
-        if len(collected_slots) == 0:
-            return img_features.new_zeros(())
+        """Drop one object slot per sample while keeping sequence length aligned."""
+        B, K, D = obj_hidden.shape
+        if K == 0:
+            return obj_hidden
+        remove_indices = remove_indices.to(device=obj_hidden.device, dtype=torch.long).clamp(0, max(K - 1, 0))
+        if K == 1:
+            return obj_hidden.new_empty(B, 0, D)
 
-        _, _, gt_siglip_target = self._encode_images_aurora(target_images)
-        remove_indices = match_slot_to_mask(
-            attn_maps=collected_attn_maps,
-            inpaint_mask=inpaint_mask_patches,
-            n_objects=n_objects,
-        )
-        detach_generation_grad = bool(getattr(self.config, "aurora_detach_generation_grad", True))
+        keep_mask = torch.ones(B, K, dtype=torch.bool, device=obj_hidden.device)
+        keep_mask.scatter_(1, remove_indices.unsqueeze(1), False)
+        return obj_hidden[keep_mask].view(B, K - 1, D)
 
-        B = img_features.shape[0]
-        null_slot = self.aurora_null_slot.expand(B, -1, -1)
-        edited_slots = []
-        for idx, slot_t in enumerate(collected_slots):
-            mask = (remove_indices == idx).view(B, 1, 1)
-            source_slot = slot_t.detach() if detach_generation_grad else slot_t
-            edited_slots.append(torch.where(mask, null_slot, source_slot))
-
-        rae_hidden = self._aurora_full_forward_from_slots(
-            img_features,
-            edited_slots,
-            detach_cmd=detach_generation_grad,
-        )
-        loss_inpaint, _ = self._aurora_compute_diffusion_loss(rae_hidden, gt_siglip_target)
-        loss_full_scale = getattr(self.config, 'aurora_loss_full_scale', 1.0)
-        return loss_inpaint / max(loss_full_scale, 1.0)
-
-    def _forward_aurora(
+    def _aurora_normalize_slot_indices(
         self,
-        images: torch.Tensor,
-        n_objects: Optional[torch.Tensor] = None,
-        gt_masks_patches: Optional[torch.Tensor] = None,
-        target_images: Optional[torch.Tensor] = None,
-        inpaint_mask_patches: Optional[torch.Tensor] = None,
-        has_inpaint: Optional[torch.Tensor] = None,
-        dino_features: Optional[torch.Tensor] = None,
-        pixel_values_dino: Optional[torch.Tensor] = None,
-        aurora_inpaint_weight_override: Optional[float] = None,
-    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        model_device = self.aurora_cmd_query.device
-        images = images.to(model_device)
-        if n_objects is not None:
-            n_objects = n_objects.to(model_device)
-        if gt_masks_patches is not None:
-            gt_masks_patches = gt_masks_patches.to(model_device)
-        if target_images is not None:
-            target_images = target_images.to(model_device)
-        if inpaint_mask_patches is not None:
-            inpaint_mask_patches = inpaint_mask_patches.to(model_device)
-        if has_inpaint is not None:
-            has_inpaint = has_inpaint.to(model_device)
-        if dino_features is not None:
-            dino_features = dino_features.to(model_device)
-        if pixel_values_dino is not None:
-            pixel_values_dino = pixel_values_dino.to(model_device)
-
-        B = images.shape[0]
-        device = images.device
-        D = self.config.hidden_size
-        N_img = self.num_image_tokens
-        N_rae = self.get_model().latent_queries.shape[0]
-        zero = torch.zeros((), device=device, dtype=torch.float32)
-
-        if n_objects is None:
-            n_objects = torch.full(
-                (B,), self.aurora_K_max - 1, device=device, dtype=torch.long
-            )
+        slot_indices,
+        batch_size: int,
+        device: torch.device,
+    ) -> torch.Tensor:
+        if slot_indices is None:
+            raise ValueError("slot_indices must not be None when normalization is requested.")
+        if isinstance(slot_indices, int):
+            return torch.full((batch_size,), slot_indices, device=device, dtype=torch.long)
+        if torch.is_tensor(slot_indices):
+            slot_tensor = slot_indices.to(device=device, dtype=torch.long).view(-1)
         else:
-            n_objects = n_objects.to(device=device, dtype=torch.long).clamp(
-                min=0, max=self.aurora_K_max - 1
+            slot_tensor = torch.as_tensor(slot_indices, device=device, dtype=torch.long).view(-1)
+        if slot_tensor.numel() == 1 and batch_size > 1:
+            slot_tensor = slot_tensor.expand(batch_size)
+        if slot_tensor.numel() != batch_size:
+            raise ValueError(
+                f"Expected {batch_size} slot indices, got {slot_tensor.numel()} from {slot_indices!r}"
             )
+        return slot_tensor
 
-        if gt_masks_patches is None:
-            gt_masks_patches = images.new_zeros(B, self.aurora_K_max - 1, N_img)
-        else:
-            gt_masks_patches = gt_masks_patches.to(device=device, dtype=torch.float32)
-
-        _, img_features, gt_siglip = self._encode_images_aurora(images)
-        loss_dtype = torch.float32
-        dino_features = self._encode_dino_aurora(
-            pixel_values_dino=pixel_values_dino,
-            dino_features=dino_features,
-        )
-        if dino_features is None and not self._aurora_warned_no_dino:
-            logger.warning("[AURORA] pixel_values_dino is missing; skipping DINO slot supervision.")
-            self._aurora_warned_no_dino = True
-
-        _, img_hidden, kv_cache = self._aurora_run_phase1(img_features)
-
-        current_input = self.aurora_op_init.unsqueeze(0).expand(B, -1, -1)
-        accumulated_mask = torch.zeros(B, 1, 1, N_img, device=device, dtype=img_hidden.dtype)
-        collected_slots: List[torch.Tensor] = []
-        collected_attn_maps: List[torch.Tensor] = []
-        prev_slot = None
-
-        K_gt_max = int(n_objects.max().item()) if n_objects.numel() > 0 else 0
-        loss_slot_feat = zero
-        loss_slot_attn = zero
-        loss_stop = zero
-
-        for t in range(K_gt_max + 1):
-            out_step = self.model(
-                inputs_embeds=current_input.to(dtype=self._aurora_model_dtype()),
-                past_key_values=kv_cache,
-                use_cache=True,
-                return_dict=True,
-            )
-            kv_cache = out_step.past_key_values
-            h_t = out_step.last_hidden_state
-            slot_t, alpha_t = self.aurora_slot_head(h_t, img_hidden, accumulated_mask)
-            self._aurora_check_finite(slot_t, f"slot_t[{t}]")
-            self._aurora_check_finite(alpha_t, f"alpha_t[{t}]")
-
-            if t < K_gt_max:
-                valid = (t < n_objects)
-                valid_f = valid.view(B, 1, 1)
-                gt_mask_t = gt_masks_patches[:, t, :]
-
-                if dino_features is not None and valid.any():
-                    gt_norm = gt_mask_t / (gt_mask_t.sum(dim=-1, keepdim=True) + 1e-8)
-                    gt_dino = (gt_norm.unsqueeze(-1) * dino_features).sum(dim=1)
-                    pred_dino = self.aurora_supervision_proj(slot_t.squeeze(1))
-                    gt_dino = gt_dino.to(dtype=pred_dino.dtype)
-                    self._aurora_check_finite(pred_dino, f"pred_dino[{t}]")
-                    self._aurora_check_finite(gt_dino, f"gt_dino[{t}]")
-                    slot_feat_term = F.mse_loss(pred_dino[valid], gt_dino[valid])
-                    loss_slot_feat = loss_slot_feat + slot_feat_term
-
-                if valid.any():
-                    alpha_safe = alpha_t[valid].clamp(1e-7, 1.0 - 1e-7)
-                    with torch.autocast(device_type=alpha_safe.device.type, enabled=False):
-                        loss_slot_attn = loss_slot_attn + F.binary_cross_entropy(
-                            alpha_safe.float(),
-                            gt_mask_t[valid].float(),
-                            reduction='mean',
-                        )
-
-                stored_slot = torch.where(
-                    valid_f,
-                    slot_t,
-                    self.aurora_null_slot.expand(B, -1, -1),
-                )
-                stored_alpha = alpha_t * valid.float().unsqueeze(-1)
-                collected_slots.append(stored_slot)
-                collected_attn_maps.append(stored_alpha)
-
-                accumulated_mask = accumulated_mask - (
-                    self.aurora_mask_penalty * gt_mask_t.unsqueeze(1).unsqueeze(1)
-                )
-                next_input_slot = (
-                    stored_slot.detach()
-                    if getattr(self.config, "aurora_detach_slot_chain_grad", True)
-                    else stored_slot
-                )
-                current_input = next_input_slot
-                prev_slot = stored_slot.detach()
-            else:
-                ent = -(alpha_t * torch.log(alpha_t + 1e-8)).sum(dim=-1)
-                self._aurora_check_finite(ent, "stop_entropy")
-                loss_stop_ent = -(ent / math.log(N_img)).mean()
-                loss_stop_sim = zero
-                if prev_slot is not None:
-                    sim = F.cosine_similarity(
-                        slot_t.squeeze(1),
-                        prev_slot.squeeze(1),
-                        dim=-1,
-                    )
-                    self._aurora_check_finite(sim, "stop_similarity")
-                    loss_stop_sim = -sim.mean()
-                loss_stop = 0.5 * loss_stop_ent + 0.5 * loss_stop_sim
-
-        K_avg = max(float(n_objects.float().mean().item()), 1.0)
-        loss_slot_feat = (loss_slot_feat / K_avg).float()
-        loss_slot_attn = (loss_slot_attn / K_avg).float()
-        loss_stop = loss_stop.float()
-
-        detach_generation_grad = bool(getattr(self.config, "aurora_detach_generation_grad", True))
-        phase3_kv_cache = self._aurora_detach_cache(kv_cache) if detach_generation_grad else kv_cache
-        prefix_len = self._aurora_cache_length(phase3_kv_cache)
-        reg_embeds = self.aurora_register_init.unsqueeze(0).expand(B, -1, -1)
-        rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1)
-        phase3_input = torch.cat([reg_embeds, rae_embeds], dim=1).to(dtype=self._aurora_model_dtype())
-        phase3_bias = build_phase3_cache_attention_bias(
-            prefix_len=prefix_len,
-            n_reg=self.aurora_N_reg,
-            n_rae=N_rae,
-            batch_size=B,
-            device=device,
-            dtype=phase3_input.dtype,
-        )
-        out3 = self.model(
-            inputs_embeds=phase3_input,
-            past_key_values=phase3_kv_cache,
-            attention_bias=phase3_bias,
-            use_cache=True,
-            return_dict=True,
-        )
-        rae_hidden = out3.last_hidden_state[:, self.aurora_N_reg:, :]
-
-        loss_full, _ = self._aurora_compute_diffusion_loss(rae_hidden, gt_siglip)
-        loss_div = compute_diversity_loss(collected_slots, n_objects).float()
-
-        loss_full_scale = getattr(self.config, 'aurora_loss_full_scale', 1.0)
-        loss_full_scaled = loss_full / max(loss_full_scale, 1.0)
-        loss_recon = (
-            1.0 * loss_full_scaled
-            + 1.0 * loss_slot_feat
-            + 0.5 * loss_slot_attn
-            + 0.1 * loss_stop
-            + 0.05 * loss_div
-        )
-
-        loss_inpaint = zero
-        if has_inpaint is None and target_images is not None and inpaint_mask_patches is not None:
-            has_inpaint = torch.ones(B, dtype=torch.bool, device=device)
-        if (
-            target_images is not None
-            and inpaint_mask_patches is not None
-            and has_inpaint is not None
-            and has_inpaint.any()
-            and len(collected_slots) > 0
-        ):
-            loss_inpaint = self._forward_aurora_inpainting(
-                img_features=img_features[has_inpaint],
-                target_images=target_images[has_inpaint],
-                inpaint_mask_patches=inpaint_mask_patches[has_inpaint].to(device=device, dtype=torch.float32),
-                collected_slots=[slot[has_inpaint] for slot in collected_slots],
-                collected_attn_maps=[attn[has_inpaint] for attn in collected_attn_maps],
-                n_objects=n_objects[has_inpaint],
-            ).float()
-
-        effective_inpaint_weight = (
-            float(aurora_inpaint_weight_override)
-            if aurora_inpaint_weight_override is not None
-            else float(getattr(self.config, 'aurora_inpaint_weight', 0.5))
-        )
-        total_loss = loss_recon
-        if (
-            target_images is not None
-            and inpaint_mask_patches is not None
-            and has_inpaint is not None
-            and has_inpaint.any()
-        ):
-            total_loss = total_loss + effective_inpaint_weight * loss_inpaint
-        if not torch.isfinite(total_loss).all():
-            self._aurora_check_finite(total_loss, "total_loss")
-            if torch.isnan(total_loss).any() and not getattr(self, "_aurora_warned_nan_total_loss", False):
-                logger.warning("[AURORA] total loss produced NaN; clamping to a finite penalty.")
-                self._aurora_warned_nan_total_loss = True
-            total_loss = torch.nan_to_num(total_loss, nan=1e4, posinf=1e4, neginf=1e4)
-
-        info = {
-            "loss_full_raw": loss_full.detach(),
-            "loss_full": loss_full_scaled.detach(),
-            "loss_slot_feat": loss_slot_feat.detach(),
-            "loss_slot_attn": loss_slot_attn.detach(),
-            "loss_stop": loss_stop.detach(),
-            "loss_div": loss_div.detach() if torch.is_tensor(loss_div) else torch.tensor(loss_div, device=device),
-            "loss_inpaint": loss_inpaint.detach(),
-            "inpaint_weight": torch.tensor(effective_inpaint_weight, device=device, dtype=torch.float32),
-            "K_actual": torch.tensor(len(collected_slots), device=device),
-            "K_gt_max": torch.tensor(K_gt_max, device=device),
-        }
-
-        self.loss_image_diff = loss_full_scaled.detach()
-        self.aurora_loss_full_raw = loss_full.detach()
-        self.aurora_loss_slot_feat = loss_slot_feat.detach()
-        self.aurora_loss_slot_attn = loss_slot_attn.detach()
-        self.aurora_loss_stop = loss_stop.detach()
-        self.aurora_loss_div = info["loss_div"]
-        self.aurora_loss_inpaint = loss_inpaint.detach()
-        self.aurora_inpaint_weight_current = info["inpaint_weight"]
-        self._aurora_cached_attn_maps = [a.detach() for a in collected_attn_maps]
-
-        return total_loss, info
-
-    @torch.no_grad()
-    def generate_aurora(
+    def _aurora_swap_slots(
         self,
-        images: torch.Tensor,
-        stop_entropy: Optional[float] = None,
-        stop_sim: Optional[float] = None,
-        max_slots: Optional[int] = None,
+        target_hidden: torch.Tensor,
+        source_hidden: torch.Tensor,
+        source_indices: torch.Tensor,
+        target_indices: torch.Tensor,
+    ) -> torch.Tensor:
+        mixed = target_hidden.clone()
+        batch_idx = torch.arange(target_hidden.shape[0], device=target_hidden.device)
+        mixed[batch_idx, target_indices] = source_hidden[batch_idx, source_indices]
+        return mixed
+
+    def _aurora_decode_output(
+        self,
+        lm_output: torch.Tensor,
+        K: int,
         guidance_level: float = 1.0,
         return_generated: bool = True,
     ) -> Dict[str, torch.Tensor]:
-        model_device = self.aurora_cmd_query.device
-        images = images.to(model_device)
-        B = images.shape[0]
-        device = images.device
-        D = self.config.hidden_size
-        N_img = self.num_image_tokens
-        N_rae = self.get_model().latent_queries.shape[0]
-        stop_entropy = stop_entropy if stop_entropy is not None else getattr(
-            self.config, 'aurora_stop_entropy_threshold', 0.92
+        positions = self._aurora_positions(K)
+        pred_maps = extract_attention_maps(
+            lm_output,
+            list(range(positions["obj_s"], positions["obj_e"])),
+            positions["img_s"],
+            positions["img_e"],
         )
-        stop_sim = stop_sim if stop_sim is not None else getattr(
-            self.config, 'aurora_stop_similarity_threshold', 0.95
-        )
-        max_slots = max_slots if max_slots is not None else self.aurora_K_max
-
-        _, img_features, _ = self._encode_images_aurora(images)
-        _, img_hidden, kv_cache = self._aurora_run_phase1(img_features)
-
-        current_input = self.aurora_op_init.unsqueeze(0).expand(B, -1, -1)
-        accumulated_mask = torch.zeros(B, 1, 1, N_img, device=device, dtype=img_hidden.dtype)
-        collected_slots: List[torch.Tensor] = []
-        collected_attn_maps: List[torch.Tensor] = []
-        stop_flags = torch.zeros(B, dtype=torch.bool, device=device)
-        slot_counts = torch.zeros(B, dtype=torch.long, device=device)
-        prev_slot = None
-
-        for t in range(max_slots):
-            out_step = self.model(
-                inputs_embeds=current_input.to(dtype=self._aurora_model_dtype()),
-                past_key_values=kv_cache,
-                use_cache=True,
-                return_dict=True,
-            )
-            kv_cache = out_step.past_key_values
-            h_t = out_step.last_hidden_state
-            slot_t, alpha_t = self.aurora_slot_head(h_t, img_hidden, accumulated_mask)
-
-            active = ~stop_flags
-            if t >= 1:
-                should_stop = check_stopping(
-                    alpha_t=alpha_t,
-                    slot_t=slot_t,
-                    prev_slot=prev_slot,
-                    n_patches=N_img,
-                    entropy_threshold=stop_entropy,
-                    similarity_threshold=stop_sim,
-                )
-                active = active & ~should_stop
-                stop_flags = stop_flags | should_stop
-                if not active.any():
-                    break
-
-            active_f = active.view(B, 1, 1)
-            stored_slot = torch.where(
-                active_f,
-                slot_t,
-                self.aurora_null_slot.expand(B, -1, -1),
-            )
-            stored_alpha = alpha_t * active.float().unsqueeze(-1)
-            collected_slots.append(stored_slot)
-            collected_attn_maps.append(stored_alpha)
-            slot_counts = slot_counts + active.long()
-            accumulated_mask = accumulated_mask - (
-                self.aurora_mask_penalty * stored_alpha.unsqueeze(1).unsqueeze(1)
-            )
-            current_input = stored_slot
-            if prev_slot is None:
-                prev_slot = stored_slot.detach()
-            else:
-                prev_slot = torch.where(active_f, stored_slot.detach(), prev_slot)
-
-        prefix_len = self._aurora_cache_length(kv_cache)
-        reg_embeds = self.aurora_register_init.unsqueeze(0).expand(B, -1, -1)
-        rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1)
-        phase3_input = torch.cat([reg_embeds, rae_embeds], dim=1).to(dtype=self._aurora_model_dtype())
-        phase3_bias = build_phase3_cache_attention_bias(
-            prefix_len=prefix_len,
-            n_reg=self.aurora_N_reg,
-            n_rae=N_rae,
-            batch_size=B,
-            device=device,
-            dtype=phase3_input.dtype,
-        )
-        out3 = self.model(
-            inputs_embeds=phase3_input,
-            past_key_values=kv_cache,
-            attention_bias=phase3_bias,
-            use_cache=True,
-            return_dict=True,
-        )
-        rae_hidden = out3.last_hidden_state[:, self.aurora_N_reg:, :]
+        rae_hidden = lm_output[:, positions["rae_s"]:positions["rae_e"], :]
         rae_cond = rae_hidden
         generated = None
         if return_generated:
@@ -2294,72 +1806,356 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
                 rae_cond.to(dtype=diff_dtype),
                 guidance_level=guidance_level,
             )
-
         return {
             "generated": generated,
-            "slots": collected_slots,
-            "attn_maps": collected_attn_maps,
+            "attn_maps": pred_maps,
             "rae_cond": rae_cond,
-            "K_actual": len(collected_slots),
-            "K_per_sample": slot_counts,
+            "obj_hidden": lm_output[:, positions["obj_s"]:positions["obj_e"], :],
+            "reg_hidden": lm_output[:, positions["reg_s"]:positions["reg_e"], :],
+            "K": K,
         }
+
+    def _forward_aurora(
+        self,
+        images: torch.Tensor,
+        n_objects: Optional[torch.Tensor] = None,
+        gt_masks_patches: Optional[torch.Tensor] = None,
+        target_images: Optional[torch.Tensor] = None,
+        inpaint_mask_patches: Optional[torch.Tensor] = None,
+        has_inpaint: Optional[torch.Tensor] = None,
+        aurora_inpaint_weight_override: Optional[float] = None,
+        **kwargs,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        """AURORA v2 single-forward training pass."""
+        model_device = self.aurora_cmd_embeddings.device
+        images = images.to(model_device)
+        if n_objects is not None:
+            n_objects = n_objects.to(model_device)
+        if gt_masks_patches is not None:
+            gt_masks_patches = gt_masks_patches.to(model_device)
+        if target_images is not None:
+            target_images = target_images.to(model_device)
+        if inpaint_mask_patches is not None:
+            inpaint_mask_patches = inpaint_mask_patches.to(model_device)
+        if has_inpaint is not None:
+            has_inpaint = has_inpaint.to(model_device)
+
+        B = images.shape[0]
+        device = images.device
+        N_img = self.num_image_tokens
+        zero = torch.zeros((), device=device, dtype=torch.float32)
+
+        if n_objects is None:
+            n_objects = torch.full((B,), self.aurora_K_max, device=device, dtype=torch.long)
+        else:
+            n_objects = n_objects.to(device=device, dtype=torch.long).clamp(min=1, max=self.aurora_K_max)
+
+        if gt_masks_patches is None:
+            gt_masks_patches = images.new_zeros(B, self.aurora_K_max, N_img)
+        else:
+            gt_masks_patches = gt_masks_patches.to(device=device, dtype=torch.float32)
+
+        # ============ 1. Image Encoding (Frozen) ============
+        _, img_features, gt_siglip = self._encode_images_aurora(images)
+
+        # ============ 2. Random K Sampling (batch-wide) ============
+        n_objects_list = n_objects.tolist()
+        K = sample_k_for_batch(n_objects_list, self.aurora_K_max)
+
+        # ============ 3. Build Input Sequence ============
+        obj_embeds = self.aurora_obj_embedding_pool[:K].unsqueeze(0).expand(B, -1, -1)
+        reg_embeds = self.aurora_reg_embeddings.unsqueeze(0).expand(B, -1, -1)
+        lm_output = self._aurora_run_pass(img_features, obj_embeds, reg_embeds)
+
+        # ============ 4. Position Indices ============
+        positions = self._aurora_positions(K)
+        img_s, img_e = positions["img_s"], positions["img_e"]
+        obj_s, obj_e = positions["obj_s"], positions["obj_e"]
+        reg_s, reg_e = positions["reg_s"], positions["reg_e"]
+        rae_s, rae_e = positions["rae_s"], positions["rae_e"]
+        obj_positions = list(range(obj_s, obj_e))
+
+        # ============ 7. Attention Maps ============
+        pred_maps = extract_attention_maps(lm_output, obj_positions, img_s, img_e)  # (B, K, N_img)
+
+        # ============ 8. Hungarian Matching (per sample) ============
+        all_matchings = []
+        for b in range(B):
+            n_obj_b = min(int(n_objects[b].item()), gt_masks_patches.shape[1])
+            if n_obj_b > 0 and K > 0:
+                matching_b = hungarian_match(pred_maps[b, :K], gt_masks_patches[b, :n_obj_b])
+            else:
+                matching_b = []
+            all_matchings.append(matching_b)
+
+        # ============ 9. Losses ============
+        # 9a. Reconstruction Loss (diffusion)
+        rae_hidden = lm_output[:, rae_s:rae_e, :]
+        L_recon = self._aurora_compute_diffusion_loss(rae_hidden, gt_siglip)
+
+        # 9b. Mask Supervision Loss
+        L_mask = compute_mask_loss(
+            lm_output, obj_positions, img_s, img_e,
+            gt_masks_patches, all_matchings,
+        )
+
+        # 9c. Diversity Loss
+        L_div = compute_diversity_loss(lm_output, obj_positions)
+
+        # 9d. Optional stage-2 inpainting loss
+        L_inpaint = zero
+        inpaint_weight = 0.0
+        remove_indices = None
+        if target_images is not None and inpaint_mask_patches is not None:
+            if has_inpaint is None:
+                has_inpaint = torch.ones(B, device=device, dtype=torch.bool)
+            else:
+                has_inpaint = has_inpaint.to(device=device, dtype=torch.bool)
+            if bool(has_inpaint.any().item()):
+                if aurora_inpaint_weight_override is not None:
+                    inpaint_weight = float(aurora_inpaint_weight_override)
+                elif int(getattr(self.config, "aurora_training_stage", 1)) >= 2:
+                    inpaint_weight = float(getattr(self.config, "aurora_inpaint_weight", 0.5))
+
+                if inpaint_weight > 0.0:
+                    inpaint_idx = torch.nonzero(has_inpaint, as_tuple=False).flatten()
+                    _, _, target_siglip = self._encode_images_aurora(target_images[inpaint_idx])
+                    obj_hidden = lm_output[inpaint_idx, obj_s:obj_e, :]
+                    reg_hidden = lm_output[inpaint_idx, reg_s:reg_e, :]
+                    remove_indices, _ = self._aurora_pick_slot_from_masks(
+                        pred_maps[inpaint_idx],
+                        inpaint_mask_patches[inpaint_idx].to(device=device, dtype=torch.float32),
+                    )
+                    kept_obj_hidden = self._aurora_drop_slots(obj_hidden, remove_indices)
+                    edited_output = self._aurora_run_pass(
+                        img_features[inpaint_idx],
+                        kept_obj_hidden,
+                        reg_hidden,
+                    )
+                    edited_positions = self._aurora_positions(kept_obj_hidden.shape[1])
+                    edited_rae_hidden = edited_output[:, edited_positions["rae_s"]:edited_positions["rae_e"], :]
+                    L_inpaint = self._aurora_compute_diffusion_loss(edited_rae_hidden, target_siglip)
+
+        # 9e. Total
+        lambda_mask = float(getattr(self.config, 'aurora_mask_loss_weight', 1.0))
+        lambda_div = float(getattr(self.config, 'aurora_diversity_loss_weight', 0.1))
+        total_loss = L_recon + lambda_mask * L_mask + lambda_div * L_div + inpaint_weight * L_inpaint
+
+        if not torch.isfinite(total_loss).all():
+            self._aurora_check_finite(total_loss, "total_loss")
+            if torch.isnan(total_loss).any() and not getattr(self, "_aurora_warned_nan_total_loss", False):
+                logger.warning("[AURORA v2] total loss produced NaN; clamping.")
+                self._aurora_warned_nan_total_loss = True
+            total_loss = torch.nan_to_num(total_loss, nan=1e4, posinf=1e4, neginf=1e4)
+
+        # Store for logging
+        self.loss_image_diff = L_recon.detach()
+        self.aurora_loss_recon = L_recon.detach()
+        self.aurora_loss_mask = L_mask.detach()
+        self.aurora_loss_div = L_div.detach()
+        self.aurora_loss_inpaint = L_inpaint.detach()
+        self.aurora_inpaint_weight = torch.tensor(inpaint_weight, device=device)
+        self.aurora_K_sampled = torch.tensor(K, device=device)
+
+        info = {
+            "loss_recon": L_recon.detach(),
+            "loss_mask": L_mask.detach(),
+            "loss_div": L_div.detach(),
+            "loss_inpaint": L_inpaint.detach(),
+            "inpaint_weight": torch.tensor(inpaint_weight, device=device),
+            "K_sampled": torch.tensor(K, device=device),
+        }
+        if remove_indices is not None:
+            info["removed_slots"] = remove_indices.detach()
+
+        return total_loss, info
+
+    def _aurora_forward_single(
+        self,
+        img_features: torch.Tensor,
+        K: int,
+    ) -> torch.Tensor:
+        """Single forward pass for inference — returns lm_output."""
+        obj_embeds = self.aurora_obj_embedding_pool[:K].unsqueeze(0).expand(img_features.shape[0], -1, -1)
+        reg_embeds = self.aurora_reg_embeddings.unsqueeze(0).expand(img_features.shape[0], -1, -1)
+        return self._aurora_run_pass(
+            img_features=img_features,
+            obj_embeds=obj_embeds,
+            reg_embeds=reg_embeds,
+        )
+
+    @torch.no_grad()
+    def generate_aurora(
+        self,
+        images: torch.Tensor,
+        K: Optional[int] = None,
+        guidance_level: float = 1.0,
+        return_generated: bool = True,
+    ) -> Dict[str, torch.Tensor]:
+        """AURORA v2 inference — reconstruction with K object prompts."""
+        model_device = self.aurora_cmd_embeddings.device
+        images = images.to(model_device)
+        B = images.shape[0]
+        N_img = self.num_image_tokens
+        N_rae = self.get_model().latent_queries.shape[0]
+
+        K = K if K is not None else self.aurora_K_max
+
+        _, img_features, _ = self._encode_images_aurora(images)
+        lm_output = self._aurora_forward_single(img_features, K)
+        return self._aurora_decode_output(
+            lm_output=lm_output,
+            K=K,
+            guidance_level=guidance_level,
+            return_generated=return_generated,
+        )
 
     @torch.no_grad()
     def edit_aurora(
         self,
         images: torch.Tensor,
-        remove_indices: Optional[List[int]] = None,
-        replace_slots: Optional[Dict[int, torch.Tensor]] = None,
-        keep_only: Optional[List[int]] = None,
+        removal_masks: Optional[torch.Tensor] = None,
+        remove_slot_indices: Optional[List[int]] = None,
+        K: Optional[int] = None,
         guidance_level: float = 1.0,
     ) -> Dict[str, torch.Tensor]:
-        images = images.to(self.aurora_cmd_query.device)
-        result = self.generate_aurora(images, guidance_level=guidance_level)
-        slots = list(result["slots"])
-        if len(slots) == 0:
-            return result
-
+        """AURORA v2 object removal via explicit slot indices or removal masks."""
+        model_device = self.aurora_cmd_embeddings.device
+        images = images.to(model_device)
         B = images.shape[0]
-        null_slot = self.aurora_null_slot.expand(B, -1, -1)
-        if remove_indices:
-            for idx in remove_indices:
-                if 0 <= idx < len(slots):
-                    slots[idx] = null_slot
-        if replace_slots:
-            for idx, new_slot in replace_slots.items():
-                if 0 <= idx < len(slots):
-                    slots[idx] = new_slot
-        if keep_only is not None:
-            keep = set(keep_only)
-            for idx in range(len(slots)):
-                if idx not in keep:
-                    slots[idx] = null_slot
+        K_orig = K if K is not None else self.aurora_K_max
 
         _, img_features, _ = self._encode_images_aurora(images)
-        rae_hidden = self._aurora_full_forward_from_slots(img_features, slots)
-        rae_cond = rae_hidden
-        if getattr(self, 'use_diff_head_projector', False):
-            projector_dtype = next(self.diff_head_projector.parameters()).dtype
-            rae_cond = self.diff_head_projector(rae_cond.to(dtype=projector_dtype))
-        self.diff_head = self.diff_head.to(rae_cond.device)
-        diff_dtype = next(self.diff_head.parameters()).dtype
-        generated = self.diff_head.infer(
-            rae_cond.to(dtype=diff_dtype),
+
+        # First forward — get attention maps for slot identification
+        lm_output_orig = self._aurora_forward_single(img_features, K_orig)
+        decoded_orig = self._aurora_decode_output(
+            lm_output=lm_output_orig,
+            K=K_orig,
             guidance_level=guidance_level,
+            return_generated=False,
+        )
+        pred_maps = decoded_orig["attn_maps"]
+        obj_hidden = decoded_orig["obj_hidden"]
+        reg_hidden = decoded_orig["reg_hidden"]
+
+        if removal_masks is not None and remove_slot_indices is None:
+            removal_masks = removal_masks.to(model_device, dtype=torch.float32)
+            remove_indices, remove_scores = self._aurora_pick_slot_from_masks(pred_maps, removal_masks)
+        else:
+            remove_indices = self._aurora_normalize_slot_indices(
+                remove_slot_indices if remove_slot_indices is not None else 0,
+                batch_size=B,
+                device=model_device,
+            )
+            remove_scores = None
+
+        kept_obj_hidden = self._aurora_drop_slots(obj_hidden, remove_indices)
+        edited_output = self._aurora_run_pass(img_features, kept_obj_hidden, reg_hidden)
+        decoded_edit = self._aurora_decode_output(
+            lm_output=edited_output,
+            K=kept_obj_hidden.shape[1],
+            guidance_level=guidance_level,
+            return_generated=True,
         )
 
         return {
-            "generated": generated,
-            "edited_slots": slots,
-            "rae_cond": rae_cond,
+            "generated": decoded_edit["generated"],
+            "original_attn_maps": pred_maps,
+            "edited_attn_maps": decoded_edit["attn_maps"],
+            "removed_indices": remove_indices.detach().cpu(),
+            "removal_scores": remove_scores.detach().cpu() if remove_scores is not None else None,
+            "rae_cond": decoded_edit["rae_cond"],
+        }
+
+    @torch.no_grad()
+    def transfer_aurora(
+        self,
+        source_images: torch.Tensor,
+        target_images: torch.Tensor,
+        source_slot_indices=None,
+        target_slot_indices=None,
+        source_masks: Optional[torch.Tensor] = None,
+        target_masks: Optional[torch.Tensor] = None,
+        K: Optional[int] = None,
+        guidance_level: float = 1.0,
+    ) -> Dict[str, torch.Tensor]:
+        """Inject one object slot from the source image into the target image."""
+        model_device = self.aurora_cmd_embeddings.device
+        source_images = source_images.to(model_device)
+        target_images = target_images.to(model_device)
+        if source_images.shape[0] != target_images.shape[0]:
+            raise ValueError(
+                f"Batch mismatch between source and target images: {source_images.shape[0]} vs {target_images.shape[0]}"
+            )
+
+        B = source_images.shape[0]
+        K = K if K is not None else self.aurora_K_max
+        _, source_img_features, _ = self._encode_images_aurora(source_images)
+        _, target_img_features, _ = self._encode_images_aurora(target_images)
+
+        source_output = self._aurora_forward_single(source_img_features, K)
+        target_output = self._aurora_forward_single(target_img_features, K)
+        decoded_source = self._aurora_decode_output(source_output, K, guidance_level, return_generated=False)
+        decoded_target = self._aurora_decode_output(target_output, K, guidance_level, return_generated=False)
+
+        if source_masks is not None and source_slot_indices is None:
+            source_slot_indices, source_scores = self._aurora_pick_slot_from_masks(
+                decoded_source["attn_maps"],
+                source_masks.to(model_device, dtype=torch.float32),
+            )
+        else:
+            source_slot_indices = self._aurora_normalize_slot_indices(
+                source_slot_indices if source_slot_indices is not None else 0,
+                batch_size=B,
+                device=model_device,
+            )
+            source_scores = None
+
+        if target_masks is not None and target_slot_indices is None:
+            target_slot_indices, target_scores = self._aurora_pick_slot_from_masks(
+                decoded_target["attn_maps"],
+                target_masks.to(model_device, dtype=torch.float32),
+            )
+        else:
+            target_slot_indices = self._aurora_normalize_slot_indices(
+                target_slot_indices if target_slot_indices is not None else 0,
+                batch_size=B,
+                device=model_device,
+            )
+            target_scores = None
+
+        mixed_obj_hidden = self._aurora_swap_slots(
+            decoded_target["obj_hidden"],
+            decoded_source["obj_hidden"],
+            source_slot_indices,
+            target_slot_indices,
+        )
+        edited_output = self._aurora_run_pass(
+            target_img_features,
+            mixed_obj_hidden,
+            decoded_target["reg_hidden"],
+        )
+        decoded_edit = self._aurora_decode_output(
+            edited_output,
+            K,
+            guidance_level,
+            return_generated=True,
+        )
+
+        return {
+            "generated": decoded_edit["generated"],
+            "source_attn_maps": decoded_source["attn_maps"],
+            "target_attn_maps": decoded_target["attn_maps"],
+            "edited_attn_maps": decoded_edit["attn_maps"],
+            "source_indices": source_slot_indices.detach().cpu(),
+            "target_indices": target_slot_indices.detach().cpu(),
+            "source_scores": source_scores.detach().cpu() if source_scores is not None else None,
+            "target_scores": target_scores.detach().cpu() if target_scores is not None else None,
+            "rae_cond": decoded_edit["rae_cond"],
         }
 
 
-def dbg_shape(name: str, tensor):  # noqa: ANN001
-    try:
-        print(f"[QDBG] {name}: shape={tuple(tensor.shape)} dtype={tensor.dtype} device={tensor.device}")
-    except AttributeError:
-        print(f"[QDBG] {name}: {tensor}")
 
 
 AutoConfig.register("cambrian_qwen", ScaleRAEQwenConfig)

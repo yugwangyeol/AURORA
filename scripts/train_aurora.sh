@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# AURORA Training Script (Phase 1: AURORA modules only)
+# AURORA v2 training script
 # =============================================================================
 
 MODEL_PATH="${MODEL_PATH:-/home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B}"
@@ -10,8 +10,6 @@ RECON_IMAGE_FOLDER="${RECON_IMAGE_FOLDER:-/home/jovyan/data/coco/train2017}"
 INPAINT_DATA_PATH="${INPAINT_DATA_PATH:-/home/jovyan/processed_coco/training_data_v4_patch/training_manifest_patch_v4_0_to_None.json}"
 INPAINT_IMAGE_FOLDER="${INPAINT_IMAGE_FOLDER:-/home/jovyan/processed_coco/training_data_v4_patch}"
 COCO_ANNOTATION="${COCO_ANNOTATION:-/home/jovyan/data/coco/annotations/instances_train2017.json}"
-DINO_FEATURE_ROOT="${DINO_FEATURE_ROOT:-}"
-DINO_FEATURE_NAME="${DINO_FEATURE_NAME:-dino_256x768_fp16.pt}"
 
 OUTPUT_DIR="${OUTPUT_DIR:-./checkpoints/aurora_phase1}"
 NUM_GPUS="${NUM_GPUS:-1}"
@@ -29,13 +27,22 @@ GRADIENT_CHECKPOINTING="${GRADIENT_CHECKPOINTING:-False}"
 LEARNING_RATE="${LEARNING_RATE:-1e-4}"
 DIFF_HEAD_LR="${DIFF_HEAD_LR:-5e-5}"
 BF16="${BF16:-True}"
-AURORA_LOSS_FULL_SCALE="${AURORA_LOSS_FULL_SCALE:-4096}"
+AURORA_TRAINING_STAGE="${AURORA_TRAINING_STAGE:-1}"
+AURORA_MAX_SLOTS="${AURORA_MAX_SLOTS:-10}"
+AURORA_N_REGISTER="${AURORA_N_REGISTER:-8}"
+AURORA_CMD_LENGTH="${AURORA_CMD_LENGTH:-8}"
+AURORA_MASK_LOSS_WEIGHT="${AURORA_MASK_LOSS_WEIGHT:-1.0}"
+AURORA_DIVERSITY_LOSS_WEIGHT="${AURORA_DIVERSITY_LOSS_WEIGHT:-0.1}"
+AURORA_INPAINT_WEIGHT="${AURORA_INPAINT_WEIGHT:-0.5}"
+AURORA_INCLUDE_INPAINTING="${AURORA_INCLUDE_INPAINTING:-True}"
 AURORA_INPAINT_WARMUP_STEPS="${AURORA_INPAINT_WARMUP_STEPS:-1000}"
 AURORA_INPAINT_RAMP_STEPS="${AURORA_INPAINT_RAMP_STEPS:-4000}"
 AURORA_EVAL_NUM_IMAGES="${AURORA_EVAL_NUM_IMAGES:-100}"
 AURORA_EVAL_LOG_IMAGE_COUNT="${AURORA_EVAL_LOG_IMAGE_COUNT:-100}"
 AURORA_EVAL_VISUAL_BATCH_SIZE="${AURORA_EVAL_VISUAL_BATCH_SIZE:-4}"
 AURORA_EVAL_LOG_RECONSTRUCTIONS="${AURORA_EVAL_LOG_RECONSTRUCTIONS:-True}"
+AURORA_EVAL_LOG_ATTENTION_OVERLAYS="${AURORA_EVAL_LOG_ATTENTION_OVERLAYS:-True}"
+AURORA_EVAL_ATTENTION_OVERLAY_COUNT="${AURORA_EVAL_ATTENTION_OVERLAY_COUNT:-50}"
 AURORA_EVAL_DECODER_REPO="${AURORA_EVAL_DECODER_REPO:-nyu-visionx/siglip2_decoder}"
 
 export WANDB_PROJECT="${WANDB_PROJECT:-AURORA}"
@@ -68,22 +75,17 @@ if [ -n "${COCO_ANNOTATION}" ]; then
     COCO_ARGS+=(--coco_annotation_path "${COCO_ANNOTATION}")
 fi
 
-DINO_ARGS=()
-if [ -n "${DINO_FEATURE_ROOT}" ]; then
-    DINO_ARGS+=(--aurora_dino_feature_root "${DINO_FEATURE_ROOT}")
-    DINO_ARGS+=(--aurora_dino_feature_name "${DINO_FEATURE_NAME}")
-fi
-
 INPAINT_ARGS=()
 if [ -n "${INPAINT_DATA_PATH}" ]; then
     INPAINT_ARGS+=(--aurora_inpaint_data_path "${INPAINT_DATA_PATH}")
     INPAINT_ARGS+=(--aurora_inpaint_image_folder "${INPAINT_IMAGE_FOLDER}")
 fi
 
-echo "===== AURORA Phase 1 Training ====="
+echo "===== AURORA v2 Training ====="
 echo "Model:  $MODEL_PATH"
 echo "Recon:  $RECON_IMAGE_FOLDER"
 echo "Inpaint manifest: ${INPAINT_DATA_PATH:-<disabled>}"
+echo "Stage: ${AURORA_TRAINING_STAGE}"
 echo "Output: $OUTPUT_DIR"
 echo "GPUs:   $NUM_GPUS"
 echo "===================================="
@@ -114,14 +116,18 @@ echo "===================================="
     --dit_cls DiT \
     \
     --use_aurora True \
-    --aurora_max_slots 10 \
-    --aurora_n_register 8 \
-    --aurora_loss_full_scale "${AURORA_LOSS_FULL_SCALE}" \
+    --aurora_max_slots "${AURORA_MAX_SLOTS}" \
+    --aurora_n_register "${AURORA_N_REGISTER}" \
+    --aurora_cmd_length "${AURORA_CMD_LENGTH}" \
+    --aurora_mask_loss_weight "${AURORA_MASK_LOSS_WEIGHT}" \
+    --aurora_diversity_loss_weight "${AURORA_DIVERSITY_LOSS_WEIGHT}" \
+    --aurora_inpaint_weight "${AURORA_INPAINT_WEIGHT}" \
+    --aurora_training_stage "${AURORA_TRAINING_STAGE}" \
     --aurora_fail_on_nan True \
     \
     "${COCO_ARGS[@]}" \
-    "${DINO_ARGS[@]}" \
     "${INPAINT_ARGS[@]}" \
+    --aurora_include_inpainting "${AURORA_INCLUDE_INPAINTING}" \
     --aurora_reconstruction_image_folder "${RECON_IMAGE_FOLDER}" \
     --image_aspect_ratio square \
     --max_images_per_sample 1 \
@@ -148,6 +154,8 @@ echo "===================================="
     --aurora_eval_log_image_count "${AURORA_EVAL_LOG_IMAGE_COUNT}" \
     --aurora_eval_visual_batch_size "${AURORA_EVAL_VISUAL_BATCH_SIZE}" \
     --aurora_eval_log_reconstructions "${AURORA_EVAL_LOG_RECONSTRUCTIONS}" \
+    --aurora_eval_log_attention_overlays "${AURORA_EVAL_LOG_ATTENTION_OVERLAYS}" \
+    --aurora_eval_attention_overlay_count "${AURORA_EVAL_ATTENTION_OVERLAY_COUNT}" \
     --aurora_eval_decoder_repo "${AURORA_EVAL_DECODER_REPO}" \
     --group_by_modality_length False \
     --save_strategy steps \

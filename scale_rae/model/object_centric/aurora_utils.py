@@ -1,196 +1,230 @@
 """
-AURORA utility functions — attention masks, stopping criteria, and losses.
+AURORA v2 utility functions — attention masks, random K sampling,
+Hungarian matching, and loss functions.
 """
 
 import math
+import random
+from typing import List, Tuple
+
 import torch
 import torch.nn.functional as F
-from typing import List, Optional
 
 
 # ──────────────────────────────────────────────────────────────────
-# Attention Masks
+# Attention Mask
 # ──────────────────────────────────────────────────────────────────
 
-def build_bidirectional_mask(length: int, device: torch.device) -> torch.Tensor:
-    """Fully bidirectional mask for Phase 1 (img ↔ cmd)."""
-    return torch.zeros(1, 1, length, length, device=device)
-
-
-def build_phase3_mask(
-    n_reg: int,
-    n_rae: int,
-    device: torch.device,
-) -> torch.Tensor:
-    """
-    Phase 3 mask for [register(n_reg) | rae_query(n_rae)].
-    - register ↔ register: bidirectional
-    - rae_query ↔ rae_query: bidirectional
-    - rae_query → register: can attend
-    - register → rae_query: blocked
-    """
-    L = n_reg + n_rae
-    m = torch.full((1, 1, L, L), float("-inf"), device=device)
-    m[:, :, :n_reg, :n_reg] = 0.0
-    m[:, :, n_reg:, :n_reg] = 0.0
-    m[:, :, n_reg:, n_reg:] = 0.0
-    return m
-
-
-def build_phase3_cache_attention_bias(
-    prefix_len: int,
-    n_reg: int,
-    n_rae: int,
-    batch_size: int,
-    device: torch.device,
-    dtype: torch.dtype,
-) -> torch.Tensor:
-    """
-    Additive attention bias for Phase 3 when a KV-cache prefix already exists.
-    """
-    current_len = n_reg + n_rae
-    local_mask = build_phase3_mask(n_reg=n_reg, n_rae=n_rae, device=device).to(dtype=dtype)
-    bias = torch.zeros(
-        batch_size,
-        1,
-        current_len,
-        prefix_len + current_len,
-        device=device,
-        dtype=dtype,
-    )
-    bias[:, :, :, prefix_len:] = local_mask.expand(batch_size, -1, -1, -1)
-    return bias
-
-
-def build_full_attention_mask(
+def build_aurora_v2_attention_mask(
     n_img: int,
     n_cmd: int,
-    n_slots: int,
+    n_obj: int,
     n_reg: int,
     n_rae: int,
     device: torch.device,
+    dtype: torch.dtype = torch.float32,
 ) -> torch.Tensor:
+    """Build the AURORA v2 custom attention mask.
+
+    Token layout: [img | cmd | obj₁…objₖ | reg | rae_query]
+
+    Returns (1, 1, L, L) additive attention bias.
+    0 = attend, -inf = blocked.
     """
-    Single-forward mask for editing / inpainting.
-    [img(n_img) | cmd(n_cmd) | slots(n_slots) | register(n_reg) | rae_query(n_rae)]
-    """
-    base = n_img + n_cmd
-    L = base + n_slots + n_reg + n_rae
-    m = torch.full((1, 1, L, L), float("-inf"), device=device)
+    L = n_img + n_cmd + n_obj + n_reg + n_rae
+    NEG_INF = float("-inf")
 
-    m[:, :, :base, :base] = 0.0
+    bias = torch.full((L, L), NEG_INF, device=device, dtype=dtype)
 
-    ss = base
-    for i in range(n_slots):
-        idx = ss + i
-        m[:, :, idx, :base] = 0.0
-        m[:, :, idx, ss : idx + 1] = 0.0
+    # Segment boundaries
+    img_s, img_e = 0, n_img
+    cmd_s, cmd_e = n_img, n_img + n_cmd
+    obj_s, obj_e = cmd_e, cmd_e + n_obj
+    reg_s, reg_e = obj_e, obj_e + n_reg
+    rae_s, rae_e = reg_e, reg_e + n_rae
 
-    rs = ss + n_slots
-    m[:, :, rs : rs + n_reg, :rs] = 0.0
-    m[:, :, rs : rs + n_reg, rs : rs + n_reg] = 0.0
+    # (1) img ↔ img: bidirectional
+    bias[img_s:img_e, img_s:img_e] = 0
 
-    qs = rs + n_reg
-    m[:, :, qs:, :qs] = 0.0
-    m[:, :, qs:, qs:] = 0.0
+    # (2) img ↔ cmd: bidirectional
+    bias[img_s:img_e, cmd_s:cmd_e] = 0
+    bias[cmd_s:cmd_e, img_s:img_e] = 0
+    bias[cmd_s:cmd_e, cmd_s:cmd_e] = 0
 
-    return m
+    # (3) obj → img, cmd: can attend
+    bias[obj_s:obj_e, img_s:img_e] = 0
+    bias[obj_s:obj_e, cmd_s:cmd_e] = 0
+
+    # (4) obj → obj: causal (lower triangle including diagonal)
+    if n_obj > 0:
+        obj_indices = torch.arange(n_obj, device=device)
+        causal = obj_indices.unsqueeze(0) <= obj_indices.unsqueeze(1)  # (n_obj, n_obj)
+        bias[obj_s:obj_e, obj_s:obj_e] = torch.where(
+            causal,
+            torch.tensor(0.0, device=device, dtype=dtype),
+            torch.tensor(NEG_INF, device=device, dtype=dtype),
+        )
+
+    # (5) reg → img, cmd, obj: can attend
+    bias[reg_s:reg_e, img_s:img_e] = 0
+    bias[reg_s:reg_e, cmd_s:cmd_e] = 0
+    bias[reg_s:reg_e, obj_s:obj_e] = 0
+    # (6) reg ↔ reg: bidirectional
+    bias[reg_s:reg_e, reg_s:reg_e] = 0
+
+    # (7) rae → obj, reg ONLY (NOT img, NOT cmd) — Information Bottleneck!
+    bias[rae_s:rae_e, obj_s:obj_e] = 0
+    bias[rae_s:rae_e, reg_s:reg_e] = 0
+    # (8) rae ↔ rae: bidirectional
+    bias[rae_s:rae_e, rae_s:rae_e] = 0
+
+    return bias.unsqueeze(0).unsqueeze(0)  # (1, 1, L, L)
 
 
 # ──────────────────────────────────────────────────────────────────
-# Stopping Criteria
+# Random K Sampling
 # ──────────────────────────────────────────────────────────────────
 
-def check_stopping(
-    alpha_t: torch.Tensor,
-    slot_t: torch.Tensor,
-    prev_slot: Optional[torch.Tensor],
-    n_patches: int = 256,
-    entropy_threshold: float = 0.92,
-    similarity_threshold: float = 0.95,
-) -> torch.Tensor:
-    """
-    Dual stopping criterion.
-    Returns (B,) bool — True means stop for that sample.
-    """
-    entropy = -(alpha_t * torch.log(alpha_t + 1e-8)).sum(dim=-1)
-    max_ent = math.log(n_patches)
-    norm_entropy = entropy / max_ent
-    entropy_stop = norm_entropy > entropy_threshold
+def sample_k_for_batch(n_objects_list: List[int], k_max: int) -> int:
+    """Sample a single K for the entire batch.
 
-    if prev_slot is not None:
-        s_cur = slot_t.squeeze(1) if slot_t.dim() == 3 else slot_t
-        s_prev = prev_slot.squeeze(1) if prev_slot.dim() == 3 else prev_slot
-        sim = F.cosine_similarity(s_cur, s_prev, dim=-1)
-        sim_stop = sim > similarity_threshold
-    else:
-        sim_stop = torch.zeros_like(entropy_stop)
+    K ~ Uniform(1, min(batch_min_n_objects, k_max)).
+    Same K for all samples in the batch → no padding needed.
+    """
+    min_n_objects = min(n_objects_list) if n_objects_list else 1
+    upper = min(min_n_objects, k_max)
+    if upper < 1:
+        return 1
+    return random.randint(1, upper)
 
-    return entropy_stop | sim_stop
+
+# ──────────────────────────────────────────────────────────────────
+# Hungarian Matching
+# ──────────────────────────────────────────────────────────────────
+
+def hungarian_match(
+    pred_maps: torch.Tensor,
+    gt_masks: torch.Tensor,
+) -> List[Tuple[int, int]]:
+    """Optimal 1:1 matching between predicted attention maps and GT masks.
+
+    Args:
+        pred_maps: (K, P) — K predicted sigmoid attention maps.
+        gt_masks:  (N, P) — N GT binary masks (N >= K).
+
+    Returns:
+        List of (pred_idx, gt_idx) pairs, length K.
+    """
+    from scipy.optimize import linear_sum_assignment
+
+    K, N = pred_maps.shape[0], gt_masks.shape[0]
+    if K == 0:
+        return []
+
+    # Build cost matrix using BCE
+    pred_clamped = pred_maps.detach().float().clamp(1e-7, 1.0 - 1e-7)
+    gt_float = gt_masks.detach().float()
+
+    cost = torch.zeros(K, N, device=pred_maps.device)
+    for i in range(K):
+        for j in range(N):
+            cost[i, j] = F.binary_cross_entropy(
+                pred_clamped[i], gt_float[j], reduction="mean"
+            )
+
+    row_ind, col_ind = linear_sum_assignment(cost.cpu().numpy())
+    return list(zip(row_ind.tolist(), col_ind.tolist()))
 
 
 # ──────────────────────────────────────────────────────────────────
 # Losses
 # ──────────────────────────────────────────────────────────────────
 
+def compute_mask_loss(
+    lm_output: torch.Tensor,
+    obj_positions: List[int],
+    img_start: int,
+    img_end: int,
+    gt_masks: torch.Tensor,
+    all_matchings: List[List[Tuple[int, int]]],
+) -> torch.Tensor:
+    """Mask supervision loss via sigmoid dot-product attention maps.
+
+    Args:
+        lm_output:      (B, L, d) — frozen LLM output hidden states.
+        obj_positions:   List of int — K position indices for obj prompts.
+        img_start:       Start index of img tokens.
+        img_end:         End index of img tokens.
+        gt_masks:        (B, N, P) — GT instance masks (16×16 grid).
+        all_matchings:   Per-sample list of (pred_idx, gt_idx) from Hungarian matching.
+
+    Returns:
+        Scalar BCE loss averaged over all matched pairs.
+    """
+    B = lm_output.shape[0]
+    d = lm_output.shape[-1]
+    H_img = lm_output[:, img_start:img_end, :]  # (B, 256, d)
+
+    total_loss = torch.tensor(0.0, device=lm_output.device, dtype=torch.float32)
+    n_pairs = 0
+
+    for b in range(B):
+        for pred_idx, gt_idx in all_matchings[b]:
+            h_obj = lm_output[b, obj_positions[pred_idx], :]  # (d,)
+            logits = torch.einsum("d,nd->n", h_obj.float(), H_img[b].float()) / math.sqrt(d)
+            pred_map = torch.sigmoid(logits)  # (P,)
+            gt_map = gt_masks[b, gt_idx, :]  # (P,)
+            pred_safe = pred_map.clamp(1e-7, 1.0 - 1e-7)
+            total_loss = total_loss + F.binary_cross_entropy(
+                pred_safe, gt_map.float(), reduction="mean"
+            )
+            n_pairs += 1
+
+    return total_loss / max(n_pairs, 1)
+
+
 def compute_diversity_loss(
-    slots: List[torch.Tensor],
-    n_objects: torch.Tensor,
+    lm_output: torch.Tensor,
+    obj_positions: List[int],
 ) -> torch.Tensor:
+    """Object prompt diversity loss — cosine similarity penalty.
+
+    Penalises off-diagonal cosine similarity between object prompt
+    hidden states to accelerate differentiation.
     """
-    Off-diagonal cosine-similarity penalty between valid slot pairs.
-    slots: list of (B, 1, D) tensors.
-    n_objects: (B,) int — number of valid objects per sample.
-    """
-    if len(slots) == 0:
-        return n_objects.new_zeros((), dtype=torch.float32)
-    if len(slots) == 1:
-        return slots[0].new_zeros(())
+    K = len(obj_positions)
+    if K <= 1:
+        return torch.tensor(0.0, device=lm_output.device, dtype=torch.float32)
 
-    all_slots = torch.cat(slots, dim=1)                 # (B, K, D)
-    B, K, D = all_slots.shape
-    device = all_slots.device
+    obj_hidden = lm_output[:, obj_positions, :]  # (B, K, d)
+    normed = F.normalize(obj_hidden.float(), dim=-1)
+    sim = torch.bmm(normed, normed.transpose(1, 2))  # (B, K, K)
 
-    normed = F.normalize(all_slots, dim=-1)
-    sim = torch.bmm(normed, normed.transpose(1, 2))     # (B, K, K)
-    eye = torch.eye(K, device=device).unsqueeze(0)
+    eye = torch.eye(K, device=sim.device).unsqueeze(0)
+    off_diag = (sim * (1 - eye)).sum() / (K * (K - 1) * obj_hidden.shape[0])
 
-    valid = torch.zeros(B, K, dtype=torch.bool, device=device)
-    for b in range(B):
-        k = min(int(n_objects[b].item()), K)
-        valid[b, :k] = True
-
-    pair = valid.unsqueeze(2) & valid.unsqueeze(1)
-    pair = pair & ~eye.bool()
-
-    n_pairs = pair.sum().clamp(min=1)
-    return (sim * pair.float()).sum() / n_pairs
+    return off_diag
 
 
-def match_slot_to_mask(
-    attn_maps: List[torch.Tensor],
-    inpaint_mask: torch.Tensor,
-    n_objects: torch.Tensor,
+def extract_attention_maps(
+    lm_output: torch.Tensor,
+    obj_positions: List[int],
+    img_start: int,
+    img_end: int,
 ) -> torch.Tensor:
-    """
-    Match each sample's inpainting mask to the slot with highest IoU.
-    Returns (B,) int — index of the best-matching slot per sample.
-    """
-    B = inpaint_mask.shape[0]
-    K = len(attn_maps)
-    device = inpaint_mask.device
-    best_idx = torch.zeros(B, dtype=torch.long, device=device)
+    """Extract attention maps from LLM output via dot-product + sigmoid.
 
-    for b in range(B):
-        best_iou = -1.0
-        mask_b = inpaint_mask[b]
-        for t in range(min(K, int(n_objects[b].item()))):
-            alpha_b = attn_maps[t][b]
-            intersection = (alpha_b * mask_b).sum()
-            union = alpha_b.sum() + mask_b.sum() - intersection + 1e-8
-            iou = intersection / union
-            if iou > best_iou:
-                best_iou = iou
-                best_idx[b] = t
+    Returns:
+        (B, K, P) sigmoid attention maps.
+    """
+    d = lm_output.shape[-1]
+    H_img = lm_output[:, img_start:img_end, :]  # (B, P, d)
+    K = len(obj_positions)
 
-    return best_idx
+    maps = []
+    for k in range(K):
+        h_obj = lm_output[:, obj_positions[k], :]  # (B, d)
+        logits = torch.einsum("bd,bnd->bn", h_obj.float(), H_img.float()) / math.sqrt(d)
+        maps.append(torch.sigmoid(logits))  # (B, P)
+
+    return torch.stack(maps, dim=1)  # (B, K, P)

@@ -211,7 +211,8 @@ class ViTMAEEmbeddings(nn.Module):
         pos_embed = get_2d_sincos_pos_embed(
             self.position_embeddings.shape[-1], int(self.patch_embeddings.num_patches**0.5), add_cls_token=True
         )
-        self.position_embeddings.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
+        pos_embed_tensor = torch.tensor(pos_embed, dtype=self.position_embeddings.dtype).unsqueeze(0)
+        self.position_embeddings.data.copy_(pos_embed_tensor)
 
         # initialize patch_embeddings like nn.Linear (instead of nn.Conv2d)
         w = self.patch_embeddings.projection.weight.data
@@ -891,7 +892,8 @@ class GeneralDecoder(nn.Module):
         decoder_pos_embed = get_2d_sincos_pos_embed(
             self.decoder_pos_embed.shape[-1], int(num_patches**0.5), add_cls_token=True
         )
-        self.decoder_pos_embed.data.copy_(torch.from_numpy(decoder_pos_embed).float().unsqueeze(0))
+        decoder_pos_embed_tensor = torch.tensor(decoder_pos_embed, dtype=self.decoder_pos_embed.dtype).unsqueeze(0)
+        self.decoder_pos_embed.data.copy_(decoder_pos_embed_tensor)
 
         # timm's trunc_normal_(std=.02) is effectively normal_(std=0.02) as cutoff is too big (2.)
         # torch.nn.init.normal_(self.mask_token, std=self.config.initializer_range)
@@ -1229,7 +1231,8 @@ class ViTMAEEmbeddings(nn.Module):
         pos_embed = get_2d_sincos_pos_embed(
             self.position_embeddings.shape[-1], int(self.patch_embeddings.num_patches**0.5), add_cls_token=True
         )
-        self.position_embeddings.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
+        pos_embed_tensor = torch.tensor(pos_embed, dtype=self.position_embeddings.dtype).unsqueeze(0)
+        self.position_embeddings.data.copy_(pos_embed_tensor)
 
         # initialize patch_embeddings like nn.Linear (instead of nn.Conv2d)
         w = self.patch_embeddings.projection.weight.data
@@ -1909,7 +1912,8 @@ class GeneralDecoder(nn.Module):
         decoder_pos_embed = get_2d_sincos_pos_embed(
             self.decoder_pos_embed.shape[-1], int(num_patches**0.5), add_cls_token=True
         )
-        self.decoder_pos_embed.data.copy_(torch.from_numpy(decoder_pos_embed).float().unsqueeze(0))
+        decoder_pos_embed_tensor = torch.tensor(decoder_pos_embed, dtype=self.decoder_pos_embed.dtype).unsqueeze(0)
+        self.decoder_pos_embed.data.copy_(decoder_pos_embed_tensor)
 
         # timm's trunc_normal_(std=.02) is effectively normal_(std=0.02) as cutoff is too big (2.)
         # torch.nn.init.normal_(self.mask_token, std=self.config.initializer_range)
@@ -2031,5 +2035,4 @@ class GeneralDecoder(nn.Module):
             hidden_states=all_hidden_states,
             attentions=all_self_attentions,
         )
-
 
