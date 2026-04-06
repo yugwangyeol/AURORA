@@ -611,12 +611,14 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
             W == self.diffusion_tokens, f"diffusion_tokens {self.diffusion_tokens} should be a square number"
 
         if self.normalize_data:
-            # normalize the data
-            data_mean = self.data_mean.to(x.device).unsqueeze(
-                0).expand(x.shape[0], *x.shape[1:])
-            data_std = self.data_std.to(x.device).unsqueeze(
-                0).expand(x.shape[0], *x.shape[1:])
-            x = (x - data_mean) / data_std
+            # normalize the data — reshape stats to broadcast over (B, L, D)
+            dm = self.data_mean.to(x.device)
+            ds = self.data_std.to(x.device)
+            # stats are (D,); make them (1, 1, D) so they broadcast with (B, L, D)
+            while dm.dim() < x.dim():
+                dm = dm.unsqueeze(0)
+                ds = ds.unsqueeze(0)
+            x = (x - dm) / ds
 
         # Convert to patch grid format for diffusion training
         x = x.view(x.shape[0], H, W, self.diffusion_channels).permute(
@@ -626,12 +628,12 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
         if x_t is not None:
             # AR-DDT mode: x_t provided externally, convert to patch grid format
             if self.normalize_data:
-                # normalize x_t the same way as x
-                data_mean = self.data_mean.to(x_t.device).unsqueeze(
-                    0).expand(x_t.shape[0], *x_t.shape[1:])
-                data_std = self.data_std.to(x_t.device).unsqueeze(
-                    0).expand(x_t.shape[0], *x_t.shape[1:])
-                x_t = (x_t - data_mean) / data_std
+                dm = self.data_mean.to(x_t.device)
+                ds = self.data_std.to(x_t.device)
+                while dm.dim() < x_t.dim():
+                    dm = dm.unsqueeze(0)
+                    ds = ds.unsqueeze(0)
+                x_t = (x_t - dm) / ds
             x_t = x_t.view(x_t.shape[0], H, W, self.diffusion_channels).permute(
                 0, 3, 1, 2).contiguous()
 
@@ -695,11 +697,12 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
             samples.shape[0], -1, self.diffusion_channels)  # [B, L, D]
         if self.normalize_data:
             # denormalize the data
-            data_mean = self.data_mean.to(samples.device).unsqueeze(
-                0).expand(samples.shape[0], *samples.shape[1:])
-            data_std = self.data_std.to(samples.device).unsqueeze(
-                0).expand(samples.shape[0], *samples.shape[1:])
-            samples = samples * data_std + data_mean
+            dm = self.data_mean.to(samples.device)
+            ds = self.data_std.to(samples.device)
+            while dm.dim() < samples.dim():
+                dm = dm.unsqueeze(0)
+                ds = ds.unsqueeze(0)
+            samples = samples * ds + dm
         return samples
 
 

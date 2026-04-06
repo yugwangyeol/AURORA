@@ -34,6 +34,7 @@ AURORA_CMD_LENGTH="${AURORA_CMD_LENGTH:-8}"
 AURORA_MASK_LOSS_WEIGHT="${AURORA_MASK_LOSS_WEIGHT:-1.0}"
 AURORA_DIVERSITY_LOSS_WEIGHT="${AURORA_DIVERSITY_LOSS_WEIGHT:-0.1}"
 AURORA_INPAINT_WEIGHT="${AURORA_INPAINT_WEIGHT:-0.5}"
+AURORA_TRAIN_DIFFUSION_CONDITION="${AURORA_TRAIN_DIFFUSION_CONDITION:-True}"
 AURORA_INCLUDE_INPAINTING="${AURORA_INCLUDE_INPAINTING:-True}"
 AURORA_INPAINT_WARMUP_STEPS="${AURORA_INPAINT_WARMUP_STEPS:-1000}"
 AURORA_INPAINT_RAMP_STEPS="${AURORA_INPAINT_RAMP_STEPS:-4000}"
@@ -44,6 +45,7 @@ AURORA_EVAL_LOG_RECONSTRUCTIONS="${AURORA_EVAL_LOG_RECONSTRUCTIONS:-True}"
 AURORA_EVAL_LOG_ATTENTION_OVERLAYS="${AURORA_EVAL_LOG_ATTENTION_OVERLAYS:-True}"
 AURORA_EVAL_ATTENTION_OVERLAY_COUNT="${AURORA_EVAL_ATTENTION_OVERLAY_COUNT:-50}"
 AURORA_EVAL_DECODER_REPO="${AURORA_EVAL_DECODER_REPO:-nyu-visionx/siglip2_decoder}"
+DIFFUSION_NORM_STATS_PATH="${DIFFUSION_NORM_STATS_PATH:-}"
 
 export WANDB_PROJECT="${WANDB_PROJECT:-AURORA}"
 EXPERIMENT_NAME="${EXPERIMENT_NAME:-aurora_phase1}"
@@ -81,6 +83,11 @@ if [ -n "${INPAINT_DATA_PATH}" ]; then
     INPAINT_ARGS+=(--aurora_inpaint_image_folder "${INPAINT_IMAGE_FOLDER}")
 fi
 
+NORM_STATS_ARGS=()
+if [ -n "${DIFFUSION_NORM_STATS_PATH}" ] && [ -f "${DIFFUSION_NORM_STATS_PATH}" ]; then
+    NORM_STATS_ARGS+=(--diffusion_norm_stats_path "${DIFFUSION_NORM_STATS_PATH}")
+fi
+
 echo "===== AURORA v2 Training ====="
 echo "Model:  $MODEL_PATH"
 echo "Recon:  $RECON_IMAGE_FOLDER"
@@ -88,6 +95,7 @@ echo "Inpaint manifest: ${INPAINT_DATA_PATH:-<disabled>}"
 echo "Stage: ${AURORA_TRAINING_STAGE}"
 echo "Output: $OUTPUT_DIR"
 echo "GPUs:   $NUM_GPUS"
+echo "Diffusion conditioner trainable: $AURORA_TRAIN_DIFFUSION_CONDITION"
 echo "===================================="
 
 "${PYTHON}" -m torch.distributed.run \
@@ -124,9 +132,11 @@ echo "===================================="
     --aurora_inpaint_weight "${AURORA_INPAINT_WEIGHT}" \
     --aurora_training_stage "${AURORA_TRAINING_STAGE}" \
     --aurora_fail_on_nan True \
+    --aurora_train_diffusion_condition "${AURORA_TRAIN_DIFFUSION_CONDITION}" \
     \
     "${COCO_ARGS[@]}" \
     "${INPAINT_ARGS[@]}" \
+    "${NORM_STATS_ARGS[@]}" \
     --aurora_include_inpainting "${AURORA_INCLUDE_INPAINTING}" \
     --aurora_reconstruction_image_folder "${RECON_IMAGE_FOLDER}" \
     --image_aspect_ratio square \

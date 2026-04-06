@@ -103,13 +103,13 @@ def sample_k_for_batch(n_objects_list: List[int], k_max: int) -> int:
 # ──────────────────────────────────────────────────────────────────
 
 def hungarian_match(
-    pred_maps: torch.Tensor,
+    pred_logits: torch.Tensor,
     gt_masks: torch.Tensor,
 ) -> List[Tuple[int, int]]:
     """Optimal 1:1 matching between predicted attention maps and GT masks.
 
     Args:
-        pred_maps: (K, P) — K predicted sigmoid attention maps.
+        pred_logits: (K, P) — K predicted raw attention logits.
         gt_masks:  (N, P) — N GT binary masks (N >= K).
 
     Returns:
@@ -117,19 +117,19 @@ def hungarian_match(
     """
     from scipy.optimize import linear_sum_assignment
 
-    K, N = pred_maps.shape[0], gt_masks.shape[0]
+    K, N = pred_logits.shape[0], gt_masks.shape[0]
     if K == 0:
         return []
 
-    # Build cost matrix using BCE
-    pred_clamped = pred_maps.detach().float().clamp(1e-7, 1.0 - 1e-7)
+    # Build cost matrix using BCE on raw logits to stay autocast-safe.
+    pred_logits = pred_logits.detach().float()
     gt_float = gt_masks.detach().float()
 
-    cost = torch.zeros(K, N, device=pred_maps.device)
+    cost = torch.zeros(K, N, device=pred_logits.device, dtype=torch.float32)
     for i in range(K):
         for j in range(N):
-            cost[i, j] = F.binary_cross_entropy(
-                pred_clamped[i], gt_float[j], reduction="mean"
+            cost[i, j] = F.binary_cross_entropy_with_logits(
+                pred_logits[i], gt_float[j], reduction="mean"
             )
 
     row_ind, col_ind = linear_sum_assignment(cost.cpu().numpy())
@@ -141,42 +141,31 @@ def hungarian_match(
 # ──────────────────────────────────────────────────────────────────
 
 def compute_mask_loss(
-    lm_output: torch.Tensor,
-    obj_positions: List[int],
-    img_start: int,
-    img_end: int,
+    pred_logits: torch.Tensor,
     gt_masks: torch.Tensor,
     all_matchings: List[List[Tuple[int, int]]],
 ) -> torch.Tensor:
-    """Mask supervision loss via sigmoid dot-product attention maps.
+    """Mask supervision loss computed directly on raw attention logits.
 
     Args:
-        lm_output:      (B, L, d) — frozen LLM output hidden states.
-        obj_positions:   List of int — K position indices for obj prompts.
-        img_start:       Start index of img tokens.
-        img_end:         End index of img tokens.
+        pred_logits:    (B, K, P) — raw attention logits before sigmoid.
         gt_masks:        (B, N, P) — GT instance masks (16×16 grid).
         all_matchings:   Per-sample list of (pred_idx, gt_idx) from Hungarian matching.
 
     Returns:
         Scalar BCE loss averaged over all matched pairs.
     """
-    B = lm_output.shape[0]
-    d = lm_output.shape[-1]
-    H_img = lm_output[:, img_start:img_end, :]  # (B, 256, d)
+    B = pred_logits.shape[0]
 
-    total_loss = torch.tensor(0.0, device=lm_output.device, dtype=torch.float32)
+    total_loss = torch.tensor(0.0, device=pred_logits.device, dtype=torch.float32)
     n_pairs = 0
 
     for b in range(B):
         for pred_idx, gt_idx in all_matchings[b]:
-            h_obj = lm_output[b, obj_positions[pred_idx], :]  # (d,)
-            logits = torch.einsum("d,nd->n", h_obj.float(), H_img[b].float()) / math.sqrt(d)
-            pred_map = torch.sigmoid(logits)  # (P,)
+            logits = pred_logits[b, pred_idx].float()
             gt_map = gt_masks[b, gt_idx, :]  # (P,)
-            pred_safe = pred_map.clamp(1e-7, 1.0 - 1e-7)
-            total_loss = total_loss + F.binary_cross_entropy(
-                pred_safe, gt_map.float(), reduction="mean"
+            total_loss = total_loss + F.binary_cross_entropy_with_logits(
+                logits, gt_map.float(), reduction="mean"
             )
             n_pairs += 1
 
@@ -206,6 +195,31 @@ def compute_diversity_loss(
     return off_diag
 
 
+def extract_attention_logits(
+    lm_output: torch.Tensor,
+    obj_positions: List[int],
+    img_start: int,
+    img_end: int,
+) -> torch.Tensor:
+    """Extract raw attention logits from LLM output via dot-product.
+
+    Returns:
+        (B, K, P) raw attention logits.
+    """
+    d = lm_output.shape[-1]
+    H_img = lm_output[:, img_start:img_end, :]  # (B, P, d)
+    K = len(obj_positions)
+    if K == 0:
+        return H_img.new_zeros((lm_output.shape[0], 0, H_img.shape[1]), dtype=torch.float32)
+
+    logits = []
+    for k in range(K):
+        h_obj = lm_output[:, obj_positions[k], :]  # (B, d)
+        logits.append(torch.einsum("bd,bnd->bn", h_obj.float(), H_img.float()) / math.sqrt(d))
+
+    return torch.stack(logits, dim=1)  # (B, K, P)
+
+
 def extract_attention_maps(
     lm_output: torch.Tensor,
     obj_positions: List[int],
@@ -217,14 +231,6 @@ def extract_attention_maps(
     Returns:
         (B, K, P) sigmoid attention maps.
     """
-    d = lm_output.shape[-1]
-    H_img = lm_output[:, img_start:img_end, :]  # (B, P, d)
-    K = len(obj_positions)
-
-    maps = []
-    for k in range(K):
-        h_obj = lm_output[:, obj_positions[k], :]  # (B, d)
-        logits = torch.einsum("bd,bnd->bn", h_obj.float(), H_img.float()) / math.sqrt(d)
-        maps.append(torch.sigmoid(logits))  # (B, P)
-
-    return torch.stack(maps, dim=1)  # (B, K, P)
+    return torch.sigmoid(
+        extract_attention_logits(lm_output, obj_positions, img_start, img_end)
+    )

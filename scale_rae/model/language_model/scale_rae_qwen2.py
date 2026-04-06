@@ -39,6 +39,7 @@ from ..object_centric import (
     hungarian_match,
     compute_mask_loss,
     compute_diversity_loss,
+    extract_attention_logits,
     extract_attention_maps,
 )
 
@@ -443,10 +444,12 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
                     if hasattr(config, 'diffusion_base_dim') and config.diffusion_base_dim is not None:
                         self.diff_head_config["base_dim"] = config.diffusion_base_dim
                     # NEW: optional normalization stats path
-                    if hasattr(config, 'diffusion_norm_stats_path') and config.diffusion_norm_stats_path:
-                        self.diff_head_config["batchnorm_path"] = config.diffusion_norm_stats_path
+                    _norm_path = getattr(config, 'diffusion_norm_stats_path', None)
+                    print(f"[AURORA-INIT] diffusion_norm_stats_path = {_norm_path}")
+                    if _norm_path:
+                        self.diff_head_config["batchnorm_path"] = _norm_path
 
-                
+
                 if config.diffusion_model_z_channels != 0:
                     self.diff_head_projector = nn.Linear(config.hidden_size, config.diffusion_model_z_channels)
                     self.use_diff_head_projector = True
@@ -469,6 +472,7 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
 
 
             self.diff_head = create_rf_projector(self.diff_head_config)
+            print(f"[AURORA-INIT] diff_head.normalize_data = {getattr(self.diff_head, 'normalize_data', 'N/A')}")
 
             # self.conditioning_preprocessor = nn.Sequential(
             #     nn.LayerNorm(config.hidden_size),
@@ -1631,6 +1635,9 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         cond = hidden
         if getattr(self, 'use_diff_head_projector', False):
             cond = self.diff_head_projector(cond)
+        # Normalize conditioning to prevent DiT AdaLN explosion from
+        # out-of-distribution inputs during early AURORA training.
+        cond = F.layer_norm(cond, (cond.shape[-1],))
         self._aurora_check_finite(cond, "diffusion_condition")
         self.diff_head = self.diff_head.to(cond.device)
         diff_dtype = next(self.diff_head.parameters()).dtype
@@ -1800,6 +1807,7 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
             if getattr(self, 'use_diff_head_projector', False):
                 projector_dtype = next(self.diff_head_projector.parameters()).dtype
                 rae_cond = self.diff_head_projector(rae_cond.to(dtype=projector_dtype))
+            rae_cond = F.layer_norm(rae_cond, (rae_cond.shape[-1],))
             self.diff_head = self.diff_head.to(rae_cond.device)
             diff_dtype = next(self.diff_head.parameters()).dtype
             generated = self.diff_head.infer(
@@ -1876,14 +1884,15 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         obj_positions = list(range(obj_s, obj_e))
 
         # ============ 7. Attention Maps ============
-        pred_maps = extract_attention_maps(lm_output, obj_positions, img_s, img_e)  # (B, K, N_img)
+        pred_logits = extract_attention_logits(lm_output, obj_positions, img_s, img_e)  # (B, K, N_img)
+        pred_maps = torch.sigmoid(pred_logits)
 
         # ============ 8. Hungarian Matching (per sample) ============
         all_matchings = []
         for b in range(B):
             n_obj_b = min(int(n_objects[b].item()), gt_masks_patches.shape[1])
             if n_obj_b > 0 and K > 0:
-                matching_b = hungarian_match(pred_maps[b, :K], gt_masks_patches[b, :n_obj_b])
+                matching_b = hungarian_match(pred_logits[b, :K], gt_masks_patches[b, :n_obj_b])
             else:
                 matching_b = []
             all_matchings.append(matching_b)
@@ -1895,7 +1904,7 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
 
         # 9b. Mask Supervision Loss
         L_mask = compute_mask_loss(
-            lm_output, obj_positions, img_s, img_e,
+            pred_logits,
             gt_masks_patches, all_matchings,
         )
 

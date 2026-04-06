@@ -4,5 +4,6 @@ from .aurora_utils import (
     hungarian_match,
     compute_mask_loss,
     compute_diversity_loss,
+    extract_attention_logits,
     extract_attention_maps,
 )

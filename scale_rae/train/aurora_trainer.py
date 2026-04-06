@@ -90,6 +90,11 @@ class ModelArguments:
     aurora_fail_on_nan: bool = field(default=True)
     aurora_training_stage: int = field(default=1)
     aurora_grad_clip_max_norm: float = field(default=1.0)
+    aurora_train_diffusion_condition: bool = field(default=True)
+    diffusion_norm_stats_path: Optional[str] = field(
+        default=None,
+        metadata={"help": "Path to .pt file with {'running_mean': Tensor[D], 'running_var': Tensor[D]} for diffusion target normalization."},
+    )
 
 
 @dataclass
@@ -1691,6 +1696,9 @@ def make_data_module(tokenizer, data_args, model_configs, training_args=None) ->
 def freeze_for_aurora_phase1(model):
     model.requires_grad_(False)
     stage = int(getattr(model.config, "aurora_training_stage", 1))
+    train_diffusion_condition = bool(
+        getattr(model.config, "aurora_train_diffusion_condition", True)
+    )
     trainable_keywords = [
         "aurora_cmd_embeddings",
         "aurora_obj_embedding_pool",
@@ -1701,12 +1709,20 @@ def freeze_for_aurora_phase1(model):
         trainable_keywords.append("latent_queries")
     n_trainable = 0
     for name, param in model.named_parameters():
-        if any(keyword in name for keyword in trainable_keywords) or _is_aurora_diffusion_condition_param(name):
+        should_train = any(keyword in name for keyword in trainable_keywords)
+        if train_diffusion_condition and _is_aurora_diffusion_condition_param(name):
+            should_train = True
+        if should_train:
             param.requires_grad = True
             if param.is_floating_point() and param.dtype != torch.float32:
                 param.data = param.data.to(torch.float32)
             n_trainable += param.numel()
-    logger_module.info("[AURORA] Stage %d trainable params: %d", stage, n_trainable)
+    logger_module.info(
+        "[AURORA] Stage %d trainable params: %d (diffusion_condition=%s)",
+        stage,
+        n_trainable,
+        train_diffusion_condition,
+    )
     return model
 
 
@@ -1748,6 +1764,11 @@ def train():
     config.aurora_fail_on_nan = model_args.aurora_fail_on_nan
     config.aurora_training_stage = model_args.aurora_training_stage
     config.aurora_grad_clip_max_norm = model_args.aurora_grad_clip_max_norm
+    config.aurora_train_diffusion_condition = model_args.aurora_train_diffusion_condition
+    print(f"[AURORA-TRAINER] model_args.diffusion_norm_stats_path = {model_args.diffusion_norm_stats_path}")
+    if model_args.diffusion_norm_stats_path:
+        config.diffusion_norm_stats_path = model_args.diffusion_norm_stats_path
+    print(f"[AURORA-TRAINER] config.diffusion_norm_stats_path = {getattr(config, 'diffusion_norm_stats_path', 'NOT SET')}")
 
     model = ScaleRAEQwenForCausalLM.from_pretrained(
         model_args.model_name_or_path,

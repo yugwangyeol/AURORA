@@ -16,6 +16,7 @@ from scale_rae.model.object_centric.aurora_utils import (
     build_aurora_v2_attention_mask,
     compute_diversity_loss,
     compute_mask_loss,
+    extract_attention_logits,
     extract_attention_maps,
     hungarian_match,
     sample_k_for_batch,
@@ -47,15 +48,15 @@ def test_sampling_and_matching():
         k = sample_k_for_batch([1, 3, 4], 5)
         assert 1 <= k <= 1
 
-    pred = torch.tensor([
-        [0.95] * 128 + [0.05] * 128,
-        [0.05] * 128 + [0.95] * 128,
+    pred_logits = torch.tensor([
+        [4.0] * 128 + [-4.0] * 128,
+        [-4.0] * 128 + [4.0] * 128,
     ])
     gt = torch.tensor([
         [1.0] * 128 + [0.0] * 128,
         [0.0] * 128 + [1.0] * 128,
     ])
-    matches = hungarian_match(pred, gt)
+    matches = hungarian_match(pred_logits, gt)
     assert matches == [(0, 0), (1, 1)]
     print("sampling/matching OK")
 
@@ -66,16 +67,15 @@ def test_attention_map_and_losses():
     obj_positions = [256, 257]
 
     lm_output = torch.randn(B, L, D)
+    logits = extract_attention_logits(lm_output, obj_positions, img_start, img_end)
     maps = extract_attention_maps(lm_output, obj_positions, img_start, img_end)
+    assert logits.shape == (B, 2, 256)
     assert maps.shape == (B, 2, 256)
 
     gt_masks = torch.rand(B, 2, 256)
     matching = [[(0, 0), (1, 1)] for _ in range(B)]
     mask_loss = compute_mask_loss(
-        lm_output=lm_output,
-        obj_positions=obj_positions,
-        img_start=img_start,
-        img_end=img_end,
+        pred_logits=logits,
         gt_masks=gt_masks,
         all_matchings=matching,
     )
