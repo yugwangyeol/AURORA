@@ -551,6 +551,8 @@ class LightningDiT(nn.Module):
         if len(t.shape) < len(y.shape):
             # y: [B, L, D], t: [B, D], expand t to match y's shape
             input_t = t.unsqueeze(1).expand(-1, y.shape[1], -1)
+        else:
+            input_t = t
         c = input_t + y                                # (N, D)
         #print(f"c shape: {c.shape}, x shape: {x.shape}, t shape: {t.shape}, y shape: {y.shape}")
         if self.cond_silu:
@@ -964,6 +966,8 @@ class LightningDDT(nn.Module):
         if len(t.shape) < len(y.shape):
             # y: [B, L, D], t: [B, D], expand t to match y's shape
             input_t = t.unsqueeze(1).expand(-1, y.shape[1], -1)
+        else:
+            input_t = t
         c = input_t + y                                # (N, D)
         #print(f"c shape: {c.shape}, x shape: {x.shape}, t shape: {t.shape}, y shape: {y.shape}")
         if self.cond_silu:

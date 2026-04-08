@@ -57,7 +57,9 @@ def P_to_L(zs: torch.Tensor, split: float = 1) -> torch.Tensor:
     zs: [batch_size, hidden_size//split, sqrt(seq_len*split), sqrt(seq_len*split)]
     return: [batch_size, seq_len, hidden_size]
     """
-    batch_size, c, pn, pn = zs.shape
+    batch_size, c, h, w = zs.shape
+    assert h == w, f"Expected square spatial dims, got {h}x{w}"
+    pn = h
     aggregated_c = c * split
     sqrt_split = int(split ** 0.5)
     split_pn = int(pn // sqrt_split)
@@ -71,21 +73,6 @@ def P_to_L(zs: torch.Tensor, split: float = 1) -> torch.Tensor:
     zs = zs.view(batch_size, split_pn, split_pn, aggregated_c)
     zs = zs.view(batch_size, split_pn*split_pn, aggregated_c)
     return zs.contiguous()
-from dataclasses import dataclass, asdict
-@dataclass
-class DiTkwargs:
-    input_size: int = 16
-    patch_size: int = 1
-    hidden_size: int = 1152
-    in_channels: int = 1152
-    depth: int = 28
-    num_heads: int = 16
-    class_dropout_prob: float = .0
-    z_channels: int = 4096
-    # for next DiT
-    # use default by now
-
-
 class RectifiedFlowProjector(nn.Module):
     """
     deprecated
@@ -314,12 +301,8 @@ class RectifiedFlowProjector(nn.Module):
 
     @torch.no_grad()
     def infer(self, z: torch.Tensor, x_end: torch.Tensor = None, guidance_level=None) -> torch.Tensor:
-        if guidance_level is not None:
-            #     f"[DEBUG] Using guidance_level {guidance_level} instead of self.guidance_scale {self.guidance_scale}")
-            self.guidance_scale = guidance_level
-            self.use_cfg = guidance_level > 1.0
-
-        guidance_scale = self.guidance_scale
+        guidance_scale = guidance_level if guidance_level is not None else self.guidance_scale
+        use_cfg = guidance_scale > 1.0
 
         cfg_interval = self.cfg_interval
         n = z.shape[0]
@@ -328,7 +311,7 @@ class RectifiedFlowProjector(nn.Module):
         if x_end is None:
             x_end = self.inference_flow.get_x_end(
                 x_end_shape, device=z.device, dtype=z.dtype)
-        if self.use_cfg:
+        if use_cfg:
             x_end = torch.cat([x_end, x_end], dim=0)
             model_kwargs = dict(y=z, cfg_scale=guidance_scale,
                                 cfg_interval=cfg_interval)
@@ -346,24 +329,13 @@ class RectifiedFlowProjector(nn.Module):
             device=z.device,
         )
 
-        if self.use_cfg:
+        if use_cfg:
             # remove unconditioned samples
             samples, _ = samples.chunk(2, dim=0)
 
         samples = P_to_L(samples, self.split_per_token)
 
         return samples
-
-
-# def create_rf_projector(model_kwargs:dict) -> RectifiedFlowProjector:
-#     """
-#     Create a RectifiedFlowProjector instance with dummy parameters.
-#     """
-#     # Dummy parameters for testing
-#     return RectifiedFlowProjector(
-#         **model_kwargs,
-#         inference_step=2
-#     )
 
 
 class FullSequenceRectifiedFlowProjector(nn.Module):
@@ -650,17 +622,14 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
             loss = self.train_flow.training_losses(
                 self.model, x, t, model_kwargs={"y": z})
 
-        return loss["loss"]
+        return loss["loss"]  # (B,) — mean_flat already averages over all non-batch dims
 
     # (legacy single-argument version removed – unified implementation above)
 
     @torch.no_grad()
     def infer(self, z: torch.Tensor, x_end: torch.Tensor = None, guidance_level=None) -> torch.Tensor:
-        if guidance_level is not None:
-            #     f"[DEBUG] Using guidance_level {guidance_level} instead of self.guidance_scale {self.guidance_scale}")
-            self.guidance_scale = guidance_level
-            self.use_cfg = guidance_level > 1.0
-        guidance_scale = self.guidance_scale
+        guidance_scale = guidance_level if guidance_level is not None else self.guidance_scale
+        use_cfg = guidance_scale > 1.0
         cfg_interval = self.cfg_interval
         n = z.shape[0]
         x_end_shape = (n, self.model.in_channels,
@@ -669,8 +638,7 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
         if x_end is None:
             x_end = self.inference_flow.get_x_end(
                 x_end_shape, device=z.device, dtype=z.dtype)
-        if self.use_cfg:
-            # raise NotImplementedError("CFG is not supported (yet)")
+        if use_cfg:
             x_end = torch.cat([x_end, x_end], dim=0)
             model_kwargs = dict(y=z, cfg_scale=guidance_scale,
                                 cfg_interval=cfg_interval)
@@ -688,7 +656,7 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
             device=z.device,
         )
 
-        if self.use_cfg:
+        if use_cfg:
             # remove unconditioned samples
             samples, _ = samples.chunk(2, dim=0)
         # convert back to [B, L, D]

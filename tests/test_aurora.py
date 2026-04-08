@@ -25,19 +25,27 @@ from scale_rae.model.object_centric.aurora_utils import (
 
 def test_attention_mask():
     device = torch.device("cpu")
-    mask = build_aurora_v2_attention_mask(256, 8, 3, 4, 256, device)
-    L = 256 + 8 + 3 + 4 + 256
+    mask = build_aurora_v2_attention_mask(256, 8, 3, 4, 256, device, n_rae_anchor=1)
+    L = 256 + 8 + 3 + 4 + 1 + 256
     assert mask.shape == (1, 1, L, L)
 
-    obj0 = 256 + 8
+    cmd0 = 0
+    img0 = 8
+    obj0 = 8 + 256
     obj1 = obj0 + 1
-    reg0 = 256 + 8 + 3
-    rae0 = reg0 + 4
+    reg0 = obj0 + 3
+    anchor0 = reg0 + 4
+    rae0 = anchor0 + 1
 
-    assert mask[0, 0, obj0, 0].item() == 0.0
+    assert mask[0, 0, obj0, cmd0].item() == 0.0
+    assert mask[0, 0, obj0, img0].item() == 0.0
     assert mask[0, 0, obj1, obj0].item() == 0.0
     assert mask[0, 0, obj0, obj1].item() == float("-inf")
-    assert mask[0, 0, rae0, 0].item() == float("-inf")
+    assert mask[0, 0, anchor0, anchor0].item() == 0.0
+    assert mask[0, 0, anchor0, cmd0].item() == float("-inf")
+    assert mask[0, 0, rae0, cmd0].item() == float("-inf")
+    assert mask[0, 0, rae0, img0].item() == float("-inf")
+    assert mask[0, 0, rae0, anchor0].item() == 0.0
     assert mask[0, 0, rae0, obj0].item() == 0.0
     assert mask[0, 0, reg0, obj1].item() == 0.0
     print("attention mask OK")
@@ -79,7 +87,7 @@ def test_attention_map_and_losses():
         gt_masks=gt_masks,
         all_matchings=matching,
     )
-    div_loss = compute_diversity_loss(lm_output, obj_positions)
+    div_loss = compute_diversity_loss(maps)
     assert mask_loss.dim() == 0
     assert div_loss.dim() == 0
     print("maps/losses OK")

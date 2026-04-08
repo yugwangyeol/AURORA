@@ -35,7 +35,9 @@ logger = logging.get_logger(__name__)
 from ..scale_rae_arch import ScaleRAEMetaModel, ScaleRAEMetaForCausalLM, apply_custom_kernel
 from ..object_centric import (
     build_aurora_v2_attention_mask,
+    build_active_slot_mask,
     sample_k_for_batch,
+    sample_k_per_sample,
     hungarian_match,
     compute_mask_loss,
     compute_diversity_loss,
@@ -80,6 +82,11 @@ class ScaleRAEQwenConfig(Qwen2Config):
     aurora_fail_on_nan = True
     aurora_training_stage = 1    # 1 = decomposition, 2 = inpainting
     aurora_grad_clip_max_norm = 1.0
+    aurora_condition_gate_init = 0.01
+    aurora_attention_use_layer_norm = True
+    aurora_attention_temperature = 1.0
+    aurora_train_latent_queries = False
+    aurora_use_im_start_anchor = True
 
 
 class ScaleRAEQwenModel(ScaleRAEMetaModel, Qwen2Model):
@@ -1568,11 +1575,17 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         self.aurora_C = getattr(self.config, 'aurora_cmd_length', 8)
         self.aurora_K_max = getattr(self.config, 'aurora_max_slots', 10)
         self.aurora_N_reg = getattr(self.config, 'aurora_n_register', 8)
+        self.aurora_N_anchor = 1 if bool(getattr(self.config, "aurora_use_im_start_anchor", True)) else 0
 
         # Learnable tokens (v2)
         self.aurora_cmd_embeddings = nn.Parameter(torch.randn(self.aurora_C, D) * embed_std)
         self.aurora_obj_embedding_pool = nn.Parameter(torch.randn(self.aurora_K_max, D) * embed_std)
         self.aurora_reg_embeddings = nn.Parameter(torch.randn(self.aurora_N_reg, D) * embed_std)
+        gate_init = float(getattr(self.config, "aurora_condition_gate_init", 0.01))
+        gate_init = min(max(gate_init, 1e-4), 1.0 - 1e-4)
+        self.aurora_condition_gate_logit = nn.Parameter(
+            torch.logit(torch.tensor(gate_init, dtype=torch.float32))
+        )
 
         self._aurora_warned_nan_diff_loss = False
         self._aurora_warned_nan_total_loss = False
@@ -1580,13 +1593,15 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
 
         # Freeze rae_query (latent_queries) — used as frozen conditioning for DiT
         stage = int(getattr(self.config, 'aurora_training_stage', 1))
+        train_latent_queries = bool(getattr(self.config, "aurora_train_latent_queries", False))
         if self.get_model().latent_queries is not None:
-            self.get_model().latent_queries.requires_grad_(stage >= 2)
+            self.get_model().latent_queries.requires_grad_(stage >= 2 or train_latent_queries)
 
         print(
             f"[AURORA v2] Initialised — D={D}, C={self.aurora_C}, "
             f"K_max={self.aurora_K_max}, N_reg={self.aurora_N_reg}, "
-            f"stage={stage}"
+            f"N_anchor={self.aurora_N_anchor}, "
+            f"stage={stage}, train_latent_queries={train_latent_queries}"
         )
 
     def _aurora_check_finite(self, tensor: Optional[torch.Tensor], name: str):
@@ -1626,24 +1641,106 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
     def _aurora_model_dtype(self) -> torch.dtype:
         return next(self.model.parameters()).dtype
 
+    def _aurora_get_condition_gate(self) -> torch.Tensor:
+        return torch.sigmoid(self.aurora_condition_gate_logit.float())
+
+    def _aurora_prepare_diffusion_condition(self, hidden: torch.Tensor) -> torch.Tensor:
+        cond = hidden
+        if getattr(self, 'use_diff_head_projector', False):
+            cond = self.diff_head_projector(cond)
+        cond = F.layer_norm(cond, (cond.shape[-1],))
+        gate = self._aurora_get_condition_gate().to(device=cond.device, dtype=cond.dtype)
+        cond = cond * gate
+        self.aurora_condition_gate_value = gate.detach().float()
+        return cond
+
+    def _aurora_get_im_start_anchor(
+        self,
+        batch_size: int,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> Optional[torch.Tensor]:
+        if self.aurora_N_anchor <= 0:
+            return None
+
+        im_start_id = getattr(self, "im_start_id", getattr(self.config, "im_start_id", None))
+        if im_start_id is None:
+            raise ValueError(
+                "AURORA im_start_anchor requested but `im_start_id` is unset. "
+                "Load the model with registered <im_start>/<im_end> token ids first."
+            )
+
+        token_ids = torch.full(
+            (1, self.aurora_N_anchor),
+            int(im_start_id),
+            device=self.model.embed_tokens.weight.device,
+            dtype=torch.long,
+        )
+        with torch.no_grad():
+            anchor = self.model.embed_tokens(token_ids).detach()
+        return anchor.expand(batch_size, -1, -1).to(device=device, dtype=dtype)
+
+    def _aurora_build_active_slot_mask(
+        self,
+        K: int,
+        device: torch.device,
+        batch_size: Optional[int] = None,
+        active_k_per_sample: Optional[List[int]] = None,
+        active_slot_mask: Optional[torch.Tensor] = None,
+        remove_indices: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        slot_mask = build_active_slot_mask(
+            n_obj=K,
+            device=device,
+            active_k_per_sample=active_k_per_sample,
+            active_slot_mask=active_slot_mask,
+            batch_size=batch_size,
+        )
+        if remove_indices is not None and slot_mask.numel() > 0:
+            remove_indices = remove_indices.to(device=device, dtype=torch.long).view(-1)
+            if remove_indices.numel() == 1 and slot_mask.shape[0] > 1:
+                remove_indices = remove_indices.expand(slot_mask.shape[0])
+            batch_idx = torch.arange(slot_mask.shape[0], device=device)
+            clamped = remove_indices.clamp(0, max(K - 1, 0))
+            slot_mask = slot_mask.clone()
+            slot_mask[batch_idx, clamped] = False
+        return slot_mask
+
+    def _aurora_visible_img_mask_from_patches(
+        self,
+        mask_patches: Optional[torch.Tensor],
+        threshold: float = 1e-6,
+    ) -> Optional[torch.Tensor]:
+        if mask_patches is None:
+            return None
+        return mask_patches.to(dtype=torch.float32) <= float(threshold)
+
     def _aurora_compute_diffusion_loss(
         self,
         hidden: torch.Tensor,
         target_features: torch.Tensor,
     ) -> torch.Tensor:
         self._aurora_check_finite(hidden, "rae_hidden")
-        cond = hidden
-        if getattr(self, 'use_diff_head_projector', False):
-            cond = self.diff_head_projector(cond)
-        # Normalize conditioning to prevent DiT AdaLN explosion from
-        # out-of-distribution inputs during early AURORA training.
-        cond = F.layer_norm(cond, (cond.shape[-1],))
+        cond = self._aurora_prepare_diffusion_condition(hidden)
         self._aurora_check_finite(cond, "diffusion_condition")
         self.diff_head = self.diff_head.to(cond.device)
         diff_dtype = next(self.diff_head.parameters()).dtype
         cond_input = cond.to(device=cond.device, dtype=diff_dtype)
         target_input = target_features.to(device=cond.device, dtype=diff_dtype)
+
+        if not getattr(self.diff_head, 'normalize_data', False):
+            target_input = F.layer_norm(target_input, (target_input.shape[-1],))
+
+        #print(f"[DEBUG] cond_input shape: {cond_input.shape}")
+        #print(f"[DEBUG] cond_input stats: min={cond_input.min():.4f}, max={cond_input.max():.4f}, mean={cond_input.mean():.4f}")
+        #print(f"[DEBUG] target_input shape: {target_input.shape}")
+        #print(f"[DEBUG] target_input stats: min={target_input.min():.4f}, max={target_input.max():.4f}, mean={target_input.mean():.4f}")
+        
         loss = self.diff_head.training_loss(z=cond_input, x=target_input)
+        
+        #print(f"[DEBUG] raw loss from diff_head: {loss}")
+        #print(f"[DEBUG] loss shape: {loss.shape if hasattr(loss, 'shape') else 'scalar'}")
+
         if not torch.isfinite(loss).all():
             self._aurora_check_finite(loss, "diffusion_loss")
             if torch.isnan(loss).any() and not getattr(self, "_aurora_warned_nan_diff_loss", False):
@@ -1657,20 +1754,27 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
     def _aurora_positions(self, K: int) -> Dict[str, int]:
         N_img = self.num_image_tokens
         N_rae = self.get_model().latent_queries.shape[0]
-        img_s, img_e = 0, N_img
-        obj_s = N_img + self.aurora_C
+        cmd_s, cmd_e = 0, self.aurora_C
+        img_s, img_e = cmd_e, cmd_e + N_img
+        obj_s = img_e
         obj_e = obj_s + K
         reg_s = obj_e
         reg_e = reg_s + self.aurora_N_reg
-        rae_s = reg_e
+        anchor_s = reg_e
+        anchor_e = anchor_s + self.aurora_N_anchor
+        rae_s = anchor_e
         rae_e = rae_s + N_rae
         return {
             "img_s": img_s,
             "img_e": img_e,
+            "cmd_s": cmd_s,
+            "cmd_e": cmd_e,
             "obj_s": obj_s,
             "obj_e": obj_e,
             "reg_s": reg_s,
             "reg_e": reg_e,
+            "anchor_s": anchor_s,
+            "anchor_e": anchor_e,
             "rae_s": rae_s,
             "rae_e": rae_e,
         }
@@ -1680,8 +1784,17 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         img_features: torch.Tensor,
         obj_embeds: torch.Tensor,
         reg_embeds: torch.Tensor,
+        active_k_per_sample: List[int] = None,
+        active_slot_mask: Optional[torch.Tensor] = None,
+        visible_img_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """Run one AURORA pass with explicit object/register token inputs."""
+        """Run one AURORA pass with explicit object/register token inputs.
+
+        Args:
+            active_k_per_sample: per-sample active slot counts. If provided,
+                builds per-sample attention masks where slots >= K_i are fully
+                blocked. If None, all obj slots are active (shared mask).
+        """
         B = img_features.shape[0]
         device = img_features.device
         N_img = self.num_image_tokens
@@ -1689,11 +1802,17 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         K = obj_embeds.shape[1]
 
         cmd_embeds = self.aurora_cmd_embeddings.unsqueeze(0).expand(B, -1, -1)
+        anchor_embeds = self._aurora_get_im_start_anchor(
+            batch_size=B,
+            device=device,
+            dtype=self._aurora_model_dtype(),
+        )
         rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1)
-        inputs_embeds = torch.cat(
-            [img_features, cmd_embeds, obj_embeds, reg_embeds, rae_embeds],
-            dim=1,
-        ).to(dtype=self._aurora_model_dtype())
+        embed_chunks = [cmd_embeds, img_features, obj_embeds, reg_embeds]
+        if anchor_embeds is not None:
+            embed_chunks.append(anchor_embeds)
+        embed_chunks.append(rae_embeds)
+        inputs_embeds = torch.cat(embed_chunks, dim=1).to(dtype=self._aurora_model_dtype())
 
         attn_bias = build_aurora_v2_attention_mask(
             n_img=N_img,
@@ -1703,7 +1822,13 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
             n_rae=N_rae,
             device=device,
             dtype=inputs_embeds.dtype,
-        ).expand(B, -1, -1, -1)
+            active_k_per_sample=active_k_per_sample,
+            active_slot_mask=active_slot_mask,
+            visible_img_mask=visible_img_mask,
+            n_rae_anchor=self.aurora_N_anchor,
+        )
+        if active_k_per_sample is None and active_slot_mask is None and visible_img_mask is None:
+            attn_bias = attn_bias.expand(B, -1, -1, -1)
 
         out = self.model(
             inputs_embeds=inputs_embeds,
@@ -1717,6 +1842,7 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         self,
         pred_maps: torch.Tensor,
         target_masks: torch.Tensor,
+        active_slot_mask: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Pick the object slot with the highest soft IoU against a target mask."""
         if pred_maps.dim() != 3:
@@ -1733,6 +1859,15 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         intersection = torch.minimum(pred, target).sum(dim=-1)
         union = pred.sum(dim=-1) + target.sum(dim=-1) - intersection
         scores = intersection / union.clamp_min(1e-6)
+        if active_slot_mask is not None:
+            slot_mask = active_slot_mask.to(device=pred_maps.device, dtype=torch.bool)
+            if slot_mask.dim() == 1:
+                slot_mask = slot_mask.unsqueeze(0)
+            if slot_mask.shape != scores.shape:
+                raise ValueError(
+                    f"Expected active_slot_mask with shape {tuple(scores.shape)}, got {tuple(slot_mask.shape)}"
+                )
+            scores = scores.masked_fill(~slot_mask, -1.0)
         return scores.argmax(dim=1), scores
 
     def _aurora_drop_slots(
@@ -1792,6 +1927,7 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         K: int,
         guidance_level: float = 1.0,
         return_generated: bool = True,
+        active_slot_mask: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         positions = self._aurora_positions(K)
         pred_maps = extract_attention_maps(
@@ -1799,15 +1935,14 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
             list(range(positions["obj_s"], positions["obj_e"])),
             positions["img_s"],
             positions["img_e"],
+            normalize_tokens=bool(getattr(self.config, "aurora_attention_use_layer_norm", True)),
+            temperature=float(getattr(self.config, "aurora_attention_temperature", 1.0)),
+            active_slot_mask=active_slot_mask,
         )
         rae_hidden = lm_output[:, positions["rae_s"]:positions["rae_e"], :]
-        rae_cond = rae_hidden
+        rae_cond = self._aurora_prepare_diffusion_condition(rae_hidden)
         generated = None
         if return_generated:
-            if getattr(self, 'use_diff_head_projector', False):
-                projector_dtype = next(self.diff_head_projector.parameters()).dtype
-                rae_cond = self.diff_head_projector(rae_cond.to(dtype=projector_dtype))
-            rae_cond = F.layer_norm(rae_cond, (rae_cond.shape[-1],))
             self.diff_head = self.diff_head.to(rae_cond.device)
             diff_dtype = next(self.diff_head.parameters()).dtype
             generated = self.diff_head.infer(
@@ -1866,33 +2001,52 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         # ============ 1. Image Encoding (Frozen) ============
         _, img_features, gt_siglip = self._encode_images_aurora(images)
 
-        # ============ 2. Random K Sampling (batch-wide) ============
+        # ============ 2. Per-sample K Sampling ============
         n_objects_list = n_objects.tolist()
-        K = sample_k_for_batch(n_objects_list, self.aurora_K_max)
+        active_k_list = sample_k_per_sample(n_objects_list, self.aurora_K_max)
+        K_max = self.aurora_K_max
+        active_slot_mask = self._aurora_build_active_slot_mask(
+            K=K_max,
+            device=device,
+            batch_size=B,
+            active_k_per_sample=active_k_list,
+        )
 
-        # ============ 3. Build Input Sequence ============
-        obj_embeds = self.aurora_obj_embedding_pool[:K].unsqueeze(0).expand(B, -1, -1)
+        # ============ 3. Build Input Sequence (always K_max slots) ============
+        obj_embeds = self.aurora_obj_embedding_pool[:K_max].unsqueeze(0).expand(B, -1, -1)
         reg_embeds = self.aurora_reg_embeddings.unsqueeze(0).expand(B, -1, -1)
-        lm_output = self._aurora_run_pass(img_features, obj_embeds, reg_embeds)
+        lm_output = self._aurora_run_pass(
+            img_features, obj_embeds, reg_embeds,
+            active_slot_mask=active_slot_mask,
+        )
 
-        # ============ 4. Position Indices ============
-        positions = self._aurora_positions(K)
+        # ============ 4. Position Indices (always K_max) ============
+        positions = self._aurora_positions(K_max)
         img_s, img_e = positions["img_s"], positions["img_e"]
         obj_s, obj_e = positions["obj_s"], positions["obj_e"]
         reg_s, reg_e = positions["reg_s"], positions["reg_e"]
         rae_s, rae_e = positions["rae_s"], positions["rae_e"]
         obj_positions = list(range(obj_s, obj_e))
 
-        # ============ 7. Attention Maps ============
-        pred_logits = extract_attention_logits(lm_output, obj_positions, img_s, img_e)  # (B, K, N_img)
-        pred_maps = torch.sigmoid(pred_logits)
+        # ============ 7. Attention Maps (only active slots matter) ============
+        pred_logits = extract_attention_logits(
+            lm_output,
+            obj_positions,
+            img_s,
+            img_e,
+            normalize_tokens=bool(getattr(self.config, "aurora_attention_use_layer_norm", True)),
+            temperature=float(getattr(self.config, "aurora_attention_temperature", 1.0)),
+            active_slot_mask=active_slot_mask,
+        )  # (B, K_max, N_img) — inactive slots zeroed
+        pred_maps = torch.sigmoid(pred_logits) * active_slot_mask.unsqueeze(-1).to(dtype=pred_logits.dtype)
 
-        # ============ 8. Hungarian Matching (per sample) ============
+        # ============ 8. Hungarian Matching (per sample, only active slots) ============
         all_matchings = []
         for b in range(B):
+            k_i = active_k_list[b]
             n_obj_b = min(int(n_objects[b].item()), gt_masks_patches.shape[1])
-            if n_obj_b > 0 and K > 0:
-                matching_b = hungarian_match(pred_logits[b, :K], gt_masks_patches[b, :n_obj_b])
+            if n_obj_b > 0 and k_i > 0:
+                matching_b = hungarian_match(pred_logits[b, :k_i], gt_masks_patches[b, :n_obj_b])
             else:
                 matching_b = []
             all_matchings.append(matching_b)
@@ -1902,14 +2056,14 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         rae_hidden = lm_output[:, rae_s:rae_e, :]
         L_recon = self._aurora_compute_diffusion_loss(rae_hidden, gt_siglip)
 
-        # 9b. Mask Supervision Loss
+        # 9b. Mask Supervision Loss (only matched active slots)
         L_mask = compute_mask_loss(
             pred_logits,
             gt_masks_patches, all_matchings,
         )
 
-        # 9c. Diversity Loss
-        L_div = compute_diversity_loss(lm_output, obj_positions)
+        # 9c. Diversity Loss (only active slots per sample)
+        L_div = compute_diversity_loss(pred_maps, active_slot_mask=active_slot_mask)
 
         # 9d. Optional stage-2 inpainting loss
         L_inpaint = zero
@@ -1929,19 +2083,36 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
                 if inpaint_weight > 0.0:
                     inpaint_idx = torch.nonzero(has_inpaint, as_tuple=False).flatten()
                     _, _, target_siglip = self._encode_images_aurora(target_images[inpaint_idx])
-                    obj_hidden = lm_output[inpaint_idx, obj_s:obj_e, :]
-                    reg_hidden = lm_output[inpaint_idx, reg_s:reg_e, :]
+                    inpaint_slot_mask = active_slot_mask[inpaint_idx].clone()
                     remove_indices, _ = self._aurora_pick_slot_from_masks(
                         pred_maps[inpaint_idx],
                         inpaint_mask_patches[inpaint_idx].to(device=device, dtype=torch.float32),
+                        active_slot_mask=inpaint_slot_mask,
                     )
-                    kept_obj_hidden = self._aurora_drop_slots(obj_hidden, remove_indices)
+                    inpaint_slot_mask = self._aurora_build_active_slot_mask(
+                        K=K_max,
+                        device=device,
+                        batch_size=inpaint_idx.numel(),
+                        active_slot_mask=inpaint_slot_mask,
+                        remove_indices=remove_indices,
+                    )
+                    visible_img_mask = self._aurora_visible_img_mask_from_patches(
+                        inpaint_mask_patches[inpaint_idx]
+                    )
+                    fresh_obj_embeds = self.aurora_obj_embedding_pool[:K_max].unsqueeze(0).expand(
+                        inpaint_idx.numel(), -1, -1
+                    )
+                    fresh_reg_embeds = self.aurora_reg_embeddings.unsqueeze(0).expand(
+                        inpaint_idx.numel(), -1, -1
+                    )
                     edited_output = self._aurora_run_pass(
                         img_features[inpaint_idx],
-                        kept_obj_hidden,
-                        reg_hidden,
+                        fresh_obj_embeds,
+                        fresh_reg_embeds,
+                        active_slot_mask=inpaint_slot_mask,
+                        visible_img_mask=visible_img_mask,
                     )
-                    edited_positions = self._aurora_positions(kept_obj_hidden.shape[1])
+                    edited_positions = self._aurora_positions(K_max)
                     edited_rae_hidden = edited_output[:, edited_positions["rae_s"]:edited_positions["rae_e"], :]
                     L_inpaint = self._aurora_compute_diffusion_loss(edited_rae_hidden, target_siglip)
 
@@ -1964,7 +2135,7 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         self.aurora_loss_div = L_div.detach()
         self.aurora_loss_inpaint = L_inpaint.detach()
         self.aurora_inpaint_weight = torch.tensor(inpaint_weight, device=device)
-        self.aurora_K_sampled = torch.tensor(K, device=device)
+        self.aurora_K_sampled = torch.tensor(float(sum(active_k_list)) / len(active_k_list), device=device)
 
         info = {
             "loss_recon": L_recon.detach(),
@@ -1972,7 +2143,8 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
             "loss_div": L_div.detach(),
             "loss_inpaint": L_inpaint.detach(),
             "inpaint_weight": torch.tensor(inpaint_weight, device=device),
-            "K_sampled": torch.tensor(K, device=device),
+            "K_sampled": torch.tensor(float(sum(active_k_list)) / len(active_k_list), device=device),
+            "active_k_list": active_k_list,
         }
         if remove_indices is not None:
             info["removed_slots"] = remove_indices.detach()
@@ -1983,6 +2155,8 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         self,
         img_features: torch.Tensor,
         K: int,
+        active_slot_mask: Optional[torch.Tensor] = None,
+        visible_img_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Single forward pass for inference — returns lm_output."""
         obj_embeds = self.aurora_obj_embedding_pool[:K].unsqueeze(0).expand(img_features.shape[0], -1, -1)
@@ -1991,6 +2165,8 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
             img_features=img_features,
             obj_embeds=obj_embeds,
             reg_embeds=reg_embeds,
+            active_slot_mask=active_slot_mask,
+            visible_img_mask=visible_img_mask,
         )
 
     @torch.no_grad()
@@ -2045,12 +2221,11 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
             return_generated=False,
         )
         pred_maps = decoded_orig["attn_maps"]
-        obj_hidden = decoded_orig["obj_hidden"]
-        reg_hidden = decoded_orig["reg_hidden"]
 
         if removal_masks is not None and remove_slot_indices is None:
             removal_masks = removal_masks.to(model_device, dtype=torch.float32)
             remove_indices, remove_scores = self._aurora_pick_slot_from_masks(pred_maps, removal_masks)
+            visible_img_mask = self._aurora_visible_img_mask_from_patches(removal_masks)
         else:
             remove_indices = self._aurora_normalize_slot_indices(
                 remove_slot_indices if remove_slot_indices is not None else 0,
@@ -2058,14 +2233,29 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
                 device=model_device,
             )
             remove_scores = None
+            batch_idx = torch.arange(B, device=model_device)
+            inferred_remove = pred_maps[batch_idx, remove_indices].detach()
+            visible_img_mask = inferred_remove <= 0.5
 
-        kept_obj_hidden = self._aurora_drop_slots(obj_hidden, remove_indices)
-        edited_output = self._aurora_run_pass(img_features, kept_obj_hidden, reg_hidden)
+        edited_slot_mask = self._aurora_build_active_slot_mask(
+            K=K_orig,
+            device=model_device,
+            batch_size=B,
+            active_k_per_sample=[K_orig] * B,
+            remove_indices=remove_indices,
+        )
+        edited_output = self._aurora_forward_single(
+            img_features,
+            K=K_orig,
+            active_slot_mask=edited_slot_mask,
+            visible_img_mask=visible_img_mask,
+        )
         decoded_edit = self._aurora_decode_output(
             lm_output=edited_output,
-            K=kept_obj_hidden.shape[1],
+            K=K_orig,
             guidance_level=guidance_level,
             return_generated=True,
+            active_slot_mask=edited_slot_mask,
         )
 
         return {

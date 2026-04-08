@@ -12,6 +12,7 @@ INPAINT_IMAGE_FOLDER="${INPAINT_IMAGE_FOLDER:-/home/jovyan/processed_coco/traini
 COCO_ANNOTATION="${COCO_ANNOTATION:-/home/jovyan/data/coco/annotations/instances_train2017.json}"
 
 OUTPUT_DIR="${OUTPUT_DIR:-./checkpoints/aurora_phase1}"
+RESUME_FROM_CHECKPOINT="${RESUME_FROM_CHECKPOINT:-}"
 NUM_GPUS="${NUM_GPUS:-1}"
 MAX_STEPS="${MAX_STEPS:-1}"
 PER_DEVICE_TRAIN_BATCH_SIZE="${PER_DEVICE_TRAIN_BATCH_SIZE:-1}"
@@ -35,6 +36,11 @@ AURORA_MASK_LOSS_WEIGHT="${AURORA_MASK_LOSS_WEIGHT:-1.0}"
 AURORA_DIVERSITY_LOSS_WEIGHT="${AURORA_DIVERSITY_LOSS_WEIGHT:-0.1}"
 AURORA_INPAINT_WEIGHT="${AURORA_INPAINT_WEIGHT:-0.5}"
 AURORA_TRAIN_DIFFUSION_CONDITION="${AURORA_TRAIN_DIFFUSION_CONDITION:-True}"
+AURORA_TRAIN_LATENT_QUERIES="${AURORA_TRAIN_LATENT_QUERIES:-False}"
+AURORA_CONDITION_GATE_INIT="${AURORA_CONDITION_GATE_INIT:-0.01}"
+AURORA_ATTENTION_USE_LAYERNORM="${AURORA_ATTENTION_USE_LAYERNORM:-True}"
+AURORA_ATTENTION_TEMPERATURE="${AURORA_ATTENTION_TEMPERATURE:-1.0}"
+AURORA_LATENT_QUERY_LR="${AURORA_LATENT_QUERY_LR:-}"
 AURORA_INCLUDE_INPAINTING="${AURORA_INCLUDE_INPAINTING:-True}"
 AURORA_INPAINT_WARMUP_STEPS="${AURORA_INPAINT_WARMUP_STEPS:-1000}"
 AURORA_INPAINT_RAMP_STEPS="${AURORA_INPAINT_RAMP_STEPS:-4000}"
@@ -67,6 +73,10 @@ export PYTHONNOUSERSITE=1
 CONDA_LIB="$(dirname "${PYTHON}")/../lib"
 export LD_LIBRARY_PATH="${CONDA_LIB}:${LD_LIBRARY_PATH}"
 
+find_latest_checkpoint() {
+    find "${OUTPUT_DIR}" -maxdepth 1 -type d -name 'checkpoint-*' | sort -V | tail -n 1
+}
+
 PRETRAIN_ARGS=()
 if [ -n "${PRETRAIN_CKPT}" ] && [ -f "${PRETRAIN_CKPT}" ]; then
     PRETRAIN_ARGS+=(--pretrain_adapter_and_vision_head "${PRETRAIN_CKPT}")
@@ -88,14 +98,36 @@ if [ -n "${DIFFUSION_NORM_STATS_PATH}" ] && [ -f "${DIFFUSION_NORM_STATS_PATH}" 
     NORM_STATS_ARGS+=(--diffusion_norm_stats_path "${DIFFUSION_NORM_STATS_PATH}")
 fi
 
+RESUME_ARGS=()
+if [ -n "${RESUME_FROM_CHECKPOINT}" ]; then
+    case "${RESUME_FROM_CHECKPOINT}" in
+        auto|latest|True|true)
+            RESUME_FROM_CHECKPOINT="$(find_latest_checkpoint)"
+            if [ -z "${RESUME_FROM_CHECKPOINT}" ]; then
+                echo "Resume requested, but no checkpoint was found under ${OUTPUT_DIR}. Starting from scratch."
+            fi
+            ;;
+    esac
+
+    if [ -n "${RESUME_FROM_CHECKPOINT}" ]; then
+        if [ ! -d "${RESUME_FROM_CHECKPOINT}" ]; then
+            echo "Requested resume checkpoint does not exist: ${RESUME_FROM_CHECKPOINT}" >&2
+            exit 1
+        fi
+        RESUME_ARGS+=(--resume_from_checkpoint "${RESUME_FROM_CHECKPOINT}")
+    fi
+fi
+
 echo "===== AURORA v2 Training ====="
 echo "Model:  $MODEL_PATH"
 echo "Recon:  $RECON_IMAGE_FOLDER"
 echo "Inpaint manifest: ${INPAINT_DATA_PATH:-<disabled>}"
 echo "Stage: ${AURORA_TRAINING_STAGE}"
 echo "Output: $OUTPUT_DIR"
+echo "Resume: ${RESUME_FROM_CHECKPOINT:-<disabled>}"
 echo "GPUs:   $NUM_GPUS"
 echo "Diffusion conditioner trainable: $AURORA_TRAIN_DIFFUSION_CONDITION"
+echo "Latent queries trainable: $AURORA_TRAIN_LATENT_QUERIES"
 echo "===================================="
 
 "${PYTHON}" -m torch.distributed.run \
@@ -133,6 +165,10 @@ echo "===================================="
     --aurora_training_stage "${AURORA_TRAINING_STAGE}" \
     --aurora_fail_on_nan True \
     --aurora_train_diffusion_condition "${AURORA_TRAIN_DIFFUSION_CONDITION}" \
+    --aurora_train_latent_queries "${AURORA_TRAIN_LATENT_QUERIES}" \
+    --aurora_condition_gate_init "${AURORA_CONDITION_GATE_INIT}" \
+    --aurora_attention_use_layer_norm "${AURORA_ATTENTION_USE_LAYERNORM}" \
+    --aurora_attention_temperature "${AURORA_ATTENTION_TEMPERATURE}" \
     \
     "${COCO_ARGS[@]}" \
     "${INPAINT_ARGS[@]}" \
@@ -142,6 +178,7 @@ echo "===================================="
     --image_aspect_ratio square \
     --max_images_per_sample 1 \
     \
+    "${RESUME_ARGS[@]}" \
     --output_dir "${OUTPUT_DIR}" \
     --num_train_epochs "${NUM_TRAIN_EPOCHS}" \
     --max_steps "${MAX_STEPS}" \
@@ -150,6 +187,7 @@ echo "===================================="
     --gradient_accumulation_steps "${GRADIENT_ACCUMULATION_STEPS}" \
     --learning_rate "${LEARNING_RATE}" \
     --diff_head_lr "${DIFF_HEAD_LR}" \
+    ${AURORA_LATENT_QUERY_LR:+--aurora_latent_query_lr "${AURORA_LATENT_QUERY_LR}"} \
     --weight_decay 0.01 \
     --warmup_ratio 0.05 \
     --lr_scheduler_type cosine \
@@ -178,5 +216,5 @@ echo "===================================="
     --run_name "${EXPERIMENT_NAME}" \
     --dataloader_num_workers "${DATALOADER_NUM_WORKERS}" \
     --remove_unused_columns False \
-    --ddp_find_unused_parameters False \
+    --ddp_find_unused_parameters True \
     2>&1 | tee "${OUTPUT_DIR}/train.log"

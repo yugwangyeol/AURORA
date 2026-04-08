@@ -45,6 +45,10 @@ def build_tiny_aurora_model(stage=1):
         aurora_training_stage=stage,
     )
     model = ScaleRAEQwenForCausalLM(cfg)
+    model.im_start_id = 1
+    model.im_end_id = 2
+    model.config.im_start_id = 1
+    model.config.im_end_id = 2
     return model, cfg
 
 
@@ -74,7 +78,7 @@ def build_batch(batch_size: int, cfg):
     images = torch.randn(batch_size, 3, 384, 384)
     target_images = torch.randn(batch_size, 3, 384, 384)
     n_objects = torch.tensor([1, 3][:batch_size], dtype=torch.long)
-    gt_masks = torch.rand(batch_size, cfg.aurora_max_slots - 1, 256)
+    gt_masks = torch.rand(batch_size, cfg.aurora_max_slots, 256)
     inpaint_mask = torch.rand(batch_size, 256)
     has_inpaint = torch.tensor([True] * batch_size, dtype=torch.bool)
     return images, target_images, n_objects, gt_masks, inpaint_mask, has_inpaint

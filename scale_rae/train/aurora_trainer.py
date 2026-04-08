@@ -8,6 +8,7 @@ import math
 import os
 import re
 import random
+from contextlib import nullcontext
 from bisect import bisect_right
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -25,6 +26,7 @@ from transformers.training_args import ParallelMode
 from transformers.trainer_utils import seed_worker
 from transformers.utils import is_torch_npu_available, is_torch_tpu_available
 
+from scale_rae.constants import DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN
 from scale_rae.model.language_model.scale_rae_qwen2 import ScaleRAEQwenForCausalLM
 
 logger_module = logging.getLogger(__name__)
@@ -91,6 +93,10 @@ class ModelArguments:
     aurora_training_stage: int = field(default=1)
     aurora_grad_clip_max_norm: float = field(default=1.0)
     aurora_train_diffusion_condition: bool = field(default=True)
+    aurora_condition_gate_init: float = field(default=0.01)
+    aurora_attention_use_layer_norm: bool = field(default=True)
+    aurora_attention_temperature: float = field(default=1.0)
+    aurora_train_latent_queries: bool = field(default=False)
     diffusion_norm_stats_path: Optional[str] = field(
         default=None,
         metadata={"help": "Path to .pt file with {'running_mean': Tensor[D], 'running_var': Tensor[D]} for diffusion target normalization."},
@@ -125,6 +131,7 @@ class TrainingArguments(transformers.TrainingArguments):
     unfreeze_mm_vision_tower: bool = field(default=False)
     diff_head_lr: Optional[float] = None
     group_by_modality_length: bool = field(default=False)
+    aurora_latent_query_lr: Optional[float] = None
     aurora_inpaint_warmup_steps: int = field(default=1000)
     aurora_inpaint_ramp_steps: int = field(default=4000)
     aurora_eval_num_images: int = field(default=100)
@@ -335,7 +342,7 @@ class AURORADataset(Dataset):
         return image_file if os.path.isabs(image_file) else os.path.join(image_folder, image_file)
 
     def _build_gt_patch_masks(self, image_id: str, image_size) -> torch.Tensor:
-        max_objects = max(getattr(self.model_configs, "aurora_max_slots", 10) - 1, 0)
+        max_objects = max(getattr(self.model_configs, "aurora_max_slots", 10), 0)
         grid_size = int(self.data_args.vision_tower_aux_token_len_list[0] ** 0.5)
         return build_gt_patch_masks(
             annotation_index=self.annotation_index,
@@ -361,7 +368,7 @@ class AURORADataset(Dataset):
         anns_by_image = self.annotation_index.anns_by_image if self.annotation_index is not None else {}
         n_objects = min(
             len(anns_by_image.get(image_id, [])),
-            max(getattr(self.model_configs, "aurora_max_slots", 10) - 1, 0),
+            max(getattr(self.model_configs, "aurora_max_slots", 10), 0),
         )
 
         processor = self.data_args.image_processor_aux_list[0]
@@ -447,7 +454,7 @@ class COCOReconstructionDataset(Dataset):
             raise FileNotFoundError(image_path)
 
         image = Image.open(image_path).convert("RGB")
-        max_objects = max(getattr(self.model_configs, "aurora_max_slots", 10) - 1, 0)
+        max_objects = max(getattr(self.model_configs, "aurora_max_slots", 10), 0)
         grid_size = int(self.data_args.vision_tower_aux_token_len_list[0] ** 0.5)
         gt_masks_patches = build_gt_patch_masks(
             annotation_index=self.annotation_index,
@@ -732,24 +739,34 @@ class AURORATrainer(Trainer):
         decay_parameters = [name for name in decay_parameters if "bias" not in name]
 
         condition_lr = self.args.diff_head_lr if self.args.diff_head_lr is not None else self.args.learning_rate
+        latent_query_lr = (
+            self.args.aurora_latent_query_lr
+            if self.args.aurora_latent_query_lr is not None
+            else self.args.learning_rate
+        )
         condition_names = {
             name
             for name, param in opt_model.named_parameters()
             if param.requires_grad and _is_aurora_diffusion_condition_param(name)
+        }
+        latent_query_names = {
+            name
+            for name, param in opt_model.named_parameters()
+            if param.requires_grad and "latent_queries" in name
         }
 
         optimizer_grouped_parameters = [
             {
                 "params": [
                     p for n, p in opt_model.named_parameters()
-                    if p.requires_grad and n not in condition_names and n in decay_parameters
+                    if p.requires_grad and n not in condition_names and n not in latent_query_names and n in decay_parameters
                 ],
                 "weight_decay": self.args.weight_decay,
             },
             {
                 "params": [
                     p for n, p in opt_model.named_parameters()
-                    if p.requires_grad and n not in condition_names and n not in decay_parameters
+                    if p.requires_grad and n not in condition_names and n not in latent_query_names and n not in decay_parameters
                 ],
                 "weight_decay": 0.0,
             },
@@ -768,6 +785,22 @@ class AURORATrainer(Trainer):
                 ],
                 "weight_decay": 0.0,
                 "lr": condition_lr,
+            },
+            {
+                "params": [
+                    p for n, p in opt_model.named_parameters()
+                    if p.requires_grad and n in latent_query_names and n in decay_parameters
+                ],
+                "weight_decay": self.args.weight_decay,
+                "lr": latent_query_lr,
+            },
+            {
+                "params": [
+                    p for n, p in opt_model.named_parameters()
+                    if p.requires_grad and n in latent_query_names and n not in decay_parameters
+                ],
+                "weight_decay": 0.0,
+                "lr": latent_query_lr,
             },
         ]
         optimizer_grouped_parameters = [
@@ -802,7 +835,9 @@ class AURORATrainer(Trainer):
             return
         aurora_params = [
             p for n, p in inner.named_parameters()
-            if p.requires_grad and p.grad is not None and "aurora" in n
+            if p.requires_grad and p.grad is not None and (
+                "aurora" in n or "latent_queries" in n or "diff_head_projector" in n
+            )
         ]
         if aurora_params:
             torch.nn.utils.clip_grad_norm_(aurora_params, max_norm=max_norm)
@@ -945,6 +980,16 @@ class AURORATrainer(Trainer):
             self._aurora_eval_decoder = None
             return None
 
+    def _get_aurora_eval_autocast_context(self, device: torch.device):
+        device_type = getattr(device, "type", str(device))
+        if device_type != "cuda":
+            return nullcontext()
+        if bool(getattr(self.args, "bf16", False)):
+            return torch.autocast(device_type=device_type, dtype=torch.bfloat16)
+        if bool(getattr(self.args, "fp16", False)):
+            return torch.autocast(device_type=device_type, dtype=torch.float16)
+        return nullcontext()
+
     def _decode_aurora_generated_images(
         self,
         decoder,
@@ -953,15 +998,18 @@ class AURORATrainer(Trainer):
     ) -> torch.Tensor:
         if generated is None:
             return torch.empty(0, 3, 1, 1)
-        decoder = decoder.to(device=device, dtype=generated.dtype)
+        decoder = decoder.to(device=device)
+        decoder_dtype = next(decoder.parameters()).dtype
+        if generated.dtype != decoder_dtype:
+            generated = generated.to(dtype=decoder_dtype)
         if hasattr(decoder, "image_mean") and hasattr(decoder, "image_std"):
-            decoder.image_mean = decoder.image_mean.to(device=device, dtype=generated.dtype)
-            decoder.image_std = decoder.image_std.to(device=device, dtype=generated.dtype)
+            decoder.image_mean = decoder.image_mean.to(device=device, dtype=decoder_dtype)
+            decoder.image_std = decoder.image_std.to(device=device, dtype=decoder_dtype)
 
         empty_cls = torch.zeros(
             (generated.shape[0], 1, generated.shape[-1]),
             device=device,
-            dtype=generated.dtype,
+            dtype=decoder_dtype,
         )
         image_features = torch.cat([empty_cls, generated], dim=1)
         recon = decoder(image_features)
@@ -1077,6 +1125,31 @@ class AURORATrainer(Trainer):
         blended = base * (1.0 - alpha) + color_tensor * alpha
         return blended.clamp(0.0, 1.0)
 
+    def _make_aurora_image_comparison(
+        self,
+        source_image: torch.Tensor,
+        recon_image: torch.Tensor,
+        gap_px: int = 8,
+    ) -> torch.Tensor:
+        source = torch.nan_to_num(source_image.detach().cpu().float(), nan=0.0, posinf=1.0, neginf=0.0).clamp(0.0, 1.0)
+        recon = torch.nan_to_num(recon_image.detach().cpu().float(), nan=0.0, posinf=1.0, neginf=0.0).clamp(0.0, 1.0)
+
+        if source.shape[-2:] != recon.shape[-2:]:
+            recon = F.interpolate(
+                recon.unsqueeze(0),
+                size=source.shape[-2:],
+                mode="bilinear",
+                align_corners=False,
+            ).squeeze(0)
+
+        separator = torch.ones(
+            source.shape[0],
+            source.shape[1],
+            max(int(gap_px), 0),
+            dtype=source.dtype,
+        )
+        return torch.cat([source, separator, recon], dim=-1)
+
     def _maybe_log_aurora_reconstructions(self, model, eval_dataset=None, metric_key_prefix: str = "eval") -> None:
         if not getattr(self.args, "aurora_eval_log_reconstructions", True):
             return
@@ -1116,43 +1189,45 @@ class AURORATrainer(Trainer):
         inner = model.module if hasattr(model, "module") else model
         device = inner.aurora_cmd_embeddings.device
         was_training = inner.training
-        rows = []
+        images_to_log = []
 
         try:
             inner.eval()
             with torch.no_grad():
                 for batch in loader:
                     images = batch["images"].to(device)
-                    output = inner.generate_aurora(images, guidance_level=1.0)
-                    recon_images = self._decode_aurora_generated_images(
-                        decoder,
-                        output.get("generated"),
-                        device=device,
-                    )
+                    with self._get_aurora_eval_autocast_context(device):
+                        output = inner.generate_aurora(images, guidance_level=1.0)
+                        recon_images = self._decode_aurora_generated_images(
+                            decoder,
+                            output.get("generated"),
+                            device=device,
+                        )
                     source_images = self._denormalize_aurora_images(batch["images"], mean, std)
 
                     for idx in range(source_images.shape[0]):
-                        if len(rows) >= max_items:
+                        if len(images_to_log) >= max_items:
                             break
-                        rows.append(
-                            [
-                                batch["image_ids"][idx],
-                                wandb.Image(source_images[idx].permute(1, 2, 0).numpy()),
-                                wandb.Image(recon_images[idx].permute(1, 2, 0).numpy()),
-                            ]
+                        comparison = self._make_aurora_image_comparison(
+                            source_images[idx],
+                            recon_images[idx],
                         )
-                    if len(rows) >= max_items:
+                        images_to_log.append(
+                            wandb.Image(
+                                comparison.permute(1, 2, 0).numpy(),
+                                caption="GT (left) | Reconstruction (right)",
+                            )
+                        )
+                    if len(images_to_log) >= max_items:
                         break
         finally:
             inner.train(was_training)
 
-        if not rows:
+        if not images_to_log:
             return
 
-        columns = ["image_id", "source", "reconstruction"]
-        table = wandb.Table(columns=columns, data=rows)
         wandb.log(
-            {f"{metric_key_prefix}/reconstructions": table},
+            {f"{metric_key_prefix}/samples": images_to_log},
             step=int(getattr(self.state, "global_step", 0)),
         )
 
@@ -1197,12 +1272,13 @@ class AURORATrainer(Trainer):
             with torch.no_grad():
                 for batch in loader:
                     images = batch["images"].to(device)
-                    output = inner.generate_aurora(images, guidance_level=1.0)
-                    recon_images = self._decode_aurora_generated_images(
-                        decoder,
-                        output.get("generated"),
-                        device=device,
-                    )
+                    with self._get_aurora_eval_autocast_context(device):
+                        output = inner.generate_aurora(images, guidance_level=1.0)
+                        recon_images = self._decode_aurora_generated_images(
+                            decoder,
+                            output.get("generated"),
+                            device=device,
+                        )
                     source_images = self._denormalize_aurora_images(batch["images"], mean, std)
                     if recon_images.numel() == 0 or source_images.numel() == 0:
                         continue
@@ -1266,7 +1342,8 @@ class AURORATrainer(Trainer):
                     images = batch["images"].to(device)
                     gt_masks = batch["gt_masks_patches"]
                     k_gt = batch["n_objects"]
-                    output = inner.generate_aurora(images, guidance_level=1.0, return_generated=False)
+                    with self._get_aurora_eval_autocast_context(device):
+                        output = inner.generate_aurora(images, guidance_level=1.0, return_generated=False)
                     attn_maps = output.get("attn_maps")
                     if attn_maps is not None and attn_maps.numel() > 0:
                         pred_attn = attn_maps.detach().cpu().float()  # (B, K, P)
@@ -1348,7 +1425,8 @@ class AURORATrainer(Trainer):
                     gt_masks = batch["gt_masks_patches"]
                     k_gt = batch["n_objects"]
                     source_images = self._denormalize_aurora_images(batch["images"], mean, std)
-                    output = inner.generate_aurora(images, guidance_level=1.0, return_generated=False)
+                    with self._get_aurora_eval_autocast_context(device):
+                        output = inner.generate_aurora(images, guidance_level=1.0, return_generated=False)
                     attn_maps = output.get("attn_maps")
 
                     if attn_maps is not None and attn_maps.numel() > 0:
@@ -1463,6 +1541,7 @@ class AURORATrainer(Trainer):
             ("loss_mask", "aurora_loss_mask"),
             ("loss_div", "aurora_loss_div"),
             ("loss_inpaint", "aurora_loss_inpaint"),
+            ("condition_gate", "aurora_condition_gate_value"),
         ]:
             value = getattr(inner, attr, None)
             if value is not None:
@@ -1699,13 +1778,17 @@ def freeze_for_aurora_phase1(model):
     train_diffusion_condition = bool(
         getattr(model.config, "aurora_train_diffusion_condition", True)
     )
+    train_latent_queries = bool(
+        getattr(model.config, "aurora_train_latent_queries", False)
+    )
     trainable_keywords = [
         "aurora_cmd_embeddings",
         "aurora_obj_embedding_pool",
         "aurora_reg_embeddings",
+        "aurora_condition_gate_logit",
         "diff_head_projector",
     ]
-    if stage >= 2:
+    if stage >= 2 or train_latent_queries:
         trainable_keywords.append("latent_queries")
     n_trainable = 0
     for name, param in model.named_parameters():
@@ -1718,12 +1801,30 @@ def freeze_for_aurora_phase1(model):
                 param.data = param.data.to(torch.float32)
             n_trainable += param.numel()
     logger_module.info(
-        "[AURORA] Stage %d trainable params: %d (diffusion_condition=%s)",
+        "[AURORA] Stage %d trainable params: %d (diffusion_condition=%s, latent_queries=%s)",
         stage,
         n_trainable,
         train_diffusion_condition,
+        train_latent_queries,
     )
     return model
+
+
+def _register_im_start_end_token_ids(model, tokenizer) -> None:
+    if DEFAULT_IM_START_TOKEN not in tokenizer.get_vocab():
+        return
+
+    im_start_id = tokenizer.convert_tokens_to_ids(DEFAULT_IM_START_TOKEN)
+    im_end_id = tokenizer.convert_tokens_to_ids(DEFAULT_IM_END_TOKEN)
+    model.im_start_id = im_start_id
+    model.im_end_id = im_end_id
+    model.config.im_start_id = im_start_id
+    model.config.im_end_id = im_end_id
+    logger_module.info(
+        "[AURORA] Registered image start/end token ids: im_start=%d im_end=%d",
+        im_start_id,
+        im_end_id,
+    )
 
 
 def train():
@@ -1765,6 +1866,10 @@ def train():
     config.aurora_training_stage = model_args.aurora_training_stage
     config.aurora_grad_clip_max_norm = model_args.aurora_grad_clip_max_norm
     config.aurora_train_diffusion_condition = model_args.aurora_train_diffusion_condition
+    config.aurora_condition_gate_init = model_args.aurora_condition_gate_init
+    config.aurora_attention_use_layer_norm = model_args.aurora_attention_use_layer_norm
+    config.aurora_attention_temperature = model_args.aurora_attention_temperature
+    config.aurora_train_latent_queries = model_args.aurora_train_latent_queries
     print(f"[AURORA-TRAINER] model_args.diffusion_norm_stats_path = {model_args.diffusion_norm_stats_path}")
     if model_args.diffusion_norm_stats_path:
         config.diffusion_norm_stats_path = model_args.diffusion_norm_stats_path
@@ -1811,6 +1916,7 @@ def train():
 
     model = freeze_for_aurora_phase1(model)
     model.initialize_vision_tokenizer(model_args, tokenizer=tokenizer)
+    _register_im_start_end_token_ids(model, tokenizer)
 
     data_module = make_data_module(tokenizer, data_args, model.config, training_args=training_args)
     trainer = AURORATrainer(

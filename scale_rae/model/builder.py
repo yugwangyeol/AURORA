@@ -84,6 +84,16 @@ def load_pretrained_model(model_path, model_base=None, model_name="",
         model_path,
         **kwargs
     )
+    if DEFAULT_IM_START_TOKEN in tokenizer.get_vocab():
+        model.im_start_id = tokenizer.convert_tokens_to_ids(DEFAULT_IM_START_TOKEN)
+        model.im_end_id = tokenizer.convert_tokens_to_ids(DEFAULT_IM_END_TOKEN)
+        model.config.im_start_id = model.im_start_id
+        model.config.im_end_id = model.im_end_id
+        logger.info(
+            "Registered image start/end token ids for AURORA anchor: %s / %s",
+            model.im_start_id,
+            model.im_end_id,
+        )
 
     # Load vision towers for multimodal processing
     vision_tower_aux_list = model.get_vision_tower_aux_list()
