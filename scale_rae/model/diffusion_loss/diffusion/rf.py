@@ -176,6 +176,7 @@ class RectifiedFlow(GaussianDiffusion):
         terms = {
             'mse': mean_flat(mse_target),
             'loss': loss,
+            't': t,
         }
         return terms
 

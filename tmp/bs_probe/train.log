@@ -1,0 +1,116 @@
+2026-04-23 04:19:21,095 | INFO | __main__ | [CaptionSlot] train() start | model=/home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B | output_dir=/home/jovyan/AURORA/tmp/bs_probe | local_rank=0
+2026-04-23 04:19:39,932 | INFO | scale_rae | Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch14-224-interp256
+[AURORA-INIT] diffusion_norm_stats_path = /home/jovyan/data/siglip2_bn_stats.pt
+[LightningDiT] Sparse slot/register cross-attention blocks: [8, 12, 16, 20, 24, 28, 32]
+[DEBUG] data_std: torch.Size([1152]), data_mean: torch.Size([1152])
+[AURORA-INIT] diff_head.normalize_data = True
+[CaptionSlot] Initialised — D=1536, C=8, K_max=10, N_reg=8, stage=1, train_latent_queries=True
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [01:06<01:06, 66.80s/it]Loading checkpoint shards: 100%|██████████| 2/2 [01:22<00:00, 36.94s/it]Loading checkpoint shards: 100%|██████████| 2/2 [01:22<00:00, 41.42s/it]
+Some weights of ScaleRAEQwenForCausalLM were not initialized from the model checkpoint at /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B and are newly initialized: ['captionslot_cmd_embeddings', 'captionslot_condition_gate_logit', 'captionslot_context_projector.bias', 'captionslot_context_projector.weight', 'captionslot_reg_embeddings', 'captionslot_slot_embedding', 'diff_head.data_mean', 'diff_head.data_std', 'diff_head.model.dit_blocks.11.slot_cross_attn.context_norm.weight', 'diff_head.model.dit_blocks.11.slot_cross_attn.out_proj.weight', 'diff_head.model.dit_blocks.11.slot_cross_attn.query_norm.weight', 'diff_head.model.dit_blocks.11.slot_cross_attn.to_k.weight', 'diff_head.model.dit_blocks.11.slot_cross_attn.to_q.weight', 'diff_head.model.dit_blocks.11.slot_cross_attn.to_v.weight', 'diff_head.model.dit_blocks.11.slot_cross_attn_gate', 'diff_head.model.dit_blocks.15.slot_cross_attn.context_norm.weight', 'diff_head.model.dit_blocks.15.slot_cross_attn.out_proj.weight', 'diff_head.model.dit_blocks.15.slot_cross_attn.query_norm.weight', 'diff_head.model.dit_blocks.15.slot_cross_attn.to_k.weight', 'diff_head.model.dit_blocks.15.slot_cross_attn.to_q.weight', 'diff_head.model.dit_blocks.15.slot_cross_attn.to_v.weight', 'diff_head.model.dit_blocks.15.slot_cross_attn_gate', 'diff_head.model.dit_blocks.19.slot_cross_attn.context_norm.weight', 'diff_head.model.dit_blocks.19.slot_cross_attn.out_proj.weight', 'diff_head.model.dit_blocks.19.slot_cross_attn.query_norm.weight', 'diff_head.model.dit_blocks.19.slot_cross_attn.to_k.weight', 'diff_head.model.dit_blocks.19.slot_cross_attn.to_q.weight', 'diff_head.model.dit_blocks.19.slot_cross_attn.to_v.weight', 'diff_head.model.dit_blocks.19.slot_cross_attn_gate', 'diff_head.model.dit_blocks.23.slot_cross_attn.context_norm.weight', 'diff_head.model.dit_blocks.23.slot_cross_attn.out_proj.weight', 'diff_head.model.dit_blocks.23.slot_cross_attn.query_norm.weight', 'diff_head.model.dit_blocks.23.slot_cross_attn.to_k.weight', 'diff_head.model.dit_blocks.23.slot_cross_attn.to_q.weight', 'diff_head.model.dit_blocks.23.slot_cross_attn.to_v.weight', 'diff_head.model.dit_blocks.23.slot_cross_attn_gate', 'diff_head.model.dit_blocks.27.slot_cross_attn.context_norm.weight', 'diff_head.model.dit_blocks.27.slot_cross_attn.out_proj.weight', 'diff_head.model.dit_blocks.27.slot_cross_attn.query_norm.weight', 'diff_head.model.dit_blocks.27.slot_cross_attn.to_k.weight', 'diff_head.model.dit_blocks.27.slot_cross_attn.to_q.weight', 'diff_head.model.dit_blocks.27.slot_cross_attn.to_v.weight', 'diff_head.model.dit_blocks.27.slot_cross_attn_gate', 'diff_head.model.dit_blocks.31.slot_cross_attn.context_norm.weight', 'diff_head.model.dit_blocks.31.slot_cross_attn.out_proj.weight', 'diff_head.model.dit_blocks.31.slot_cross_attn.query_norm.weight', 'diff_head.model.dit_blocks.31.slot_cross_attn.to_k.weight', 'diff_head.model.dit_blocks.31.slot_cross_attn.to_q.weight', 'diff_head.model.dit_blocks.31.slot_cross_attn.to_v.weight', 'diff_head.model.dit_blocks.31.slot_cross_attn_gate', 'diff_head.model.dit_blocks.7.slot_cross_attn.context_norm.weight', 'diff_head.model.dit_blocks.7.slot_cross_attn.out_proj.weight', 'diff_head.model.dit_blocks.7.slot_cross_attn.query_norm.weight', 'diff_head.model.dit_blocks.7.slot_cross_attn.to_k.weight', 'diff_head.model.dit_blocks.7.slot_cross_attn.to_q.weight', 'diff_head.model.dit_blocks.7.slot_cross_attn.to_v.weight', 'diff_head.model.dit_blocks.7.slot_cross_attn_gate']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+2026-04-23 04:21:14,845 | INFO | __main__ | [CaptionSlot] model checkpoint loaded
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/huggingface_hub/file_download.py:1142: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+pretrain_adapter_and_vision_head is: None
+2026-04-23 04:21:44,834 | INFO | __main__ | [CaptionSlot] vision tower + diffusion head initialized
+2026-04-23 04:21:45,188 | INFO | __main__ | [CaptionSlot] vision modules moved to target device=cuda:0
+2026-04-23 04:21:45,193 | INFO | __main__ | [CaptionSlot] trainable params: 938290183
+2026-04-23 04:21:45,193 | INFO | __main__ | [CaptionSlot] trainable groups: cmd/slot/register embeddings, captionslot_context_projector, diff_head_projector, diff_head AdaLN modulation, sparse slot/register cross-attention, latent_queries
+2026-04-23 04:21:45,193 | INFO | __main__ | [CaptionSlot] runtime dtypes: backbone=torch.float32 lm_head=torch.float32 vision=torch.float32 diff_head=torch.float32 diff_head_projector=torch.float32 cmd=torch.float32
+2026-04-23 04:21:45,193 | INFO | __main__ | [CaptionSlot] runtime devices: backbone=cpu lm_head=cpu vision=cuda:0 diff_head=cpu diff_head_projector=cpu cmd=cpu latent_queries=cpu
+2026-04-23 04:22:02,574 | INFO | __main__ | [CaptionSlot] Built 55885 grouped image samples from datasets=refcoco,refcoco+,refcocog splits=train
+2026-04-23 04:22:20,655 | INFO | __main__ | [CaptionSlot] Built 4300 grouped image samples from datasets=refcoco,refcoco+,refcocog splits=val
+2026-04-23 04:22:20,985 | INFO | __main__ | [CaptionSlot] datasets ready | train=55885 | eval=4
+2026-04-23 04:22:24,728 | INFO | __main__ | [CaptionSlot] trainer initialized; starting train()
+2026-04-23 04:22:25,988 | INFO | __main__ | [CaptionSlot] optimizer groups | main_lr=5e-05 diff_head_lr=3e-05 latent_query_lr=5e-05 | projector=2 diff_adapter=117 latent_queries=1
+2026-04-23 04:22:25,988 | INFO | __main__ | [CaptionSlot] Using WSD scheduler: total=5 warmup=1 stable=[1,5) decay=[5,5]
+  0%|          | 0/5 [00:00<?, ?it/s]2026-04-23 04:22:28,056 | INFO | __main__ | [CaptionSlot] live devices: rank=0 images=cuda:0 backbone=cuda:0 lm_head=cuda:0 vision=cuda:0 diff_head=cuda:0 diff_head_projector=cuda:0 cmd=cuda:0 latent_queries=cuda:0
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+[rank0]:     return _run_code(code, main_globals, None,
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/runpy.py", line 86, in _run_code
+[rank0]:     exec(code, run_globals)
+[rank0]:   File "/home/jovyan/AURORA/scale_rae/train/captionslot_trainer.py", line 1747, in <module>
+[rank0]:     train()
+[rank0]:   File "/home/jovyan/AURORA/scale_rae/train/captionslot_trainer.py", line 1735, in train
+[rank0]:     trainer.train(resume_from_checkpoint=resume)
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/transformers/trainer.py", line 1539, in train
+[rank0]:     return inner_training_loop(
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/transformers/trainer.py", line 1869, in _inner_training_loop
+[rank0]:     tr_loss_step = self.training_step(model, inputs)
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/transformers/trainer.py", line 2768, in training_step
+[rank0]:     loss = self.compute_loss(model, inputs)
+[rank0]:   File "/home/jovyan/AURORA/scale_rae/train/captionslot_trainer.py", line 818, in compute_loss
+[rank0]:     outputs = model(
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/nn/parallel/distributed.py", line 1699, in forward
+[rank0]:     else self._run_ddp_forward(*inputs, **kwargs)
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/nn/parallel/distributed.py", line 1524, in _run_ddp_forward
+[rank0]:     return self.module(*inputs, **kwargs)  # type: ignore[index]
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:   File "/home/jovyan/AURORA/scale_rae/model/language_model/scale_rae_qwen2.py", line 672, in forward
+[rank0]:     captionslot_loss, _ = self._forward_captionslot(
+[rank0]:   File "/home/jovyan/AURORA/scale_rae/model/language_model/scale_rae_qwen2.py", line 2432, in _forward_captionslot
+[rank0]:     out = self.model(
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:   File "/home/jovyan/AURORA/scale_rae/model/language_model/scale_rae_qwen2.py", line 253, in forward
+[rank0]:     layer_outputs = decoder_layer(
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 786, in forward
+[rank0]:     hidden_states = self.mlp(hidden_states)
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:   File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/transformers/models/qwen2/modeling_qwen2.py", line 185, in forward
+[rank0]:     return self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))
+[rank0]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 1.31 GiB. GPU 0 has a total capacity of 178.35 GiB of which 733.94 MiB is free. Including non-PyTorch memory, this process has 177.62 GiB memory in use. Of the allocated memory 172.46 GiB is allocated by PyTorch, and 3.85 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://docs.pytorch.org/docs/stable/notes/cuda.html#optimizing-memory-usage-with-pytorch-cuda-alloc-conf)
+  0%|          | 0/5 [00:07<?, ?it/s]
+[rank0]:[W423 04:22:34.163323465 ProcessGroupNCCL.cpp:1575] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
+E0423 04:22:39.108000 110484 site-packages/torch/distributed/elastic/multiprocessing/api.py:986] failed (exitcode: 1) local_rank: 0 (pid: 110570) of binary: /home/jovyan/.conda/envs/scale_rae/bin/python
+Traceback (most recent call last):
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/distributed/run.py", line 994, in <module>
+    main()
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 362, in wrapper
+    return f(*args, **kwargs)
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/distributed/run.py", line 990, in main
+    run(args)
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/distributed/run.py", line 981, in run
+    elastic_launch(
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 170, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 317, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+scale_rae.train.captionslot_trainer FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2026-04-23_04:22:39
+  host      : gwangyeol-0
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 110570)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================

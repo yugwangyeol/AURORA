@@ -35,6 +35,47 @@ if IS_XLA_AVAILABLE:
 
 if IS_XLA_AVAILABLE:
     import torch_xla.core.xla_model as xm
+
+
+def _as_int_list(value, default=None):
+    if value is None:
+        return [] if default is None else list(default)
+    if isinstance(value, (list, tuple)):
+        return [int(v) for v in value]
+    return [int(value)]
+
+
+def _get_image_feature_token_len(config, default=256):
+    token_lens = _as_int_list(
+        getattr(
+            config,
+            "vision_tower_aux_token_len_list",
+            getattr(config, "mm_vision_tower_aux_token_len_list", None),
+        ),
+        default=[default],
+    )
+    return int(getattr(config, "image_feature_token_len", token_lens[0] if token_lens else default))
+
+
+def _get_diffusion_target_token_len(config, default=256):
+    token_lens = _as_int_list(
+        getattr(
+            config,
+            "vision_tower_aux_token_len_list",
+            getattr(config, "mm_vision_tower_aux_token_len_list", None),
+        ),
+        default=[default],
+    )
+    fallback = token_lens[-1] if token_lens else default
+    return int(getattr(config, "diffusion_target_token_len", fallback))
+
+
+def _get_projector_hidden_size(config, vision_tower_aux_list):
+    if bool(getattr(config, "use_captionslot", False)) and len(vision_tower_aux_list) > 1:
+        return vision_tower_aux_list[0].hidden_size
+    return sum(vision_tower_aux.hidden_size for vision_tower_aux in vision_tower_aux_list)
+
+
 class CustomKernel(torch.autograd.Function):
 
     @staticmethod
@@ -134,7 +175,7 @@ class ScaleRAEMetaModel:
                 raise NotImplementedError
             else:
                 self.vision_tower_aux_list = build_vision_tower_aux_list(config, delay_load=True)
-                config.mm_hidden_size = sum([vision_tower_aux.hidden_size for vision_tower_aux in self.vision_tower_aux_list]) 
+                config.mm_hidden_size = _get_projector_hidden_size(config, self.vision_tower_aux_list)
                 self.mm_projector = build_vision_projector(config)
                 # self.image_newline = nn.Parameter(
                 #         torch.empty(config.hidden_size, dtype=self.dtype)
@@ -143,7 +184,7 @@ class ScaleRAEMetaModel:
         # Initialize latent queries (used in query / block vision-loss modes)
         vision_loss_mode_cfg = getattr(config, 'vision_loss_mode', 'causal')
         if vision_loss_mode_cfg in ['query', 'block', 'half-query', 'query-block']:
-            vision_token_len = getattr(config, 'vision_tower_aux_token_len_list', [256])[0]
+            vision_token_len = _get_diffusion_target_token_len(config)
             embed_std = 1.0 / torch.sqrt(torch.tensor(config.hidden_size, dtype=torch.float32))
             self.latent_queries = nn.Parameter(torch.randn(vision_token_len, config.hidden_size) * embed_std)
         else:
@@ -174,11 +215,20 @@ class ScaleRAEMetaModel:
         # self.config.query_num_list = query_num_list
         # assert num_query_group == len(query_num_list)
         # self.config.connector_depth = connector_depth
+        previous_vision_tower_aux_list = getattr(self.config, "mm_vision_tower_aux_list", None)
         self.config.mm_vision_tower_aux_list = vision_tower_aux_list
         self.config.mm_vision_tower_aux_token_len_list = vision_tower_aux_token_len_list
+        self.config.vision_tower_aux_token_len_list = vision_tower_aux_token_len_list
         self.config.connector_only = connector_only
 
-        if self.get_vision_tower_aux_list() is None:
+        requested_towers = list(vision_tower_aux_list or [])
+        previous_towers = list(previous_vision_tower_aux_list or [])
+        should_rebuild_towers = (
+            self.get_vision_tower_aux_list() is None
+            or requested_towers != previous_towers
+        )
+
+        if should_rebuild_towers:
             vision_tower_aux_list = build_vision_tower_aux_list(model_args)
             if model_args.unfreeze_mm_vision_tower:
                 self.vision_tower_aux_list = nn.ModuleList(vision_tower_aux_list)
@@ -202,7 +252,7 @@ class ScaleRAEMetaModel:
             if self.config.mm_projector_type == 'sva':
                 raise NotImplementedError
             else:
-                self.config.mm_hidden_size = sum([vision_tower_aux.hidden_size for vision_tower_aux in vision_tower_aux_list]) 
+                self.config.mm_hidden_size = _get_projector_hidden_size(self.config, vision_tower_aux_list)
                 self.mm_projector = build_vision_projector(self.config)
                 embed_std = 1 / torch.sqrt(torch.tensor(self.config.hidden_size, dtype=self.dtype))
                 # self.image_newline = nn.Parameter(
@@ -210,6 +260,7 @@ class ScaleRAEMetaModel:
                 # )
         else:
             # In case it is frozen by LoRA
+            self.config.mm_hidden_size = _get_projector_hidden_size(self.config, vision_tower_aux_list)
             for p in self.mm_projector.parameters():
                 p.requires_grad = True
 

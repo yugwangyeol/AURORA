@@ -9,3 +9,7 @@ from .aurora_utils import (
     extract_attention_logits,
     extract_attention_maps,
 )
+from .captionslot_utils import (
+    build_captionslot_attention_mask,
+    build_captionslot_caption_only_attention_mask,
+)

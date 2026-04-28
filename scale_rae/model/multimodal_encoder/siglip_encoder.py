@@ -43,7 +43,11 @@ def parse_model_name(input_string):
 def extract_res_interp(model_name):
 
 
-    if '384' in model_name:
+    if '512' in model_name:
+        res = 512
+    elif '448' in model_name:
+        res = 448
+    elif '384' in model_name:
         res = 384
     elif "224" in model_name:
         res = 224
@@ -95,6 +99,10 @@ class SiglipVisionTower(ClipVisionTower):
         self.image_processor = SiglipImageProcessor.from_pretrained(self.vision_tower_name)
 
         self.image_processor.crop_size = {
+            'height': self._image_size,
+            'width': self._image_size
+        }
+        self.image_processor.size = {
             'height': self._image_size,
             'width': self._image_size
         }

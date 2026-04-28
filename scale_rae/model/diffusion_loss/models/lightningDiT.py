@@ -108,7 +108,66 @@ class NormAttention(nn.Module):
         x = self.proj_drop(x)
         return x
 
-    
+class SparseContextCrossAttention(nn.Module):
+    """Token-to-context cross-attention for sparse slot/register memory."""
+
+    def __init__(
+        self,
+        query_dim: int,
+        context_dim: int,
+        num_heads: int = 8,
+        use_rmsnorm: bool = False,
+    ) -> None:
+        super().__init__()
+        assert query_dim % num_heads == 0, "query_dim should be divisible by num_heads"
+
+        norm_layer = RMSNorm if use_rmsnorm else nn.LayerNorm
+        self.num_heads = num_heads
+        self.head_dim = query_dim // num_heads
+        self.scale = self.head_dim ** -0.5
+
+        self.query_norm = norm_layer(query_dim)
+        self.context_norm = norm_layer(context_dim)
+        self.to_q = nn.Linear(query_dim, query_dim, bias=False)
+        self.to_k = nn.Linear(context_dim, query_dim, bias=False)
+        self.to_v = nn.Linear(context_dim, query_dim, bias=False)
+        self.out_proj = nn.Linear(query_dim, query_dim, bias=False)
+
+    def forward(
+        self,
+        x: torch.Tensor,
+        context: torch.Tensor,
+        context_mask: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        B, T, C = x.shape
+        _, S, _ = context.shape
+
+        x = torch.nan_to_num(x, nan=0.0, posinf=0.0, neginf=0.0)
+        context = torch.nan_to_num(context, nan=0.0, posinf=0.0, neginf=0.0)
+
+        q = self.to_q(self.query_norm(x)).reshape(B, T, self.num_heads, self.head_dim).transpose(1, 2)
+        k = self.to_k(self.context_norm(context)).reshape(B, S, self.num_heads, self.head_dim).transpose(1, 2)
+        v = self.to_v(context).reshape(B, S, self.num_heads, self.head_dim).transpose(1, 2)
+
+        scores = torch.matmul(q.float() * self.scale, k.float().transpose(-2, -1))
+        if context_mask is not None:
+            mask = context_mask.to(device=x.device, dtype=torch.bool)[:, None, None, :]
+            scores = scores.masked_fill(~mask, -1e9)
+            valid_rows = mask.any(dim=-1, keepdim=True)
+            scores = torch.where(valid_rows, scores, torch.zeros_like(scores))
+
+        scores = scores - scores.amax(dim=-1, keepdim=True)
+        attn = torch.softmax(scores, dim=-1).to(dtype=v.dtype)
+        attn = torch.nan_to_num(attn, nan=0.0, posinf=0.0, neginf=0.0)
+        if context_mask is not None:
+            attn = torch.where(mask, attn, torch.zeros_like(attn))
+            attn = attn / attn.sum(dim=-1, keepdim=True).clamp_min(1e-6)
+            attn = torch.nan_to_num(attn, nan=0.0, posinf=0.0, neginf=0.0)
+
+        out = torch.matmul(attn, v).transpose(1, 2).reshape(B, T, C)
+        out = self.out_proj(out)
+        return torch.nan_to_num(out, nan=0.0, posinf=0.0, neginf=0.0)
+
 
 class LightningDiTBlock(nn.Module):
     """
@@ -130,6 +189,9 @@ class LightningDiTBlock(nn.Module):
         use_rmsnorm=True,
         wo_shift=False,
         z_channel:int = 4096,
+        slot_cross_attn_enabled: bool = False,
+        slot_cross_attn_context_dim: int | None = None,
+        slot_cross_attn_gate_init: float = 0.0,
         **block_kwargs
     ):
         super().__init__()
@@ -178,8 +240,20 @@ class LightningDiTBlock(nn.Module):
                 nn.Linear(z_channel, 6 * hidden_size, bias=True)
             )
         self.wo_shift = wo_shift
+        self.slot_cross_attn_enabled = bool(slot_cross_attn_enabled)
+        if self.slot_cross_attn_enabled:
+            if slot_cross_attn_context_dim is None:
+                raise ValueError("slot_cross_attn_context_dim must be provided when slot cross-attention is enabled")
+            self.slot_cross_attn = SparseContextCrossAttention(
+                query_dim=hidden_size,
+                context_dim=slot_cross_attn_context_dim,
+                num_heads=num_heads,
+                use_rmsnorm=use_rmsnorm,
+            )
+        else:
+            self.slot_cross_attn = None
 
-    def forward(self, x, c, feat_rope=None):
+    def forward(self, x, c, feat_rope=None, slot_context=None, slot_mask=None):
         if self.wo_shift:
             scale_msa, gate_msa, scale_mlp, gate_mlp = self.adaLN_modulation(c).chunk(4, dim=-1)
             shift_msa = None
@@ -187,6 +261,11 @@ class LightningDiTBlock(nn.Module):
         else:
             shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = self.adaLN_modulation(c).chunk(6, dim=-1)
         x = x + gate(self.attn(modulate(self.norm1(x), shift_msa, scale_msa), rope=feat_rope), gate_msa)
+        if self.slot_cross_attn_enabled and slot_context is not None:
+            slot_out = self.slot_cross_attn(x, slot_context, context_mask=slot_mask)
+            slot_out = torch.nan_to_num(slot_out, nan=0.0, posinf=0.0, neginf=0.0)
+            # No gate: out_proj is zero-initialised so slot contribution starts at 0 and grows via training.
+            x = x + slot_out
         x = x + gate(self.mlp(modulate(self.norm2(x), shift_mlp, scale_mlp)), gate_mlp)
         return x
 
@@ -238,6 +317,11 @@ class LightningDiT(nn.Module):
         use_DDT: bool = False,  # whether to use DDT
         DDT_encoder_depth: int = -1,  # depth of the DDT encoder
         cond_silu: bool = True,  # whether to inject t into the DDT decoder
+        slot_cross_attn_enabled: bool = False,
+        slot_cross_attn_start_block: int = 8,
+        slot_cross_attn_every_n_blocks: int = 4,
+        slot_cross_attn_context_dim: int | None = None,
+        slot_cross_attn_gate_init: float = 0.0,
     ):
         super().__init__()
         self.learn_sigma = learn_sigma
@@ -251,6 +335,15 @@ class LightningDiT(nn.Module):
         self.hidden_size = hidden_size
         self.use_gembed = use_gembed
         self.xt_normalize = xt_normalize
+        self.slot_cross_attn_enabled = bool(slot_cross_attn_enabled)
+        self.slot_cross_attn_start_block = max(int(slot_cross_attn_start_block), 1)
+        self.slot_cross_attn_every_n_blocks = max(int(slot_cross_attn_every_n_blocks), 1)
+        self.slot_cross_attn_context_dim = (
+            int(slot_cross_attn_context_dim)
+            if slot_cross_attn_context_dim is not None
+            else int(z_channels)
+        )
+        self.slot_cross_attn_gate_init = float(slot_cross_attn_gate_init)
         self.x_embedder = PatchEmbed(input_size, patch_size, in_channels, hidden_size, bias=True)
         self.t_embedder = TimestepEmbedder(z_channels) if not use_gembed else GaussianFourierEmbedding(z_channels)
         self.y_embedder = ConditionEmbedder(z_channels, class_dropout_prob)
@@ -276,6 +369,18 @@ class LightningDiT(nn.Module):
             block_z_channels = [z_channels] * DDT_encoder_depth + [hidden_size] * (depth - DDT_encoder_depth + 1) # 1 for final layer
         else:
             block_z_channels = [z_channels] * (depth + 1) # 1 for final layer
+        slot_cross_attn_blocks = set()
+        if self.slot_cross_attn_enabled:
+            for block_idx in range(1, depth + 1):
+                if (
+                    block_idx >= self.slot_cross_attn_start_block
+                    and (block_idx - self.slot_cross_attn_start_block) % self.slot_cross_attn_every_n_blocks == 0
+                ):
+                    slot_cross_attn_blocks.add(block_idx)
+            print(
+                "[LightningDiT] Sparse slot/register cross-attention blocks:",
+                sorted(slot_cross_attn_blocks),
+            )
         self.dit_blocks = nn.ModuleList([
             LightningDiTBlock(hidden_size, 
                      num_heads, 
@@ -285,6 +390,9 @@ class LightningDiT(nn.Module):
                      use_rmsnorm=use_rmsnorm,
                      wo_shift=wo_shift,
                      z_channel=block_z_channels[i],
+                     slot_cross_attn_enabled=(i + 1) in slot_cross_attn_blocks,
+                     slot_cross_attn_context_dim=self.slot_cross_attn_context_dim,
+                     slot_cross_attn_gate_init=self.slot_cross_attn_gate_init,
                      ) for i in range(depth)
         ])
         self.final_layer = LightningFinalLayer(hidden_size, patch_size, self.out_channels, block_z_channels[-1], use_rmsnorm=use_rmsnorm)
@@ -506,6 +614,12 @@ class LightningDiT(nn.Module):
         for block in self.dit_blocks:
             nn.init.constant_(block.adaLN_modulation[-1].weight, 0)
             nn.init.constant_(block.adaLN_modulation[-1].bias, 0)
+            # Zero-init slot cross-attention out_proj so the slot/register path starts
+            # as a no-op residual and grows only if it reduces the loss.
+            if getattr(block, "slot_cross_attn", None) is not None:
+                nn.init.constant_(block.slot_cross_attn.out_proj.weight, 0)
+                if getattr(block.slot_cross_attn.out_proj, "bias", None) is not None:
+                    nn.init.constant_(block.slot_cross_attn.out_proj.bias, 0)
 
         # Zero-out output layers:
         nn.init.constant_(self.final_layer.adaLN_modulation[-1].weight, 0)
@@ -528,7 +642,7 @@ class LightningDiT(nn.Module):
         imgs = x.reshape(shape=(x.shape[0], c, h * p, h * p))
         return imgs
 
-    def forward(self, x, t=None, y=None):
+    def forward(self, x, t=None, y=None, slot_context=None, slot_mask=None):
         """
         Forward pass of LightningDiT.
         x: (N, C, H, W) tensor of spatial inputs (images or latent representations of images)
@@ -566,16 +680,16 @@ class LightningDiT(nn.Module):
             encoder_blocks = self.dit_blocks[:self.DDT_encoder_depth]
             decoder_blocks = self.dit_blocks[self.DDT_encoder_depth:]
             for block in encoder_blocks:
-                s = block(s, c, feat_rope=self.feat_rope)
+                s = block(s, c, feat_rope=self.feat_rope, slot_context=slot_context, slot_mask=slot_mask)
             if self.cond_silu:
                 s = nn.functional.silu(s)
             x = self.s_embedder(x) # no need for additional pos embed
             for block in decoder_blocks:
-                x = block(x, s, feat_rope=self.feat_rope)          
+                x = block(x, s, feat_rope=self.feat_rope, slot_context=slot_context, slot_mask=slot_mask)
             x = self.final_layer(x, s)  
         else:
             for block in self.dit_blocks:
-                s = block(s, c, feat_rope=self.feat_rope)
+                s = block(s, c, feat_rope=self.feat_rope, slot_context=slot_context, slot_mask=slot_mask)
             x = s 
             # if os.getenv("SCALE_RAE_LAUNCHER", "") == "TORCHXLA_SPMD":
             #     xs.mark_sharding(x, xs.get_global_mesh(), ("fsdp", None, None))
@@ -594,7 +708,17 @@ class LightningDiT(nn.Module):
         #     x, _ = x.chunk(2, dim=1)
         return x
 
-    def forward_with_cfg(self, x, t, y, cfg_scale, cfg_interval=(-1e4, -1e4), interval_cfg: float = 0.0): 
+    def forward_with_cfg(
+        self,
+        x,
+        t,
+        y,
+        cfg_scale,
+        cfg_interval=(-1e4, -1e4),
+        interval_cfg: float = 0.0,
+        slot_context=None,
+        slot_mask=None,
+    ): 
         """
         Forward pass of LightningDiT, but also batches the unconditional forward pass for classifier-free guidance.
         """
@@ -609,7 +733,23 @@ class LightningDiT(nn.Module):
         # --- END: MODIFICATION ---
 
         y = torch.cat([y, learned_embed], dim=0)
-        model_out = self.forward(combined, t, y)
+
+        cfg_slot_context = None
+        cfg_slot_mask = None
+        if slot_context is not None:
+            cond_slot_context = slot_context
+            null_slot_context = torch.zeros_like(cond_slot_context)
+            cfg_slot_context = torch.cat([cond_slot_context, null_slot_context], dim=0)
+            if slot_mask is None:
+                cond_slot_mask = torch.ones(
+                    cond_slot_context.shape[:2], device=cond_slot_context.device, dtype=torch.bool
+                )
+            else:
+                cond_slot_mask = slot_mask.to(device=cond_slot_context.device, dtype=torch.bool)
+            null_slot_mask = torch.zeros_like(cond_slot_mask, dtype=torch.bool)
+            cfg_slot_mask = torch.cat([cond_slot_mask, null_slot_mask], dim=0)
+
+        model_out = self.forward(combined, t, y, slot_context=cfg_slot_context, slot_mask=cfg_slot_mask)
         # For exact reproducibility reasons, we apply classifier-free guidance on only
         # three channels by default. The standard approach to cfg applies it to all channels.
         # This can be done by uncommenting the following line and commenting-out the line following that.
@@ -923,6 +1063,12 @@ class LightningDDT(nn.Module):
         for block in self.dit_blocks:
             nn.init.constant_(block.adaLN_modulation[-1].weight, 0)
             nn.init.constant_(block.adaLN_modulation[-1].bias, 0)
+            # Zero-init slot cross-attention out_proj so the slot/register path starts
+            # as a no-op residual and grows only if it reduces the loss.
+            if getattr(block, "slot_cross_attn", None) is not None:
+                nn.init.constant_(block.slot_cross_attn.out_proj.weight, 0)
+                if getattr(block.slot_cross_attn.out_proj, "bias", None) is not None:
+                    nn.init.constant_(block.slot_cross_attn.out_proj.bias, 0)
 
         # Zero-out output layers:
         nn.init.constant_(self.final_layer.adaLN_modulation[-1].weight, 0)
@@ -945,7 +1091,7 @@ class LightningDDT(nn.Module):
         imgs = x.reshape(shape=(x.shape[0], c, h * p, h * p))
         return imgs
 
-    def forward(self, x, t=None, y=None):
+    def forward(self, x, t=None, y=None, slot_context=None, slot_mask=None):
         """
         Forward pass of LightningDiT.
         x: (N, C, H, W) tensor of spatial inputs (images or latent representations of images)
@@ -997,7 +1143,17 @@ class LightningDDT(nn.Module):
         #     x, _ = x.chunk(2, dim=1)
         return x
 
-    def forward_with_cfg(self, x, t, y, cfg_scale, cfg_interval=(-1e4, -1e4), interval_cfg: float = 0.0): 
+    def forward_with_cfg(
+        self,
+        x,
+        t,
+        y,
+        cfg_scale,
+        cfg_interval=(-1e4, -1e4),
+        interval_cfg: float = 0.0,
+        slot_context=None,
+        slot_mask=None,
+    ): 
         """
         Forward pass of LightningDiT, but also batches the unconditional forward pass for classifier-free guidance.
         """

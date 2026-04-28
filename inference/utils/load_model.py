@@ -62,6 +62,7 @@ def load_scale_rae_model(
         device=device,
         device_map={"": device},  # Force single device (no multi-GPU)
         torch_dtype=dtype,
+        respect_torch_dtype=True,
     )
     
     print(f"Model loaded successfully with context length: {context_len}")

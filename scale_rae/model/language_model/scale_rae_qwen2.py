@@ -32,9 +32,17 @@ from transformers.utils import logging
 
 logger = logging.get_logger(__name__)
 
-from ..scale_rae_arch import ScaleRAEMetaModel, ScaleRAEMetaForCausalLM, apply_custom_kernel
+from ..scale_rae_arch import (
+    ScaleRAEMetaModel,
+    ScaleRAEMetaForCausalLM,
+    apply_custom_kernel,
+    _get_diffusion_target_token_len,
+    _get_image_feature_token_len,
+)
 from ..object_centric import (
     build_aurora_v2_attention_mask,
+    build_captionslot_attention_mask,
+    build_captionslot_caption_only_attention_mask,
     build_active_slot_mask,
     sample_k_for_batch,
     sample_k_per_sample,
@@ -72,6 +80,8 @@ class ScaleRAEQwenConfig(Qwen2Config):
     vision_loss = "regression-loss"
     vision_loss_mode = "causal"
     vision_tower_aux_token_len_list = [256]  # Default vision token length
+    image_feature_token_len = 256
+    diffusion_target_token_len = 256
     use_aurora = False
     aurora_max_slots = 10        # K_max: object embedding pool size
     aurora_n_register = 8        # R: number of register tokens
@@ -87,6 +97,38 @@ class ScaleRAEQwenConfig(Qwen2Config):
     aurora_attention_temperature = 1.0
     aurora_train_latent_queries = False
     aurora_use_im_start_anchor = True
+    use_captionslot = False
+    captionslot_max_slots = 10
+    captionslot_slots_per_object = 1
+    captionslot_n_register = 8
+    captionslot_cmd_length = 8
+    captionslot_recon_loss_weight = 1.0
+    captionslot_mask_bce_loss_weight = 1.0
+    captionslot_mask_dice_loss_weight = 1.0
+    captionslot_mask_tversky_loss_weight = 1.0
+    captionslot_mask_balanced_bce = False
+    captionslot_mask_tversky_alpha = 0.5
+    captionslot_mask_tversky_beta = 0.5
+    captionslot_object_cam_loss_weight = 1.0
+    captionslot_register_cam_loss_weight = 0.3
+    captionslot_cam_layers = "-1"
+    captionslot_cam_eps = 1e-6
+    captionslot_caption_loss_weight = 0.0
+    captionslot_diversity_loss_weight = 0.0
+    captionslot_training_stage = 1
+    captionslot_condition_gate_init = 1.0
+    captionslot_train_latent_queries = False
+    captionslot_unfreeze_llm_last_n_layers = 0
+    captionslot_unfreeze_llm_attn_only = True
+    captionslot_attention_use_layer_norm = True
+    captionslot_attention_temperature = 1.0
+    captionslot_prior_bias_scale = 0.0
+    captionslot_control_mode = "slots"
+    captionslot_add_cross_attention = False
+    captionslot_cross_attention_start_block = 8
+    captionslot_cross_attention_every_n_blocks = 4
+    captionslot_cross_attention_include_registers = True
+    captionslot_cross_attention_gate_init = 0.0
 
 
 class ScaleRAEQwenModel(ScaleRAEMetaModel, Qwen2Model):
@@ -115,6 +157,7 @@ class ScaleRAEQwenModel(ScaleRAEMetaModel, Qwen2Model):
         final_vision_feature_size: Optional[List[tuple]] = None,
         global_context_feature: Optional[torch.Tensor] = None,
         attention_bias: Optional[torch.Tensor] = None,
+        captionslot_attention_capture_layers: Optional[List[int]] = None,
     ) -> Union[Tuple, BaseModelOutputWithPast]:
 
 
@@ -207,14 +250,28 @@ class ScaleRAEQwenModel(ScaleRAEMetaModel, Qwen2Model):
 
         hidden_states = inputs_embeds
 
+        capture_layers = set()
+        if captionslot_attention_capture_layers is not None:
+            num_layers = len(self.layers)
+            for layer_idx in captionslot_attention_capture_layers:
+                idx = int(layer_idx)
+                if idx < 0:
+                    idx += num_layers
+                if 0 <= idx < num_layers:
+                    capture_layers.add(idx)
+
+        collect_self_attns = bool(output_attentions) or bool(capture_layers)
+
         # decoder layers
         all_hidden_states = () if output_hidden_states else None
-        all_self_attns = () if output_attentions else None
+        all_self_attns = () if collect_self_attns else None
         next_decoder_cache = None
 
         for i, decoder_layer in enumerate(self.layers):
             if output_hidden_states:
                 all_hidden_states += (hidden_states,)
+
+            layer_output_attentions = bool(output_attentions) or i in capture_layers
 
             if self.gradient_checkpointing and self.training:
                 layer_outputs = self._gradient_checkpointing_func(
@@ -223,7 +280,7 @@ class ScaleRAEQwenModel(ScaleRAEMetaModel, Qwen2Model):
                     attention_mask,
                     position_ids,
                     past_key_values,
-                    output_attentions,
+                    layer_output_attentions,
                     use_cache,
                 )
             else:
@@ -232,16 +289,16 @@ class ScaleRAEQwenModel(ScaleRAEMetaModel, Qwen2Model):
                     attention_mask=attention_mask,
                     position_ids=position_ids,
                     past_key_value=past_key_values,
-                    output_attentions=output_attentions,
+                    output_attentions=layer_output_attentions,
                     use_cache=use_cache,
                 )
 
             hidden_states = layer_outputs[0]
 
             if use_cache:
-                next_decoder_cache = layer_outputs[2 if output_attentions else 1]
+                next_decoder_cache = layer_outputs[2 if layer_output_attentions else 1]
 
-            if output_attentions:
+            if collect_self_attns and layer_output_attentions:
                 all_self_attns += (layer_outputs[1],)
 
         hidden_states = self.norm(hidden_states)
@@ -328,8 +385,10 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         self.vision_loss_mode = getattr(config, 'vision_loss_mode', 'causal')
         self.vision_coef = getattr(config, 'vision_coef', 1.0)
         self.vision_tower_aux_token_len_list = getattr(config, 'vision_tower_aux_token_len_list', [256])  # Default vision token length
+        self.image_feature_token_len = _get_image_feature_token_len(config)
+        self.diffusion_target_token_len = _get_diffusion_target_token_len(config)
         self.diffusion_model_channels = getattr(config, 'diffusion_model_channels', 1152)
-        self.num_image_tokens = 256 # fixed
+        self.num_image_tokens = self.image_feature_token_len
         self.debug = False
         if self.vision_loss == 'diffusion-loss' or self.vision_loss == 'ddt-loss':
             if self.vision_loss_mode == 'causal':
@@ -356,7 +415,7 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
                 print(f"AR-DDT mode with vision_loss='{self.vision_loss}', use_DDT={use_ddt}")
                 
                 self.diff_head_config = {
-                    "diffusion_tokens": self.vision_tower_aux_token_len_list[0], # default = 256
+                    "diffusion_tokens": self.diffusion_target_token_len,
                     "diffusion_channels": self.diffusion_model_channels,
                     "z_channels": config.hidden_size if config.diffusion_model_z_channels == 0 else config.diffusion_model_z_channels, # Qwen-2.5 7B 3584
                     "model_hidden_size": config.diffusion_model_hidden_size, # default = 1152
@@ -404,7 +463,7 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
                         print("diffusion_class_dropout_prob not found in config, using default 0.0")
 
                     self.diff_head_config =  {
-                        "diffusion_tokens": self.vision_tower_aux_token_len_list[0], # default = 1
+                        "diffusion_tokens": self.diffusion_target_token_len,
                         "diffusion_channels": self.diffusion_model_channels,
                         "z_channels": config.hidden_size if config.diffusion_model_z_channels == 0 else config.diffusion_model_z_channels, # QEwen-2.5 7B 3584
                         "model_hidden_size": config.diffusion_model_hidden_size, # default = 1152
@@ -438,7 +497,7 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
 
 
                     self.diff_head_config =  {
-                        "diffusion_tokens": self.vision_tower_aux_token_len_list[0], # default = 1
+                        "diffusion_tokens": self.diffusion_target_token_len,
                         "diffusion_channels": self.diffusion_model_channels,
                         "z_channels": config.hidden_size if config.diffusion_model_z_channels == 0 else config.diffusion_model_z_channels, # QEwen-2.5 7B 3584
                         "model_hidden_size": config.diffusion_model_hidden_size, # default = 1152
@@ -468,6 +527,19 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
             
             # Ensure diffusion backbone selection is propagated
             self.diff_head_config["dit_cls"] = getattr(config, 'dit_cls', 'DiT')
+            if (
+                getattr(config, 'use_captionslot', False)
+                and getattr(config, 'captionslot_add_cross_attention', False)
+                and not self.diff_head_config.get("use_mlp", False)
+            ):
+                self.diff_head_config["slot_cross_attn_enabled"] = True
+                self.diff_head_config["slot_cross_attn_start_block"] = int(
+                    getattr(config, "captionslot_cross_attention_start_block", 8)
+                )
+                self.diff_head_config["slot_cross_attn_every_n_blocks"] = int(
+                    getattr(config, "captionslot_cross_attention_every_n_blocks", 4)
+                )
+                self.diff_head_config["slot_cross_attn_context_dim"] = int(self.diff_head_config["z_channels"])
 
             # # Add use_mlp=True if diffusion_tokens is 1RF
             # if self.diff_head_config["split_per_token"] == 1:
@@ -518,6 +590,8 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         # AURORA: initialize after post_init so _init_weights does not reset zero-inits
         if getattr(config, 'use_aurora', False):
             self._init_aurora()
+        if getattr(config, 'use_captionslot', False):
+            self._init_captionslot()
 
     def load_vision_head(self, model_args):
         pretrain_adapter_and_vision_head = getattr(model_args, 'pretrain_adapter_and_vision_head', None)
@@ -617,9 +691,34 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         inpaint_mask_patches: Optional[torch.Tensor] = None,
         has_inpaint: Optional[torch.Tensor] = None,
         aurora_inpaint_weight_override: Optional[float] = None,
+        caption_input_ids: Optional[torch.LongTensor] = None,
+        caption_attention_mask: Optional[torch.Tensor] = None,
+        ref_spans: Optional[torch.Tensor] = None,
+        noun_chunk_spans: Optional[torch.Tensor] = None,
+        n_slots: Optional[torch.Tensor] = None,
+        head_prior_maps: Optional[torch.Tensor] = None,
+        head_prior_valid_mask: Optional[torch.Tensor] = None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
 
         # AURORA v2 routing
+        if getattr(self.config, 'use_captionslot', False) and not decoding and images is not None:
+            captionslot_loss, _ = self._forward_captionslot(
+                images=images,
+                caption_input_ids=caption_input_ids,
+                caption_attention_mask=caption_attention_mask,
+                ref_spans=ref_spans,
+                noun_chunk_spans=noun_chunk_spans,
+                n_slots=n_slots,
+                gt_masks_patches=gt_masks_patches,
+                target_images=target_images,
+                head_prior_maps=head_prior_maps,
+                head_prior_valid_mask=head_prior_valid_mask,
+            )
+            return CausalLMOutputWithPast(
+                loss=captionslot_loss,
+                logits=torch.zeros(1, device=images.device),
+            )
+
         if getattr(self.config, 'use_aurora', False) and not decoding and images is not None:
             aurora_loss, aurora_info = self._forward_aurora(
                 images=images,
@@ -1614,10 +1713,18 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
             raise FloatingPointError(message)
         logger.warning("%s Falling back to torch.nan_to_num.", message)
 
-    def _encode_images_aurora(self, images: torch.Tensor):
-        vision_tower = self.get_model().get_vision_tower_aux_list()[0]
+    def _encode_images_aurora(
+        self,
+        images: torch.Tensor,
+        target_images: Optional[torch.Tensor] = None,
+    ):
+        vision_tower_aux_list = self.get_model().get_vision_tower_aux_list()
+        vision_tower = vision_tower_aux_list[0]
+        target_vision_tower = vision_tower_aux_list[1] if len(vision_tower_aux_list) > 1 else vision_tower
         if images.dim() == 3:
             images = images.unsqueeze(0)
+        if target_images is not None and target_images.dim() == 3:
+            target_images = target_images.unsqueeze(0)
 
         vt_param = next(vision_tower.parameters(), None)
         vt_device = vt_param.device if vt_param is not None else images.device
@@ -1632,10 +1739,40 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
 
         with torch.no_grad():
             raw_features = vision_tower(images.to(device=vt_device, dtype=vt_dtype))
+            expected_image_tokens = int(getattr(self, "image_feature_token_len", raw_features.shape[1]))
+            if raw_features.shape[1] != expected_image_tokens:
+                raise ValueError(
+                    f"Encoder A produced {raw_features.shape[1]} image tokens, "
+                    f"expected {expected_image_tokens}."
+                )
             raw_features = raw_features.to(device=projector_device, dtype=projector_dtype)
             img_features = self.get_model().mm_projector(raw_features)
 
-        gt_siglip = raw_features.detach()
+            if target_images is None:
+                gt_siglip = raw_features if target_vision_tower is vision_tower else None
+            else:
+                target_param = next(target_vision_tower.parameters(), None)
+                target_device = target_param.device if target_param is not None else target_images.device
+                target_dtype = (
+                    target_param.dtype
+                    if target_param is not None and target_param.is_floating_point()
+                    else target_images.dtype
+                )
+                gt_siglip = target_vision_tower(
+                    target_images.to(device=target_device, dtype=target_dtype)
+                )
+                expected_target_tokens = int(
+                    getattr(self, "diffusion_target_token_len", gt_siglip.shape[1])
+                )
+                if gt_siglip.shape[1] != expected_target_tokens:
+                    raise ValueError(
+                        f"Encoder B produced {gt_siglip.shape[1]} target tokens, "
+                        f"expected {expected_target_tokens}."
+                    )
+                gt_siglip = gt_siglip.to(device=projector_device, dtype=projector_dtype)
+
+        if gt_siglip is not None:
+            gt_siglip = gt_siglip.detach()
         return raw_features.detach(), img_features.detach(), gt_siglip
 
     def _aurora_model_dtype(self) -> torch.dtype:
@@ -1750,6 +1887,1303 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         if torch.is_tensor(loss) and loss.dim() > 0:
             loss = loss.mean()
         return loss.float()
+
+    # ================================================================
+    # CaptionSlot — caption-guided object-centric reconstruction
+    # ================================================================
+
+    def _init_captionslot(self):
+        D = self.config.hidden_size
+        embed_std = 1.0 / math.sqrt(D)
+        self.captionslot_C = getattr(self.config, "captionslot_cmd_length", 8)
+        self.captionslot_K_max = getattr(self.config, "captionslot_max_slots", 10)
+        self.captionslot_slots_per_object = max(
+            int(getattr(self.config, "captionslot_slots_per_object", 1)),
+            1,
+        )
+        self.captionslot_N_reg = getattr(self.config, "captionslot_n_register", 8)
+
+        self.captionslot_cmd_embeddings = nn.Parameter(torch.randn(self.captionslot_C, D) * embed_std)
+        # Per-slot learnable embedding so each of K_max slots starts from a distinct init.
+        self.captionslot_slot_embedding = nn.Parameter(torch.randn(self.captionslot_K_max, D) * embed_std)
+        self.captionslot_reg_embeddings = nn.Parameter(torch.randn(self.captionslot_N_reg, D) * embed_std)
+        self.captionslot_add_cross_attention = bool(
+            getattr(self.config, "captionslot_add_cross_attention", False)
+        )
+        if self.captionslot_add_cross_attention:
+            cross_attn_dim = int(self.diff_head_config.get("z_channels", D))
+            self.captionslot_context_projector = nn.Linear(D, cross_attn_dim)
+        else:
+            self.captionslot_context_projector = None
+
+        stage = int(getattr(self.config, "captionslot_training_stage", 1))
+        train_latent_queries = bool(getattr(self.config, "captionslot_train_latent_queries", False))
+        if self.get_model().latent_queries is not None:
+            self.get_model().latent_queries.requires_grad_(stage >= 2 or train_latent_queries)
+
+        self._captionslot_warned_nan_total_loss = False
+        self.captionslot_pair_attn_soft_iou = None
+        self.captionslot_pair_attn_l1 = None
+        self.captionslot_pair_attn_cosine = None
+        self.captionslot_object_slot_attn_soft_iou = None
+        self.captionslot_object_slot_attn_l1 = None
+        self.captionslot_object_slot_attn_cosine = None
+
+        print(
+            "[CaptionSlot] Initialised — "
+            f"D={D}, C={self.captionslot_C}, K_max={self.captionslot_K_max}, "
+            f"slots/object={self.captionslot_slots_per_object}, "
+            f"N_reg={self.captionslot_N_reg}, stage={stage}, "
+            f"train_latent_queries={train_latent_queries}"
+        )
+
+    def _captionslot_control_mode(self) -> str:
+        return str(getattr(self.config, "captionslot_control_mode", "slots")).strip().lower()
+
+    def _captionslot_use_sparse_cross_attention(self) -> bool:
+        return bool(self.captionslot_add_cross_attention and self.captionslot_context_projector is not None)
+
+    def _captionslot_prepare_diffusion_condition(self, hidden: torch.Tensor) -> torch.Tensor:
+        cond = hidden
+        if getattr(self, "use_diff_head_projector", False):
+            proj_dtype = next(self.diff_head_projector.parameters()).dtype
+            cond = self.diff_head_projector(cond.to(dtype=proj_dtype))
+        cond = F.layer_norm(cond.float(), (cond.shape[-1],))
+        return cond
+
+    def _captionslot_prepare_cross_attention_context(
+        self,
+        slot_hidden: torch.Tensor,
+        reg_hidden: torch.Tensor,
+        active_slot_mask: torch.Tensor,
+    ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+        if not self._captionslot_use_sparse_cross_attention():
+            return None, None
+
+        include_registers = bool(
+            getattr(self.config, "captionslot_cross_attention_include_registers", True)
+        )
+        context_parts = [slot_hidden]
+        mask_parts = [active_slot_mask.to(device=slot_hidden.device, dtype=torch.bool)]
+        if include_registers and reg_hidden.shape[1] > 0:
+            context_parts.append(reg_hidden)
+            mask_parts.append(
+                torch.ones(
+                    reg_hidden.shape[:2],
+                    device=reg_hidden.device,
+                    dtype=torch.bool,
+                )
+            )
+
+        context = torch.cat(context_parts, dim=1)
+        context_mask = torch.cat(mask_parts, dim=1)
+        proj_dtype = next(self.captionslot_context_projector.parameters()).dtype
+        context = self.captionslot_context_projector(context.to(dtype=proj_dtype))
+
+        # Zero out inactive slot rows BEFORE LayerNorm so their values do not pollute
+        # the per-token statistics of the active rows.
+        slot_count = slot_hidden.shape[1]
+        if slot_count > 0:
+            context[:, :slot_count] = context[:, :slot_count].masked_fill(
+                ~active_slot_mask.unsqueeze(-1),
+                0.0,
+            )
+        context = F.layer_norm(context.float(), (context.shape[-1],))
+
+        if slot_count > 0:
+            # Re-apply the zero mask since LayerNorm introduces non-zero output on zero rows.
+            context[:, :slot_count] = context[:, :slot_count].masked_fill(
+                ~active_slot_mask.unsqueeze(-1),
+                0.0,
+            )
+        return context, context_mask
+
+    def _captionslot_collect_pair_attention_metrics(
+        self,
+        attn_maps: torch.Tensor,
+        active_slot_mask: torch.Tensor,
+    ) -> None:
+        self.captionslot_pair_attn_soft_iou = None
+        self.captionslot_pair_attn_l1 = None
+        self.captionslot_pair_attn_cosine = None
+        self.captionslot_object_slot_attn_soft_iou = None
+        self.captionslot_object_slot_attn_l1 = None
+        self.captionslot_object_slot_attn_cosine = None
+
+        slots_per_object = max(int(getattr(self, "captionslot_slots_per_object", 1)), 1)
+        if slots_per_object <= 1 or attn_maps is None or attn_maps.numel() == 0:
+            return
+
+        object_slot_soft_iou_sum = 0.0
+        object_slot_l1_sum = 0.0
+        object_slot_cosine_sum = 0.0
+        object_slot_pair_total = 0
+
+        attn_maps = attn_maps.detach().float()
+        active_slot_mask = active_slot_mask.detach().bool()
+        for batch_idx in range(attn_maps.shape[0]):
+            n_active = int(active_slot_mask[batch_idx].sum().item())
+            full_objects = n_active // slots_per_object
+            for object_idx in range(full_objects):
+                start_idx = object_idx * slots_per_object
+                group = attn_maps[batch_idx, start_idx:start_idx + slots_per_object]
+                for left_idx in range(group.shape[0]):
+                    for right_idx in range(left_idx + 1, group.shape[0]):
+                        left = group[left_idx]
+                        right = group[right_idx]
+                        intersection = torch.minimum(left, right).sum()
+                        union = (left + right - torch.minimum(left, right)).sum().clamp_min(1e-6)
+                        object_slot_soft_iou_sum += float((intersection / union).item())
+                        object_slot_l1_sum += float(torch.mean(torch.abs(left - right)).item())
+                        object_slot_cosine_sum += float(
+                            F.cosine_similarity(
+                                left.view(1, -1),
+                                right.view(1, -1),
+                                dim=-1,
+                                eps=1e-6,
+                            ).item()
+                        )
+                        object_slot_pair_total += 1
+
+        if object_slot_pair_total <= 0:
+            return
+
+        metric_device = attn_maps.device
+        soft_iou = torch.tensor(object_slot_soft_iou_sum / object_slot_pair_total, device=metric_device)
+        l1 = torch.tensor(object_slot_l1_sum / object_slot_pair_total, device=metric_device)
+        cosine = torch.tensor(object_slot_cosine_sum / object_slot_pair_total, device=metric_device)
+        self.captionslot_object_slot_attn_soft_iou = soft_iou
+        self.captionslot_object_slot_attn_l1 = l1
+        self.captionslot_object_slot_attn_cosine = cosine
+        self.captionslot_pair_attn_soft_iou = soft_iou
+        self.captionslot_pair_attn_l1 = l1
+        self.captionslot_pair_attn_cosine = cosine
+
+    def _captionslot_compute_diffusion_loss(
+        self,
+        hidden: torch.Tensor,
+        target_features: torch.Tensor,
+        slot_context: Optional[torch.Tensor] = None,
+        slot_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        cond = self._captionslot_prepare_diffusion_condition(hidden)
+        self.diff_head = self.diff_head.to(cond.device)
+        self.set_diff_fp32()
+        cond_input = cond.float()
+        target_input = target_features.to(device=cond.device).float()
+        slot_context_input = None if slot_context is None else slot_context.to(device=cond.device).float()
+        slot_mask_input = None if slot_mask is None else slot_mask.to(device=cond.device, dtype=torch.bool)
+
+        if not getattr(self.diff_head, "normalize_data", False):
+            target_input = F.layer_norm(target_input, (target_input.shape[-1],))
+
+        per_sample_loss = self.diff_head.training_loss(
+            z=cond_input,
+            x=target_input,
+            slot_context=slot_context_input,
+            slot_mask=slot_mask_input,
+        )
+        if not torch.isfinite(per_sample_loss).all():
+            self._aurora_check_finite(per_sample_loss, "captionslot_diffusion_loss")
+            per_sample_loss = torch.nan_to_num(per_sample_loss, nan=1e4, posinf=1e4, neginf=1e4)
+
+        if per_sample_loss.dim() > 0:
+            loss = per_sample_loss.mean()
+        else:
+            loss = per_sample_loss
+        return loss.float()
+
+    def _captionslot_embed_frozen_tokens(
+        self,
+        token_ids: List[int],
+        batch_size: int,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        if len(token_ids) == 0:
+            return torch.empty(batch_size, 0, self.config.hidden_size, device=device, dtype=dtype)
+        ids = torch.tensor(
+            token_ids,
+            device=self.model.embed_tokens.weight.device,
+            dtype=torch.long,
+        ).unsqueeze(0)
+        with torch.no_grad():
+            embeds = self.model.embed_tokens(ids).detach()
+        return embeds.expand(batch_size, -1, -1).to(device=device, dtype=dtype)
+
+    def _captionslot_embed_caption(
+        self,
+        caption_input_ids: torch.Tensor,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        with torch.no_grad():
+            embeds = self.model.embed_tokens(
+                caption_input_ids.to(device=self.model.embed_tokens.weight.device)
+            ).detach()
+        return embeds.to(device=device, dtype=dtype)
+
+    def _captionslot_visual_boundary_embed(
+        self,
+        token_id: int,
+        batch_size: int,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        ids = torch.full(
+            (1, 1),
+            int(token_id),
+            device=self.model.embed_tokens.weight.device,
+            dtype=torch.long,
+        )
+        with torch.no_grad():
+            embeds = self.model.embed_tokens(ids).detach()
+        return embeds.expand(batch_size, -1, -1).to(device=device, dtype=dtype)
+
+    def _captionslot_positions(
+        self,
+        caption_len: int,
+        system_prefix_len: int,
+        system_suffix_len: int,
+        user_prefix_len: int,
+        user_suffix_len: int,
+        assistant_prefix_len: int,
+        assistant_suffix_len: int,
+    ) -> Dict[str, int]:
+        n_img = self.num_image_tokens
+        n_rae = self.get_model().latent_queries.shape[0]
+
+        cursor = 0
+        sys_s = cursor
+        cursor += system_prefix_len + self.captionslot_C + system_suffix_len
+        sys_e = cursor
+
+        user_prefix_s = cursor
+        cursor += user_prefix_len
+        user_prefix_e = cursor
+
+        img_s = cursor
+        cursor += n_img
+        img_e = cursor
+
+        user_suffix_s = cursor
+        cursor += user_suffix_len
+        user_suffix_e = cursor
+
+        assistant_prefix_s = cursor
+        cursor += assistant_prefix_len
+        assistant_prefix_e = cursor
+
+        cap_s = cursor
+        cursor += caption_len
+        cap_e = cursor
+
+        slot_s = cursor
+        cursor += self.captionslot_K_max
+        slot_e = cursor
+
+        reg_s = cursor
+        cursor += self.captionslot_N_reg
+        reg_e = cursor
+
+        im_start_idx = cursor
+        cursor += 1
+
+        rae_s = cursor
+        cursor += n_rae
+        rae_e = cursor
+
+        im_end_idx = cursor
+        cursor += 1
+
+        assistant_suffix_s = cursor
+        cursor += assistant_suffix_len
+        assistant_suffix_e = cursor
+
+        return {
+            "sys_s": sys_s,
+            "sys_e": sys_e,
+            "user_prefix_s": user_prefix_s,
+            "user_prefix_e": user_prefix_e,
+            "img_s": img_s,
+            "img_e": img_e,
+            "user_suffix_s": user_suffix_s,
+            "user_suffix_e": user_suffix_e,
+            "assistant_prefix_s": assistant_prefix_s,
+            "assistant_prefix_e": assistant_prefix_e,
+            "cap_s": cap_s,
+            "cap_e": cap_e,
+            "slot_s": slot_s,
+            "slot_e": slot_e,
+            "reg_s": reg_s,
+            "reg_e": reg_e,
+            "im_start_idx": im_start_idx,
+            "rae_s": rae_s,
+            "rae_e": rae_e,
+            "im_end_idx": im_end_idx,
+            "assistant_suffix_s": assistant_suffix_s,
+            "assistant_suffix_e": assistant_suffix_e,
+            "total_len": assistant_suffix_e,
+        }
+
+    def _captionslot_caption_only_positions(
+        self,
+        text_len: int,
+        system_prefix_len: int,
+        system_suffix_len: int,
+        user_prefix_len: int,
+        user_suffix_len: int,
+        assistant_prefix_len: int,
+        assistant_suffix_len: int,
+    ) -> Dict[str, int]:
+        n_rae = self.get_model().latent_queries.shape[0]
+
+        cursor = 0
+        sys_s = cursor
+        cursor += system_prefix_len
+        sys_e = cursor
+
+        sys_suffix_s = cursor
+        cursor += system_suffix_len
+        sys_suffix_e = cursor
+
+        user_prefix_s = cursor
+        cursor += user_prefix_len
+        user_prefix_e = cursor
+
+        text_s = cursor
+        cursor += text_len
+        text_e = cursor
+
+        user_suffix_s = cursor
+        cursor += user_suffix_len
+        user_suffix_e = cursor
+
+        assistant_prefix_s = cursor
+        cursor += assistant_prefix_len
+        assistant_prefix_e = cursor
+
+        im_start_idx = cursor
+        cursor += 1
+
+        rae_s = cursor
+        cursor += n_rae
+        rae_e = cursor
+
+        im_end_idx = cursor
+        cursor += 1
+
+        assistant_suffix_s = cursor
+        cursor += assistant_suffix_len
+        assistant_suffix_e = cursor
+
+        return {
+            "sys_s": sys_s,
+            "sys_e": sys_e,
+            "sys_suffix_s": sys_suffix_s,
+            "sys_suffix_e": sys_suffix_e,
+            "user_prefix_s": user_prefix_s,
+            "user_prefix_e": user_prefix_e,
+            "text_s": text_s,
+            "text_e": text_e,
+            "user_suffix_s": user_suffix_s,
+            "user_suffix_e": user_suffix_e,
+            "assistant_prefix_s": assistant_prefix_s,
+            "assistant_prefix_e": assistant_prefix_e,
+            "im_start_idx": im_start_idx,
+            "rae_s": rae_s,
+            "rae_e": rae_e,
+            "im_end_idx": im_end_idx,
+            "assistant_suffix_s": assistant_suffix_s,
+            "assistant_suffix_e": assistant_suffix_e,
+            "total_len": assistant_suffix_e,
+        }
+
+    def _captionslot_compute_caption_loss(
+        self,
+        hidden: torch.Tensor,
+        caption_input_ids: torch.Tensor,
+        caption_attention_mask: torch.Tensor,
+        positions: Dict[str, int],
+    ) -> torch.Tensor:
+        cap_s = positions["cap_s"]
+        cap_e = positions["cap_e"]
+        source_hidden = hidden[:, cap_s - 1: cap_e - 1, :]
+        logits = self.lm_head(source_hidden).float()
+        labels = caption_input_ids.clone()
+        labels = labels.masked_fill(~caption_attention_mask, -100)
+        return F.cross_entropy(
+            logits.reshape(-1, logits.shape[-1]),
+            labels.reshape(-1),
+            ignore_index=-100,
+        )
+
+    def _captionslot_resolve_ref_spans(
+        self,
+        ref_spans: Optional[torch.Tensor] = None,
+        noun_chunk_spans: Optional[torch.Tensor] = None,
+    ) -> Optional[torch.Tensor]:
+        if ref_spans is not None:
+            return ref_spans
+        return noun_chunk_spans
+
+    def _captionslot_attention_options(self) -> Tuple[bool, float]:
+        normalize = bool(
+            getattr(
+                self.config,
+                "captionslot_attention_use_layer_norm",
+                getattr(self.config, "aurora_attention_use_layer_norm", True),
+            )
+        )
+        temperature = float(
+            getattr(
+                self.config,
+                "captionslot_attention_temperature",
+                getattr(self.config, "aurora_attention_temperature", 1.0),
+            )
+        )
+        return normalize, temperature
+
+    def _captionslot_compute_mask_losses(
+        self,
+        hidden: torch.Tensor,
+        positions: Dict[str, int],
+        active_slot_mask: torch.Tensor,
+        gt_masks_patches: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        slot_positions = list(range(positions["slot_s"], positions["slot_e"]))
+        normalize_tokens, temperature = self._captionslot_attention_options()
+        attn_logits = extract_attention_logits(
+            hidden,
+            slot_positions,
+            positions["img_s"],
+            positions["img_e"],
+            normalize_tokens=normalize_tokens,
+            temperature=temperature,
+            active_slot_mask=active_slot_mask,
+        )
+        attn_maps = torch.sigmoid(attn_logits)
+
+        bce_loss = torch.zeros((), device=hidden.device, dtype=torch.float32)
+        tversky_loss = torch.zeros((), device=hidden.device, dtype=torch.float32)
+        if gt_masks_patches is not None:
+            gt_masks_patches = gt_masks_patches.to(device=hidden.device, dtype=torch.float32)
+            if gt_masks_patches.shape != attn_logits.shape:
+                raise ValueError(
+                    f"Expected gt_masks_patches shape {tuple(attn_logits.shape)}, got {tuple(gt_masks_patches.shape)}"
+                )
+            slots_per_object = max(int(getattr(self, "captionslot_slots_per_object", 1)), 1)
+            if slots_per_object <= 1:
+                # Per-slot supervision: BCE on logits (numerically stable).
+                valid_mask = active_slot_mask.to(device=hidden.device, dtype=torch.float32)
+                loss_logits = attn_logits.float()
+                loss_maps = attn_maps.float()
+                loss_targets = gt_masks_patches
+                use_logits_bce = True
+            else:
+                # MEAN aggregation in probability space for slots-per-object > 1.
+                # Each object's group of slots is supervised so the *mean* of their
+                # attention probabilities matches the GT mask (per-prof guidance).
+                merged_maps = []
+                merged_targets = []
+                merged_valid = []
+                for start_idx in range(0, attn_logits.shape[1], slots_per_object):
+                    end_idx = min(start_idx + slots_per_object, attn_logits.shape[1])
+                    group_maps = attn_maps[:, start_idx:end_idx, :].float()
+                    group_targets = gt_masks_patches[:, start_idx:end_idx, :]
+                    group_active = active_slot_mask[:, start_idx:end_idx]
+                    merged_maps.append(group_maps.mean(dim=1))            # MEAN of slot probs
+                    merged_targets.append(group_targets.amax(dim=1))      # GT same per slot in object
+                    merged_valid.append(group_active.any(dim=1))
+                loss_logits = None
+                loss_maps = torch.stack(merged_maps, dim=1)
+                loss_targets = torch.stack(merged_targets, dim=1)
+                valid_mask = torch.stack(merged_valid, dim=1).to(device=hidden.device, dtype=torch.float32)
+                use_logits_bce = False
+
+            if use_logits_bce:
+                bce_element = F.binary_cross_entropy_with_logits(
+                    loss_logits,
+                    loss_targets,
+                    reduction="none",
+                )
+            else:
+                # Mean-of-probs path: BCE on probabilities, with eps clamp for stability.
+                loss_maps_clamped = loss_maps.clamp(1e-7, 1.0 - 1e-7)
+                bce_element = F.binary_cross_entropy(
+                    loss_maps_clamped,
+                    loss_targets,
+                    reduction="none",
+                )
+            if bool(getattr(self.config, "captionslot_mask_balanced_bce", False)):
+                pos = loss_targets
+                neg = 1.0 - loss_targets
+                pos_count = pos.sum(dim=-1)
+                neg_count = neg.sum(dim=-1)
+                pos_loss = (bce_element * pos).sum(dim=-1) / pos_count.clamp_min(1.0)
+                neg_loss = (bce_element * neg).sum(dim=-1) / neg_count.clamp_min(1.0)
+                both = (pos_count > 0) & (neg_count > 0)
+                bce_per_object = torch.where(
+                    both,
+                    0.5 * (pos_loss + neg_loss),
+                    torch.where(pos_count > 0, pos_loss, neg_loss),
+                )
+            else:
+                bce_per_object = bce_element.mean(dim=-1)
+
+            true_pos = (loss_maps * loss_targets).sum(dim=-1)
+            false_pos = (loss_maps * (1.0 - loss_targets)).sum(dim=-1)
+            false_neg = ((1.0 - loss_maps) * loss_targets).sum(dim=-1)
+            tversky_alpha = float(getattr(self.config, "captionslot_mask_tversky_alpha", 0.5))
+            tversky_beta = float(getattr(self.config, "captionslot_mask_tversky_beta", 0.5))
+            if tversky_alpha < 0.0 or tversky_beta < 0.0 or (tversky_alpha + tversky_beta) <= 0.0:
+                tversky_alpha = 0.5
+                tversky_beta = 0.5
+            tversky_denom = true_pos + tversky_alpha * false_pos + tversky_beta * false_neg
+            tversky_per_object = 1.0 - ((true_pos + 1e-6) / (tversky_denom + 1e-6))
+            normalizer = valid_mask.sum().clamp_min(1.0)
+            bce_loss = (bce_per_object * valid_mask).sum() / normalizer
+            tversky_loss = (tversky_per_object * valid_mask).sum() / normalizer
+
+        return attn_logits, attn_maps, bce_loss, tversky_loss
+
+    def _captionslot_cam_layer_indices(self) -> List[int]:
+        raw_layers = getattr(self.config, "captionslot_cam_layers", "-1")
+        if raw_layers is None:
+            raw_layers = "-1"
+        if isinstance(raw_layers, str):
+            text = raw_layers.strip()
+            if not text or text.lower() in {"none", "off", "false"}:
+                return []
+            parts = [part.strip() for part in text.split(",") if part.strip()]
+        elif isinstance(raw_layers, int):
+            parts = [str(raw_layers)]
+        else:
+            parts = [str(part) for part in raw_layers]
+
+        num_layers = len(self.model.layers)
+        indices: List[int] = []
+        for part in parts:
+            idx = int(part)
+            if idx < 0:
+                idx += num_layers
+            if 0 <= idx < num_layers and idx not in indices:
+                indices.append(idx)
+        return indices
+
+    def _captionslot_extract_internal_attention_maps(
+        self,
+        selected_attentions: Optional[Tuple[torch.Tensor, ...]],
+        positions: Dict[str, int],
+        active_slot_mask: torch.Tensor,
+    ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+        if not selected_attentions:
+            return None, None
+
+        img_s, img_e = positions["img_s"], positions["img_e"]
+        slot_s, slot_e = positions["slot_s"], positions["slot_e"]
+        reg_s, reg_e = positions["reg_s"], positions["reg_e"]
+        slot_maps: List[torch.Tensor] = []
+        register_maps: List[torch.Tensor] = []
+
+        for layer_attn in selected_attentions:
+            if layer_attn is None:
+                continue
+            attn = torch.nan_to_num(layer_attn.float(), nan=0.0, posinf=0.0, neginf=0.0).clamp_min(0.0)
+            slot_maps.append(attn[:, :, slot_s:slot_e, img_s:img_e].mean(dim=1))
+            register_maps.append(attn[:, :, reg_s:reg_e, img_s:img_e].mean(dim=(1, 2)))
+
+        if not slot_maps:
+            return None, None
+
+        slot_probs = torch.stack(slot_maps, dim=0).mean(dim=0)
+        register_probs = torch.stack(register_maps, dim=0).mean(dim=0)
+        slot_probs = slot_probs * active_slot_mask.to(device=slot_probs.device, dtype=slot_probs.dtype).unsqueeze(-1)
+        return slot_probs, register_probs
+
+    def _captionslot_attention_probs_to_heatmap(self, probs: torch.Tensor) -> torch.Tensor:
+        probs = torch.nan_to_num(probs.float(), nan=0.0, posinf=0.0, neginf=0.0).clamp_min(0.0)
+        max_value = probs.amax(dim=-1, keepdim=True)
+        return torch.where(max_value > 0, probs / max_value.clamp_min(1e-6), probs)
+
+    def _captionslot_compute_cam_ce_losses(
+        self,
+        slot_img_probs: torch.Tensor,
+        register_img_probs: Optional[torch.Tensor],
+        active_slot_mask: torch.Tensor,
+        gt_masks_patches: Optional[torch.Tensor],
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        zero = slot_img_probs.new_zeros(())
+        slot_mass = zero
+        register_mass = zero
+        if gt_masks_patches is None:
+            return zero, zero, slot_mass, register_mass
+
+        gt_masks_patches = gt_masks_patches.to(device=slot_img_probs.device, dtype=torch.float32).clamp(0.0, 1.0)
+        if gt_masks_patches.shape != slot_img_probs.shape:
+            raise ValueError(
+                f"Expected gt_masks_patches shape {tuple(slot_img_probs.shape)}, got {tuple(gt_masks_patches.shape)}"
+            )
+
+        slots_per_object = max(int(getattr(self, "captionslot_slots_per_object", 1)), 1)
+        if slots_per_object <= 1:
+            loss_probs = slot_img_probs.float()
+            loss_targets = gt_masks_patches
+            valid_mask = active_slot_mask.to(device=slot_img_probs.device, dtype=torch.bool)
+        else:
+            merged_probs = []
+            merged_targets = []
+            merged_valid = []
+            for start_idx in range(0, slot_img_probs.shape[1], slots_per_object):
+                end_idx = min(start_idx + slots_per_object, slot_img_probs.shape[1])
+                merged_probs.append(slot_img_probs[:, start_idx:end_idx, :].float().max(dim=1).values)
+                merged_targets.append(gt_masks_patches[:, start_idx:end_idx, :].max(dim=1).values)
+                merged_valid.append(active_slot_mask[:, start_idx:end_idx].any(dim=1))
+            loss_probs = torch.stack(merged_probs, dim=1)
+            loss_targets = torch.stack(merged_targets, dim=1)
+            valid_mask = torch.stack(merged_valid, dim=1).to(device=slot_img_probs.device, dtype=torch.bool)
+
+        eps = float(getattr(self.config, "captionslot_cam_eps", 1e-6))
+        target_sum = loss_targets.sum(dim=-1)
+        valid_mask = valid_mask & (target_sum > eps)
+        target_dist = loss_targets / target_sum.clamp_min(eps).unsqueeze(-1)
+        object_ce_per_slot = -(target_dist * torch.log(loss_probs + eps)).sum(dim=-1)
+        object_cam_loss = object_ce_per_slot[valid_mask].mean() if valid_mask.any() else zero
+        slot_mass_values = loss_probs.sum(dim=-1)
+        slot_mass = slot_mass_values[valid_mask].mean() if valid_mask.any() else zero
+
+        register_cam_loss = zero
+        if register_img_probs is not None:
+            active_gt = gt_masks_patches * active_slot_mask.to(device=slot_img_probs.device, dtype=torch.float32).unsqueeze(-1)
+            object_union = active_gt.max(dim=1).values
+            background = (1.0 - object_union).clamp(0.0, 1.0)
+            background_sum = background.sum(dim=-1)
+            register_valid = background_sum > eps
+            background_dist = background / background_sum.clamp_min(eps).unsqueeze(-1)
+            register_probs = register_img_probs.float()
+            register_ce = -(background_dist * torch.log(register_probs + eps)).sum(dim=-1)
+            register_cam_loss = register_ce[register_valid].mean() if register_valid.any() else zero
+            register_mass_values = register_probs.sum(dim=-1)
+            register_mass = register_mass_values[register_valid].mean() if register_valid.any() else zero
+
+        return object_cam_loss, register_cam_loss, slot_mass, register_mass
+
+    def _forward_captionslot(
+        self,
+        images: torch.Tensor,
+        caption_input_ids: Optional[torch.Tensor] = None,
+        caption_attention_mask: Optional[torch.Tensor] = None,
+        ref_spans: Optional[torch.Tensor] = None,
+        noun_chunk_spans: Optional[torch.Tensor] = None,
+        n_slots: Optional[torch.Tensor] = None,
+        gt_masks_patches: Optional[torch.Tensor] = None,
+        target_images: Optional[torch.Tensor] = None,
+        head_prior_maps: Optional[torch.Tensor] = None,
+        head_prior_valid_mask: Optional[torch.Tensor] = None,
+        **kwargs,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        if self._captionslot_control_mode() == "caption_only":
+            return self._forward_captionslot_caption_only(
+                images=images,
+                target_images=target_images,
+                caption_input_ids=caption_input_ids,
+                caption_attention_mask=caption_attention_mask,
+            )
+        ref_spans = self._captionslot_resolve_ref_spans(
+            ref_spans=ref_spans,
+            noun_chunk_spans=noun_chunk_spans,
+        )
+        if caption_input_ids is None or caption_attention_mask is None or ref_spans is None:
+            raise ValueError("CaptionSlot forward requires caption_input_ids, caption_attention_mask, and ref_spans.")
+
+        model_device = self.captionslot_cmd_embeddings.device
+        images = images.to(model_device)
+        target_images = target_images.to(model_device) if target_images is not None else None
+        caption_input_ids = caption_input_ids.to(model_device)
+        caption_attention_mask = caption_attention_mask.to(model_device, dtype=torch.bool)
+        ref_spans = ref_spans.to(model_device, dtype=torch.long)
+        if n_slots is None:
+            n_slots = caption_attention_mask.new_full(
+                (caption_input_ids.shape[0],),
+                fill_value=self.captionslot_K_max,
+                dtype=torch.long,
+            )
+        else:
+            n_slots = n_slots.to(model_device, dtype=torch.long)
+
+        B, caption_len = caption_input_ids.shape
+        active_k = n_slots.clamp(min=1, max=self.captionslot_K_max).tolist()
+        active_slot_mask = build_active_slot_mask(
+            n_obj=self.captionslot_K_max,
+            device=model_device,
+            active_k_per_sample=active_k,
+            batch_size=B,
+        )
+
+        _, img_features, gt_siglip = self._encode_images_aurora(images, target_images=target_images)
+        if gt_siglip is None:
+            raise ValueError("CaptionSlot training requires target_images for diffusion target encoding.")
+        dtype = self._aurora_model_dtype()
+
+        system_prefix_ids = getattr(self, "captionslot_system_prefix_ids", getattr(self.config, "captionslot_system_prefix_ids", []))
+        system_suffix_ids = getattr(self, "captionslot_system_suffix_ids", getattr(self.config, "captionslot_system_suffix_ids", []))
+        user_prefix_ids = getattr(self, "captionslot_user_prefix_ids", getattr(self.config, "captionslot_user_prefix_ids", []))
+        user_suffix_ids = getattr(self, "captionslot_user_suffix_ids", getattr(self.config, "captionslot_user_suffix_ids", []))
+        assistant_prefix_ids = getattr(self, "captionslot_assistant_prefix_ids", getattr(self.config, "captionslot_assistant_prefix_ids", []))
+        assistant_suffix_ids = getattr(self, "captionslot_assistant_suffix_ids", getattr(self.config, "captionslot_assistant_suffix_ids", []))
+        im_start_id = getattr(self, "im_start_id", getattr(self.config, "im_start_id", None))
+        im_end_id = getattr(self, "im_end_id", getattr(self.config, "im_end_id", None))
+        if im_start_id is None or im_end_id is None:
+            raise ValueError("CaptionSlot requires registered <im_start>/<im_end> token ids.")
+
+        system_prefix = self._captionslot_embed_frozen_tokens(system_prefix_ids, B, model_device, dtype)
+        system_suffix = self._captionslot_embed_frozen_tokens(system_suffix_ids, B, model_device, dtype)
+        user_prefix = self._captionslot_embed_frozen_tokens(user_prefix_ids, B, model_device, dtype)
+        user_suffix = self._captionslot_embed_frozen_tokens(user_suffix_ids, B, model_device, dtype)
+        assistant_prefix = self._captionslot_embed_frozen_tokens(assistant_prefix_ids, B, model_device, dtype)
+        assistant_suffix = self._captionslot_embed_frozen_tokens(assistant_suffix_ids, B, model_device, dtype)
+        caption_embeds = self._captionslot_embed_caption(caption_input_ids, model_device, dtype)
+        cmd_embeds = self.captionslot_cmd_embeddings.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
+        slot_embeds = self.captionslot_slot_embedding.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
+        reg_embeds = self.captionslot_reg_embeddings.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
+        im_start_embed = self._captionslot_visual_boundary_embed(im_start_id, B, model_device, dtype)
+        im_end_embed = self._captionslot_visual_boundary_embed(im_end_id, B, model_device, dtype)
+        rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1).to(device=model_device, dtype=dtype)
+
+        positions = self._captionslot_positions(
+            caption_len=caption_len,
+            system_prefix_len=system_prefix.shape[1],
+            system_suffix_len=system_suffix.shape[1],
+            user_prefix_len=user_prefix.shape[1],
+            user_suffix_len=user_suffix.shape[1],
+            assistant_prefix_len=assistant_prefix.shape[1],
+            assistant_suffix_len=assistant_suffix.shape[1],
+        )
+
+        inputs_embeds = torch.cat(
+            [
+                system_prefix,
+                cmd_embeds,
+                system_suffix,
+                user_prefix,
+                img_features.to(dtype=dtype),
+                user_suffix,
+                assistant_prefix,
+                caption_embeds,
+                slot_embeds,
+                reg_embeds,
+                im_start_embed,
+                rae_embeds,
+                im_end_embed,
+                assistant_suffix,
+            ],
+            dim=1,
+        )
+
+        attn_bias = build_captionslot_attention_mask(
+            positions=positions,
+            ref_spans=ref_spans,
+            active_slot_mask=active_slot_mask,
+            caption_padding_mask=caption_attention_mask,
+            device=model_device,
+            dtype=inputs_embeds.dtype,
+        )
+        cam_layer_indices = self._captionslot_cam_layer_indices()
+
+        out = self.model(
+            inputs_embeds=inputs_embeds,
+            attention_bias=attn_bias,
+            use_cache=False,
+            return_dict=True,
+            captionslot_attention_capture_layers=cam_layer_indices,
+        )
+        hidden = out.last_hidden_state
+
+        slot_hidden = hidden[:, positions["slot_s"]:positions["slot_e"], :]
+        reg_hidden = hidden[:, positions["reg_s"]:positions["reg_e"], :]
+        rae_hidden = hidden[:, positions["rae_s"]:positions["rae_e"], :]
+        cross_context, cross_mask = self._captionslot_prepare_cross_attention_context(
+            slot_hidden,
+            reg_hidden,
+            active_slot_mask,
+        )
+        recon_loss = self._captionslot_compute_diffusion_loss(
+            rae_hidden,
+            gt_siglip,
+            slot_context=cross_context,
+            slot_mask=cross_mask,
+        )
+        recon_weight = float(getattr(self.config, "captionslot_recon_loss_weight", 1.0))
+        bce_weight = float(getattr(self.config, "captionslot_mask_bce_loss_weight", 1.0))
+        tversky_weight = float(
+            getattr(
+                self.config,
+                "captionslot_mask_tversky_loss_weight",
+                getattr(self.config, "captionslot_mask_dice_loss_weight", 1.0),
+            )
+        )
+        object_cam_weight = float(getattr(self.config, "captionslot_object_cam_loss_weight", 0.0))
+        register_cam_weight = float(getattr(self.config, "captionslot_register_cam_loss_weight", 0.0))
+
+        zero = recon_loss.new_zeros(())
+        bce_loss = zero
+        tversky_loss = zero
+        object_cam_loss = zero
+        register_cam_loss = zero
+        slot_img_mass = zero
+        register_img_mass = zero
+
+        slot_img_probs, register_img_probs = self._captionslot_extract_internal_attention_maps(
+            selected_attentions=out.attentions,
+            positions=positions,
+            active_slot_mask=active_slot_mask,
+        )
+        if slot_img_probs is not None:
+            attn_maps = self._captionslot_attention_probs_to_heatmap(slot_img_probs)
+            object_cam_loss, register_cam_loss, slot_img_mass, register_img_mass = self._captionslot_compute_cam_ce_losses(
+                slot_img_probs=slot_img_probs,
+                register_img_probs=register_img_probs,
+                active_slot_mask=active_slot_mask,
+                gt_masks_patches=gt_masks_patches,
+            )
+            if bce_weight > 0.0 or tversky_weight > 0.0:
+                _, _, bce_loss, tversky_loss = self._captionslot_compute_mask_losses(
+                    hidden=hidden,
+                    positions=positions,
+                    active_slot_mask=active_slot_mask,
+                    gt_masks_patches=gt_masks_patches,
+                )
+        else:
+            _, attn_maps, bce_loss, tversky_loss = self._captionslot_compute_mask_losses(
+                hidden=hidden,
+                positions=positions,
+                active_slot_mask=active_slot_mask,
+                gt_masks_patches=gt_masks_patches,
+            )
+
+        total_loss = (
+            recon_weight * recon_loss
+            + object_cam_weight * object_cam_loss
+            + register_cam_weight * register_cam_loss
+            + bce_weight * bce_loss
+            + tversky_weight * tversky_loss
+        )
+
+        if not torch.isfinite(total_loss).all():
+            self._aurora_check_finite(total_loss, "captionslot_total_loss")
+            if torch.isnan(total_loss).any() and not getattr(self, "_captionslot_warned_nan_total_loss", False):
+                logger.warning("[CaptionSlot] total loss produced NaN; clamping.")
+                self._captionslot_warned_nan_total_loss = True
+            total_loss = torch.nan_to_num(total_loss, nan=1e4, posinf=1e4, neginf=1e4)
+
+        self.loss_image_diff = recon_loss.detach()
+        self.captionslot_loss_recon = recon_loss.detach()
+        self.captionslot_loss_mask_bce = bce_loss.detach() if bce_weight > 0.0 else None
+        self.captionslot_loss_mask_tversky = tversky_loss.detach() if tversky_weight > 0.0 else None
+        self.captionslot_loss_object_cam_ce = object_cam_loss.detach() if object_cam_weight > 0.0 else None
+        self.captionslot_loss_register_cam_ce = register_cam_loss.detach() if register_cam_weight > 0.0 else None
+        self.captionslot_slot_img_attention_mass = slot_img_mass.detach() if object_cam_weight > 0.0 else None
+        self.captionslot_register_img_attention_mass = register_img_mass.detach() if register_cam_weight > 0.0 else None
+        self.captionslot_loss_caption = None
+        self.captionslot_loss_div = None
+        self.captionslot_avg_slots = torch.tensor(float(sum(active_k)) / len(active_k), device=model_device)
+        self.captionslot_avg_unique_objects = torch.tensor(
+            float(sum(active_k)) / (len(active_k) * max(self.captionslot_slots_per_object, 1)),
+            device=model_device,
+        )
+        self._captionslot_collect_pair_attention_metrics(attn_maps, active_slot_mask)
+
+        info = {
+            "loss_recon": recon_loss.detach(),
+        }
+        if object_cam_weight > 0.0:
+            info["loss_object_cam_ce"] = object_cam_loss.detach()
+            info["slot_img_attention_mass"] = slot_img_mass.detach()
+        if register_cam_weight > 0.0:
+            info["loss_register_cam_ce"] = register_cam_loss.detach()
+            info["register_img_attention_mass"] = register_img_mass.detach()
+        if bce_weight > 0.0:
+            info["loss_mask_bce"] = bce_loss.detach()
+        if tversky_weight > 0.0:
+            info["loss_mask_tversky"] = tversky_loss.detach()
+        return total_loss, info
+
+    def _forward_captionslot_caption_only(
+        self,
+        images: torch.Tensor,
+        target_images: Optional[torch.Tensor] = None,
+        caption_input_ids: Optional[torch.Tensor] = None,
+        caption_attention_mask: Optional[torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        if caption_input_ids is None or caption_attention_mask is None:
+            raise ValueError("Caption-only forward requires caption_input_ids and caption_attention_mask.")
+
+        model_device = self.captionslot_cmd_embeddings.device
+        images = images.to(model_device)
+        target_images = target_images.to(model_device) if target_images is not None else None
+        caption_input_ids = caption_input_ids.to(model_device)
+        caption_attention_mask = caption_attention_mask.to(model_device, dtype=torch.bool)
+
+        B = caption_input_ids.shape[0]
+        _, _, gt_siglip = self._encode_images_aurora(images, target_images=target_images)
+        if gt_siglip is None:
+            raise ValueError("Caption-only training requires target_images for diffusion target encoding.")
+        dtype = self._aurora_model_dtype()
+
+        system_prefix_ids = getattr(self, "captionslot_system_prefix_ids", getattr(self.config, "captionslot_system_prefix_ids", []))
+        system_suffix_ids = getattr(self, "captionslot_system_suffix_ids", getattr(self.config, "captionslot_system_suffix_ids", []))
+        user_prefix_ids = getattr(self, "captionslot_user_prefix_ids", getattr(self.config, "captionslot_user_prefix_ids", []))
+        user_text_prefix_ids = getattr(self, "captionslot_user_text_prefix_ids", getattr(self.config, "captionslot_user_text_prefix_ids", []))
+        user_suffix_ids = getattr(self, "captionslot_user_suffix_ids", getattr(self.config, "captionslot_user_suffix_ids", []))
+        assistant_prefix_ids = getattr(self, "captionslot_assistant_prefix_ids", getattr(self.config, "captionslot_assistant_prefix_ids", []))
+        assistant_suffix_ids = getattr(self, "captionslot_assistant_suffix_ids", getattr(self.config, "captionslot_assistant_suffix_ids", []))
+        im_start_id = getattr(self, "im_start_id", getattr(self.config, "im_start_id", None))
+        im_end_id = getattr(self, "im_end_id", getattr(self.config, "im_end_id", None))
+        if im_start_id is None or im_end_id is None:
+            raise ValueError("Caption-only reconstruction requires registered <im_start>/<im_end> token ids.")
+
+        system_prefix = self._captionslot_embed_frozen_tokens(system_prefix_ids, B, model_device, dtype)
+        system_suffix = self._captionslot_embed_frozen_tokens(system_suffix_ids, B, model_device, dtype)
+        user_prefix = self._captionslot_embed_frozen_tokens(user_prefix_ids, B, model_device, dtype)
+        user_text_prefix = self._captionslot_embed_frozen_tokens(user_text_prefix_ids, B, model_device, dtype)
+        user_suffix = self._captionslot_embed_frozen_tokens(user_suffix_ids, B, model_device, dtype)
+        assistant_prefix = self._captionslot_embed_frozen_tokens(assistant_prefix_ids, B, model_device, dtype)
+        assistant_suffix = self._captionslot_embed_frozen_tokens(assistant_suffix_ids, B, model_device, dtype)
+        caption_embeds = self._captionslot_embed_caption(caption_input_ids, model_device, dtype)
+        text_embeds = torch.cat([user_text_prefix, caption_embeds], dim=1)
+        text_padding_mask = torch.cat(
+            [
+                torch.ones((B, user_text_prefix.shape[1]), device=model_device, dtype=torch.bool),
+                caption_attention_mask,
+            ],
+            dim=1,
+        )
+        im_start_embed = self._captionslot_visual_boundary_embed(im_start_id, B, model_device, dtype)
+        im_end_embed = self._captionslot_visual_boundary_embed(im_end_id, B, model_device, dtype)
+        rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1).to(device=model_device, dtype=dtype)
+
+        positions = self._captionslot_caption_only_positions(
+            text_len=text_embeds.shape[1],
+            system_prefix_len=system_prefix.shape[1],
+            system_suffix_len=system_suffix.shape[1],
+            user_prefix_len=user_prefix.shape[1],
+            user_suffix_len=user_suffix.shape[1],
+            assistant_prefix_len=assistant_prefix.shape[1],
+            assistant_suffix_len=assistant_suffix.shape[1],
+        )
+
+        inputs_embeds = torch.cat(
+            [
+                system_prefix,
+                system_suffix,
+                user_prefix,
+                text_embeds,
+                user_suffix,
+                assistant_prefix,
+                im_start_embed,
+                rae_embeds,
+                im_end_embed,
+                assistant_suffix,
+            ],
+            dim=1,
+        )
+
+        out = self.model(
+            inputs_embeds=inputs_embeds,
+            attention_bias=None,
+            use_cache=False,
+            return_dict=True,
+        )
+        hidden = out.last_hidden_state
+
+        rae_hidden = hidden[:, positions["rae_s"]:positions["rae_e"], :]
+        recon_loss = self._captionslot_compute_diffusion_loss(rae_hidden, gt_siglip)
+        total_loss = recon_loss
+
+        if not torch.isfinite(total_loss).all():
+            self._aurora_check_finite(total_loss, "captionslot_caption_only_total_loss")
+            if torch.isnan(total_loss).any() and not getattr(self, "_captionslot_warned_nan_total_loss", False):
+                logger.warning("[CaptionOnly] total loss produced NaN; clamping.")
+                self._captionslot_warned_nan_total_loss = True
+            total_loss = torch.nan_to_num(total_loss, nan=1e4, posinf=1e4, neginf=1e4)
+
+        self.loss_image_diff = recon_loss.detach()
+        self.captionslot_loss_recon = recon_loss.detach()
+        self.captionslot_loss_mask_bce = None
+        self.captionslot_loss_mask_tversky = None
+        self.captionslot_loss_object_cam_ce = None
+        self.captionslot_loss_register_cam_ce = None
+        self.captionslot_slot_img_attention_mass = None
+        self.captionslot_register_img_attention_mass = None
+        self.captionslot_loss_caption = None
+        self.captionslot_loss_div = None
+        self.captionslot_avg_slots = torch.tensor(0.0, device=model_device)
+        self.captionslot_avg_unique_objects = None
+        self.captionslot_pair_attn_soft_iou = None
+        self.captionslot_pair_attn_l1 = None
+        self.captionslot_pair_attn_cosine = None
+        self.captionslot_object_slot_attn_soft_iou = None
+        self.captionslot_object_slot_attn_l1 = None
+        self.captionslot_object_slot_attn_cosine = None
+
+        return total_loss, {
+            "loss_recon": recon_loss.detach(),
+        }
+
+    @torch.no_grad()
+    def generate_captionslot(
+        self,
+        images: torch.Tensor,
+        caption_input_ids: torch.Tensor,
+        caption_attention_mask: torch.Tensor,
+        ref_spans: Optional[torch.Tensor] = None,
+        noun_chunk_spans: Optional[torch.Tensor] = None,
+        n_slots: Optional[torch.Tensor] = None,
+        head_prior_maps: Optional[torch.Tensor] = None,
+        head_prior_valid_mask: Optional[torch.Tensor] = None,
+        guidance_level: float = 1.0,
+        return_generated: bool = True,
+    ) -> Dict[str, torch.Tensor]:
+        """CaptionSlot inference — forward pass + DiT sampling."""
+        if self._captionslot_control_mode() == "caption_only":
+            return self.generate_captionslot_caption_only(
+                images=images,
+                caption_input_ids=caption_input_ids,
+                caption_attention_mask=caption_attention_mask,
+                guidance_level=guidance_level,
+                return_generated=return_generated,
+            )
+        ref_spans = self._captionslot_resolve_ref_spans(
+            ref_spans=ref_spans,
+            noun_chunk_spans=noun_chunk_spans,
+        )
+        if ref_spans is None:
+            raise ValueError("CaptionSlot generation requires ref_spans.")
+        model_device = self.captionslot_cmd_embeddings.device
+        images = images.to(model_device)
+        caption_input_ids = caption_input_ids.to(model_device)
+        caption_attention_mask = caption_attention_mask.to(model_device, dtype=torch.bool)
+        ref_spans = ref_spans.to(model_device, dtype=torch.long)
+
+        B, caption_len = caption_input_ids.shape
+        if n_slots is None:
+            n_slots = torch.full((B,), self.captionslot_K_max, device=model_device, dtype=torch.long)
+        else:
+            n_slots = n_slots.to(model_device, dtype=torch.long)
+
+        active_k = n_slots.clamp(min=1, max=self.captionslot_K_max).tolist()
+        active_slot_mask = build_active_slot_mask(
+            n_obj=self.captionslot_K_max,
+            device=model_device,
+            active_k_per_sample=active_k,
+            batch_size=B,
+        )
+
+        _, img_features, _ = self._encode_images_aurora(images)
+        dtype = self._aurora_model_dtype()
+
+        system_prefix_ids = getattr(self, "captionslot_system_prefix_ids", getattr(self.config, "captionslot_system_prefix_ids", []))
+        system_suffix_ids = getattr(self, "captionslot_system_suffix_ids", getattr(self.config, "captionslot_system_suffix_ids", []))
+        user_prefix_ids = getattr(self, "captionslot_user_prefix_ids", getattr(self.config, "captionslot_user_prefix_ids", []))
+        user_suffix_ids = getattr(self, "captionslot_user_suffix_ids", getattr(self.config, "captionslot_user_suffix_ids", []))
+        assistant_prefix_ids = getattr(self, "captionslot_assistant_prefix_ids", getattr(self.config, "captionslot_assistant_prefix_ids", []))
+        assistant_suffix_ids = getattr(self, "captionslot_assistant_suffix_ids", getattr(self.config, "captionslot_assistant_suffix_ids", []))
+        im_start_id = getattr(self, "im_start_id", getattr(self.config, "im_start_id", None))
+        im_end_id = getattr(self, "im_end_id", getattr(self.config, "im_end_id", None))
+
+        system_prefix = self._captionslot_embed_frozen_tokens(system_prefix_ids, B, model_device, dtype)
+        system_suffix = self._captionslot_embed_frozen_tokens(system_suffix_ids, B, model_device, dtype)
+        user_prefix = self._captionslot_embed_frozen_tokens(user_prefix_ids, B, model_device, dtype)
+        user_suffix = self._captionslot_embed_frozen_tokens(user_suffix_ids, B, model_device, dtype)
+        assistant_prefix = self._captionslot_embed_frozen_tokens(assistant_prefix_ids, B, model_device, dtype)
+        assistant_suffix = self._captionslot_embed_frozen_tokens(assistant_suffix_ids, B, model_device, dtype)
+        caption_embeds = self._captionslot_embed_caption(caption_input_ids, model_device, dtype)
+        cmd_embeds = self.captionslot_cmd_embeddings.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
+        slot_embeds = self.captionslot_slot_embedding.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
+        reg_embeds = self.captionslot_reg_embeddings.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
+        im_start_embed = self._captionslot_visual_boundary_embed(im_start_id, B, model_device, dtype)
+        im_end_embed = self._captionslot_visual_boundary_embed(im_end_id, B, model_device, dtype)
+        rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1).to(device=model_device, dtype=dtype)
+
+        positions = self._captionslot_positions(
+            caption_len=caption_len,
+            system_prefix_len=system_prefix.shape[1],
+            system_suffix_len=system_suffix.shape[1],
+            user_prefix_len=user_prefix.shape[1],
+            user_suffix_len=user_suffix.shape[1],
+            assistant_prefix_len=assistant_prefix.shape[1],
+            assistant_suffix_len=assistant_suffix.shape[1],
+        )
+
+        inputs_embeds = torch.cat([
+            system_prefix, cmd_embeds, system_suffix,
+            user_prefix, img_features.to(dtype=dtype), user_suffix,
+            assistant_prefix, caption_embeds, slot_embeds, reg_embeds,
+            im_start_embed, rae_embeds, im_end_embed, assistant_suffix,
+        ], dim=1)
+
+        attn_bias = build_captionslot_attention_mask(
+            positions=positions,
+            ref_spans=ref_spans,
+            active_slot_mask=active_slot_mask,
+            caption_padding_mask=caption_attention_mask,
+            device=model_device,
+            dtype=inputs_embeds.dtype,
+        )
+        cam_layer_indices = self._captionslot_cam_layer_indices()
+
+        out = self.model(
+            inputs_embeds=inputs_embeds,
+            attention_bias=attn_bias,
+            use_cache=False,
+            return_dict=True,
+            captionslot_attention_capture_layers=cam_layer_indices,
+        )
+        hidden = out.last_hidden_state
+
+        slot_img_probs, register_img_probs = self._captionslot_extract_internal_attention_maps(
+            selected_attentions=out.attentions,
+            positions=positions,
+            active_slot_mask=active_slot_mask,
+        )
+        register_maps = None
+        if slot_img_probs is not None:
+            pred_maps = self._captionslot_attention_probs_to_heatmap(slot_img_probs)
+            if register_img_probs is not None:
+                register_maps = self._captionslot_attention_probs_to_heatmap(register_img_probs)
+        else:
+            _, pred_maps, _, _ = self._captionslot_compute_mask_losses(
+                hidden,
+                positions=positions,
+                active_slot_mask=active_slot_mask,
+                gt_masks_patches=None,
+            )
+
+        slot_hidden = hidden[:, positions["slot_s"]:positions["slot_e"], :]
+        reg_hidden = hidden[:, positions["reg_s"]:positions["reg_e"], :]
+        rae_hidden = hidden[:, positions["rae_s"]:positions["rae_e"], :]
+        rae_cond = self._captionslot_prepare_diffusion_condition(rae_hidden)
+        cross_context, cross_mask = self._captionslot_prepare_cross_attention_context(
+            slot_hidden,
+            reg_hidden,
+            active_slot_mask,
+        )
+
+        generated = None
+        if return_generated:
+            self.diff_head = self.diff_head.to(rae_cond.device)
+            self.set_diff_fp32()
+            generated = self.diff_head.infer(
+                rae_cond.float(),
+                guidance_level=guidance_level,
+                slot_context=None if cross_context is None else cross_context.float(),
+                slot_mask=cross_mask,
+            )
+
+        return {
+            "generated": generated,
+            "attn_maps": pred_maps,
+            "register_attn_maps": register_maps,
+            "rae_cond": rae_cond,
+        }
+
+    @torch.no_grad()
+    def generate_captionslot_caption_only(
+        self,
+        images: torch.Tensor,
+        caption_input_ids: torch.Tensor,
+        caption_attention_mask: torch.Tensor,
+        guidance_level: float = 1.0,
+        return_generated: bool = True,
+    ) -> Dict[str, torch.Tensor]:
+        model_device = self.captionslot_cmd_embeddings.device
+        images = images.to(model_device)
+        caption_input_ids = caption_input_ids.to(model_device)
+        caption_attention_mask = caption_attention_mask.to(model_device, dtype=torch.bool)
+
+        B = caption_input_ids.shape[0]
+        dtype = self._aurora_model_dtype()
+
+        system_prefix_ids = getattr(self, "captionslot_system_prefix_ids", getattr(self.config, "captionslot_system_prefix_ids", []))
+        system_suffix_ids = getattr(self, "captionslot_system_suffix_ids", getattr(self.config, "captionslot_system_suffix_ids", []))
+        user_prefix_ids = getattr(self, "captionslot_user_prefix_ids", getattr(self.config, "captionslot_user_prefix_ids", []))
+        user_text_prefix_ids = getattr(self, "captionslot_user_text_prefix_ids", getattr(self.config, "captionslot_user_text_prefix_ids", []))
+        user_suffix_ids = getattr(self, "captionslot_user_suffix_ids", getattr(self.config, "captionslot_user_suffix_ids", []))
+        assistant_prefix_ids = getattr(self, "captionslot_assistant_prefix_ids", getattr(self.config, "captionslot_assistant_prefix_ids", []))
+        assistant_suffix_ids = getattr(self, "captionslot_assistant_suffix_ids", getattr(self.config, "captionslot_assistant_suffix_ids", []))
+        im_start_id = getattr(self, "im_start_id", getattr(self.config, "im_start_id", None))
+        im_end_id = getattr(self, "im_end_id", getattr(self.config, "im_end_id", None))
+
+        system_prefix = self._captionslot_embed_frozen_tokens(system_prefix_ids, B, model_device, dtype)
+        system_suffix = self._captionslot_embed_frozen_tokens(system_suffix_ids, B, model_device, dtype)
+        user_prefix = self._captionslot_embed_frozen_tokens(user_prefix_ids, B, model_device, dtype)
+        user_text_prefix = self._captionslot_embed_frozen_tokens(user_text_prefix_ids, B, model_device, dtype)
+        user_suffix = self._captionslot_embed_frozen_tokens(user_suffix_ids, B, model_device, dtype)
+        assistant_prefix = self._captionslot_embed_frozen_tokens(assistant_prefix_ids, B, model_device, dtype)
+        assistant_suffix = self._captionslot_embed_frozen_tokens(assistant_suffix_ids, B, model_device, dtype)
+        caption_embeds = self._captionslot_embed_caption(caption_input_ids, model_device, dtype)
+        text_embeds = torch.cat([user_text_prefix, caption_embeds], dim=1)
+        text_padding_mask = torch.cat(
+            [
+                torch.ones((B, user_text_prefix.shape[1]), device=model_device, dtype=torch.bool),
+                caption_attention_mask,
+            ],
+            dim=1,
+        )
+        im_start_embed = self._captionslot_visual_boundary_embed(im_start_id, B, model_device, dtype)
+        im_end_embed = self._captionslot_visual_boundary_embed(im_end_id, B, model_device, dtype)
+        rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1).to(device=model_device, dtype=dtype)
+
+        positions = self._captionslot_caption_only_positions(
+            text_len=text_embeds.shape[1],
+            system_prefix_len=system_prefix.shape[1],
+            system_suffix_len=system_suffix.shape[1],
+            user_prefix_len=user_prefix.shape[1],
+            user_suffix_len=user_suffix.shape[1],
+            assistant_prefix_len=assistant_prefix.shape[1],
+            assistant_suffix_len=assistant_suffix.shape[1],
+        )
+
+        inputs_embeds = torch.cat(
+            [
+                system_prefix,
+                system_suffix,
+                user_prefix,
+                text_embeds,
+                user_suffix,
+                assistant_prefix,
+                im_start_embed,
+                rae_embeds,
+                im_end_embed,
+                assistant_suffix,
+            ],
+            dim=1,
+        )
+
+        out = self.model(
+            inputs_embeds=inputs_embeds,
+            attention_bias=None,
+            use_cache=False,
+            return_dict=True,
+        )
+        hidden = out.last_hidden_state
+        rae_hidden = hidden[:, positions["rae_s"]:positions["rae_e"], :]
+        rae_cond = self._captionslot_prepare_diffusion_condition(rae_hidden)
+
+        generated = None
+        if return_generated:
+            self.diff_head = self.diff_head.to(rae_cond.device)
+            self.set_diff_fp32()
+            generated = self.diff_head.infer(
+                rae_cond.float(),
+                guidance_level=guidance_level,
+            )
+
+        return {
+            "generated": generated,
+            "attn_maps": None,
+            "rae_cond": rae_cond,
+        }
 
     def _aurora_positions(self, K: int) -> Dict[str, int]:
         N_img = self.num_image_tokens

@@ -53,6 +53,8 @@ def load_pretrained_model(model_path, model_base=None, model_name="",
     if model_name and "scale_rae" not in model_name.lower():
         model_name = "scale_rae_qwen2_" + model_name
 
+    requested_torch_dtype = kwargs.get("torch_dtype", None)
+    respect_torch_dtype = bool(kwargs.pop("respect_torch_dtype", False))
     kwargs = {"device_map": device_map, **kwargs}
 
     if device != "cuda":
@@ -76,8 +78,10 @@ def load_pretrained_model(model_path, model_base=None, model_name="",
     logger.info(f'Loading Scale-RAE model from {model_path}')
     tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False)
     
-    # Remove torch_dtype for compatibility with Scale-RAE
-    if 'torch_dtype' in kwargs:
+    # Historically torch_dtype was removed for compatibility with the original
+    # Scale-RAE inference path. Keep that behavior by default, but allow
+    # specific callers to opt in when lower-precision inference is desired.
+    if 'torch_dtype' in kwargs and not respect_torch_dtype:
         kwargs['torch_dtype'] = None
     
     model = ScaleRAEQwenForCausalLM.from_pretrained(
@@ -99,6 +103,27 @@ def load_pretrained_model(model_path, model_base=None, model_name="",
     vision_tower_aux_list = model.get_vision_tower_aux_list()
     for vision_tower_aux in vision_tower_aux_list:
         vision_tower_aux.load_model()
+        if (
+            respect_torch_dtype
+            and requested_torch_dtype is not None
+            and hasattr(vision_tower_aux, "vision_tower")
+            and vision_tower_aux.vision_tower is not None
+        ):
+            vision_tower_aux.vision_tower = vision_tower_aux.vision_tower.to(
+                device=device,
+                dtype=requested_torch_dtype,
+            )
+
+    if (
+        respect_torch_dtype
+        and requested_torch_dtype is not None
+        and not load_8bit
+        and not load_4bit
+    ):
+        model.model = model.model.to(dtype=requested_torch_dtype)
+        if hasattr(model, "lm_head") and model.lm_head is not None:
+            model.lm_head = model.lm_head.to(dtype=requested_torch_dtype)
+
     image_processor = [vision_tower_aux.image_processor for vision_tower_aux in vision_tower_aux_list]
 
     # Get context length from model config

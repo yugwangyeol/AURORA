@@ -560,7 +560,16 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
 
         return x_t, t, x_end
 
-    def training_loss(self, z: torch.Tensor, x: torch.Tensor, t: torch.Tensor = None, x_t: torch.Tensor = None) -> torch.Tensor:
+    def training_loss(
+        self,
+        z: torch.Tensor,
+        x: torch.Tensor,
+        t: torch.Tensor = None,
+        x_t: torch.Tensor = None,
+        slot_context: Optional[torch.Tensor] = None,
+        slot_mask: Optional[torch.Tensor] = None,
+        return_diagnostics: bool = False,
+    ) -> torch.Tensor:
         """
         Compute training loss for FullSequenceRectifiedFlowProjector.
 
@@ -613,21 +622,37 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
         t = self.train_flow.get_timestep(x) if t is None else t
 
         # Compute loss
+        model_kwargs = {"y": z}
+        if slot_context is not None:
+            model_kwargs["slot_context"] = slot_context
+        if slot_mask is not None:
+            model_kwargs["slot_mask"] = slot_mask
+
         if x_t is not None:
             # AR-DDT mode: use external x_t
-            loss = self.train_flow.training_losses(
-                self.model, x, t, model_kwargs={"y": z}, x_t=x_t)
+            terms = self.train_flow.training_losses(
+                self.model, x, t, model_kwargs=model_kwargs, x_t=x_t)
         else:
             # Regular mode: let training_losses generate x_t internally
-            loss = self.train_flow.training_losses(
-                self.model, x, t, model_kwargs={"y": z})
+            terms = self.train_flow.training_losses(
+                self.model, x, t, model_kwargs=model_kwargs)
 
-        return loss["loss"]  # (B,) — mean_flat already averages over all non-batch dims
+        if return_diagnostics:
+            # Return per-sample loss and sampled t for timestep-bucketed logging.
+            return terms["loss"], terms.get("t", t)
+        return terms["loss"]  # (B,) — mean_flat already averages over all non-batch dims
 
     # (legacy single-argument version removed – unified implementation above)
 
     @torch.no_grad()
-    def infer(self, z: torch.Tensor, x_end: torch.Tensor = None, guidance_level=None) -> torch.Tensor:
+    def infer(
+        self,
+        z: torch.Tensor,
+        x_end: torch.Tensor = None,
+        guidance_level=None,
+        slot_context: Optional[torch.Tensor] = None,
+        slot_mask: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
         guidance_scale = guidance_level if guidance_level is not None else self.guidance_scale
         use_cfg = guidance_scale > 1.0
         cfg_interval = self.cfg_interval
@@ -646,6 +671,10 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
         else:
             model_kwargs = dict(y=z)
             sample_fn = self.model.forward
+        if slot_context is not None:
+            model_kwargs["slot_context"] = slot_context
+        if slot_mask is not None:
+            model_kwargs["slot_mask"] = slot_mask
         samples = self.inference_flow.p_sample_loop(
             sample_fn,
             x_end_shape,
