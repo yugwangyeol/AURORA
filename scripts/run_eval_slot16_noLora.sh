@@ -8,6 +8,9 @@ OUTPUT_DIR="${OUTPUT_DIR:-/home/jovyan/AURORA/outputs/slot16_noLora_best_eval}"
 CAPTIONS_JSONL="${CAPTIONS_JSONL:-/home/jovyan/AURORA/outputs/stagea_object_captions_val2017_refexp/predictions.jsonl}"
 IMAGE_DIR="${IMAGE_DIR:-/home/jovyan/data/coco/val2017}"
 CUDA_DEVICE="${CUDA_DEVICE:-0}"
+NUM_SHARDS="${NUM_SHARDS:-1}"
+SHARD_INDEX="${SHARD_INDEX:-0}"
+SLOT_MERGE_MODE="${SLOT_MERGE_MODE:-mean}"
 
 PYTHONNOUSERSITE=1 CUDA_VISIBLE_DEVICES="${CUDA_DEVICE}" \
 /home/jovyan/.conda/envs/scale_rae/bin/python \
@@ -35,4 +38,7 @@ PYTHONNOUSERSITE=1 CUDA_VISIBLE_DEVICES="${CUDA_DEVICE}" \
   --save-attn-limit 100 \
   --report-losses 1 \
   --torch-compile 0 \
+  --num-shards "${NUM_SHARDS}" \
+  --shard-index "${SHARD_INDEX}" \
+  --slot-merge-mode "${SLOT_MERGE_MODE}" \
   ${MAX_SAMPLES:+--max-samples "${MAX_SAMPLES}"}

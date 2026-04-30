@@ -18,6 +18,9 @@ def build_captionslot_attention_mask(
     slot_prior_maps: Optional[torch.Tensor] = None,
     slot_prior_valid_mask: Optional[torch.Tensor] = None,
     prior_bias_scale: float = 0.0,
+    slots_per_object: int = 1,
+    rae_bidirectional: bool = False,
+    same_object_slot_attention: bool = False,
 ) -> torch.Tensor:
     """Build additive attention bias for CaptionSlot.
 
@@ -28,6 +31,10 @@ def build_captionslot_attention_mask(
         caption_padding_mask: `[B, T]` bool tensor.
         noun_chunk_spans / slot_prior_* / prior_bias_scale:
             Legacy compatibility arguments kept as no-ops for older callers.
+        slots_per_object: Number of slot tokens assigned to each object.
+        rae_bidirectional: If true, RAE latent queries can attend to all RAE queries.
+        same_object_slot_attention: If true, slots in the same object group can
+            attend to one another without cross-object leakage.
 
     Returns:
         `[B, 1, L, L]` additive attention bias.
@@ -106,6 +113,21 @@ def build_captionslot_attention_mask(
                     cap_s + min(span_end, cap_e - cap_s),
                 )
 
+        if same_object_slot_attention and slots_per_object > 1 and active_idx.numel() > 0:
+            active_set = set(active_idx.tolist())
+            for group_start in range(0, slot_e - slot_s, slots_per_object):
+                group_end = min(group_start + slots_per_object, slot_e - slot_s)
+                group_local = [idx for idx in range(group_start, group_end) if idx in active_set]
+                if not group_local:
+                    continue
+                group_positions = torch.tensor(
+                    [slot_s + idx for idx in group_local],
+                    device=device,
+                    dtype=torch.long,
+                )
+                for slot_local_idx in group_local:
+                    bias[batch_idx, slot_s + slot_local_idx, group_positions] = 0.0
+
         # Registers aggregate residual/global information.
         for row_idx in range(reg_s, reg_e):
             allow_cols(batch_idx, row_idx, img_s, img_e)
@@ -130,7 +152,10 @@ def build_captionslot_attention_mask(
                 bias[batch_idx, row_idx, active_slot_positions] = 0.0
             allow_cols(batch_idx, row_idx, reg_s, reg_e)
             bias[batch_idx, row_idx, im_start_idx] = 0.0
-            allow_cols(batch_idx, row_idx, rae_s, row_idx + 1)
+            if rae_bidirectional:
+                allow_cols(batch_idx, row_idx, rae_s, rae_e)
+            else:
+                allow_cols(batch_idx, row_idx, rae_s, row_idx + 1)
 
         if valid_caption_positions.numel() > 0:
             bias[batch_idx, im_end_idx, valid_caption_positions] = 0.0

@@ -63,4 +63,54 @@ def test_captionslot_attention_mask_routes_information():
     assert torch.isfinite(bias[0, rae0, positions["cap_s"]:positions["cap_e"]]).all()
     assert torch.isfinite(bias[0, rae0, positions["slot_s"]:positions["slot_s"] + 2]).all()
     assert torch.isfinite(bias[0, rae0, positions["reg_s"]:positions["reg_e"]]).all()
+
+
+def test_captionslot_attention_mask_optional_group_and_rae_bidirectional():
+    positions = {
+        "sys_s": 0,
+        "sys_e": 2,
+        "user_prefix_s": 2,
+        "user_prefix_e": 3,
+        "img_s": 3,
+        "img_e": 5,
+        "user_suffix_s": 5,
+        "user_suffix_e": 6,
+        "assistant_prefix_s": 6,
+        "assistant_prefix_e": 7,
+        "cap_s": 7,
+        "cap_e": 11,
+        "slot_s": 11,
+        "slot_e": 15,
+        "reg_s": 15,
+        "reg_e": 16,
+        "im_start_idx": 16,
+        "rae_s": 17,
+        "rae_e": 20,
+        "im_end_idx": 20,
+        "assistant_suffix_s": 21,
+        "assistant_suffix_e": 22,
+        "total_len": 22,
+    }
+    ref_spans = torch.tensor([[[0, 1], [0, 1], [2, 3], [2, 3]]], dtype=torch.long)
+    active_slot_mask = torch.tensor([[True, True, True, True]])
+    caption_padding_mask = torch.tensor([[True, True, True, True]])
+
+    bias = build_captionslot_attention_mask(
+        positions=positions,
+        ref_spans=ref_spans,
+        active_slot_mask=active_slot_mask,
+        caption_padding_mask=caption_padding_mask,
+        device=torch.device("cpu"),
+        dtype=torch.float32,
+        slots_per_object=2,
+        rae_bidirectional=True,
+        same_object_slot_attention=True,
+    ).squeeze(1)
+
+    slot0 = positions["slot_s"]
+    assert torch.isfinite(bias[0, slot0, positions["slot_s"] + 1])
+    assert torch.isneginf(bias[0, slot0, positions["slot_s"] + 2])
+
+    rae0 = positions["rae_s"]
+    assert torch.isfinite(bias[0, rae0, positions["rae_s"]:positions["rae_e"]]).all()
     assert torch.isfinite(bias[0, rae0, positions["im_start_idx"]]).all()

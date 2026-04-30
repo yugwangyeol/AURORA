@@ -226,6 +226,7 @@ class ModelArguments:
     captionslot_mask_tversky_loss_weight: Optional[float] = field(default=None)
     captionslot_mask_dice_loss_weight: float = field(default=1.0)  # legacy fallback
     captionslot_mask_balanced_bce: bool = field(default=False)
+    captionslot_mask_merge_mode: str = field(default="mean")
     captionslot_mask_tversky_alpha: float = field(default=0.5)
     captionslot_mask_tversky_beta: float = field(default=0.5)
     captionslot_object_cam_loss_weight: float = field(default=1.0)
@@ -244,6 +245,8 @@ class ModelArguments:
     captionslot_attention_temperature: float = field(default=1.0)
     captionslot_prior_bias_scale: float = field(default=0.0)  # legacy no-op
     captionslot_control_mode: str = field(default="slots")
+    captionslot_rae_bidirectional: bool = field(default=False)
+    captionslot_same_object_slot_attention: bool = field(default=False)
     captionslot_add_cross_attention: bool = field(default=False)
     captionslot_cross_attention_start_block: int = field(default=8)
     captionslot_cross_attention_every_n_blocks: int = field(default=4)
@@ -1325,6 +1328,7 @@ class CaptionSlotTrainer(Trainer):
         clean_object_total = 0
         processed_samples = 0
         slots_per_object = max(int(getattr(inner.config, "captionslot_slots_per_object", 1)), 1)
+        mask_merge_mode = getattr(inner.config, "captionslot_mask_merge_mode", "mean")
 
         try:
             inner.eval()
@@ -1374,8 +1378,9 @@ class CaptionSlotTrainer(Trainer):
                             end_idx = min(start_idx + slots_per_object, n_active)
                             if end_idx <= start_idx:
                                 break
-                            # MEAN aggregation across slots in same object (matches training-time loss).
-                            pred = pred_attn[sample_idx, start_idx:end_idx].mean(dim=0)
+                            # aggregation matches training-time loss (mean or max per config)
+                            group = pred_attn[sample_idx, start_idx:end_idx]
+                            pred = group.amax(dim=0) if mask_merge_mode == "max" else group.mean(dim=0)
                             gt = gt_masks[sample_idx, start_idx:end_idx].amax(dim=0)
                             intersection = torch.minimum(pred, gt).sum()
                             union = (pred + gt - torch.minimum(pred, gt)).sum().clamp_min(1e-6)
@@ -1541,6 +1546,7 @@ class CaptionSlotTrainer(Trainer):
         max_slot_cols = 0
         max_object_cols = 0
         slots_per_object = max(int(getattr(inner.config, "captionslot_slots_per_object", 1)), 1)
+        mask_merge_mode = getattr(inner.config, "captionslot_mask_merge_mode", "mean")
 
         try:
             inner.eval()
@@ -1597,46 +1603,31 @@ class CaptionSlotTrainer(Trainer):
                             wandb.Image(source.permute(1, 2, 0).numpy()),
                             None if recon_images is None else wandb.Image(recon_images[sample_idx].permute(1, 2, 0).numpy()),
                         ]
-                        slot_limit = n_active
-                        max_slot_cols = max(max_slot_cols, slot_limit)
-                        for slot_idx in range(slot_limit):
-                            gt_overlay = self._make_attention_overlay(
+                        # Object-level only: merge slots_per_object slots into one map per object
+                        # using the configured merge mode (mean/max), matching training-time loss.
+                        object_limit = max(n_active // slots_per_object, 0) if slots_per_object > 1 else n_active
+                        max_object_cols = max(max_object_cols, object_limit)
+                        for object_idx in range(object_limit):
+                            obj_start = object_idx * slots_per_object
+                            obj_end = min(obj_start + slots_per_object, n_active)
+                            obj_text = object_texts[obj_start] if obj_start < len(object_texts) else ""
+                            obj_gt_overlay = self._make_attention_overlay(
                                 source,
-                                batch["gt_masks_patches"][sample_idx, slot_idx].float(),
+                                batch["gt_masks_patches"][sample_idx, obj_start].float(),
                                 color=(0.15, 0.85, 0.25),
                             )
-                            attn_overlay = self._make_attention_overlay(
+                            group_pred = pred_attn[sample_idx, obj_start:obj_end]
+                            merged_pred = group_pred.amax(dim=0) if mask_merge_mode == "max" else group_pred.mean(dim=0)
+                            obj_attn_overlay = self._make_attention_overlay(
                                 source,
-                                pred_attn[sample_idx, slot_idx],
+                                merged_pred,
                                 color=(1.0, 0.15, 0.15),
                             )
                             row.extend([
-                                object_texts[slot_idx] if slot_idx < len(object_texts) else "",
-                                wandb.Image(gt_overlay.permute(1, 2, 0).numpy(), caption=f"slot_{slot_idx}_gt"),
-                                wandb.Image(attn_overlay.permute(1, 2, 0).numpy(), caption=f"slot_{slot_idx}_attn"),
+                                obj_text,
+                                wandb.Image(obj_gt_overlay.permute(1, 2, 0).numpy(), caption=f"object_{object_idx}_gt"),
+                                wandb.Image(obj_attn_overlay.permute(1, 2, 0).numpy(), caption=f"object_{object_idx}_attn_{mask_merge_mode}"),
                             ])
-                        if slots_per_object > 1:
-                            object_limit = n_active // slots_per_object
-                            max_object_cols = max(max_object_cols, object_limit)
-                            for object_idx in range(object_limit):
-                                pair_start = object_idx * slots_per_object
-                                pair_end = min(pair_start + slots_per_object, n_active)
-                                pair_text = object_texts[pair_start] if pair_start < len(object_texts) else ""
-                                pair_gt_overlay = self._make_attention_overlay(
-                                    source,
-                                    batch["gt_masks_patches"][sample_idx, pair_start].float(),
-                                    color=(0.15, 0.85, 0.25),
-                                )
-                                pair_attn_overlay = self._make_attention_overlay(
-                                    source,
-                                    pred_attn[sample_idx, pair_start:pair_end].amax(dim=0),
-                                    color=(1.0, 0.15, 0.15),
-                                )
-                                row.extend([
-                                    pair_text,
-                                    wandb.Image(pair_gt_overlay.permute(1, 2, 0).numpy(), caption=f"object_{object_idx}_gt"),
-                                    wandb.Image(pair_attn_overlay.permute(1, 2, 0).numpy(), caption=f"object_{object_idx}_attn_merged"),
-                                ])
                         rows.append(row)
                     if len(rows) >= max_rows:
                         break
@@ -1647,8 +1638,6 @@ class CaptionSlotTrainer(Trainer):
             return
 
         columns = ["dataset", "image_id", "clean_num_objects", "n_unique_objects", "n_slots", "caption", "source", "recon"]
-        for slot_idx in range(max_slot_cols):
-            columns.extend([f"slot_{slot_idx}_text", f"slot_{slot_idx}_gt", f"slot_{slot_idx}_attn"])
         for object_idx in range(max_object_cols):
             columns.extend([f"object_{object_idx}_text", f"object_{object_idx}_gt", f"object_{object_idx}_attn_merged"])
         for row in rows:
@@ -2194,6 +2183,7 @@ def train():
     config.captionslot_mask_tversky_loss_weight = tversky_loss_weight
     config.captionslot_mask_dice_loss_weight = tversky_loss_weight
     config.captionslot_mask_balanced_bce = model_args.captionslot_mask_balanced_bce
+    config.captionslot_mask_merge_mode = getattr(model_args, "captionslot_mask_merge_mode", "mean")
     config.captionslot_mask_tversky_alpha = model_args.captionslot_mask_tversky_alpha
     config.captionslot_mask_tversky_beta = model_args.captionslot_mask_tversky_beta
     config.captionslot_object_cam_loss_weight = model_args.captionslot_object_cam_loss_weight
@@ -2212,11 +2202,17 @@ def train():
     config.captionslot_attention_temperature = model_args.captionslot_attention_temperature
     config.captionslot_prior_bias_scale = model_args.captionslot_prior_bias_scale
     config.captionslot_control_mode = model_args.captionslot_control_mode
+    config.captionslot_rae_bidirectional = model_args.captionslot_rae_bidirectional
+    config.captionslot_same_object_slot_attention = model_args.captionslot_same_object_slot_attention
     config.captionslot_add_cross_attention = model_args.captionslot_add_cross_attention
     config.captionslot_cross_attention_start_block = model_args.captionslot_cross_attention_start_block
     config.captionslot_cross_attention_every_n_blocks = model_args.captionslot_cross_attention_every_n_blocks
     config.captionslot_cross_attention_include_registers = model_args.captionslot_cross_attention_include_registers
     config.captionslot_cross_attention_gate_init = model_args.captionslot_cross_attention_gate_init
+    config.captionslot_lora_r = training_args.captionslot_lora_r
+    config.captionslot_lora_alpha = training_args.captionslot_lora_alpha
+    config.captionslot_lora_dropout = training_args.captionslot_lora_dropout
+    config.captionslot_lora_target_modules = training_args.captionslot_lora_target_modules
     if model_args.diffusion_norm_stats_path:
         config.diffusion_norm_stats_path = model_args.diffusion_norm_stats_path
 
@@ -2298,6 +2294,35 @@ def train():
             task_type="CAUSAL_LM",
         )
         inject_adapter_in_model(lora_config, model, adapter_name="default")
+
+        # If MODEL_PATH already points at a LoRA checkpoint, the initial
+        # from_pretrained() call could not match PEFT's base_layer/lora_ keys
+        # before adapters existed. Reload those keys after injection so
+        # weights-only fine-tunes can start from an existing LoRA checkpoint
+        # with a fresh optimizer.
+        try:
+            import glob
+            from safetensors import safe_open
+
+            lora_reload_sd = {}
+            shard_files = sorted(glob.glob(os.path.join(model_args.model_name_or_path, "*.safetensors")))
+            for shard_file in shard_files:
+                with safe_open(shard_file, framework="pt", device="cpu") as sf:
+                    for key in sf.keys():
+                        if "base_layer" in key or "lora_" in key:
+                            lora_reload_sd[key] = sf.get_tensor(key)
+            if lora_reload_sd:
+                missing_keys, unexpected_keys = model.load_state_dict(lora_reload_sd, strict=False)
+                lora_missing = [k for k in missing_keys if "base_layer" in k or "lora_" in k]
+                logger.info(
+                    "[CaptionSlot/LoRA] reloaded checkpoint adapter weights | keys=%d missing_lora=%d unexpected=%d",
+                    len(lora_reload_sd),
+                    len(lora_missing),
+                    len(unexpected_keys),
+                )
+        except Exception as exc:
+            logger.warning("[CaptionSlot/LoRA] checkpoint adapter reload skipped: %s", exc)
+
         n_lora_params = sum(
             p.numel() for n, p in model.named_parameters() if "lora_" in n
         )

@@ -109,6 +109,7 @@ class ScaleRAEQwenConfig(Qwen2Config):
     captionslot_mask_balanced_bce = False
     captionslot_mask_tversky_alpha = 0.5
     captionslot_mask_tversky_beta = 0.5
+    captionslot_mask_merge_mode = "mean"  # "mean" or "max"
     captionslot_object_cam_loss_weight = 1.0
     captionslot_register_cam_loss_weight = 0.3
     captionslot_cam_layers = "-1"
@@ -124,11 +125,17 @@ class ScaleRAEQwenConfig(Qwen2Config):
     captionslot_attention_temperature = 1.0
     captionslot_prior_bias_scale = 0.0
     captionslot_control_mode = "slots"
+    captionslot_rae_bidirectional = False
+    captionslot_same_object_slot_attention = False
     captionslot_add_cross_attention = False
     captionslot_cross_attention_start_block = 8
     captionslot_cross_attention_every_n_blocks = 4
     captionslot_cross_attention_include_registers = True
     captionslot_cross_attention_gate_init = 0.0
+    captionslot_lora_r = 16
+    captionslot_lora_alpha = 32
+    captionslot_lora_dropout = 0.05
+    captionslot_lora_target_modules = "q_proj,k_proj,v_proj,o_proj"
 
 
 class ScaleRAEQwenModel(ScaleRAEMetaModel, Qwen2Model):
@@ -2392,7 +2399,8 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
                     group_maps = attn_maps[:, start_idx:end_idx, :].float()
                     group_targets = gt_masks_patches[:, start_idx:end_idx, :]
                     group_active = active_slot_mask[:, start_idx:end_idx]
-                    merged_maps.append(group_maps.mean(dim=1))            # MEAN of slot probs
+                    _merge_mode = getattr(self.config, "captionslot_mask_merge_mode", "mean")
+                    merged_maps.append(group_maps.amax(dim=1) if _merge_mode == "max" else group_maps.mean(dim=1))
                     merged_targets.append(group_targets.amax(dim=1))      # GT same per slot in object
                     merged_valid.append(group_active.any(dim=1))
                 loss_logits = None
@@ -2687,6 +2695,9 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
             caption_padding_mask=caption_attention_mask,
             device=model_device,
             dtype=inputs_embeds.dtype,
+            slots_per_object=self.captionslot_slots_per_object,
+            rae_bidirectional=bool(getattr(self.config, "captionslot_rae_bidirectional", False)),
+            same_object_slot_attention=bool(getattr(self.config, "captionslot_same_object_slot_attention", False)),
         )
         cam_layer_indices = self._captionslot_cam_layer_indices()
 
@@ -3029,6 +3040,9 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
             caption_padding_mask=caption_attention_mask,
             device=model_device,
             dtype=inputs_embeds.dtype,
+            slots_per_object=self.captionslot_slots_per_object,
+            rae_bidirectional=bool(getattr(self.config, "captionslot_rae_bidirectional", False)),
+            same_object_slot_attention=bool(getattr(self.config, "captionslot_same_object_slot_attention", False)),
         )
         cam_layer_indices = self._captionslot_cam_layer_indices()
 

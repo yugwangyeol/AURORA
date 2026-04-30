@@ -148,6 +148,13 @@ def parse_args() -> argparse.Namespace:
              "Closer to competitor unsupervised-slot protocol.",
     )
     parser.add_argument(
+        "--slot-merge-mode",
+        type=str,
+        default="mean",
+        choices=["mean", "max"],
+        help="How to merge multiple slots per object: 'mean' (default) or 'max' (amax).",
+    )
+    parser.add_argument(
         "--gt-min-area-pct",
         type=float,
         default=0.0,
@@ -769,6 +776,7 @@ def _merge_object_maps(
     attn_maps: torch.Tensor,
     n_active_slots: int,
     slots_per_object: int,
+    mode: str = "mean",
 ) -> torch.Tensor:
     n_active = max(0, min(int(n_active_slots), int(attn_maps.shape[0])))
     if n_active == 0:
@@ -779,7 +787,7 @@ def _merge_object_maps(
     merged: List[torch.Tensor] = []
     for start_idx in range(0, n_active, slots_per_object):
         chunk = active_maps[start_idx : min(start_idx + slots_per_object, n_active)]
-        merged.append(chunk.mean(dim=0))
+        merged.append(chunk.amax(dim=0) if mode == "max" else chunk.mean(dim=0))
     return torch.stack(merged, dim=0) if merged else attn_maps.new_zeros((0, attn_maps.shape[-1]))
 
 
@@ -1164,7 +1172,7 @@ def evaluate_all(
                             n_active_clamped = max(0, min(n_active, int(attn_maps[idx].shape[0])))
                             m = attn_maps[idx][:n_active_clamped].float() if n_active_clamped > 0 else attn_maps[idx].new_zeros((0, attn_maps[idx].shape[-1]))
                         else:
-                            m = _merge_object_maps(attn_maps[idx], n_active, slots_per_object)
+                            m = _merge_object_maps(attn_maps[idx], n_active, slots_per_object, mode=getattr(args, "slot_merge_mode", "mean"))
                         # Temperature sharpening: divide by T then renormalize to [0,1]
                         _attn_temp = float(getattr(args, "attn_temperature", 1.0))
                         if _attn_temp != 1.0 and m.shape[0] > 0:
