@@ -37,10 +37,10 @@ PYTHONNOUSERSITE=1 CUDA_VISIBLE_DEVICES="${CUDA_DEVICE}" \
   --gt-min-area-pct 0.005 \
   --raw-slot-argmax 0 \
   --save-images 1 \
-  --save-limit 100 \
+  --save-limit "${SAVE_LIMIT:-100}" \
   --save-fixed-first-n 50 \
   --save-attn-maps 1 \
-  --save-attn-limit 100 \
+  --save-attn-limit "${SAVE_ATTN_LIMIT:-100}" \
   --report-losses 1 \
   --torch-compile 0 \
   ${MAX_SAMPLES:+--max-samples "${MAX_SAMPLES}"}

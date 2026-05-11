@@ -361,6 +361,62 @@ def decode_generated_images(decoder, generated: torch.Tensor, device: torch.devi
     return recon.clamp(0.0, 1.0).detach().float()
 
 
+def maybe_inject_lora_from_checkpoint(model, model_path: str) -> bool:
+    """Inject PEFT LoRA modules when a CaptionSlot checkpoint stores lora_ weights."""
+    import glob as _glob
+
+    try:
+        from safetensors import safe_open as _safe_open
+    except Exception as exc:
+        print(f"[WARN] safetensors unavailable; skipping LoRA checkpoint scan: {exc}")
+        return False
+
+    _shard_files = sorted(_glob.glob(os.path.join(model_path, "*.safetensors")))
+    _has_lora = False
+    for _f in _shard_files:
+        with _safe_open(_f, framework="pt", device="cpu") as _sf:
+            for _k in _sf.keys():
+                if "lora_" in _k:
+                    _has_lora = True
+                    break
+        if _has_lora:
+            break
+
+    if not _has_lora:
+        print("[INFO] No LoRA weights found in checkpoint — loading as base model.")
+        return False
+
+    from peft import LoraConfig, inject_adapter_in_model
+
+    _all_lora_parents = set()
+    for _f in _shard_files:
+        with _safe_open(_f, framework="pt", device="cpu") as _sf:
+            for _k in _sf.keys():
+                if ".lora_A." in _k:
+                    _all_lora_parents.add(_k.split(".lora_A.")[0].split(".")[-1])
+    lora_targets = sorted(_all_lora_parents)
+    lora_config = LoraConfig(
+        r=int(getattr(model.config, "captionslot_lora_r", 16)),
+        lora_alpha=int(getattr(model.config, "captionslot_lora_alpha", 32)),
+        lora_dropout=float(getattr(model.config, "captionslot_lora_dropout", 0.05)),
+        target_modules=lora_targets,
+        task_type="CAUSAL_LM",
+    )
+    inject_adapter_in_model(lora_config, model, adapter_name="default")
+    print(f"[INFO] LoRA detected and injected: r={lora_config.r}, alpha={lora_config.lora_alpha}, targets={lora_targets}")
+
+    reload_sd = {}
+    for _f in _shard_files:
+        with _safe_open(_f, framework="pt", device="cpu") as _sf:
+            for _k in _sf.keys():
+                if "base_layer" in _k or "lora_" in _k:
+                    reload_sd[_k] = _sf.get_tensor(_k)
+    missing_keys, unexpected_keys = model.load_state_dict(reload_sd, strict=False)
+    lora_missing = [k for k in missing_keys if "lora_" in k or "base_layer" in k]
+    print(f"[INFO] LoRA weight reload: {len(reload_sd)} keys loaded, missing_lora={len(lora_missing)}, unexpected={len(unexpected_keys)}")
+    return True
+
+
 class CaptionSlotEvalDataset(Dataset):
     def __init__(
         self,
@@ -1627,57 +1683,7 @@ def main() -> None:
     if not hasattr(model, "captionslot_system_prefix_ids"):
         _register_captionslot_template_token_ids(model, tokenizer)
 
-    # Detect LoRA by inspecting checkpoint keys directly (captionslot_lora_enable may not be
-    # persisted in config.json, so we check for lora_ keys in the safetensors shards).
-    import glob as _glob
-    from safetensors import safe_open as _safe_open
-    _shard_files = sorted(_glob.glob(os.path.join(args.model_path, "*.safetensors")))
-    _has_lora = False
-    _lora_keys_sample = []
-    for _f in _shard_files:
-        with _safe_open(_f, framework="pt", device="cpu") as _sf:
-            for _k in _sf.keys():
-                if "lora_" in _k:
-                    _has_lora = True
-                    _lora_keys_sample.append(_k)
-                    break
-        if _has_lora:
-            break
-
-    if _has_lora:
-        from peft import LoraConfig, inject_adapter_in_model
-
-        # Infer LoRA config from checkpoint keys (target modules = parent of lora_A/lora_B)
-        _all_lora_parents = set()
-        for _f in _shard_files:
-            with _safe_open(_f, framework="pt", device="cpu") as _sf:
-                for _k in _sf.keys():
-                    if ".lora_A." in _k:
-                        # e.g. model.layers.0.self_attn.q_proj.lora_A.default.weight → q_proj
-                        _all_lora_parents.add(_k.split(".lora_A.")[0].split(".")[-1])
-        lora_targets = sorted(_all_lora_parents)
-        lora_config = LoraConfig(
-            r=int(getattr(model.config, "captionslot_lora_r", 16)),
-            lora_alpha=int(getattr(model.config, "captionslot_lora_alpha", 32)),
-            lora_dropout=float(getattr(model.config, "captionslot_lora_dropout", 0.05)),
-            target_modules=lora_targets,
-            task_type="CAUSAL_LM",
-        )
-        inject_adapter_in_model(lora_config, model, adapter_name="default")
-        print(f"[INFO] LoRA detected and injected: r={lora_config.r}, alpha={lora_config.lora_alpha}, targets={lora_targets}")
-
-        # Reload base_layer + lora_ weights now that the model structure matches the checkpoint.
-        reload_sd = {}
-        for _f in _shard_files:
-            with _safe_open(_f, framework="pt", device="cpu") as _sf:
-                for _k in _sf.keys():
-                    if "base_layer" in _k or "lora_" in _k:
-                        reload_sd[_k] = _sf.get_tensor(_k)
-        missing_keys, unexpected_keys = model.load_state_dict(reload_sd, strict=False)
-        lora_missing = [k for k in missing_keys if "lora_" in k or "base_layer" in k]
-        print(f"[INFO] LoRA weight reload: {len(reload_sd)} keys loaded, missing_lora={len(lora_missing)}, unexpected={len(unexpected_keys)}")
-    else:
-        print("[INFO] No LoRA weights found in checkpoint — loading as base model.")
+    maybe_inject_lora_from_checkpoint(model, args.model_path)
 
     model = model.to(device)
     model.eval()

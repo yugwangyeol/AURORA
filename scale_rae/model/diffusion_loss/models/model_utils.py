@@ -38,10 +38,13 @@ def gate(x, gate):
         gate = gate.unsqueeze(1)
     return x * gate
 def rotate_half(x):
-    x = rearrange(x, '... (d r) -> ... d r', r = 2)
-    x1, x2 = x.unbind(dim = -1)
-    x = torch.stack((-x2, x1), dim = -1)
-    return rearrange(x, '... d r -> ... (d r)')
+    last_dim = x.shape[-1]
+    if isinstance(last_dim, int) and last_dim % 2 != 0:
+        raise ValueError(f"rotate_half expects an even last dimension, got {last_dim}")
+    x = x.reshape(*x.shape[:-1], -1, 2)
+    x1, x2 = x.unbind(dim=-1)
+    x = torch.stack((-x2, x1), dim=-1)
+    return x.reshape(*x.shape[:-2], -1)
 
 def get_2d_sincos_pos_embed(embed_dim, grid_size, cls_token=False, extra_tokens=0):
     """

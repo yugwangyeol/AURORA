@@ -165,6 +165,8 @@ class ScaleRAEQwenModel(ScaleRAEMetaModel, Qwen2Model):
         global_context_feature: Optional[torch.Tensor] = None,
         attention_bias: Optional[torch.Tensor] = None,
         captionslot_attention_capture_layers: Optional[List[int]] = None,
+        fixed_hidden_overrides: Optional[torch.Tensor] = None,
+        fixed_hidden_override_mask: Optional[torch.Tensor] = None,
     ) -> Union[Tuple, BaseModelOutputWithPast]:
 
 
@@ -256,6 +258,33 @@ class ScaleRAEQwenModel(ScaleRAEMetaModel, Qwen2Model):
                         )
 
         hidden_states = inputs_embeds
+        if fixed_hidden_overrides is not None:
+            fixed_hidden_overrides = fixed_hidden_overrides.to(device=hidden_states.device, dtype=hidden_states.dtype)
+            if fixed_hidden_overrides.shape != hidden_states.shape:
+                raise ValueError(
+                    "fixed_hidden_overrides must match hidden state shape "
+                    f"{tuple(hidden_states.shape)}, got {tuple(fixed_hidden_overrides.shape)}"
+                )
+            if fixed_hidden_override_mask is None:
+                fixed_hidden_override_mask = torch.ones(
+                    hidden_states.shape[:2],
+                    device=hidden_states.device,
+                    dtype=torch.bool,
+                )
+            else:
+                fixed_hidden_override_mask = fixed_hidden_override_mask.to(
+                    device=hidden_states.device,
+                    dtype=torch.bool,
+                )
+                if fixed_hidden_override_mask.shape != hidden_states.shape[:2]:
+                    raise ValueError(
+                        "fixed_hidden_override_mask must match hidden state leading shape "
+                        f"{tuple(hidden_states.shape[:2])}, got {tuple(fixed_hidden_override_mask.shape)}"
+                    )
+            fixed_hidden_mask_expanded = fixed_hidden_override_mask.unsqueeze(-1)
+            hidden_states = torch.where(fixed_hidden_mask_expanded, fixed_hidden_overrides, hidden_states)
+        else:
+            fixed_hidden_mask_expanded = None
 
         capture_layers = set()
         if captionslot_attention_capture_layers is not None:
@@ -301,6 +330,8 @@ class ScaleRAEQwenModel(ScaleRAEMetaModel, Qwen2Model):
                 )
 
             hidden_states = layer_outputs[0]
+            if fixed_hidden_overrides is not None:
+                hidden_states = torch.where(fixed_hidden_mask_expanded, fixed_hidden_overrides, hidden_states)
 
             if use_cache:
                 next_decoder_cache = layer_outputs[2 if layer_output_attentions else 1]
@@ -309,6 +340,8 @@ class ScaleRAEQwenModel(ScaleRAEMetaModel, Qwen2Model):
                 all_self_attns += (layer_outputs[1],)
 
         hidden_states = self.norm(hidden_states)
+        if fixed_hidden_overrides is not None:
+            hidden_states = torch.where(fixed_hidden_mask_expanded, fixed_hidden_overrides, hidden_states)
 
         # add hidden states from the last decoder layer
         if output_hidden_states:
@@ -2954,6 +2987,16 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         head_prior_valid_mask: Optional[torch.Tensor] = None,
         guidance_level: float = 1.0,
         return_generated: bool = True,
+        slot_input_overrides: Optional[torch.Tensor] = None,
+        slot_input_override_mask: Optional[torch.Tensor] = None,
+        reg_input_overrides: Optional[torch.Tensor] = None,
+        reg_input_override_mask: Optional[torch.Tensor] = None,
+        slot_hidden_overrides: Optional[torch.Tensor] = None,
+        slot_hidden_override_mask: Optional[torch.Tensor] = None,
+        reg_hidden_overrides: Optional[torch.Tensor] = None,
+        reg_hidden_override_mask: Optional[torch.Tensor] = None,
+        fixed_condition_hidden_for_rae: bool = False,
+        return_intermediates: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """CaptionSlot inference — forward pass + DiT sampling."""
         if self._captionslot_control_mode() == "caption_only":
@@ -3016,6 +3059,57 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         im_end_embed = self._captionslot_visual_boundary_embed(im_end_id, B, model_device, dtype)
         rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1).to(device=model_device, dtype=dtype)
 
+        if slot_input_overrides is not None:
+            slot_input_overrides = slot_input_overrides.to(device=model_device, dtype=dtype)
+            if slot_input_overrides.shape != slot_embeds.shape:
+                raise ValueError(
+                    "slot_input_overrides must match slot embeddings shape "
+                    f"{tuple(slot_embeds.shape)}, got {tuple(slot_input_overrides.shape)}"
+                )
+            if slot_input_override_mask is None:
+                slot_input_override_mask = torch.ones(
+                    slot_embeds.shape[:2],
+                    device=model_device,
+                    dtype=torch.bool,
+                )
+            else:
+                slot_input_override_mask = slot_input_override_mask.to(device=model_device, dtype=torch.bool)
+                if slot_input_override_mask.shape != slot_embeds.shape[:2]:
+                    raise ValueError(
+                        "slot_input_override_mask must match slot override leading shape "
+                        f"{tuple(slot_embeds.shape[:2])}, got {tuple(slot_input_override_mask.shape)}"
+                    )
+            slot_embeds = torch.where(
+                slot_input_override_mask.unsqueeze(-1),
+                slot_input_overrides,
+                slot_embeds,
+            )
+        if reg_input_overrides is not None:
+            reg_input_overrides = reg_input_overrides.to(device=model_device, dtype=dtype)
+            if reg_input_overrides.shape != reg_embeds.shape:
+                raise ValueError(
+                    "reg_input_overrides must match register embeddings shape "
+                    f"{tuple(reg_embeds.shape)}, got {tuple(reg_input_overrides.shape)}"
+                )
+            if reg_input_override_mask is None:
+                reg_input_override_mask = torch.ones(
+                    reg_embeds.shape[:2],
+                    device=model_device,
+                    dtype=torch.bool,
+                )
+            else:
+                reg_input_override_mask = reg_input_override_mask.to(device=model_device, dtype=torch.bool)
+                if reg_input_override_mask.shape != reg_embeds.shape[:2]:
+                    raise ValueError(
+                        "reg_input_override_mask must match register override leading shape "
+                        f"{tuple(reg_embeds.shape[:2])}, got {tuple(reg_input_override_mask.shape)}"
+                    )
+            reg_embeds = torch.where(
+                reg_input_override_mask.unsqueeze(-1),
+                reg_input_overrides,
+                reg_embeds,
+            )
+
         positions = self._captionslot_positions(
             caption_len=caption_len,
             system_prefix_len=system_prefix.shape[1],
@@ -3046,12 +3140,60 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         )
         cam_layer_indices = self._captionslot_cam_layer_indices()
 
+        fixed_hidden_overrides = None
+        fixed_hidden_override_mask = None
+        if fixed_condition_hidden_for_rae:
+            fixed_hidden_overrides = torch.zeros_like(inputs_embeds)
+            fixed_hidden_override_mask = torch.zeros(
+                inputs_embeds.shape[:2],
+                device=model_device,
+                dtype=torch.bool,
+            )
+            if slot_hidden_overrides is not None:
+                slot_fixed = slot_hidden_overrides.to(device=model_device, dtype=inputs_embeds.dtype)
+                if slot_fixed.shape != slot_embeds.shape:
+                    raise ValueError(
+                        "slot_hidden_overrides must match slot hidden shape when fixed_condition_hidden_for_rae=True "
+                        f"{tuple(slot_embeds.shape)}, got {tuple(slot_fixed.shape)}"
+                    )
+                if slot_hidden_override_mask is None:
+                    slot_fixed_mask = torch.ones(slot_embeds.shape[:2], device=model_device, dtype=torch.bool)
+                else:
+                    slot_fixed_mask = slot_hidden_override_mask.to(device=model_device, dtype=torch.bool)
+                    if slot_fixed_mask.shape != slot_embeds.shape[:2]:
+                        raise ValueError(
+                            "slot_hidden_override_mask must match slot leading shape "
+                            f"{tuple(slot_embeds.shape[:2])}, got {tuple(slot_fixed_mask.shape)}"
+                        )
+                fixed_hidden_overrides[:, positions["slot_s"]:positions["slot_e"], :] = slot_fixed
+                fixed_hidden_override_mask[:, positions["slot_s"]:positions["slot_e"]] = slot_fixed_mask
+            if reg_hidden_overrides is not None:
+                reg_fixed = reg_hidden_overrides.to(device=model_device, dtype=inputs_embeds.dtype)
+                if reg_fixed.shape != reg_embeds.shape:
+                    raise ValueError(
+                        "reg_hidden_overrides must match register hidden shape when fixed_condition_hidden_for_rae=True "
+                        f"{tuple(reg_embeds.shape)}, got {tuple(reg_fixed.shape)}"
+                    )
+                if reg_hidden_override_mask is None:
+                    reg_fixed_mask = torch.ones(reg_embeds.shape[:2], device=model_device, dtype=torch.bool)
+                else:
+                    reg_fixed_mask = reg_hidden_override_mask.to(device=model_device, dtype=torch.bool)
+                    if reg_fixed_mask.shape != reg_embeds.shape[:2]:
+                        raise ValueError(
+                            "reg_hidden_override_mask must match register leading shape "
+                            f"{tuple(reg_embeds.shape[:2])}, got {tuple(reg_fixed_mask.shape)}"
+                        )
+                fixed_hidden_overrides[:, positions["reg_s"]:positions["reg_e"], :] = reg_fixed
+                fixed_hidden_override_mask[:, positions["reg_s"]:positions["reg_e"]] = reg_fixed_mask
+
         out = self.model(
             inputs_embeds=inputs_embeds,
             attention_bias=attn_bias,
             use_cache=False,
             return_dict=True,
             captionslot_attention_capture_layers=cam_layer_indices,
+            fixed_hidden_overrides=fixed_hidden_overrides,
+            fixed_hidden_override_mask=fixed_hidden_override_mask,
         )
         hidden = out.last_hidden_state
 
@@ -3076,6 +3218,56 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         slot_hidden = hidden[:, positions["slot_s"]:positions["slot_e"], :]
         reg_hidden = hidden[:, positions["reg_s"]:positions["reg_e"], :]
         rae_hidden = hidden[:, positions["rae_s"]:positions["rae_e"], :]
+        if slot_hidden_overrides is not None:
+            slot_hidden_overrides = slot_hidden_overrides.to(device=model_device, dtype=slot_hidden.dtype)
+            if slot_hidden_overrides.shape != slot_hidden.shape:
+                raise ValueError(
+                    "slot_hidden_overrides must match slot hidden shape "
+                    f"{tuple(slot_hidden.shape)}, got {tuple(slot_hidden_overrides.shape)}"
+                )
+            if slot_hidden_override_mask is None:
+                slot_hidden_override_mask = torch.ones(
+                    slot_hidden.shape[:2],
+                    device=model_device,
+                    dtype=torch.bool,
+                )
+            else:
+                slot_hidden_override_mask = slot_hidden_override_mask.to(device=model_device, dtype=torch.bool)
+                if slot_hidden_override_mask.shape != slot_hidden.shape[:2]:
+                    raise ValueError(
+                        "slot_hidden_override_mask must match slot override leading shape "
+                        f"{tuple(slot_hidden.shape[:2])}, got {tuple(slot_hidden_override_mask.shape)}"
+                    )
+            slot_hidden = torch.where(
+                slot_hidden_override_mask.unsqueeze(-1),
+                slot_hidden_overrides,
+                slot_hidden,
+            )
+        if reg_hidden_overrides is not None:
+            reg_hidden_overrides = reg_hidden_overrides.to(device=model_device, dtype=reg_hidden.dtype)
+            if reg_hidden_overrides.shape != reg_hidden.shape:
+                raise ValueError(
+                    "reg_hidden_overrides must match register hidden shape "
+                    f"{tuple(reg_hidden.shape)}, got {tuple(reg_hidden_overrides.shape)}"
+                )
+            if reg_hidden_override_mask is None:
+                reg_hidden_override_mask = torch.ones(
+                    reg_hidden.shape[:2],
+                    device=model_device,
+                    dtype=torch.bool,
+                )
+            else:
+                reg_hidden_override_mask = reg_hidden_override_mask.to(device=model_device, dtype=torch.bool)
+                if reg_hidden_override_mask.shape != reg_hidden.shape[:2]:
+                    raise ValueError(
+                        "reg_hidden_override_mask must match register override leading shape "
+                        f"{tuple(reg_hidden.shape[:2])}, got {tuple(reg_hidden_override_mask.shape)}"
+                    )
+            reg_hidden = torch.where(
+                reg_hidden_override_mask.unsqueeze(-1),
+                reg_hidden_overrides,
+                reg_hidden,
+            )
         rae_cond = self._captionslot_prepare_diffusion_condition(rae_hidden)
         cross_context, cross_mask = self._captionslot_prepare_cross_attention_context(
             slot_hidden,
@@ -3094,12 +3286,22 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
                 slot_mask=cross_mask,
             )
 
-        return {
+        result = {
             "generated": generated,
             "attn_maps": pred_maps,
             "register_attn_maps": register_maps,
             "rae_cond": rae_cond,
         }
+        if return_intermediates:
+            result.update(
+                {
+                    "slot_hidden": slot_hidden,
+                    "reg_hidden": reg_hidden,
+                    "rae_hidden": rae_hidden,
+                    "active_slot_mask": active_slot_mask,
+                }
+            )
+        return result
 
     @torch.no_grad()
     def generate_captionslot_caption_only(
