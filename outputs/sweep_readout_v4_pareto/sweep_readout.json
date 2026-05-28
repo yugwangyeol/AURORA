@@ -1,0 +1,1807 @@
+{
+  "n_samples": 500,
+  "gt_source": "coco_instance",
+  "results": [
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.5543758995770286
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.5543758995770286
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.5543572511612247
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.5543572511612247
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.554344963415328
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.554344963415328
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.5543445032972727
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.5543445032972727
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.5543436083335314
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.5543436083335314
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.5543435689944658
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.5543433550137911,
+      "mBO": 0.22385065309548913,
+      "mIoU": 0.2725749903991818,
+      "_bal": 0.6166684658277938
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.5543433550137911
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.518422453468361
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.518422453468361
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.5184179235377099
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.5184179235377099
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.5184089642815972
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.5184089642815972
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.5184078910999681
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.5184078910999681
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.5184060408823873
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.5184060408823873
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.5184058318787004
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.5184058318787004
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.5184056780987168
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5184056780987168
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.5184056780987168
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.5184056780987168
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.5184056780987168
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.5184056780987168
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.5184056780987168
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.5184056780987168
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.5184056780987168
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.5184056780987168
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.5184056780987168
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.5184056780987168
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322,
+      "mBO": 0.21674513467552325,
+      "mIoU": 0.27040398179739716,
+      "_bal": 0.5970940349187969
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.5,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.5184056654625322
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.5,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.2159999902666355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.21599998279038976
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.21599998279038976
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.21599998279038976
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.21599998279038976
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.21599998279038976
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.21599998279038976
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.21599998279038976
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.21599998279038976
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.21599998279038976
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.21599998279038976
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.21599998279038976
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.21599998279038976
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.21599998279038976
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.21599998279038976
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.21599964552633208
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.21599964552633208
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.21599964552633208
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.21599964552633208
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.21599964552633208
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.21599964552633208
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.21599964552633208
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.21599964552633208
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.21599964552633208
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.21599964552633208
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.21599964552633208
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.21599964552633208
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.21599964552633208
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.21599964552633208
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.0,
+      "use_bg": 1,
+      "fARI": 0.2159852664589372,
+      "mBO": 0.1453627232258441,
+      "mIoU": 0.2204501217417419,
+      "_bal": 0.4004482733494328
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.2159852664589372
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.01,
+      "use_bg": 1,
+      "fARI": 0.2159852664589372
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.01,
+      "use_bg": 0,
+      "fARI": 0.2159852664589372
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.03,
+      "use_bg": 1,
+      "fARI": 0.2159852664589372
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.03,
+      "use_bg": 0,
+      "fARI": 0.2159852664589372
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.05,
+      "use_bg": 1,
+      "fARI": 0.2159852664589372
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.05,
+      "use_bg": 0,
+      "fARI": 0.2159852664589372
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.1,
+      "use_bg": 1,
+      "fARI": 0.2159852664589372
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.1,
+      "use_bg": 0,
+      "fARI": 0.2159852664589372
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.15,
+      "use_bg": 1,
+      "fARI": 0.2159852664589372
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.15,
+      "use_bg": 0,
+      "fARI": 0.2159852664589372
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.2,
+      "use_bg": 1,
+      "fARI": 0.2159852664589372
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.2,
+      "use_bg": 0,
+      "fARI": 0.2159852664589372
+    }
+  ]
+}

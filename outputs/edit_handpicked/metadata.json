@@ -1,0 +1,47 @@
+[
+  {
+    "pair": 0,
+    "image_id_A": 125850,
+    "image_id_B": 145781,
+    "n_objects_A": 3,
+    "n_objects_B": 4,
+    "swap": {
+      "obj_A_idx": 0,
+      "obj_B_idx": 0,
+      "obj_A": "Cat 1",
+      "obj_B": "Dog 1"
+    },
+    "guidance": 1.0,
+    "image": "/home/jovyan/PGOT/outputs/edit_handpicked/pair_000_A125850_B145781_swapA0fromB0.png"
+  },
+  {
+    "pair": 1,
+    "image_id_A": 142585,
+    "image_id_B": 387387,
+    "n_objects_A": 11,
+    "n_objects_B": 4,
+    "swap": {
+      "obj_A_idx": 0,
+      "obj_B_idx": 1,
+      "obj_A": "Bus 1",
+      "obj_B": "Bus 1"
+    },
+    "guidance": 1.0,
+    "image": "/home/jovyan/PGOT/outputs/edit_handpicked/pair_001_A142585_B387387_swapA0fromB1.png"
+  },
+  {
+    "pair": 2,
+    "image_id_A": 78420,
+    "image_id_B": 170278,
+    "n_objects_A": 6,
+    "n_objects_B": 4,
+    "swap": {
+      "obj_A_idx": 2,
+      "obj_B_idx": 1,
+      "obj_A": "Cat 1",
+      "obj_B": "Dog 1"
+    },
+    "guidance": 1.0,
+    "image": "/home/jovyan/PGOT/outputs/edit_handpicked/pair_002_A78420_B170278_swapA2fromB1.png"
+  }
+]

@@ -4,9 +4,9 @@
 # =============================================================================
 set -e
 
-MODEL_PATH="${MODEL_PATH:-/home/jovyan/PGOT/checkpoints/pgot_main_v5/checkpoint-10000}"
+MODEL_PATH="${MODEL_PATH:-/home/jovyan/PGOT/checkpoints/pgot_main_v6/checkpoint-10000}"
 VAL_JSONL="${VAL_JSONL:-/home/jovyan/PGOT/data/pgot_val.jsonl}"
-OUTPUT_DIR="${OUTPUT_DIR:-/home/jovyan/PGOT/outputs/eval_pgot_v5_$(basename ${MODEL_PATH})}"
+OUTPUT_DIR="${OUTPUT_DIR:-/home/jovyan/PGOT/outputs/eval_pgot_v6_$(basename ${MODEL_PATH})}"
 BATCH_SIZE="${BATCH_SIZE:-4}"
 MAX_SAMPLES="${MAX_SAMPLES:-}"
 COMPUTE_RFID="${COMPUTE_RFID:-0}"
