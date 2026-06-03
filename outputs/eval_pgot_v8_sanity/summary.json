@@ -1,0 +1,24 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_main_v8",
+  "readout": "spatial",
+  "num_samples": 4,
+  "fARI": 0.631935752928257,
+  "mBO": 0.3542149253189564,
+  "mIoU": 0.3024790734052658,
+  "active_count_mean": 4.5,
+  "by_object_count": {
+    "1-3": {
+      "n": 2,
+      "fARI": 0.9455725848674774,
+      "mBO": 0.40116583555936813,
+      "mIoU": 0.29918214678764343
+    },
+    "7-10": {
+      "n": 2,
+      "fARI": 0.31829892098903656,
+      "mBO": 0.3072640150785446,
+      "mIoU": 0.3057760000228882
+    }
+  },
+  "gt_source": "pix2cap_panoptic"
+}

@@ -29,6 +29,7 @@ def pgot_positions(
     num_image_tokens: int,
     n_register: int,
     n_rae_query: int,
+    n_null_bg: int = 0,
 ) -> Dict[str, int]:
     """Compute absolute positions for every block.
 
@@ -36,7 +37,7 @@ def pgot_positions(
         [ sys_prefix | sys_suffix
         | user_prefix | image | user_suffix
         | assistant_prefix | caption(with <ovt>) | assistant_suffix
-        | register | rae_query ]
+        | null_bg | register | rae_query ]
 
     Note: no CMD block, no separate slot block, no im_start/im_end. The OVT
     tokens are inside `caption`; their per-sample offsets are tracked externally
@@ -72,6 +73,10 @@ def pgot_positions(
     cursor += assistant_suffix_len
     assistant_suffix_e = cursor
 
+    null_bg_s = cursor
+    cursor += n_null_bg
+    null_bg_e = cursor
+
     reg_s = cursor
     cursor += n_register
     reg_e = cursor
@@ -88,6 +93,7 @@ def pgot_positions(
         "assistant_prefix_s": assistant_prefix_s, "assistant_prefix_e": assistant_prefix_e,
         "cap_s": cap_s, "cap_e": cap_e,
         "assistant_suffix_s": assistant_suffix_s, "assistant_suffix_e": assistant_suffix_e,
+        "null_bg_s": null_bg_s, "null_bg_e": null_bg_e,
         "reg_s": reg_s, "reg_e": reg_e,
         "rae_s": rae_s, "rae_e": rae_e,
         "total_len": rae_e,
@@ -141,6 +147,7 @@ def build_pgot_attention_mask(
     assistant_prefix_s, assistant_prefix_e = positions["assistant_prefix_s"], positions["assistant_prefix_e"]
     cap_s, cap_e = positions["cap_s"], positions["cap_e"]
     assistant_suffix_s, assistant_suffix_e = positions["assistant_suffix_s"], positions["assistant_suffix_e"]
+    null_bg_s, null_bg_e = positions.get("null_bg_s", 0), positions.get("null_bg_e", 0)
     reg_s, reg_e = positions["reg_s"], positions["reg_e"]
     rae_s, rae_e = positions["rae_s"], positions["rae_e"]
 
@@ -177,11 +184,20 @@ def build_pgot_attention_mask(
                 bias[b_idx, row_idx, valid_cap_positions] = 0.0
             allow_cols(b_idx, row_idx, assistant_suffix_s, row_idx + 1)
 
+        # Null-bg row: image + caption + self. It is a segmentation owner for
+        # non-thing pixels, not a generic max-over-register background score.
+        for row_idx in range(null_bg_s, null_bg_e):
+            allow_cols(b_idx, row_idx, img_s, img_e)
+            if valid_cap_positions.numel() > 0:
+                bias[b_idx, row_idx, valid_cap_positions] = 0.0
+            allow_cols(b_idx, row_idx, null_bg_s, null_bg_e)
+
         # Register rows: image + caption + self (DOES NOT see rae_query)
         for row_idx in range(reg_s, reg_e):
             allow_cols(b_idx, row_idx, img_s, img_e)
             if valid_cap_positions.numel() > 0:
                 bias[b_idx, row_idx, valid_cap_positions] = 0.0
+            allow_cols(b_idx, row_idx, null_bg_s, null_bg_e)
             allow_cols(b_idx, row_idx, reg_s, reg_e)
 
         # rae_query rows: OVT (positions inside caption) + register + self
@@ -202,6 +218,7 @@ def build_pgot_attention_mask(
         for row_idx in range(rae_s, rae_e):
             if cap_target_positions.numel() > 0:
                 bias[b_idx, row_idx, cap_target_positions] = 0.0
+            allow_cols(b_idx, row_idx, null_bg_s, null_bg_e)
             allow_cols(b_idx, row_idx, reg_s, reg_e)
             if rae_bidirectional:
                 allow_cols(b_idx, row_idx, rae_s, rae_e)
@@ -300,6 +317,70 @@ def compute_mask_bce_loss(
     return (bce * valid).sum() / denom
 
 
+def compute_spatial_outside_attention_loss(
+    ovt_logits: torch.Tensor,
+    gt_masks_per_ovt: torch.Tensor,
+    ovt_valid_mask: torch.Tensor,
+    n_ovt_per_object: int,
+    temperature: float = 1.0,
+    eps: float = 1e-6,
+) -> Dict[str, torch.Tensor]:
+    """V8 outside-attention loss over all valid thing/stuff regions.
+
+    For each OVT, normalize its patch scores with a spatial softmax. The loss is
+    the attention mass assigned to every other annotated region. Unannotated or
+    void patches are neutral because they are not part of the valid-region union.
+    """
+    B, M, P = ovt_logits.shape
+    n = max(int(n_ovt_per_object), 1)
+    K = M // n
+    if K <= 0:
+        z = ovt_logits.new_zeros((), dtype=torch.float32)
+        return {"loss": z, "self_mass": z, "other_mass": z, "neutral_mass": z}
+
+    logits = ovt_logits[:, : K * n].reshape(B, K, n, P).float()
+    masks = gt_masks_per_ovt[:, : K * n].reshape(B, K, n, P).float().amax(dim=2)
+    obj_valid = ovt_valid_mask[:, : K * n].reshape(B, K, n).any(dim=2)
+
+    masks = masks.clamp(0.0, 1.0) * obj_valid.unsqueeze(-1).float()
+    region_union = masks.amax(dim=1, keepdim=True)  # (B,1,P)
+    other_regions = []
+    for k in range(K):
+        if K == 1:
+            other_regions.append(torch.zeros_like(masks[:, k]))
+        else:
+            other_regions.append(torch.cat([masks[:, :k], masks[:, k + 1:]], dim=1).amax(dim=1))
+    forbidden = torch.stack(other_regions, dim=1).clamp(0.0, 1.0)  # (B,K,P)
+    self_region = masks
+    neutral = (1.0 - region_union).clamp(0.0, 1.0)
+
+    temp = max(float(temperature), eps)
+    attn = F.softmax(logits / temp, dim=-1)  # (B,K,n,P), spatial over patches
+
+    valid = obj_valid.unsqueeze(-1).float()  # (B,K,1)
+    denom = (valid.sum() * n).clamp_min(1.0)
+    other_mass = (attn * forbidden.unsqueeze(2)).sum(dim=-1)
+    loss = (other_mass * valid).sum() / denom
+
+    self_mass = (attn * self_region.unsqueeze(2)).sum(dim=-1)
+    neutral_mass = (attn * neutral.unsqueeze(2)).sum(dim=-1)
+    self_mean = (self_mass * valid).sum() / denom
+    other_mean = (other_mass * valid).sum() / denom
+    neutral_mean = (neutral_mass * valid).sum() / denom
+
+    for val in (loss, self_mean, other_mean, neutral_mean):
+        if not torch.isfinite(val):
+            z = ovt_logits.new_zeros((), dtype=torch.float32)
+            return {"loss": z, "self_mass": z, "other_mass": z, "neutral_mass": z}
+
+    return {
+        "loss": loss,
+        "self_mass": self_mean.detach(),
+        "other_mass": other_mean.detach(),
+        "neutral_mass": neutral_mean.detach(),
+    }
+
+
 def compute_per_patch_ce_loss(
     ovt_logits: torch.Tensor,        # (B, M, P) raw logits
     gt_masks_per_ovt: torch.Tensor,  # (B, M, P) soft patch masks
@@ -390,6 +471,130 @@ def compute_competition_ce_loss(
     return loss
 
 
+def compute_null_bg_competition_losses(
+    ovt_logits: torch.Tensor,          # (B, M, P) OVT-vs-patch logits
+    null_bg_logits: torch.Tensor,      # (B, 1, P) null-bg-vs-patch logits
+    gt_masks_per_ovt: torch.Tensor,    # (B, M, P) soft coverage
+    ovt_valid_mask: torch.Tensor,      # (B, M) bool
+    ovt_is_thing: torch.Tensor,        # (B, M) bool
+    n_ovt_per_object: int,
+    temperature: float = 1.0,
+    eps: float = 1e-6,
+) -> Dict[str, torch.Tensor]:
+    """V7 ownership losses over {thing objects, null-bg}.
+
+    Stuff/background/register tokens are not segmentation classes. Patches covered
+    by a GT thing object target that thing object; every other patch targets the
+    single null-bg owner.
+    """
+    B, M, P = ovt_logits.shape
+    n = max(int(n_ovt_per_object), 1)
+    K = M // n
+    temp = max(float(temperature), 1e-6)
+    neg = torch.finfo(torch.float32).min
+
+    obj_logits = ovt_logits[:, : K * n].reshape(B, K, n, P).float().amax(dim=2) / temp
+    obj_valid = ovt_valid_mask[:, : K * n].reshape(B, K, n).any(dim=2)
+    obj_thing = ovt_is_thing[:, : K * n].reshape(B, K, n).any(dim=2)
+    thing_valid = obj_valid & obj_thing
+    obj_logits = obj_logits.masked_fill(~thing_valid.unsqueeze(-1), neg)
+
+    bg_logit = null_bg_logits.float() / temp
+    if bg_logit.ndim == 2:
+        bg_logit = bg_logit.unsqueeze(1)
+    all_logits = torch.cat([obj_logits, bg_logit], dim=1)  # (B, K+1, P)
+
+    obj_cover = gt_masks_per_ovt[:, : K * n].reshape(B, K, n, P).float().amax(dim=2)
+    thing_cover = obj_cover.masked_fill(~thing_valid.unsqueeze(-1), 0.0)
+    best_cover, best_idx = thing_cover.max(dim=1)
+    bg_index = torch.full_like(best_idx, K)
+    label = torch.where(best_cover > 0.0, best_idx, bg_index)
+
+    logits_t = all_logits.permute(0, 2, 1).reshape(B * P, K + 1)
+    loss_owner = F.cross_entropy(logits_t, label.reshape(B * P))
+
+    probs = F.softmax(all_logits, dim=1)
+    thing_probs = probs[:, :K]
+    bg_prob = probs[:, K]
+    fg_prob = thing_probs.sum(dim=1).clamp_min(eps)
+
+    fg_weight = best_cover.clamp(0.0, 1.0)
+    fg_denom = fg_weight.sum().clamp_min(1.0)
+    loss_fg = -(fg_weight * torch.log(fg_prob)).sum() / fg_denom
+
+    outside_weight = (1.0 - thing_cover.clamp(0.0, 1.0)) * thing_valid.unsqueeze(-1).float()
+    out_denom = outside_weight.sum().clamp_min(1.0)
+    loss_outside = (outside_weight * thing_probs).sum() / out_denom
+
+    bg_weight = (1.0 - fg_weight).clamp(0.0, 1.0)
+    bg_denom = bg_weight.sum().clamp_min(1.0)
+    thing_on_bg = (bg_weight * fg_prob).sum() / bg_denom
+    bg_on_fg = (fg_weight * bg_prob).sum() / fg_denom
+
+    losses = {
+        "loss_owner": loss_owner,
+        "loss_fg": loss_fg,
+        "loss_outside": loss_outside,
+        "bg_prob_on_fg": bg_on_fg.detach(),
+        "thing_prob_on_bg": thing_on_bg.detach(),
+        "thing_object_count": thing_valid.float().sum(dim=1).mean().detach(),
+    }
+    for key in ("loss_owner", "loss_fg", "loss_outside"):
+        if not bool(torch.isfinite(losses[key]).all()):
+            losses[key] = torch.zeros((), device=ovt_logits.device, dtype=torch.float32)
+    return losses
+
+
+def build_pred_mask_null_bg_eval(
+    ovt_logits: torch.Tensor,        # (B, M, P) raw logits
+    null_bg_logits: torch.Tensor,    # (B, 1, P) null-bg class logits
+    ovt_valid_mask: torch.Tensor,    # (B, M) bool
+    ovt_is_thing: torch.Tensor,      # (B, M) bool
+    target_size: int,
+    n_ovt_per_object: int,
+    patch_grid: int = 32,
+    merge: str = "max",
+) -> torch.Tensor:
+    """V7 eval readout: argmax over {thing objects, null-bg}.
+
+    null-bg wins -> background 0. Stuff OVTs and registers are excluded from
+    segmentation ownership.
+    """
+    B, M, P = ovt_logits.shape
+    n = max(int(n_ovt_per_object), 1)
+    K = M // n
+    logits = ovt_logits[:, : K * n].reshape(B, K, n, P).float()
+    obj_logits = logits.amax(dim=2) if merge == "max" else logits.mean(dim=2)
+    obj_valid = ovt_valid_mask[:, : K * n].reshape(B, K, n).any(dim=2)
+    obj_thing = ovt_is_thing[:, : K * n].reshape(B, K, n).any(dim=2)
+    thing_valid = obj_valid & obj_thing
+
+    bg_logit = null_bg_logits.float()
+    if bg_logit.ndim == 2:
+        bg_logit = bg_logit.unsqueeze(1)
+
+    obj_2d = obj_logits.reshape(B, K, patch_grid, patch_grid)
+    bg_2d = bg_logit.reshape(B, 1, patch_grid, patch_grid)
+    all_2d = torch.cat([obj_2d, bg_2d], dim=1)
+    up = F.interpolate(all_2d, size=(target_size, target_size), mode="bilinear", align_corners=False)
+    neg = torch.finfo(up.dtype).min
+    valid_full = torch.cat(
+        [thing_valid, torch.ones(B, 1, dtype=torch.bool, device=thing_valid.device)], dim=1
+    )
+    up = up.masked_fill(~valid_full.view(B, K + 1, 1, 1), neg)
+    assign = up.argmax(dim=1)
+
+    pred = torch.zeros((B, target_size, target_size), dtype=torch.int64, device=ovt_logits.device)
+    for b in range(B):
+        rank = 0
+        for k in range(K):
+            if not bool(thing_valid[b, k]):
+                continue
+            rank += 1
+            pred[b][assign[b] == k] = rank
+    return pred
+
+
 def build_pred_mask_competition_eval(
     ovt_logits: torch.Tensor,        # (B, M, P) raw logits
     reg_logits: torch.Tensor,        # (B, R, P) register-vs-patch logits (background class)
@@ -441,6 +646,64 @@ def build_pred_mask_competition_eval(
             # stuff object → leave as 0 (background)
         # assign == K (register background) → stays 0
     return pred
+
+
+def compute_anti_overlap_loss(
+    ovt_logits: torch.Tensor,        # (B, M, P) raw logits
+    ovt_valid_mask: torch.Tensor,    # (B, M) bool
+    n_ovt_per_object: int,
+) -> torch.Tensor:
+    """OBJECT-LEVEL pairwise anti-overlap penalty (for v6.5).
+
+    A single object owns n OVTs that share the same GT mask, so the n OVTs
+    should co-activate on the object's patches (BCE drives this). We must
+    NOT penalize within-object overlap; we only penalize CROSS-object overlap
+    (two different objects firing on the same patch).
+
+    Algorithm:
+      1) sigmoid(ovt_logits) -> per-OVT mask prob p (B, M, P)
+      2) zero-out invalid OVTs
+      3) mean-pool the n OVTs of each object into an object-level prob
+         p_obj (B, K, P), K = M // n
+      4) pairwise cross-object activation product (per patch):
+           overlap[b, p] = Σ_{k<l, both valid} p_obj[b, k, p] · p_obj[b, l, p]
+                        = ½ · ( S² − Σ_k p_obj_k² )      (algebraic identity)
+      5) normalize by num valid object pairs per sample so the loss scale is
+         comparable across batches with different object counts.
+
+    Range: ∈ [0, 0.25] per sample (max when all objects at p=0.5).
+    Cooperates with BCE/Tversky: BCE pulls each OVT toward its GT (which is
+    panoptic-exclusive across objects), anti-overlap erodes any residual
+    inter-object overlap. They target the same exclusive structure.
+    """
+    B, M, P = ovt_logits.shape
+    n = n_ovt_per_object
+    K = M // n
+
+    probs = torch.sigmoid(ovt_logits.float())                              # (B, M, P)
+    valid = ovt_valid_mask.float().unsqueeze(-1)                            # (B, M, 1)
+    probs = probs * valid                                                   # invalid → 0
+
+    # Pool to object-level (mean of n OVTs per object) -- key correctness step
+    p_obj = probs[:, : K * n].reshape(B, K, n, P).mean(dim=2)               # (B, K, P)
+
+    # Object-level validity (object valid if any of its n OVTs are valid)
+    obj_valid = ovt_valid_mask[:, : K * n].reshape(B, K, n).any(dim=2)      # (B, K)
+    p_obj = p_obj * obj_valid.float().unsqueeze(-1)                         # (B, K, P), invalid → 0
+
+    # Per-patch cross-object overlap via algebraic identity
+    S  = p_obj.sum(dim=1)                                                   # (B, P)
+    S2 = (p_obj * p_obj).sum(dim=1)                                         # (B, P)
+    overlap_per_patch = 0.5 * (S * S - S2).clamp_min(0.0)                   # (B, P)
+
+    # Normalize by num valid object pairs per sample
+    n_valid = obj_valid.float().sum(dim=1)                                  # (B,)
+    n_pairs = (n_valid * (n_valid - 1) / 2).clamp_min(1.0)                  # (B,)
+
+    loss = (overlap_per_patch.mean(dim=1) / n_pairs).mean()
+    if not torch.isfinite(loss):
+        loss = torch.zeros((), device=ovt_logits.device, dtype=torch.float32)
+    return loss
 
 
 def compute_mask_tversky_loss(

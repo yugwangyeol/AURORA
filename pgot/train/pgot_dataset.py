@@ -21,7 +21,7 @@ import json
 import os
 import random
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Set
 
 import numpy as np
 import torch
@@ -65,6 +65,7 @@ class Pix2CapPGOTDataset(Dataset):
         ovt_token: str = "<ovt>",
         scene_end_token: str = "<scene_end>",
         rebuild_caption: bool = True,
+        panoptic_categories_json: Optional[str] = None,
     ):
         super().__init__()
         self.jsonl_path = jsonl_path
@@ -78,6 +79,7 @@ class Pix2CapPGOTDataset(Dataset):
         self.ovt_token = ovt_token
         self.scene_end_token = scene_end_token
         self.rebuild_caption = rebuild_caption
+        self.thing_category_ids = self._load_thing_category_ids(panoptic_categories_json)
 
         self.ovt_token_id = tokenizer.convert_tokens_to_ids(ovt_token)
         self.scene_end_token_id = tokenizer.convert_tokens_to_ids(scene_end_token)
@@ -88,6 +90,20 @@ class Pix2CapPGOTDataset(Dataset):
         with open(jsonl_path) as f:
             for line in f:
                 self.samples.append(json.loads(line))
+
+    @staticmethod
+    def _load_thing_category_ids(panoptic_categories_json: Optional[str]) -> Set[int]:
+        if panoptic_categories_json and os.path.exists(panoptic_categories_json):
+            with open(panoptic_categories_json) as f:
+                d = json.load(f)
+            return {
+                int(c["id"])
+                for c in d.get("categories", [])
+                if int(c.get("isthing", 0)) == 1
+            }
+        # COCO panoptic thing categories are the instance ids 1..90 (with gaps).
+        # This fallback keeps older JSONL-only setups usable.
+        return set(range(1, 91))
 
     def __len__(self):
         return len(self.samples)
@@ -156,13 +172,17 @@ class Pix2CapPGOTDataset(Dataset):
         # 5) Per-OVT patch masks (same mask for both OVTs of the same object)
         seg_id_map = self._load_panoptic_id_map(sample["panoptic_mask_path"])
         gt_masks_per_ovt = torch.zeros((n_ovt_max, self.grid_size * self.grid_size), dtype=torch.float32)
+        ovt_is_thing = torch.zeros(n_ovt_max, dtype=torch.bool)
         n_obj_actual = n_keep // self.n_ovt_per_object
         for obj_idx in range(n_obj_actual):
             seg_info = segments[obj_idx]
             mask_hw = self._segment_mask(seg_id_map, int(seg_info["segment_id"])).float()
             patch_mask = _mask_to_patch_mask(mask_hw, self.grid_size)
+            is_thing = int(seg_info.get("category_id", -1)) in self.thing_category_ids
             for j in range(self.n_ovt_per_object):
-                gt_masks_per_ovt[obj_idx * self.n_ovt_per_object + j] = patch_mask
+                ovt_idx = obj_idx * self.n_ovt_per_object + j
+                gt_masks_per_ovt[ovt_idx] = patch_mask
+                ovt_is_thing[ovt_idx] = is_thing
 
         # 6) Pad ovt positions
         ovt_pos_padded = torch.zeros(n_ovt_max, dtype=torch.long)
@@ -177,6 +197,7 @@ class Pix2CapPGOTDataset(Dataset):
             "caption_input_ids": caption_input_ids,
             "ovt_positions_in_caption": ovt_pos_padded,
             "ovt_valid_mask": ovt_valid,
+            "ovt_is_thing": ovt_is_thing,
             "gt_masks_per_ovt": gt_masks_per_ovt,
             "image_id": int(sample["image_id"]),
             "n_objects": n_obj_actual,
@@ -210,6 +231,7 @@ class PGOTDataCollator:
                 [inst["ovt_positions_in_caption"] for inst in instances]
             ),
             "ovt_valid_mask": torch.stack([inst["ovt_valid_mask"] for inst in instances]),
+            "ovt_is_thing": torch.stack([inst["ovt_is_thing"] for inst in instances]),
             "gt_masks_per_ovt": torch.stack([inst["gt_masks_per_ovt"] for inst in instances]),
             "image_ids": [inst["image_id"] for inst in instances],
             "n_objects_list": [inst["n_objects"] for inst in instances],

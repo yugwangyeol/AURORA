@@ -259,6 +259,63 @@ def build_pred_mask_readout(
     return pred.to(torch.int64)
 
 
+def build_pred_mask_spatial_readout(
+    ovt_logits: torch.Tensor,        # (B, M, P) raw logits
+    ovt_valid_mask: torch.Tensor,    # (B, M) bool
+    target_size: int,
+    n_ovt_per_object: int,
+    patch_grid: int = 32,
+    *,
+    merge: str = "mean",
+    temp: float = 1.0,
+    ovt_is_thing: Optional[torch.Tensor] = None,
+    map_stuff_to_bg: bool = False,
+) -> torch.Tensor:
+    """V8 readout matching spatial outside training.
+
+    Per OVT, normalize patch logits with a spatial softmax. Merge the OVTs that
+    belong to the same region, then assign each pixel to the highest region map.
+    When evaluating against thing-only GT, stuff winners can be remapped to 0.
+    """
+    B, M, P = ovt_logits.shape
+    assert P == patch_grid * patch_grid
+    n = max(int(n_ovt_per_object), 1)
+    K = M // n
+    logits = ovt_logits[:, : K * n].reshape(B, K, n, P).float()
+    valid = ovt_valid_mask[:, : K * n].reshape(B, K, n).any(dim=2)
+
+    temp = max(float(temp), 1e-6)
+    attn = torch.softmax(logits / temp, dim=-1)  # (B,K,n,P), spatial over patches
+    if merge == "max":
+        region_maps = attn.amax(dim=2)
+    else:
+        region_maps = attn.mean(dim=2)
+    region_maps = region_maps * valid.unsqueeze(-1).to(region_maps.dtype)
+
+    maps_2d = region_maps.reshape(B, K, patch_grid, patch_grid)
+    up = F.interpolate(maps_2d, size=(target_size, target_size), mode="bilinear", align_corners=False)
+    neg = torch.finfo(up.dtype).min
+    up = up.masked_fill(~valid.view(B, K, 1, 1), neg)
+    winner = up.argmax(dim=1)  # (B,H,W), 0..K-1
+
+    if not map_stuff_to_bg:
+        return (winner + 1).to(torch.int64)
+
+    if ovt_is_thing is None:
+        raise ValueError("map_stuff_to_bg=True requires ovt_is_thing.")
+    obj_thing = ovt_is_thing[:, : K * n].reshape(B, K, n).any(dim=2).to(winner.device)
+    pred = torch.zeros((B, target_size, target_size), dtype=torch.int64, device=winner.device)
+    for b in range(B):
+        thing_counter = 0
+        for k in range(K):
+            if not bool(valid[b, k]):
+                continue
+            if bool(obj_thing[b, k]):
+                thing_counter += 1
+                pred[b][winner[b] == k] = thing_counter
+    return pred
+
+
 def ovt_logits_to_pred_mask(
     ovt_logits: torch.Tensor,
     ovt_valid_mask: torch.Tensor,

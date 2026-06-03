@@ -137,8 +137,14 @@ def train():
 
     # PGOT fields
     config.pgot_n_register = model_args.pgot_n_register
+    config.pgot_n_null_bg = model_args.pgot_n_null_bg
     config.pgot_n_ovt_per_object = model_args.pgot_n_ovt_per_object
     config.pgot_max_objects = model_args.pgot_max_objects
+    config.pgot_use_null_bg_competition = bool(model_args.pgot_use_null_bg_competition)
+    config.pgot_mask_fg_weight = float(model_args.pgot_mask_fg_weight)
+    config.pgot_mask_outside_weight = float(model_args.pgot_mask_outside_weight)
+    config.pgot_mask_spatial_outside_weight = float(model_args.pgot_mask_spatial_outside_weight)
+    config.pgot_mask_spatial_temperature = float(model_args.pgot_mask_spatial_temperature)
     config.pgot_rae_bidirectional = model_args.pgot_rae_bidirectional
     config.pgot_attention_use_layer_norm = model_args.pgot_attention_use_layer_norm
     config.pgot_attention_temperature = model_args.pgot_attention_temperature
@@ -164,18 +170,28 @@ def train():
     # rather than the getattr defaults.
     model.config.pgot_mask_ce_weight = float(model_args.pgot_mask_ce_weight)
     model.config.pgot_mask_ce_temperature = float(model_args.pgot_mask_ce_temperature)
+    model.config.pgot_use_null_bg_competition = bool(model_args.pgot_use_null_bg_competition)
+    model.config.pgot_n_null_bg = int(model_args.pgot_n_null_bg)
+    model.config.pgot_mask_fg_weight = float(model_args.pgot_mask_fg_weight)
+    model.config.pgot_mask_outside_weight = float(model_args.pgot_mask_outside_weight)
     model.config.pgot_mask_aux_competition_weight = float(model_args.pgot_mask_aux_competition_weight)
     model.config.pgot_mask_bce_weight = float(model_args.pgot_mask_bce_weight)
     model.config.pgot_mask_tversky_weight = float(model_args.pgot_mask_tversky_weight)
     model.config.pgot_mask_tversky_alpha = float(model_args.pgot_mask_tversky_alpha)
     model.config.pgot_mask_tversky_beta = float(model_args.pgot_mask_tversky_beta)
+    model.config.pgot_mask_spatial_outside_weight = float(model_args.pgot_mask_spatial_outside_weight)
+    model.config.pgot_mask_spatial_temperature = float(model_args.pgot_mask_spatial_temperature)
     model.config.pgot_cfg_drop_rate = float(model_args.pgot_cfg_drop_rate)
     model.config.pgot_rae_attends_caption = bool(model_args.pgot_rae_attends_caption)
     logger.info(
         f"[PGOT] mask loss weights -> ce={model.config.pgot_mask_ce_weight} "
+        f"fg={model.config.pgot_mask_fg_weight} outside={model.config.pgot_mask_outside_weight} "
         f"ce_aux={model.config.pgot_mask_aux_competition_weight} "
         f"bce={model.config.pgot_mask_bce_weight} tversky={model.config.pgot_mask_tversky_weight} "
-        f"(ce_temp={model.config.pgot_mask_ce_temperature}); cfg_drop={model.config.pgot_cfg_drop_rate}"
+        f"spatial_out={model.config.pgot_mask_spatial_outside_weight} "
+        f"(spatial_temp={model.config.pgot_mask_spatial_temperature}) "
+        f"(ce_temp={model.config.pgot_mask_ce_temperature}); "
+        f"null_bg={model.config.pgot_use_null_bg_competition}; cfg_drop={model.config.pgot_cfg_drop_rate}"
     )
     logger.info("[PGOT] model checkpoint loaded")
 
@@ -282,6 +298,7 @@ def train():
         max_caption_tokens=data_args.max_caption_tokens,
         n_ovt_per_object=model_args.pgot_n_ovt_per_object,
         max_objects=model_args.pgot_max_objects,
+        panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_train2017.json",
     )
     val_dataset = Pix2CapPGOTDataset(
         jsonl_path=data_args.val_jsonl,
@@ -296,6 +313,7 @@ def train():
         max_caption_tokens=data_args.max_caption_tokens,
         n_ovt_per_object=model_args.pgot_n_ovt_per_object,
         max_objects=model_args.pgot_max_objects,
+        panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_val2017.json",
     )
     # Cap eval size
     if len(val_dataset) > data_args.eval_num_images:
@@ -328,6 +346,7 @@ def train():
                     caption_labels=batch["caption_labels"].to(device),
                     ovt_positions_in_caption=batch["ovt_positions_in_caption"].to(device),
                     ovt_valid_mask=batch["ovt_valid_mask"].to(device),
+                    ovt_is_thing=batch["ovt_is_thing"].to(device),
                     gt_masks_per_ovt=batch["gt_masks_per_ovt"].to(device),
                     pgot_contrastive_weight=0.0,
                 )

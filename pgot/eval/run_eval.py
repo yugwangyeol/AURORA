@@ -36,10 +36,11 @@ from pgot.train.pgot_dataset import Pix2CapPGOTDataset, PGOTDataCollator
 from pgot.eval.pgot_metrics import (
     fari_metric, mbo_metric, miou_metric,
     ovt_logits_to_pred_mask,
+    build_pred_mask_spatial_readout,
     FIDAccumulator,
     compute_recon_metrics,
 )
-from pgot.model.pgot_utils import build_pred_mask_competition_eval
+from pgot.model.pgot_utils import build_pred_mask_competition_eval, build_pred_mask_null_bg_eval
 from pgot.eval.pgot_inference import pgot_forward_eval, generate_siglip_latent
 
 from transformers import AutoTokenizer, AutoConfig
@@ -172,6 +173,13 @@ def main():
     p.add_argument("--bg_threshold", type=float, default=0.05)
     p.add_argument("--eval_merge", choices=["mean", "max"], default="max",
                    help="How to merge the n_ovt_per_object logits into one object score for competition.")
+    p.add_argument("--readout", choices=["competition", "threshold", "nullbg", "spatial"], default="competition",
+                   help="competition: argmax over {K objects, register-bg} (v5/v6 style). "
+                        "threshold: filter stuff OVTs, sigmoid+bg_threshold on thing OVTs only (v3 style). "
+                        "nullbg: argmax over {thing OVT objects, null-bg} (v7 style). "
+                        "spatial: per-OVT spatial-softmax readout (v8 style).")
+    p.add_argument("--spatial_temperature", type=float, default=1.0,
+                   help="Patch-axis softmax temperature for --readout spatial.")
     p.add_argument("--compute_rfid", action="store_true", help="Decode + FID (slow)")
     p.add_argument("--dtype", choices=["fp32", "bf16"], default="fp32")
     p.add_argument("--gt_source", choices=["pix2cap_panoptic", "coco_instance"], default="pix2cap_panoptic")
@@ -293,6 +301,7 @@ def main():
         max_caption_tokens=args.max_caption_tokens,
         n_ovt_per_object=args.n_ovt_per_object,
         max_objects=args.max_objects,
+        panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_val2017.json",
     )
     if args.max_samples is not None:
         val_dataset = torch.utils.data.Subset(val_dataset, list(range(min(args.max_samples, len(val_dataset)))))
@@ -369,12 +378,18 @@ def main():
             ovt_valid_mask=batch["ovt_valid_mask"],
         )
 
-        # CODA-style competition readout: ALL OVTs (thing + stuff) compete per
-        # patch via softmax/argmax (no background channel). Patches assigned to a
-        # STUFF OVT become background; thing OVTs get their thing index. So stuff
-        # OVTs act as the background role rather than being masked out.
+        # ── Readout: either v5/v6 competition (thing+stuff+register-bg argmax)
+        # or v3-style threshold (stuff OVTs filtered out, sigmoid+bg_threshold
+        # on thing OVTs only). The latter is the cleaner background mechanism
+        # used in v3 and is useful for diagnosing whether v6's dual-background
+        # (stuff OVT + register) is what's hurting fARI.
         valid_for_pred = out["ovt_valid_mask"].clone()
-        ovt_is_thing = torch.zeros_like(valid_for_pred, dtype=torch.bool)
+        ovt_is_thing = batch.get("ovt_is_thing")
+        has_batch_thing = ovt_is_thing is not None
+        if has_batch_thing:
+            ovt_is_thing = ovt_is_thing.to(valid_for_pred.device, dtype=torch.bool)
+        else:
+            ovt_is_thing = torch.zeros_like(valid_for_pred, dtype=torch.bool)
         if thing_categories is not None:
             for b in range(valid_for_pred.shape[0]):
                 global_idx = batch_idx * args.batch_size + b
@@ -386,21 +401,59 @@ def main():
                         continue
                     if seg["category"] in thing_categories:
                         ovt_is_thing[b, s:e] = True
-        else:
-            # No thing/stuff distinction available — treat every valid OVT as a thing.
+        elif not has_batch_thing:
             ovt_is_thing = valid_for_pred.clone()
 
-        # Predicted panoptic mask (object competition + register background)
-        pred_mask = build_pred_mask_competition_eval(
-            ovt_logits=out["ovt_logits"],
-            reg_logits=out["reg_logits"],
-            ovt_valid_mask=valid_for_pred,
-            ovt_is_thing=ovt_is_thing,
-            target_size=args.eval_size,
-            n_ovt_per_object=args.n_ovt_per_object,
-            patch_grid=args.grid_size,
-            merge=getattr(args, "eval_merge", "max"),
-        )  # (B, H, W)
+        readout = getattr(args, "readout", "competition")
+        if readout == "threshold":
+            # v3-style: filter out stuff OVTs, then sigmoid+bg_threshold readout
+            # on the surviving thing OVTs only. No register involvement.
+            valid_thing_only = valid_for_pred & ovt_is_thing
+            pred_mask = ovt_logits_to_pred_mask(
+                ovt_logits=out["ovt_logits"],
+                ovt_valid_mask=valid_thing_only,
+                target_size=args.eval_size,
+                n_ovt_per_object=args.n_ovt_per_object,
+                patch_grid=args.grid_size,
+                bg_threshold=args.bg_threshold,
+            )  # (B, H, W)
+        elif readout == "nullbg":
+            if out.get("null_bg_logits") is None:
+                raise ValueError("--readout nullbg requires a checkpoint with pgot_n_null_bg > 0.")
+            pred_mask = build_pred_mask_null_bg_eval(
+                ovt_logits=out["ovt_logits"],
+                null_bg_logits=out["null_bg_logits"],
+                ovt_valid_mask=valid_for_pred,
+                ovt_is_thing=ovt_is_thing,
+                target_size=args.eval_size,
+                n_ovt_per_object=args.n_ovt_per_object,
+                patch_grid=args.grid_size,
+                merge=getattr(args, "eval_merge", "max"),
+            )  # (B, H, W)
+        elif readout == "spatial":
+            pred_mask = build_pred_mask_spatial_readout(
+                ovt_logits=out["ovt_logits"],
+                ovt_valid_mask=valid_for_pred,
+                target_size=args.eval_size,
+                n_ovt_per_object=args.n_ovt_per_object,
+                patch_grid=args.grid_size,
+                merge=getattr(args, "eval_merge", "mean"),
+                temp=args.spatial_temperature,
+                ovt_is_thing=ovt_is_thing,
+                map_stuff_to_bg=(args.gt_source == "coco_instance"),
+            )
+        else:
+            # v5/v6 competition readout (default).
+            pred_mask = build_pred_mask_competition_eval(
+                ovt_logits=out["ovt_logits"],
+                reg_logits=out["reg_logits"],
+                ovt_valid_mask=valid_for_pred,
+                ovt_is_thing=ovt_is_thing,
+                target_size=args.eval_size,
+                n_ovt_per_object=args.n_ovt_per_object,
+                patch_grid=args.grid_size,
+                merge=getattr(args, "eval_merge", "max"),
+            )  # (B, H, W)
 
         # GT mask
         B = pred_mask.shape[0]
@@ -475,6 +528,7 @@ def main():
 
     summary = {
         "ckpt": args.model_path,
+        "readout": args.readout,
         "num_samples": len(image_ids),
         "fARI": _mean(fari_scores),
         "mBO": _mean(mbo_scores),

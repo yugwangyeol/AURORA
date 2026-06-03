@@ -52,6 +52,7 @@ def pgot_forward_eval(
     asst_p = model._pgot_embed_frozen_tokens(model.pgot_assistant_prefix_ids, B, device, dtype)
     asst_s = model._pgot_embed_frozen_tokens(model.pgot_assistant_suffix_ids, B, device, dtype)
     caption_embeds = model._pgot_embed_caption(caption_input_ids, device, dtype)
+    null_bg_embeds = model._pgot_embed_null_bg(B, device, dtype)
     register_embeds = model.pgot_register_embeddings.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
     n_rae = model.get_model().latent_queries.shape[0]
     rae_embeds = model.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1).to(device=device, dtype=dtype)
@@ -68,6 +69,7 @@ def pgot_forward_eval(
         num_image_tokens=img_features.shape[1],
         n_register=model.pgot_n_register,
         n_rae_query=n_rae,
+        n_null_bg=null_bg_embeds.shape[1],
     )
 
     # 4) Concat sequence
@@ -75,6 +77,7 @@ def pgot_forward_eval(
         [sys_p, sys_s,
          user_p, img_features.to(dtype=dtype), user_s,
          asst_p, caption_embeds, asst_s,
+         null_bg_embeds,
          register_embeds,
          rae_embeds],
         dim=1,
@@ -125,10 +128,20 @@ def pgot_forward_eval(
         temperature=_attn_temp,
         normalize_tokens=_attn_ln,
     )
+    null_bg_hidden = hidden[:, positions["null_bg_s"]:positions["null_bg_e"], :]
+    null_bg_logits = None
+    if null_bg_hidden.shape[1] > 0:
+        null_bg_logits = compute_per_ovt_mask_logits(
+            ovt_hidden=null_bg_hidden,
+            img_hidden=img_hidden,
+            temperature=_attn_temp,
+            normalize_tokens=_attn_ln,
+        )
 
     result = {
         "ovt_logits": ovt_logits,
         "reg_logits": reg_logits,
+        "null_bg_logits": null_bg_logits,
         "ovt_valid_mask": ovt_valid_mask,
         "rae_hidden": rae_hidden,
         "img_hidden": img_hidden,

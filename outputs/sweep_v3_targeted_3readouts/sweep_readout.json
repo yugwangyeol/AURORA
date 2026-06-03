@@ -1,0 +1,126 @@
+{
+  "n_samples": 2338,
+  "gt_source": "coco_instance",
+  "results": [
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5196782309670296,
+      "mBO": 0.2275466738773443,
+      "mIoU": 0.282097955520358
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5196782309670296,
+      "mBO": 0.22754666621178107,
+      "mIoU": 0.2820979474244641
+    },
+    {
+      "merge": "max",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5196782309670296,
+      "mBO": 0.22754666631382725,
+      "mIoU": 0.2820979473113351
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5196781862125582,
+      "mBO": 0.22754667664590134,
+      "mIoU": 0.2820978981719199
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5196719733645426,
+      "mBO": 0.22753318843577025,
+      "mIoU": 0.2820936552080795
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.3,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5191377741992264,
+      "mBO": 0.22749312510846534,
+      "mIoU": 0.2822090212368845
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 0.7,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5191377741992264,
+      "mBO": 0.22749312510846534,
+      "mIoU": 0.2822090212368845
+    },
+    {
+      "merge": "mean",
+      "competition": "softmax",
+      "temp": 1.0,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5191377741992264,
+      "mBO": 0.22749312510846534,
+      "mIoU": 0.2822090212368845
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 1.0,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5191376997762754,
+      "mBO": 0.22749309395090525,
+      "mIoU": 0.28220898311400355
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.7,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5191358780255682,
+      "mBO": 0.2274897865997799,
+      "mIoU": 0.28220684177316313
+    },
+    {
+      "merge": "max",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.5190363950064266,
+      "mBO": 0.2270889322639796,
+      "mIoU": 0.28169724562303367
+    },
+    {
+      "merge": "mean",
+      "competition": "sigmoid",
+      "temp": 0.3,
+      "bg": 0.0,
+      "use_bg": 0,
+      "fARI": 0.51869056678641,
+      "mBO": 0.22711461323900584,
+      "mIoU": 0.28189627682253193
+    }
+  ]
+}

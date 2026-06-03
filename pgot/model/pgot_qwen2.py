@@ -29,9 +29,12 @@ from pgot.model.pgot_utils import (
     gather_ovt_hidden_states,
     compute_per_ovt_mask_logits,
     compute_mask_bce_loss,
+    compute_spatial_outside_attention_loss,
     compute_mask_tversky_loss,
     compute_per_patch_ce_loss,
     compute_competition_ce_loss,
+    compute_null_bg_competition_losses,
+    compute_anti_overlap_loss,
     compute_ovt_shuffle_contrastive_loss,
 )
 
@@ -61,11 +64,21 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
 
         self.pgot_n_register = int(getattr(self.config, "pgot_n_register", 64))
         self.pgot_n_ovt_per_object = int(getattr(self.config, "pgot_n_ovt_per_object", 2))
+        self.pgot_use_null_bg_competition = bool(
+            getattr(self.config, "pgot_use_null_bg_competition", False)
+        )
+        self.pgot_n_null_bg = int(
+            getattr(self.config, "pgot_n_null_bg", 1 if self.pgot_use_null_bg_competition else 0)
+        )
 
         # Register: 새로 만든다 (사용자 답변: fine-tune 불가, 새 임베딩)
         self.pgot_register_embeddings = nn.Parameter(
             torch.randn(self.pgot_n_register, D) * embed_std
         )
+        if self.pgot_n_null_bg > 0:
+            self.pgot_null_bg_embeddings = nn.Parameter(
+                torch.randn(self.pgot_n_null_bg, D) * embed_std
+            )
 
         # rae_query는 부모 클래스의 self.get_model().latent_queries에 이미 있음
         # → scale-rae checkpoint에서 fine-tune
@@ -75,6 +88,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_loss_mask = None
         self.pgot_loss_recon = None
         self.pgot_loss_contrastive = None
+        self.pgot_loss_details = {}
         self.pgot_n_objects_mean = None
 
         # Will be set after tokenizer registration
@@ -91,7 +105,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
 
         print(
             f"[PGOT] Initialised — D={D}, N_register={self.pgot_n_register}, "
-            f"n_ovt_per_object={self.pgot_n_ovt_per_object}"
+            f"n_ovt_per_object={self.pgot_n_ovt_per_object}, "
+            f"N_null_bg={self.pgot_n_null_bg}"
         )
 
     # ------------------------------------------------------------------
@@ -117,6 +132,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         caption_labels: Optional[torch.LongTensor] = None,
         ovt_positions_in_caption: Optional[torch.Tensor] = None,
         ovt_valid_mask: Optional[torch.Tensor] = None,
+        ovt_is_thing: Optional[torch.Tensor] = None,
         gt_masks_per_ovt: Optional[torch.Tensor] = None,
         target_images: Optional[torch.Tensor] = None,
         pgot_contrastive_weight: Optional[float] = None,
@@ -135,6 +151,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 caption_labels=caption_labels,
                 ovt_positions_in_caption=ovt_positions_in_caption,
                 ovt_valid_mask=ovt_valid_mask,
+                ovt_is_thing=ovt_is_thing,
                 gt_masks_per_ovt=gt_masks_per_ovt,
                 target_images=target_images,
                 pgot_contrastive_weight=pgot_contrastive_weight,
@@ -192,6 +209,19 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         )
         return embeds.to(device=device, dtype=dtype)
 
+    def _pgot_embed_null_bg(
+        self,
+        batch_size: int,
+        device: torch.device,
+        dtype: torch.dtype,
+    ) -> torch.Tensor:
+        n_null = int(getattr(self, "pgot_n_null_bg", 0))
+        if n_null <= 0 or not hasattr(self, "pgot_null_bg_embeddings"):
+            return torch.empty(batch_size, 0, self.config.hidden_size, device=device, dtype=dtype)
+        return self.pgot_null_bg_embeddings.unsqueeze(0).expand(batch_size, -1, -1).to(
+            device=device, dtype=dtype
+        )
+
     # ------------------------------------------------------------------
     # PGOT forward
     # ------------------------------------------------------------------
@@ -202,6 +232,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         caption_input_ids: torch.LongTensor,
         caption_attention_mask: torch.Tensor,
         target_images: torch.Tensor,
+        ovt_positions_in_caption: Optional[torch.Tensor] = None,
+        ovt_valid_mask: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         """Run the LLM forward (no loss) and return rae_hidden + gt_siglip.
 
@@ -213,6 +245,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         target_images = target_images.to(model_device)
         caption_input_ids = caption_input_ids.to(model_device)
         caption_attention_mask = caption_attention_mask.to(model_device, dtype=torch.bool)
+        if ovt_positions_in_caption is not None:
+            ovt_positions_in_caption = ovt_positions_in_caption.to(model_device, dtype=torch.long)
+        if ovt_valid_mask is not None:
+            ovt_valid_mask = ovt_valid_mask.to(model_device, dtype=torch.bool)
         B, caption_len = caption_input_ids.shape
 
         _, img_features, gt_siglip = self._encode_images_aurora(images, target_images=target_images)
@@ -227,6 +263,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         asst_p = self._pgot_embed_frozen_tokens(self.pgot_assistant_prefix_ids, B, model_device, dtype)
         asst_s = self._pgot_embed_frozen_tokens(self.pgot_assistant_suffix_ids, B, model_device, dtype)
         caption_embeds = self._pgot_embed_caption(caption_input_ids, model_device, dtype)
+        null_bg_embeds = self._pgot_embed_null_bg(B, model_device, dtype)
         register_embeds = self.pgot_register_embeddings.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
         n_rae = self.get_model().latent_queries.shape[0]
         rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1).to(
@@ -244,6 +281,14 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             num_image_tokens=img_features.shape[1],
             n_register=self.pgot_n_register,
             n_rae_query=n_rae,
+            n_null_bg=null_bg_embeds.shape[1],
+        )
+
+        cap_s_pos = positions["cap_s"]
+        ovt_abs_positions = (
+            cap_s_pos + ovt_positions_in_caption
+            if ovt_positions_in_caption is not None
+            else None
         )
 
         inputs_embeds = torch.cat(
@@ -251,6 +296,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 sys_p, sys_s,
                 user_p, img_features.to(dtype=dtype), user_s,
                 asst_p, caption_embeds, asst_s,
+                null_bg_embeds,
                 register_embeds,
                 rae_embeds,
             ],
@@ -262,6 +308,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             device=model_device,
             dtype=inputs_embeds.dtype,
             rae_bidirectional=bool(getattr(self.config, "pgot_rae_bidirectional", False)),
+            rae_attends_caption=bool(getattr(self.config, "pgot_rae_attends_caption", False)),
+            ovt_absolute_positions=ovt_abs_positions,
+            ovt_valid_mask=ovt_valid_mask,
         )
         out = self.model(
             inputs_embeds=inputs_embeds,
@@ -280,6 +329,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         caption_input_ids: torch.LongTensor,
         caption_attention_mask: torch.Tensor,
         target_images: torch.Tensor,
+        ovt_positions_in_caption: Optional[torch.Tensor] = None,
+        ovt_valid_mask: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         """Get rae_hidden, project to DiT cond, run rectified-flow inference.
 
@@ -292,6 +343,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             caption_input_ids=caption_input_ids,
             caption_attention_mask=caption_attention_mask,
             target_images=target_images,
+            ovt_positions_in_caption=ovt_positions_in_caption,
+            ovt_valid_mask=ovt_valid_mask,
         )
         rae_hidden = feats["rae_hidden"]
         cond = self._captionslot_prepare_diffusion_condition(rae_hidden).float()
@@ -307,6 +360,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         caption_labels: Optional[torch.LongTensor],
         ovt_positions_in_caption: torch.Tensor,
         ovt_valid_mask: torch.Tensor,
+        ovt_is_thing: Optional[torch.Tensor],
         gt_masks_per_ovt: torch.Tensor,
         target_images: torch.Tensor,
         pgot_contrastive_weight: Optional[float] = None,
@@ -318,6 +372,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         caption_attention_mask = caption_attention_mask.to(model_device, dtype=torch.bool)
         ovt_positions_in_caption = ovt_positions_in_caption.to(model_device, dtype=torch.long)
         ovt_valid_mask = ovt_valid_mask.to(model_device, dtype=torch.bool)
+        if ovt_is_thing is None:
+            ovt_is_thing = ovt_valid_mask
+        else:
+            ovt_is_thing = ovt_is_thing.to(model_device, dtype=torch.bool)
         gt_masks_per_ovt = gt_masks_per_ovt.to(model_device).float()
         if caption_labels is not None:
             caption_labels = caption_labels.to(model_device, dtype=torch.long)
@@ -338,6 +396,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         asst_p = self._pgot_embed_frozen_tokens(self.pgot_assistant_prefix_ids, B, model_device, dtype)
         asst_s = self._pgot_embed_frozen_tokens(self.pgot_assistant_suffix_ids, B, model_device, dtype)
         caption_embeds = self._pgot_embed_caption(caption_input_ids, model_device, dtype)
+        null_bg_embeds = self._pgot_embed_null_bg(B, model_device, dtype)
         register_embeds = self.pgot_register_embeddings.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
         n_rae = self.get_model().latent_queries.shape[0]
         rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1).to(
@@ -356,6 +415,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             num_image_tokens=img_features.shape[1],
             n_register=self.pgot_n_register,
             n_rae_query=n_rae,
+            n_null_bg=null_bg_embeds.shape[1],
         )
 
         # 4) Concat sequence
@@ -364,6 +424,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 sys_p, sys_s,
                 user_p, img_features.to(dtype=dtype), user_s,
                 asst_p, caption_embeds, asst_s,
+                null_bg_embeds,
                 register_embeds,
                 rae_embeds,
             ],
@@ -429,16 +490,61 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             temperature=attn_temp,
             normalize_tokens=attn_ln,
         )
+        null_bg_hidden = hidden[:, positions["null_bg_s"]:positions["null_bg_e"], :]
+        null_bg_logits = None
+        if null_bg_hidden.shape[1] > 0:
+            null_bg_logits = compute_per_ovt_mask_logits(
+                ovt_hidden=null_bg_hidden,
+                img_hidden=img_hidden,
+                temperature=attn_temp,
+                normalize_tokens=attn_ln,
+            )
         ce_temp = float(getattr(self.config, "pgot_mask_ce_temperature", 1.0))
-        # Object-level competition CE over {K objects, register-background}.
-        loss_mask_ce = compute_competition_ce_loss(
-            ovt_logits=ovt_logits,
-            reg_logits=reg_logits,
-            gt_masks_per_ovt=gt_masks_per_ovt,
-            ovt_valid_mask=ovt_valid_mask,
-            n_ovt_per_object=self.pgot_n_ovt_per_object,
-            temperature=ce_temp,
-        )
+        use_null_bg = bool(getattr(self.config, "pgot_use_null_bg_competition", False))
+        mask_ce_w = float(getattr(self.config, "pgot_mask_ce_weight", 1.0))
+        mask_fg_w = float(getattr(self.config, "pgot_mask_fg_weight", 0.0))
+        mask_outside_w = float(getattr(self.config, "pgot_mask_outside_weight", 0.0))
+        mask_ce_aux_w = float(getattr(self.config, "pgot_mask_aux_competition_weight", 0.0))
+        mask_bce_w = float(getattr(self.config, "pgot_mask_bce_weight", 0.0))
+        mask_tversky_w = float(getattr(self.config, "pgot_mask_tversky_weight", 0.0))
+        mask_spatial_outside_w = float(getattr(self.config, "pgot_mask_spatial_outside_weight", 0.0))
+
+        zero = ovt_logits.new_zeros(())
+        loss_mask_ce = zero
+        loss_mask_fg = ovt_logits.new_zeros(())
+        loss_mask_outside = ovt_logits.new_zeros(())
+        null_bg_prob_on_fg = ovt_logits.new_zeros(())
+        thing_prob_on_bg = ovt_logits.new_zeros(())
+        thing_objects_mean = ovt_logits.new_zeros(())
+        need_owner_loss = (mask_ce_w > 0.0) or (mask_fg_w > 0.0) or (mask_outside_w > 0.0)
+        if use_null_bg and need_owner_loss:
+            if null_bg_logits is None:
+                raise ValueError("pgot_use_null_bg_competition=True requires pgot_n_null_bg > 0.")
+            null_losses = compute_null_bg_competition_losses(
+                ovt_logits=ovt_logits,
+                null_bg_logits=null_bg_logits,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+                ovt_is_thing=ovt_is_thing,
+                n_ovt_per_object=self.pgot_n_ovt_per_object,
+                temperature=ce_temp,
+            )
+            loss_mask_ce = null_losses["loss_owner"]
+            loss_mask_fg = null_losses["loss_fg"]
+            loss_mask_outside = null_losses["loss_outside"]
+            null_bg_prob_on_fg = null_losses["bg_prob_on_fg"]
+            thing_prob_on_bg = null_losses["thing_prob_on_bg"]
+            thing_objects_mean = null_losses["thing_object_count"]
+        elif (not use_null_bg) and mask_ce_w > 0.0:
+            # Object-level competition CE over {K objects, register-background}.
+            loss_mask_ce = compute_competition_ce_loss(
+                ovt_logits=ovt_logits,
+                reg_logits=reg_logits,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+                n_ovt_per_object=self.pgot_n_ovt_per_object,
+                temperature=ce_temp,
+            )
 
         # ───── v6a: auxiliary competition CE on last-layer Q/K projections ────
         # Diagnosis of v5: competition only at the *loss* (CE) on top of
@@ -450,8 +556,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         # flows back into q_proj/k_proj LoRA -> the LLM's attention itself is
         # nudged toward competition-friendly projections.
         loss_mask_ce_aux = loss_mask_ce.new_zeros(())
-        aux_w = float(getattr(self.config, "pgot_mask_aux_competition_weight", 0.0))
-        if aux_w > 0.0:
+        if mask_ce_aux_w > 0.0 and not use_null_bg:
             try:
                 last_attn = self.model.layers[-1].self_attn
                 head_dim = int(getattr(last_attn, "head_dim", ovt_hidden.shape[-1] // 16))
@@ -476,20 +581,43 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 # head_dim missing, dtype issue), drop aux silently this step.
                 loss_mask_ce_aux = loss_mask_ce.new_zeros(())
 
-        loss_mask_bce = compute_mask_bce_loss(
-            ovt_logits=ovt_logits,
-            gt_masks_per_ovt=gt_masks_per_ovt,
-            ovt_valid_mask=ovt_valid_mask,
-        )
-        tversky_alpha = float(getattr(self.config, "pgot_mask_tversky_alpha", 0.5))
-        tversky_beta = float(getattr(self.config, "pgot_mask_tversky_beta", 0.5))
-        loss_mask_tversky = compute_mask_tversky_loss(
-            ovt_logits=ovt_logits,
-            gt_masks_per_ovt=gt_masks_per_ovt,
-            ovt_valid_mask=ovt_valid_mask,
-            alpha=tversky_alpha,
-            beta=tversky_beta,
-        )
+        loss_mask_bce = zero
+        if mask_bce_w > 0.0:
+            loss_mask_bce = compute_mask_bce_loss(
+                ovt_logits=ovt_logits,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+            )
+
+        loss_mask_spatial_outside = zero
+        spatial_self_mass = zero
+        spatial_other_mass = zero
+        spatial_neutral_mass = zero
+        if mask_spatial_outside_w > 0.0:
+            spatial_temp = float(getattr(self.config, "pgot_mask_spatial_temperature", 1.0))
+            spatial_losses = compute_spatial_outside_attention_loss(
+                ovt_logits=ovt_logits,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+                n_ovt_per_object=self.pgot_n_ovt_per_object,
+                temperature=spatial_temp,
+            )
+            loss_mask_spatial_outside = spatial_losses["loss"]
+            spatial_self_mass = spatial_losses["self_mass"]
+            spatial_other_mass = spatial_losses["other_mass"]
+            spatial_neutral_mass = spatial_losses["neutral_mass"]
+
+        loss_mask_tversky = zero
+        if mask_tversky_w > 0.0:
+            tversky_alpha = float(getattr(self.config, "pgot_mask_tversky_alpha", 0.5))
+            tversky_beta = float(getattr(self.config, "pgot_mask_tversky_beta", 0.5))
+            loss_mask_tversky = compute_mask_tversky_loss(
+                ovt_logits=ovt_logits,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+                alpha=tversky_alpha,
+                beta=tversky_beta,
+            )
 
         # 10) L3: rectified-flow reconstruction (rae_hidden -> diff_head) with CFG dropping
         cfg_drop_rate = float(getattr(self.config, "pgot_cfg_drop_rate", 0.0))
@@ -524,18 +652,16 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
 
         # 12) Combine
         lm_w = float(getattr(self.config, "pgot_lm_loss_weight", 1.0))
-        mask_ce_w = float(getattr(self.config, "pgot_mask_ce_weight", 1.0))
-        mask_bce_w = float(getattr(self.config, "pgot_mask_bce_weight", 0.0))
-        mask_tversky_w = float(getattr(self.config, "pgot_mask_tversky_weight", 0.0))
         recon_w = float(getattr(self.config, "pgot_recon_loss_weight", 1.0))
-        # v6a aux competition weight: 0 disables; v6 default ~0.5
-        mask_ce_aux_w = float(getattr(self.config, "pgot_mask_aux_competition_weight", 0.0))
 
         loss_mask = (
             mask_ce_w * loss_mask_ce
+            + mask_fg_w * loss_mask_fg
+            + mask_outside_w * loss_mask_outside
             + mask_ce_aux_w * loss_mask_ce_aux
             + mask_bce_w * loss_mask_bce
             + mask_tversky_w * loss_mask_tversky
+            + mask_spatial_outside_w * loss_mask_spatial_outside
         )
         total_loss = (
             lm_w * loss_lm
@@ -555,17 +681,38 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_n_objects_mean = ovt_valid_mask.float().sum(dim=-1).mean().detach() / max(
             self.pgot_n_ovt_per_object, 1
         )
+        details = {}
+        if mask_ce_w > 0.0:
+            details["loss_mask_ce"] = loss_mask_ce.detach()
+            details["loss_mask_owner"] = loss_mask_ce.detach()
+        if mask_fg_w > 0.0:
+            details["loss_mask_fg"] = loss_mask_fg.detach()
+        if mask_outside_w > 0.0:
+            details["loss_mask_outside"] = loss_mask_outside.detach()
+        if mask_ce_aux_w > 0.0:
+            details["loss_mask_ce_aux"] = loss_mask_ce_aux.detach()
+        if mask_bce_w > 0.0:
+            details["loss_mask_bce"] = loss_mask_bce.detach()
+        if mask_tversky_w > 0.0:
+            details["loss_mask_tversky"] = loss_mask_tversky.detach()
+        if mask_spatial_outside_w > 0.0:
+            details["loss_mask_spatial_outside"] = loss_mask_spatial_outside.detach()
+            details["spatial_self_mass"] = spatial_self_mass.detach()
+            details["spatial_other_mass"] = spatial_other_mass.detach()
+            details["spatial_neutral_mass"] = spatial_neutral_mass.detach()
+        if use_null_bg and need_owner_loss:
+            details["null_bg_prob_on_fg"] = null_bg_prob_on_fg.detach()
+            details["thing_prob_on_bg"] = thing_prob_on_bg.detach()
+            details["thing_objects_mean"] = thing_objects_mean.detach()
+        self.pgot_loss_details = details
 
         info = {
             "loss_lm": loss_lm.detach(),
             "loss_mask": loss_mask.detach(),
-            "loss_mask_ce": loss_mask_ce.detach(),
-            "loss_mask_ce_aux": loss_mask_ce_aux.detach(),
-            "loss_mask_bce": loss_mask_bce.detach(),
-            "loss_mask_tversky": loss_mask_tversky.detach(),
             "loss_recon": loss_recon.detach(),
             "loss_contrastive": loss_contrastive.detach(),
         }
+        info.update(details)
         return total_loss, info
 
     # ------------------------------------------------------------------

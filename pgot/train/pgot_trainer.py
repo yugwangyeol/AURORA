@@ -28,6 +28,7 @@ class PGOTModelArguments:
 
     # PGOT-specific config
     pgot_n_register: int = field(default=64)
+    pgot_n_null_bg: int = field(default=1)
     pgot_n_ovt_per_object: int = field(default=2)
     pgot_max_objects: int = field(default=50)
     pgot_rae_bidirectional: bool = field(default=False)
@@ -46,6 +47,9 @@ class PGOTModelArguments:
     # back-compat but default to 0 weight.
     pgot_mask_ce_weight: float = field(default=1.0)
     pgot_mask_ce_temperature: float = field(default=1.0)
+    pgot_use_null_bg_competition: bool = field(default=False)
+    pgot_mask_fg_weight: float = field(default=0.0)
+    pgot_mask_outside_weight: float = field(default=0.0)
     # v6a: auxiliary competition CE on last-layer q_proj/k_proj projections.
     # Gradient flows back into the LLM's own attention projections (LoRA), nudging
     # them toward competition-friendly Q/K geometry. 0 disables; v6 default ~0.5.
@@ -54,6 +58,10 @@ class PGOTModelArguments:
     pgot_mask_tversky_weight: float = field(default=0.0)
     pgot_mask_tversky_alpha: float = field(default=0.5)
     pgot_mask_tversky_beta: float = field(default=0.5)
+    # v8: spatial softmax over patches per OVT, penalizing attention mass on
+    # every other annotated thing/stuff region.
+    pgot_mask_spatial_outside_weight: float = field(default=0.0)
+    pgot_mask_spatial_temperature: float = field(default=1.0)
 
     # CFG: randomly drop the rae_hidden condition during training so diff_head learns
     # an unconditional path; at inference we use guidance_scale > 1.
@@ -208,6 +216,11 @@ def freeze_for_pgot(
         model.pgot_register_embeddings.requires_grad_(True)
         n_trainable += model.pgot_register_embeddings.numel()
 
+    # V7 null-bg segmentation owner
+    if hasattr(model, "pgot_null_bg_embeddings"):
+        model.pgot_null_bg_embeddings.requires_grad_(True)
+        n_trainable += model.pgot_null_bg_embeddings.numel()
+
     # rae_query (latent_queries inside model.get_model())
     inner = model.get_model() if hasattr(model, "get_model") else model
     if hasattr(inner, "latent_queries") and inner.latent_queries is not None:
@@ -315,6 +328,7 @@ class PGOTTrainer(Trainer):
         # Per-eval-call running sums of sub-losses (loss_lm, loss_mask, loss_recon, ...)
         self._eval_sub_loss_sums: Dict[str, float] = {}
         self._eval_sub_loss_count: int = 0
+        self._last_eval_sub_metrics: Dict[str, float] = {}
         self._eval_decoder = None  # lazy-loaded siglip2 decoder for image recon logging
 
     # ----- Optimizer with grouped LRs -----
@@ -352,6 +366,8 @@ class PGOTTrainer(Trainer):
         diff_body_names = dit_adaln_names | dit_body_names  # for assigned-set bookkeeping below
         register_names = {n for n, p in opt_model.named_parameters()
                           if p.requires_grad and "pgot_register_embeddings" in n}
+        null_bg_names = {n for n, p in opt_model.named_parameters()
+                         if p.requires_grad and "pgot_null_bg_embeddings" in n}
         rae_query_names = {n for n, p in opt_model.named_parameters()
                            if p.requires_grad and "latent_queries" in n}
         llm_names = {n for n, p in opt_model.named_parameters()
@@ -359,7 +375,7 @@ class PGOTTrainer(Trainer):
                                              or n.startswith("model.model.layers.")
                                              or "lora_" in n)}
 
-        assigned = projector_names | diff_body_names | register_names | rae_query_names | llm_names
+        assigned = projector_names | diff_body_names | register_names | null_bg_names | rae_query_names | llm_names
 
         groups = []
         # default group (e.g., embed_tokens trainable rows, lm_head)
@@ -382,6 +398,9 @@ class PGOTTrainer(Trainer):
         if register_names:
             groups.append({"params": [p for n, p in opt_model.named_parameters() if n in register_names],
                            "weight_decay": 0.0, "lr": register_lr})
+        if null_bg_names:
+            groups.append({"params": [p for n, p in opt_model.named_parameters() if n in null_bg_names],
+                           "weight_decay": 0.0, "lr": register_lr})
         if rae_query_names:
             groups.append({"params": [p for n, p in opt_model.named_parameters() if n in rae_query_names],
                            "weight_decay": 0.0, "lr": rae_query_lr})
@@ -391,10 +410,10 @@ class PGOTTrainer(Trainer):
 
         logger.info(
             "[PGOT] optimizer | base=%g diff_head=%g dit_body=%g register=%g rae_query=%g llm=%g | "
-            "projector=%d dit_adaln=%d dit_body=%d register=%d rae_query=%d llm=%d",
+            "projector=%d dit_adaln=%d dit_body=%d register=%d null_bg=%d rae_query=%d llm=%d",
             self.args.learning_rate, diff_head_lr, dit_body_lr, register_lr, rae_query_lr, llm_lr,
             len(projector_names), len(dit_adaln_names), len(dit_body_names), len(register_names),
-            len(rae_query_names), len(llm_names),
+            len(null_bg_names), len(rae_query_names), len(llm_names),
         )
 
         optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(self.args)
@@ -452,6 +471,7 @@ class PGOTTrainer(Trainer):
             caption_labels=inputs.get("caption_labels"),
             ovt_positions_in_caption=inputs["ovt_positions_in_caption"],
             ovt_valid_mask=inputs["ovt_valid_mask"],
+            ovt_is_thing=inputs.get("ovt_is_thing"),
             gt_masks_per_ovt=inputs["gt_masks_per_ovt"],
             pgot_contrastive_weight=contrastive_w,
         )
@@ -467,6 +487,9 @@ class PGOTTrainer(Trainer):
             ("n_objects_mean", "pgot_n_objects_mean"),
         ]:
             val = getattr(inner, attr, None)
+            if val is not None and torch.is_tensor(val):
+                self._custom_loss_buffer[key] = float(val.detach().cpu().item())
+        for key, val in getattr(inner, "pgot_loss_details", {}).items():
             if val is not None and torch.is_tensor(val):
                 self._custom_loss_buffer[key] = float(val.detach().cpu().item())
         self._custom_loss_buffer["contrastive_w"] = contrastive_w
@@ -524,6 +547,15 @@ class PGOTTrainer(Trainer):
         if self._eval_sub_loss_count > 0:
             for k, total in self._eval_sub_loss_sums.items():
                 output.metrics[f"{metric_key_prefix}_{k}"] = total / self._eval_sub_loss_count
+            # Keep a copy so evaluate() can re-inject the metrics right before
+            # Trainer.log(). This is defensive for HF internals/callbacks that
+            # may snapshot metrics before our evaluation_loop override returns.
+            self._last_eval_sub_metrics = {
+                f"{metric_key_prefix}_{k}": total / self._eval_sub_loss_count
+                for k, total in self._eval_sub_loss_sums.items()
+            }
+        else:
+            self._last_eval_sub_metrics = {}
 
         # Image recon logging (rank 0 only, wandb only, best-effort)
         try:
@@ -532,6 +564,24 @@ class PGOTTrainer(Trainer):
             logger.warning("[PGOT/eval] recon image logging failed (non-fatal): %s", exc)
 
         return output
+
+    def evaluate(self, eval_dataset=None, ignore_keys=None, metric_key_prefix: str = "eval"):
+        metrics = super().evaluate(
+            eval_dataset=eval_dataset,
+            ignore_keys=ignore_keys,
+            metric_key_prefix=metric_key_prefix,
+        )
+        # Explicitly log eval sub-losses once more after the parent evaluate()
+        # path. Duplicate keys at the same step are harmless in wandb and keep
+        # train-time eval panels populated even if HF internals/callbacks change.
+        extra = {
+            k: v for k, v in getattr(self, "_last_eval_sub_metrics", {}).items()
+            if k.startswith(f"{metric_key_prefix}_")
+        }
+        if extra:
+            metrics.update(extra)
+            self.log(extra)
+        return metrics
 
     # ----- Helper: load siglip2 decoder lazily -----
     def _get_eval_decoder(self):
@@ -625,9 +675,20 @@ class PGOTTrainer(Trainer):
                 color = torch.tensor([1.0, 0.15, 0.15]).view(3, 1, 1)
                 overlay = source_pixels[b] * (1 - 0.6 * m) + color * 0.6 * m
                 tiles.append(overlay.clamp(0.0, 1.0))
+            if out.get("null_bg_logits") is not None:
+                bg = torch.sigmoid(out["null_bg_logits"][b, 0].float()).reshape(side, side)
+                bg = torch.nn.functional.interpolate(
+                    bg.unsqueeze(0).unsqueeze(0), size=(H, W),
+                    mode="bilinear", align_corners=False,
+                )[0, 0].cpu().clamp(0.0, 1.0)
+                color = torch.tensor([0.1, 0.35, 1.0]).view(3, 1, 1)
+                overlay = source_pixels[b] * (1 - 0.55 * bg) + color * 0.55 * bg
+                tiles.append(overlay.clamp(0.0, 1.0))
             panel = torch.cat(tiles, dim=2)
             images_by_sample[b] = panel.permute(1, 2, 0).numpy()
             captions = " | ".join(chunk_labels[b][:8]) if b < len(chunk_labels) else ""
+            if out.get("null_bg_logits") is not None:
+                captions = captions + " | null-bg"
             labels_by_sample.append(captions)
         return {"images_by_sample": images_by_sample, "labels_by_sample": labels_by_sample}
 
@@ -696,6 +757,16 @@ class PGOTTrainer(Trainer):
                 tiles.append(overlay.clamp(0.0, 1.0))
                 lbl = chunk_labels[b][k] if k < len(chunk_labels[b]) else f"obj{k}"
                 captions.append(lbl[:32])
+            if out.get("null_bg_logits") is not None:
+                bg = torch.sigmoid(out["null_bg_logits"][b, 0].float()).reshape(side, side)
+                bg = torch.nn.functional.interpolate(
+                    bg.unsqueeze(0).unsqueeze(0), size=(H, W),
+                    mode="bilinear", align_corners=False,
+                )[0, 0].cpu().clamp(0.0, 1.0)
+                color = torch.tensor([0.1, 0.35, 1.0]).view(3, 1, 1)
+                overlay = source_pixels[b] * (1 - 0.55 * bg) + color * 0.55 * bg
+                tiles.append(overlay.clamp(0.0, 1.0))
+                captions.append("null-bg")
 
             # Concatenate horizontally
             panel = torch.cat(tiles, dim=2)
@@ -795,6 +866,8 @@ class PGOTTrainer(Trainer):
                 caption_input_ids=batch["caption_input_ids"].to(device),
                 caption_attention_mask=batch["caption_attention_mask"].to(device),
                 target_images=batch["target_images"].to(device),
+                ovt_positions_in_caption=batch["ovt_positions_in_caption"].to(device),
+                ovt_valid_mask=batch["ovt_valid_mask"].to(device),
             )
         finally:
             if was_training:

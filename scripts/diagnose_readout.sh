@@ -1,28 +1,22 @@
 #!/bin/bash
 # =============================================================================
-# PGOT — Post-hoc readout sweep (NO retraining).
-# Single forward over the eval set, then sweep readout configs to maximize fARI.
+# PGOT Step-0 readout diagnostics.
 #
 # Usage:
-#   bash scripts/sweep_readout.sh                       # 500-sample diagnostic
-#   MAX_SAMPLES=2338 bash scripts/sweep_readout.sh      # full set
+#   bash scripts/diagnose_readout.sh
+#   MAX_SAMPLES=2338 bash scripts/diagnose_readout.sh
 # =============================================================================
 set -e
 
 MODEL_PATH="${MODEL_PATH:-/home/jovyan/PGOT/checkpoints/pgot_main_v3/checkpoint-14000}"
 VAL_JSONL="${VAL_JSONL:-/home/jovyan/PGOT/data/pgot_val.jsonl}"
-OUTPUT_DIR="${OUTPUT_DIR:-/home/jovyan/PGOT/outputs/sweep_readout_$(basename ${MODEL_PATH})}"
+OUTPUT_DIR="${OUTPUT_DIR:-/home/jovyan/PGOT/outputs/diagnose_readout_$(basename "${MODEL_PATH}")}"
 MAX_SAMPLES="${MAX_SAMPLES:-500}"
 BATCH_SIZE="${BATCH_SIZE:-4}"
-GT_SOURCE="${GT_SOURCE:-coco_instance}"
 GRID_SIZE="${GRID_SIZE:-32}"
-
-# Sweep grids (override-able)
-BG_THRESHOLDS="${BG_THRESHOLDS:-0.0,0.01,0.03,0.05,0.10,0.15,0.20}"
-TEMPS="${TEMPS:-0.3,0.5,0.7,1.0}"
-MERGES="${MERGES:-mean,max}"
-COMPETITIONS="${COMPETITIONS:-sigmoid,softmax}"
-USE_BGS="${USE_BGS:-1,0}"
+MERGE="${MERGE:-max}"
+TEMP="${TEMP:-1.0}"
+BG_THRESHOLDS="${BG_THRESHOLDS:-0.05,0.10,0.15,0.20,0.30}"
 
 mkdir -p "${OUTPUT_DIR}"
 
@@ -37,19 +31,15 @@ export LD_LIBRARY_PATH="${CONDA_LIB}:${LD_LIBRARY_PATH}"
 export PYTHONNOUSERSITE=1
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 
-echo "===== PGOT Post-hoc Readout Sweep ====="
+echo "===== PGOT Step-0 Readout Diagnostics ====="
 echo "Ckpt:        ${MODEL_PATH}"
-echo "GT source:   ${GT_SOURCE}"
 echo "Max samples: ${MAX_SAMPLES}"
+echo "merge/temp:  ${MERGE} / ${TEMP}"
 echo "bg_thr:      ${BG_THRESHOLDS}"
-echo "temps:       ${TEMPS}"
-echo "merges:      ${MERGES}"
-echo "comps:       ${COMPETITIONS}"
-echo "use_bgs:     ${USE_BGS}"
 echo "Output:      ${OUTPUT_DIR}"
-echo "======================================="
+echo "==========================================="
 
-"${PYTHON}" "${PROJECT_ROOT}/pgot/eval/sweep_readout.py" \
+"${PYTHON}" "${PROJECT_ROOT}/pgot/eval/diagnose_readout.py" \
     --model_path "${MODEL_PATH}" \
     --val_jsonl "${VAL_JSONL}" \
     --output_dir "${OUTPUT_DIR}" \
@@ -60,13 +50,8 @@ echo "======================================="
     --max_caption_tokens 2048 \
     --n_ovt_per_object 2 \
     --max_objects 50 \
-    --gt_source "${GT_SOURCE}" \
     --dtype fp32 \
+    --merge "${MERGE}" \
+    --temp "${TEMP}" \
     --bg_thresholds "${BG_THRESHOLDS}" \
-    --temps "${TEMPS}" \
-    --merges "${MERGES}" \
-    --competitions "${COMPETITIONS}" \
-    --use_bgs "${USE_BGS}" \
-    --topk_full_metric "${TOPK_FULL_METRIC:-5}" \
-    ${PARETO:+--pareto} \
-    2>&1 | tee "${OUTPUT_DIR}/sweep.log"
+    2>&1 | tee "${OUTPUT_DIR}/diagnose.log"
