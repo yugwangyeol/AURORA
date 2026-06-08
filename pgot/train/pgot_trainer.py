@@ -62,6 +62,15 @@ class PGOTModelArguments:
     # every other annotated thing/stuff region.
     pgot_mask_spatial_outside_weight: float = field(default=0.0)
     pgot_mask_spatial_temperature: float = field(default=1.0)
+    # v8.2: patch-axis softmax + outside-only log penalty:
+    # -sum_{outside target mask} log(1 - attention).
+    pgot_mask_spatial_outside_log_weight: float = field(default=0.0)
+    pgot_mask_spatial_outside_log_temperature: float = field(default=1.0)
+    # v8.1: same outside objective, but scores come from selected LLM layers'
+    # own Q/K projections: OVT query -> image-patch key, softmax over patches.
+    pgot_mask_llm_qk_outside_weight: float = field(default=0.0)
+    pgot_mask_llm_qk_outside_temperature: float = field(default=1.0)
+    pgot_mask_llm_qk_outside_layers: str = field(default="last4")
 
     # CFG: randomly drop the rae_hidden condition during training so diff_head learns
     # an unconditional path; at inference we use guidance_scale > 1.
@@ -492,7 +501,8 @@ class PGOTTrainer(Trainer):
         for key, val in getattr(inner, "pgot_loss_details", {}).items():
             if val is not None and torch.is_tensor(val):
                 self._custom_loss_buffer[key] = float(val.detach().cpu().item())
-        self._custom_loss_buffer["contrastive_w"] = contrastive_w
+        if target_w > 0.0 or contrastive_w > 0.0:
+            self._custom_loss_buffer["contrastive_w"] = contrastive_w
         self._loss_count_buffer += 1
 
         return (loss, outputs) if return_outputs else loss
@@ -622,8 +632,8 @@ class PGOTTrainer(Trainer):
             return None
 
     # ----- Helper: build per-sample attention panels (returned as numpy arrays
-    # so the caller can put them in a wandb.Table cell). Each panel is
-    # [source | OVT_1 overlay | OVT_2 overlay | ... ] horizontally. -----
+    # so the caller can put them in a wandb.Table cell). BCE and spatial losses
+    # use different normalizations, so log their views separately. -----
     def _build_pgot_attention_overlays_pack(self, inner, batch, n_images: int, source_pixels: torch.Tensor):
         from pgot.eval.pgot_inference import pgot_forward_eval
         device = next(inner.parameters()).device
@@ -640,6 +650,7 @@ class PGOTTrainer(Trainer):
             caption_attention_mask=_slice(batch["caption_attention_mask"]).to(device),
             ovt_positions_in_caption=ovt_pos.to(device),
             ovt_valid_mask=ovt_valid.to(device),
+            return_llm_qk_maps=False,
         )
         ovt_logits = out["ovt_logits"]
         n_per_obj = int(inner.pgot_n_ovt_per_object)
@@ -648,7 +659,32 @@ class PGOTTrainer(Trainer):
         K = M // n_per_obj
         if K * n_per_obj < M:
             ovt_logits = ovt_logits[:, : K * n_per_obj]
-        per_obj = torch.sigmoid(ovt_logits.float()).reshape(B, K, n_per_obj, P).mean(dim=2)
+
+        bce_enabled = float(getattr(inner.config, "pgot_mask_bce_weight", 0.0)) > 0.0
+        spatial_enabled = (
+            float(getattr(inner.config, "pgot_mask_spatial_outside_weight", 0.0)) > 0.0
+            or float(getattr(inner.config, "pgot_mask_spatial_outside_log_weight", 0.0)) > 0.0
+        )
+        map_modes = {}
+        if bce_enabled or not spatial_enabled:
+            map_modes["sigmoid"] = (
+                torch.sigmoid(ovt_logits.float())
+                .reshape(B, K, n_per_obj, P)
+                .mean(dim=2)
+            )
+        if spatial_enabled:
+            spatial_temp = float(
+                getattr(
+                    inner.config,
+                    "pgot_mask_spatial_outside_log_temperature",
+                    getattr(inner.config, "pgot_mask_spatial_temperature", 1.0),
+                )
+            )
+            map_modes["spatial"] = (
+                torch.softmax(ovt_logits.float() / max(spatial_temp, 1e-6), dim=-1)
+                .reshape(B, K, n_per_obj, P)
+                .mean(dim=2)
+            )
         per_obj_valid = ovt_valid.reshape(B, K, n_per_obj).any(dim=2)
 
         chunk_labels = self._decode_chunk_labels(
@@ -661,36 +697,32 @@ class PGOTTrainer(Trainer):
         )
 
         H, W = source_pixels.shape[-2:]
-        images_by_sample = {}
+        images_by_mode = {mode: {} for mode in map_modes}
         labels_by_sample = []
         for b in range(min(B, n_images)):
             valid_obj_idx = per_obj_valid[b].nonzero(as_tuple=False).flatten().tolist()
-            tiles = [source_pixels[b]]
-            for k in valid_obj_idx[:8]:
-                m = per_obj[b, k].reshape(side, side)
-                m = torch.nn.functional.interpolate(
-                    m.unsqueeze(0).unsqueeze(0), size=(H, W),
-                    mode="bilinear", align_corners=False,
-                )[0, 0].cpu().clamp(0.0, 1.0)
-                color = torch.tensor([1.0, 0.15, 0.15]).view(3, 1, 1)
-                overlay = source_pixels[b] * (1 - 0.6 * m) + color * 0.6 * m
-                tiles.append(overlay.clamp(0.0, 1.0))
-            if out.get("null_bg_logits") is not None:
-                bg = torch.sigmoid(out["null_bg_logits"][b, 0].float()).reshape(side, side)
-                bg = torch.nn.functional.interpolate(
-                    bg.unsqueeze(0).unsqueeze(0), size=(H, W),
-                    mode="bilinear", align_corners=False,
-                )[0, 0].cpu().clamp(0.0, 1.0)
-                color = torch.tensor([0.1, 0.35, 1.0]).view(3, 1, 1)
-                overlay = source_pixels[b] * (1 - 0.55 * bg) + color * 0.55 * bg
-                tiles.append(overlay.clamp(0.0, 1.0))
-            panel = torch.cat(tiles, dim=2)
-            images_by_sample[b] = panel.permute(1, 2, 0).numpy()
+            for mode, per_obj in map_modes.items():
+                tiles = [source_pixels[b]]
+                for k in valid_obj_idx[:8]:
+                    m = per_obj[b, k].reshape(side, side)
+                    m = torch.nn.functional.interpolate(
+                        m.unsqueeze(0).unsqueeze(0), size=(H, W),
+                        mode="bilinear", align_corners=False,
+                    )[0, 0].cpu()
+                    if mode == "spatial":
+                        # Spatial-softmax probabilities are O(1/P). Normalize
+                        # each map only for visibility; the underlying loss and
+                        # standalone eval still use the unscaled probabilities.
+                        m = m / m.amax().clamp_min(1e-6)
+                    m = m.clamp(0.0, 1.0)
+                    color = torch.tensor([1.0, 0.15, 0.15]).view(3, 1, 1)
+                    overlay = source_pixels[b] * (1 - 0.6 * m) + color * 0.6 * m
+                    tiles.append(overlay.clamp(0.0, 1.0))
+                panel = torch.cat(tiles, dim=2)
+                images_by_mode[mode][b] = panel.permute(1, 2, 0).numpy()
             captions = " | ".join(chunk_labels[b][:8]) if b < len(chunk_labels) else ""
-            if out.get("null_bg_logits") is not None:
-                captions = captions + " | null-bg"
             labels_by_sample.append(captions)
-        return {"images_by_sample": images_by_sample, "labels_by_sample": labels_by_sample}
+        return {"images_by_mode": images_by_mode, "labels_by_sample": labels_by_sample}
 
     # Kept for back-compat with any caller that still uses the old per-key path.
     def _build_pgot_attention_overlays(self, inner, batch, n_images: int, source_pixels: torch.Tensor):
@@ -716,8 +748,10 @@ class PGOTTrainer(Trainer):
             caption_attention_mask=_slice(batch["caption_attention_mask"]).to(device),
             ovt_positions_in_caption=ovt_pos.to(device),
             ovt_valid_mask=ovt_valid.to(device),
+            return_llm_qk_maps=True,
         )
         ovt_logits = out["ovt_logits"]            # (B, M, P)
+        attn_maps = out.get("llm_qk_attn_maps", None)
         n_per_obj = int(inner.pgot_n_ovt_per_object)
         B, M, P = ovt_logits.shape
         side = int(round(P ** 0.5))
@@ -726,7 +760,29 @@ class PGOTTrainer(Trainer):
         K = M // n_per_obj
         if K * n_per_obj < M:
             ovt_logits = ovt_logits[:, : K * n_per_obj]
-        per_obj = torch.sigmoid(ovt_logits.float()).reshape(B, K, n_per_obj, P).mean(dim=2)  # (B, K, P)
+            if attn_maps is not None:
+                attn_maps = attn_maps[:, : K * n_per_obj]
+        uses_spatial_softmax = (
+            float(getattr(inner.config, "pgot_mask_spatial_outside_weight", 0.0)) > 0.0
+            or float(getattr(inner.config, "pgot_mask_spatial_outside_log_weight", 0.0)) > 0.0
+        )
+        if attn_maps is not None:
+            per_obj = attn_maps.float().reshape(B, K, n_per_obj, P).mean(dim=2)  # (B, K, P)
+        elif uses_spatial_softmax:
+            spatial_temp = float(
+                getattr(
+                    inner.config,
+                    "pgot_mask_spatial_outside_log_temperature",
+                    getattr(inner.config, "pgot_mask_spatial_temperature", 1.0),
+                )
+            )
+            per_ovt = torch.softmax(
+                ovt_logits.float() / max(spatial_temp, 1e-6),
+                dim=-1,
+            )
+            per_obj = per_ovt.reshape(B, K, n_per_obj, P).mean(dim=2)
+        else:
+            per_obj = torch.sigmoid(ovt_logits.float()).reshape(B, K, n_per_obj, P).mean(dim=2)  # (B, K, P)
         per_obj_valid = ovt_valid.reshape(B, K, n_per_obj).any(dim=2)  # (B, K)
 
         # Decode caption chunks (one short label per object) using tokenizer
@@ -906,31 +962,36 @@ class PGOTTrainer(Trainer):
         # Each row is a sample at the current step. wandb UI shows two-axis navigation:
         # the run-history step slider + the table's sample column → "step × sample" grid.
         n = min(recon_pixels.shape[0], gt_pixels.shape[0], source_pixels.shape[0])
-        attn_overlays = {}
+        sigmoid_overlays = {}
+        spatial_overlays = {}
         chunk_labels_by_sample = [""] * n
         try:
             overlays_pack = self._build_pgot_attention_overlays_pack(
                 inner=inner, batch=batch, n_images=n_images, source_pixels=source_pixels,
             )
-            attn_overlays = overlays_pack["images_by_sample"]
+            images_by_mode = overlays_pack["images_by_mode"]
+            sigmoid_overlays = images_by_mode.get("sigmoid", {})
+            spatial_overlays = images_by_mode.get("spatial", {})
             chunk_labels_by_sample = overlays_pack["labels_by_sample"]
         except Exception as e:
             logger.warning(f"[PGOT/viz] attention overlay failed: {e}")
 
         table = wandb.Table(columns=["step", "sample", "source", "gt_decoded", "our_recon",
-                                     "attn_overlay", "chunks"])
+                                     "sigmoid_overlay", "spatial_overlay", "chunks"])
         for i in range(n):
             src_np = source_pixels[i].permute(1, 2, 0).numpy()
             gt_np  = gt_pixels[i].permute(1, 2, 0).numpy()
             rec_np = recon_pixels[i].permute(1, 2, 0).numpy()
-            attn_img = attn_overlays.get(i, None)
+            sigmoid_img = sigmoid_overlays.get(i, None)
+            spatial_img = spatial_overlays.get(i, None)
             table.add_data(
                 int(self.state.global_step),
                 i,
                 wandb.Image(src_np),
                 wandb.Image(gt_np),
                 wandb.Image(rec_np),
-                wandb.Image(attn_img) if attn_img is not None else None,
+                wandb.Image(sigmoid_img) if sigmoid_img is not None else None,
+                wandb.Image(spatial_img) if spatial_img is not None else None,
                 chunk_labels_by_sample[i] if i < len(chunk_labels_by_sample) else "",
             )
 

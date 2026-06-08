@@ -28,6 +28,7 @@ def pgot_forward_eval(
     caption_attention_mask: torch.Tensor,
     ovt_positions_in_caption: torch.Tensor,
     ovt_valid_mask: torch.Tensor,
+    return_llm_qk_maps: bool = False,
 ) -> Dict[str, torch.Tensor]:
     model.eval()
 
@@ -100,10 +101,14 @@ def pgot_forward_eval(
     )
 
     # 6) LLM forward
+    need_llm_qk_maps = bool(return_llm_qk_maps) and (
+        float(getattr(model.config, "pgot_mask_llm_qk_outside_weight", 0.0)) > 0.0
+    )
     out = model.model(
         inputs_embeds=inputs_embeds,
         attention_bias=attn_bias,
         use_cache=False,
+        output_hidden_states=need_llm_qk_maps,
         return_dict=True,
     )
     hidden = out.last_hidden_state
@@ -138,10 +143,22 @@ def pgot_forward_eval(
             normalize_tokens=_attn_ln,
         )
 
+    llm_qk_attn_maps = None
+    if need_llm_qk_maps and hasattr(model, "_compute_llm_qk_attention_maps"):
+        llm_qk_attn_maps = model._compute_llm_qk_attention_maps(
+            hidden_states=out.hidden_states,
+            positions=positions,
+            ovt_abs_positions=ovt_abs_positions,
+            ovt_valid_mask=ovt_valid_mask,
+            layers_spec=str(getattr(model.config, "pgot_mask_llm_qk_outside_layers", "last4")),
+            temperature=float(getattr(model.config, "pgot_mask_llm_qk_outside_temperature", 1.0)),
+        )
+
     result = {
         "ovt_logits": ovt_logits,
         "reg_logits": reg_logits,
         "null_bg_logits": null_bg_logits,
+        "llm_qk_attn_maps": llm_qk_attn_maps,
         "ovt_valid_mask": ovt_valid_mask,
         "rae_hidden": rae_hidden,
         "img_hidden": img_hidden,

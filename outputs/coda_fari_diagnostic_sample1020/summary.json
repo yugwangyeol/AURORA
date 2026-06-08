@@ -1,0 +1,47 @@
+{
+  "sample_index": 1020,
+  "image_id": 85772,
+  "coda_idx": 4150,
+  "model_path": "/home/jovyan/coda/pretrained/coda/coco",
+  "scores": {
+    "fARI": 0.025337833911180496,
+    "mBO": 0.32816049456596375,
+    "mIoU": 0.35340094566345215
+  },
+  "ari_parts_from_shifted_display": {
+    "foreground_pixels": 60336,
+    "same_gt_same_pred_pairs": 2346931490.0,
+    "same_gt_pairs": 3614760162.0,
+    "same_pred_pairs": 2346963866.0,
+    "expected_random_pairs": 2330451442.7145076,
+    "max_possible_pairs": 2980862014.0,
+    "fari": 0.02533791425456189
+  },
+  "gt_ids": [
+    1,
+    2
+  ],
+  "pred_ids_on_gt_foreground": [
+    1,
+    3,
+    4,
+    5,
+    7
+  ],
+  "contingency": [
+    [
+      46530,
+      13487,
+      76,
+      24,
+      6
+    ],
+    [
+      0,
+      0,
+      213,
+      0,
+      0
+    ]
+  ]
+}

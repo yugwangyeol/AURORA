@@ -1,0 +1,34 @@
+2026-06-08 12:38:29 PID=1051445 __init__.py:49 setup_logging() INFO → 'standard' logger initialized.
+Using cache found in /home/jovyan/.cache/torch/hub/facebookresearch_dinov2_main
+/home/jovyan/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/swiglu_ffn.py:51: UserWarning: xFormers is not available (SwiGLU)
+  warnings.warn("xFormers is not available (SwiGLU)")
+/home/jovyan/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/attention.py:33: UserWarning: xFormers is not available (Attention)
+  warnings.warn("xFormers is not available (Attention)")
+/home/jovyan/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:40: UserWarning: xFormers is not available (Block)
+  warnings.warn("xFormers is not available (Block)")
+2026-06-08 12:38:56 PID=1051445 vision_transformer.py:125 __init__() INFO → using MLP layer as FFN
+/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/huggingface_hub/file_download.py:1142: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+loading annotations into memory...
+Done (t=14.00s)
+creating index...
+index created!
+Dataset Size:5000
+Dataset Class Num:80
+/home/jovyan/PGOT/outputs/coda_fari_diagnostic_sample1407/fari_diagnostic_dashboard.png
+{
+  "scores": {
+    "fARI": 0.6922746896743774,
+    "mBO": 0.1512511968612671,
+    "mIoU": 0.13561019632551405
+  },
+  "ari_parts": {
+    "foreground_pixels": 71848,
+    "same_gt_same_pred_pairs": 787762600.0,
+    "same_gt_pairs": 921363832.0,
+    "same_pred_pairs": 1169005446.0,
+    "expected_random_pairs": 208652874.62402013,
+    "max_possible_pairs": 1045184639.0,
+    "fari": 0.69227463921585
+  }
+}

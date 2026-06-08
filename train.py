@@ -145,6 +145,11 @@ def train():
     config.pgot_mask_outside_weight = float(model_args.pgot_mask_outside_weight)
     config.pgot_mask_spatial_outside_weight = float(model_args.pgot_mask_spatial_outside_weight)
     config.pgot_mask_spatial_temperature = float(model_args.pgot_mask_spatial_temperature)
+    config.pgot_mask_spatial_outside_log_weight = float(model_args.pgot_mask_spatial_outside_log_weight)
+    config.pgot_mask_spatial_outside_log_temperature = float(model_args.pgot_mask_spatial_outside_log_temperature)
+    config.pgot_mask_llm_qk_outside_weight = float(model_args.pgot_mask_llm_qk_outside_weight)
+    config.pgot_mask_llm_qk_outside_temperature = float(model_args.pgot_mask_llm_qk_outside_temperature)
+    config.pgot_mask_llm_qk_outside_layers = str(model_args.pgot_mask_llm_qk_outside_layers)
     config.pgot_rae_bidirectional = model_args.pgot_rae_bidirectional
     config.pgot_attention_use_layer_norm = model_args.pgot_attention_use_layer_norm
     config.pgot_attention_temperature = model_args.pgot_attention_temperature
@@ -181,6 +186,11 @@ def train():
     model.config.pgot_mask_tversky_beta = float(model_args.pgot_mask_tversky_beta)
     model.config.pgot_mask_spatial_outside_weight = float(model_args.pgot_mask_spatial_outside_weight)
     model.config.pgot_mask_spatial_temperature = float(model_args.pgot_mask_spatial_temperature)
+    model.config.pgot_mask_spatial_outside_log_weight = float(model_args.pgot_mask_spatial_outside_log_weight)
+    model.config.pgot_mask_spatial_outside_log_temperature = float(model_args.pgot_mask_spatial_outside_log_temperature)
+    model.config.pgot_mask_llm_qk_outside_weight = float(model_args.pgot_mask_llm_qk_outside_weight)
+    model.config.pgot_mask_llm_qk_outside_temperature = float(model_args.pgot_mask_llm_qk_outside_temperature)
+    model.config.pgot_mask_llm_qk_outside_layers = str(model_args.pgot_mask_llm_qk_outside_layers)
     model.config.pgot_cfg_drop_rate = float(model_args.pgot_cfg_drop_rate)
     model.config.pgot_rae_attends_caption = bool(model_args.pgot_rae_attends_caption)
     logger.info(
@@ -190,6 +200,11 @@ def train():
         f"bce={model.config.pgot_mask_bce_weight} tversky={model.config.pgot_mask_tversky_weight} "
         f"spatial_out={model.config.pgot_mask_spatial_outside_weight} "
         f"(spatial_temp={model.config.pgot_mask_spatial_temperature}) "
+        f"spatial_out_log={model.config.pgot_mask_spatial_outside_log_weight} "
+        f"(spatial_log_temp={model.config.pgot_mask_spatial_outside_log_temperature}) "
+        f"llm_qk_out={model.config.pgot_mask_llm_qk_outside_weight} "
+        f"(llm_qk_temp={model.config.pgot_mask_llm_qk_outside_temperature}, "
+        f"llm_qk_layers={model.config.pgot_mask_llm_qk_outside_layers}) "
         f"(ce_temp={model.config.pgot_mask_ce_temperature}); "
         f"null_bg={model.config.pgot_use_null_bg_competition}; cfg_drop={model.config.pgot_cfg_drop_rate}"
     )

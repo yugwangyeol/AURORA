@@ -1,0 +1,56 @@
+{
+  "sample_index": 0,
+  "image_id": 285,
+  "models": [
+    {
+      "label": "V3",
+      "path": "/home/jovyan/PGOT/checkpoints/pgot_main_v3/checkpoint-14000",
+      "readout": "threshold",
+      "merge": "mean",
+      "object_overlay": "/home/jovyan/PGOT/outputs/ovt_overlay_compare_sample0/V3_object_overlays.png",
+      "labels": [
+        "1:bear"
+      ]
+    },
+    {
+      "label": "V8",
+      "path": "/home/jovyan/PGOT/checkpoints/pgot_main_v8/checkpoint-10000",
+      "readout": "spatial",
+      "merge": "mean",
+      "object_overlay": "/home/jovyan/PGOT/outputs/ovt_overlay_compare_sample0/V8_object_overlays.png",
+      "labels": [
+        "1:bear"
+      ]
+    },
+    {
+      "label": "V8.1",
+      "path": "/home/jovyan/PGOT/checkpoints/pgot_main_v8_1_llm_qk_outside/checkpoint-6000",
+      "readout": "spatial",
+      "merge": "mean",
+      "object_overlay": "/home/jovyan/PGOT/outputs/ovt_overlay_compare_sample0/V8.1_object_overlays.png",
+      "labels": [
+        "1:bear"
+      ]
+    },
+    {
+      "label": "V9",
+      "path": "/home/jovyan/PGOT/checkpoints/pgot_main_v9_bce_spatial_out03/checkpoint-10000",
+      "readout": "threshold",
+      "merge": "mean",
+      "object_overlay": "/home/jovyan/PGOT/outputs/ovt_overlay_compare_sample0/V9_object_overlays.png",
+      "labels": [
+        "1:bear"
+      ]
+    },
+    {
+      "label": "V10",
+      "path": "/home/jovyan/PGOT/checkpoints/pgot_main_v10_bce_ce01/checkpoint-10000",
+      "readout": "threshold",
+      "merge": "mean",
+      "object_overlay": "/home/jovyan/PGOT/outputs/ovt_overlay_compare_sample0/V10_object_overlays.png",
+      "labels": [
+        "1:bear"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "sample_index": 1020,
+  "order": [
+    "GT",
+    "V3",
+    "V8.2",
+    "V8.3"
+  ],
+  "comparison_4col": "/home/jovyan/PGOT/outputs/ovt_overlay_compare_sample1020_gt_v3_v82_v83/comparison_gt_v3_v82_v83_4col.png",
+  "comparison_2x2": "/home/jovyan/PGOT/outputs/ovt_overlay_compare_sample1020_gt_v3_v82_v83/comparison_gt_v3_v82_v83_2x2.png",
+  "large_overlays": {
+    "GT": "/home/jovyan/PGOT/outputs/ovt_overlay_compare_sample1020_gt_v3_v82_v83/large_pred_overlays/GT_overlay.png",
+    "V3": "/home/jovyan/PGOT/outputs/ovt_overlay_compare_sample1020_gt_v3_v82_v83/large_pred_overlays/V3_overlay.png",
+    "V8.2": "/home/jovyan/PGOT/outputs/ovt_overlay_compare_sample1020_gt_v3_v82_v83/large_pred_overlays/V8.2_overlay.png",
+    "V8.3": "/home/jovyan/PGOT/outputs/ovt_overlay_compare_sample1020_gt_v3_v82_v83/large_pred_overlays/V8.3_overlay.png"
+  },
+  "object_overlays": {
+    "V3_object_overlays.png": "/home/jovyan/PGOT/outputs/ovt_overlay_compare_sample1020_gt_v3_v82_v83/V3_object_overlays.png",
+    "V8.2_object_overlays.png": "/home/jovyan/PGOT/outputs/ovt_overlay_compare_sample1020_gt_v3_v82_v83/V8.2_object_overlays.png",
+    "V8.3_object_overlays.png": "/home/jovyan/PGOT/outputs/ovt_overlay_compare_sample1020_gt_v3_v82_v83/V8.3_object_overlays.png"
+  },
+  "readouts": {
+    "V3": "threshold/mean",
+    "V8.2": "spatial/mean",
+    "V8.3": "threshold/mean"
+  }
+}

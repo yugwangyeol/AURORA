@@ -1,0 +1,45 @@
+{
+  "sample_index": 1020,
+  "image_id": 85772,
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_main_v8_3_bce1_outlog1",
+  "readout": "threshold",
+  "merge": "mean",
+  "scores": {
+    "fARI": 0.012158311903476715,
+    "mBO": 0.2996067702770233,
+    "mIoU": 0.4669301211833954
+  },
+  "ari_parts": {
+    "foreground_pixels": 15100,
+    "same_gt_same_pred_pairs": 138547388.0,
+    "same_gt_pairs": 226459902.0,
+    "same_pred_pairs": 138939374.0,
+    "expected_random_pairs": 138003951.0532093,
+    "max_possible_pairs": 182699638.0,
+    "fari": 0.012158599272400619
+  },
+  "gt_ids": [
+    1,
+    2
+  ],
+  "pred_ids_on_gt_foreground": [
+    0,
+    2,
+    3,
+    5
+  ],
+  "contingency": [
+    [
+      3843,
+      11126,
+      31,
+      49
+    ],
+    [
+      51,
+      0,
+      0,
+      0
+    ]
+  ]
+}

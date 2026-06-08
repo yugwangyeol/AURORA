@@ -1,0 +1,24 @@
+{
+  "sample_index": 1020,
+  "image_id": 85772,
+  "large_source": "/home/jovyan/PGOT/outputs/v82_trainmatch_wandb_overlay_sample1020/large_pred_overlays/source.png",
+  "large_gt_overlay": "/home/jovyan/PGOT/outputs/v82_trainmatch_wandb_overlay_sample1020/large_pred_overlays/GT_overlay.png",
+  "models": [
+    {
+      "label": "V8.2",
+      "path": "/home/jovyan/PGOT/checkpoints/pgot_main_v8_2_spatial_outside_log",
+      "readout": "spatial",
+      "merge": "mean",
+      "object_overlay": "/home/jovyan/PGOT/outputs/v82_trainmatch_wandb_overlay_sample1020/V8.2_object_overlays.png",
+      "large_pred_overlay": "/home/jovyan/PGOT/outputs/v82_trainmatch_wandb_overlay_sample1020/large_pred_overlays/V8.2_pred_overlay.png",
+      "labels": [
+        "1:fence-merged",
+        "2:person",
+        "3:tennis racket",
+        "4:sports ball",
+        "5:sports ball"
+      ]
+    }
+  ],
+  "large_comparison": "/home/jovyan/PGOT/outputs/v82_trainmatch_wandb_overlay_sample1020/large_pred_overlays/comparison_large_pred_overlays.png"
+}

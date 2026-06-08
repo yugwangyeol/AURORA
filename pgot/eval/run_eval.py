@@ -173,11 +173,16 @@ def main():
     p.add_argument("--bg_threshold", type=float, default=0.05)
     p.add_argument("--eval_merge", choices=["mean", "max"], default="max",
                    help="How to merge the n_ovt_per_object logits into one object score for competition.")
-    p.add_argument("--readout", choices=["competition", "threshold", "nullbg", "spatial"], default="competition",
+    p.add_argument(
+        "--readout",
+        choices=["competition", "threshold", "nullbg", "spatial", "spatial_trainmatch"],
+        default="competition",
                    help="competition: argmax over {K objects, register-bg} (v5/v6 style). "
                         "threshold: filter stuff OVTs, sigmoid+bg_threshold on thing OVTs only (v3 style). "
                         "nullbg: argmax over {thing OVT objects, null-bg} (v7 style). "
-                        "spatial: per-OVT spatial-softmax readout (v8 style).")
+                        "spatial: configurable per-OVT patch-axis softmax readout. "
+                        "spatial_trainmatch: V8.2 training-matched patch-axis softmax, "
+                        "checkpoint temperature, and mean merge.")
     p.add_argument("--spatial_temperature", type=float, default=1.0,
                    help="Patch-axis softmax temperature for --readout spatial.")
     p.add_argument("--compute_rfid", action="store_true", help="Decode + FID (slow)")
@@ -430,15 +435,27 @@ def main():
                 patch_grid=args.grid_size,
                 merge=getattr(args, "eval_merge", "max"),
             )  # (B, H, W)
-        elif readout == "spatial":
+        elif readout in {"spatial", "spatial_trainmatch"}:
+            if readout == "spatial_trainmatch":
+                spatial_temp = float(
+                    getattr(
+                        model.config,
+                        "pgot_mask_spatial_outside_log_temperature",
+                        getattr(model.config, "pgot_mask_spatial_temperature", 1.0),
+                    )
+                )
+                spatial_merge = "mean"
+            else:
+                spatial_temp = args.spatial_temperature
+                spatial_merge = getattr(args, "eval_merge", "mean")
             pred_mask = build_pred_mask_spatial_readout(
                 ovt_logits=out["ovt_logits"],
                 ovt_valid_mask=valid_for_pred,
                 target_size=args.eval_size,
                 n_ovt_per_object=args.n_ovt_per_object,
                 patch_grid=args.grid_size,
-                merge=getattr(args, "eval_merge", "mean"),
-                temp=args.spatial_temperature,
+                merge=spatial_merge,
+                temp=spatial_temp,
                 ovt_is_thing=ovt_is_thing,
                 map_stuff_to_bg=(args.gt_source == "coco_instance"),
             )
@@ -544,6 +561,16 @@ def main():
         },
     }
     summary["gt_source"] = args.gt_source
+    if args.readout == "spatial_trainmatch":
+        summary["softmax_axis"] = "patch"
+        summary["spatial_temperature"] = float(
+            getattr(
+                model.config,
+                "pgot_mask_spatial_outside_log_temperature",
+                getattr(model.config, "pgot_mask_spatial_temperature", 1.0),
+            )
+        )
+        summary["eval_merge"] = "mean"
     if fid_acc is not None:
         try:
             summary["rFID"] = fid_acc.compute()

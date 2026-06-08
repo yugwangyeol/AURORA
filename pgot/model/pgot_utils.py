@@ -381,6 +381,53 @@ def compute_spatial_outside_attention_loss(
     }
 
 
+def compute_spatial_outside_log_attention_loss(
+    ovt_logits: torch.Tensor,
+    gt_masks_per_ovt: torch.Tensor,
+    ovt_valid_mask: torch.Tensor,
+    temperature: float = 1.0,
+    eps: float = 1e-6,
+) -> Dict[str, torch.Tensor]:
+    """V8.2 outside-only log penalty on per-OVT spatial-softmax attention.
+
+    For each valid OVT, normalize patch scores with a patch-axis softmax. The
+    target object's GT mask is ignored; every patch outside that mask is treated
+    as a negative and is penalized with -log(1 - attention). The outside terms
+    are summed over patches, so for small attention values this is close to the
+    outside attention mass but keeps the intended log penalty.
+    """
+    logits = ovt_logits.float()
+    masks = gt_masks_per_ovt.float().clamp(0.0, 1.0)
+    valid = ovt_valid_mask.float()
+    temp = max(float(temperature), eps)
+
+    attn = F.softmax(logits / temp, dim=-1)
+    outside = (1.0 - masks).clamp(0.0, 1.0)
+
+    per_ovt_loss = (outside * (-torch.log((1.0 - attn).clamp_min(eps)))).sum(dim=-1)
+
+    valid_denom = valid.sum().clamp_min(1.0)
+    loss = (per_ovt_loss * valid).sum() / valid_denom
+
+    self_mass = (attn * masks).sum(dim=-1)
+    outside_mass = (attn * outside).sum(dim=-1)
+    self_mean = (self_mass * valid).sum() / valid_denom
+    outside_mean = (outside_mass * valid).sum() / valid_denom
+    outside_log_mean = (per_ovt_loss * valid).sum() / valid_denom
+
+    for val in (loss, self_mean, outside_mean, outside_log_mean):
+        if not torch.isfinite(val):
+            z = ovt_logits.new_zeros((), dtype=torch.float32)
+            return {"loss": z, "self_mass": z, "outside_mass": z, "outside_log_mean": z}
+
+    return {
+        "loss": loss,
+        "self_mass": self_mean.detach(),
+        "outside_mass": outside_mean.detach(),
+        "outside_log_mean": outside_log_mean.detach(),
+    }
+
+
 def compute_per_patch_ce_loss(
     ovt_logits: torch.Tensor,        # (B, M, P) raw logits
     gt_masks_per_ovt: torch.Tensor,  # (B, M, P) soft patch masks

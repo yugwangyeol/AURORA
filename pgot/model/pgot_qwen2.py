@@ -30,6 +30,7 @@ from pgot.model.pgot_utils import (
     compute_per_ovt_mask_logits,
     compute_mask_bce_loss,
     compute_spatial_outside_attention_loss,
+    compute_spatial_outside_log_attention_loss,
     compute_mask_tversky_loss,
     compute_per_patch_ce_loss,
     compute_competition_ce_loss,
@@ -221,6 +222,233 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         return self.pgot_null_bg_embeddings.unsqueeze(0).expand(batch_size, -1, -1).to(
             device=device, dtype=dtype
         )
+
+    def _resolve_llm_qk_outside_layers(self, spec: str) -> List[int]:
+        """Resolve a layer spec such as 'last4', 'all', '20:28', or '20,24,27'."""
+        n_layers = len(getattr(self.model, "layers", []))
+        if n_layers <= 0:
+            return []
+        spec = (spec or "last4").strip().lower()
+        if spec in {"all", "*"}:
+            return list(range(n_layers))
+        if spec.startswith("last"):
+            suffix = spec[4:]
+            k = int(suffix) if suffix else 4
+            return list(range(max(0, n_layers - max(k, 1)), n_layers))
+
+        layers = []
+        for part in spec.split(","):
+            part = part.strip()
+            if not part:
+                continue
+            if ":" in part:
+                start_s, end_s = part.split(":", 1)
+                start = int(start_s) if start_s else 0
+                end = int(end_s) if end_s else n_layers
+                if start < 0:
+                    start = n_layers + start
+                if end < 0:
+                    end = n_layers + end
+                layers.extend(range(max(0, start), min(n_layers, end)))
+            else:
+                idx = int(part)
+                if idx < 0:
+                    idx = n_layers + idx
+                if 0 <= idx < n_layers:
+                    layers.append(idx)
+        deduped = []
+        seen = set()
+        for idx in layers:
+            if idx not in seen:
+                deduped.append(idx)
+                seen.add(idx)
+        return deduped
+
+    def _compute_llm_qk_outside_attention_loss(
+        self,
+        *,
+        hidden_states: Tuple[torch.Tensor, ...],
+        positions: Dict[str, int],
+        ovt_abs_positions: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        gt_masks_per_ovt: torch.Tensor,
+        layers_spec: str,
+        temperature: float = 1.0,
+    ) -> Dict[str, torch.Tensor]:
+        """Outside loss from the LLM's own Q/K projections at selected layers.
+
+        For every selected layer, OVT tokens are queries and image tokens are keys.
+        The softmax axis is image patches, per OVT and per head. The loss is the
+        attention mass assigned to other annotated regions. This is loss-only:
+        it does not insert a new attention block or alter the next-layer hidden.
+        """
+        if hidden_states is None:
+            z = gt_masks_per_ovt.new_zeros((), dtype=torch.float32)
+            return {"loss": z, "self_mass": z, "other_mass": z, "neutral_mass": z}
+
+        B, M, P = gt_masks_per_ovt.shape
+        n = max(int(self.pgot_n_ovt_per_object), 1)
+        K = M // n
+        layers = self._resolve_llm_qk_outside_layers(layers_spec)
+        if K <= 0 or len(layers) == 0:
+            z = gt_masks_per_ovt.new_zeros((), dtype=torch.float32)
+            return {"loss": z, "self_mass": z, "other_mass": z, "neutral_mass": z}
+
+        masks = gt_masks_per_ovt[:, : K * n].reshape(B, K, n, P).float().amax(dim=2)
+        obj_valid = ovt_valid_mask[:, : K * n].reshape(B, K, n).any(dim=2)
+        masks = masks.clamp(0.0, 1.0) * obj_valid.unsqueeze(-1).float()
+        region_union = masks.amax(dim=1, keepdim=True)
+
+        other_regions = []
+        for k in range(K):
+            if K == 1:
+                other_regions.append(torch.zeros_like(masks[:, k]))
+            else:
+                other_regions.append(torch.cat([masks[:, :k], masks[:, k + 1:]], dim=1).amax(dim=1))
+        forbidden = torch.stack(other_regions, dim=1).clamp(0.0, 1.0)
+        neutral = (1.0 - region_union).clamp(0.0, 1.0)
+
+        temp = max(float(temperature), 1e-6)
+        loss_sum = gt_masks_per_ovt.new_zeros((), dtype=torch.float32)
+        self_sum = gt_masks_per_ovt.new_zeros((), dtype=torch.float32)
+        other_sum = gt_masks_per_ovt.new_zeros((), dtype=torch.float32)
+        neutral_sum = gt_masks_per_ovt.new_zeros((), dtype=torch.float32)
+        valid_layer_count = 0
+
+        for layer_idx in layers:
+            if layer_idx >= len(hidden_states) - 1:
+                continue
+            layer_input = hidden_states[layer_idx]
+            block = self.model.layers[layer_idx]
+            attn = block.self_attn
+            attn_input = block.input_layernorm(layer_input)
+
+            img_input = attn_input[:, positions["img_s"]:positions["img_e"], :]
+            if img_input.shape[1] != P:
+                continue
+            ovt_input = gather_ovt_hidden_states(attn_input, ovt_abs_positions, ovt_valid_mask)
+            ovt_input = ovt_input[:, : K * n]
+
+            q_proj = attn.q_proj(ovt_input)
+            k_proj = attn.k_proj(img_input)
+            num_heads = int(getattr(attn, "num_heads", getattr(self.config, "num_attention_heads", 1)))
+            num_kv_heads = int(
+                getattr(attn, "num_key_value_heads", getattr(self.config, "num_key_value_heads", num_heads))
+            )
+            head_dim = int(getattr(attn, "head_dim", q_proj.shape[-1] // max(num_heads, 1)))
+            if num_heads <= 0 or num_kv_heads <= 0 or head_dim <= 0:
+                continue
+
+            q = q_proj.reshape(B, K * n, num_heads, head_dim)
+            k_img = k_proj.reshape(B, P, num_kv_heads, head_dim)
+            if num_kv_heads != num_heads:
+                repeat = max(num_heads // num_kv_heads, 1)
+                k_img = k_img.repeat_interleave(repeat, dim=2)
+                if k_img.shape[2] < num_heads:
+                    pad = num_heads - k_img.shape[2]
+                    k_img = torch.cat([k_img, k_img[:, :, -1:, :].expand(-1, -1, pad, -1)], dim=2)
+                elif k_img.shape[2] > num_heads:
+                    k_img = k_img[:, :, :num_heads]
+
+            scores = torch.einsum("bmhd,bphd->bmhp", q.float(), k_img.float())
+            scores = scores / math.sqrt(float(head_dim))
+            scores = scores.reshape(B, K, n, num_heads, P)
+            attn_probs = F.softmax(scores / temp, dim=-1)
+
+            valid = obj_valid.view(B, K, 1, 1).float()
+            denom = (valid.sum() * n * num_heads).clamp_min(1.0)
+            other_mass = (attn_probs * forbidden[:, :, None, None, :]).sum(dim=-1)
+            self_mass = (attn_probs * masks[:, :, None, None, :]).sum(dim=-1)
+            neutral_mass = (attn_probs * neutral[:, :, None, None, :]).sum(dim=-1)
+
+            layer_loss = (other_mass * valid).sum() / denom
+            layer_self = (self_mass * valid).sum() / denom
+            layer_other = (other_mass * valid).sum() / denom
+            layer_neutral = (neutral_mass * valid).sum() / denom
+            if not torch.isfinite(layer_loss):
+                continue
+
+            loss_sum = loss_sum + layer_loss
+            self_sum = self_sum + layer_self
+            other_sum = other_sum + layer_other
+            neutral_sum = neutral_sum + layer_neutral
+            valid_layer_count += 1
+
+        if valid_layer_count <= 0:
+            z = gt_masks_per_ovt.new_zeros((), dtype=torch.float32)
+            return {"loss": z, "self_mass": z, "other_mass": z, "neutral_mass": z}
+
+        scale = float(valid_layer_count)
+        return {
+            "loss": loss_sum / scale,
+            "self_mass": (self_sum / scale).detach(),
+            "other_mass": (other_sum / scale).detach(),
+            "neutral_mass": (neutral_sum / scale).detach(),
+        }
+
+    def _compute_llm_qk_attention_maps(
+        self,
+        *,
+        hidden_states: Tuple[torch.Tensor, ...],
+        positions: Dict[str, int],
+        ovt_abs_positions: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        layers_spec: str,
+        temperature: float = 1.0,
+    ) -> Optional[torch.Tensor]:
+        """Average selected-layer LLM Q/K OVT->image attention maps for viz."""
+        if hidden_states is None:
+            return None
+        B, M = ovt_valid_mask.shape
+        P = int(positions["img_e"] - positions["img_s"])
+        layers = self._resolve_llm_qk_outside_layers(layers_spec)
+        if len(layers) == 0 or P <= 0:
+            return None
+
+        temp = max(float(temperature), 1e-6)
+        acc = None
+        count = 0
+        for layer_idx in layers:
+            if layer_idx >= len(hidden_states) - 1:
+                continue
+            layer_input = hidden_states[layer_idx]
+            block = self.model.layers[layer_idx]
+            attn = block.self_attn
+            attn_input = block.input_layernorm(layer_input)
+            img_input = attn_input[:, positions["img_s"]:positions["img_e"], :]
+            ovt_input = gather_ovt_hidden_states(attn_input, ovt_abs_positions, ovt_valid_mask)
+
+            q_proj = attn.q_proj(ovt_input)
+            k_proj = attn.k_proj(img_input)
+            num_heads = int(getattr(attn, "num_heads", getattr(self.config, "num_attention_heads", 1)))
+            num_kv_heads = int(
+                getattr(attn, "num_key_value_heads", getattr(self.config, "num_key_value_heads", num_heads))
+            )
+            head_dim = int(getattr(attn, "head_dim", q_proj.shape[-1] // max(num_heads, 1)))
+            if num_heads <= 0 or num_kv_heads <= 0 or head_dim <= 0:
+                continue
+
+            q = q_proj.reshape(B, M, num_heads, head_dim)
+            k_img = k_proj.reshape(B, P, num_kv_heads, head_dim)
+            if num_kv_heads != num_heads:
+                repeat = max(num_heads // num_kv_heads, 1)
+                k_img = k_img.repeat_interleave(repeat, dim=2)
+                if k_img.shape[2] < num_heads:
+                    pad = num_heads - k_img.shape[2]
+                    k_img = torch.cat([k_img, k_img[:, :, -1:, :].expand(-1, -1, pad, -1)], dim=2)
+                elif k_img.shape[2] > num_heads:
+                    k_img = k_img[:, :, :num_heads]
+
+            scores = torch.einsum("bmhd,bphd->bmhp", q.float(), k_img.float())
+            scores = scores / math.sqrt(float(head_dim))
+            probs = F.softmax(scores / temp, dim=-1).mean(dim=2)
+            probs = probs * ovt_valid_mask.unsqueeze(-1).float()
+            acc = probs if acc is None else acc + probs
+            count += 1
+
+        if count <= 0 or acc is None:
+            return None
+        return (acc / float(count)).detach()
 
     # ------------------------------------------------------------------
     # PGOT forward
@@ -448,10 +676,12 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         )
 
         # 6) LLM forward
+        mask_llm_qk_outside_w = float(getattr(self.config, "pgot_mask_llm_qk_outside_weight", 0.0))
         out = self.model(
             inputs_embeds=inputs_embeds,
             attention_bias=attn_bias,
             use_cache=False,
+            output_hidden_states=mask_llm_qk_outside_w > 0.0,
             return_dict=True,
         )
         hidden = out.last_hidden_state  # (B, L, D)
@@ -508,6 +738,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         mask_bce_w = float(getattr(self.config, "pgot_mask_bce_weight", 0.0))
         mask_tversky_w = float(getattr(self.config, "pgot_mask_tversky_weight", 0.0))
         mask_spatial_outside_w = float(getattr(self.config, "pgot_mask_spatial_outside_weight", 0.0))
+        mask_spatial_outside_log_w = float(getattr(self.config, "pgot_mask_spatial_outside_log_weight", 0.0))
 
         zero = ovt_logits.new_zeros(())
         loss_mask_ce = zero
@@ -607,6 +838,44 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             spatial_other_mass = spatial_losses["other_mass"]
             spatial_neutral_mass = spatial_losses["neutral_mass"]
 
+        loss_mask_spatial_outside_log = zero
+        spatial_log_self_mass = zero
+        spatial_log_outside_mass = zero
+        spatial_log_mean = zero
+        if mask_spatial_outside_log_w > 0.0:
+            spatial_log_temp = float(getattr(self.config, "pgot_mask_spatial_outside_log_temperature", 1.0))
+            spatial_log_losses = compute_spatial_outside_log_attention_loss(
+                ovt_logits=ovt_logits,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+                temperature=spatial_log_temp,
+            )
+            loss_mask_spatial_outside_log = spatial_log_losses["loss"]
+            spatial_log_self_mass = spatial_log_losses["self_mass"]
+            spatial_log_outside_mass = spatial_log_losses["outside_mass"]
+            spatial_log_mean = spatial_log_losses["outside_log_mean"]
+
+        loss_mask_llm_qk_outside = zero
+        llm_qk_self_mass = zero
+        llm_qk_other_mass = zero
+        llm_qk_neutral_mass = zero
+        if mask_llm_qk_outside_w > 0.0:
+            llm_qk_temp = float(getattr(self.config, "pgot_mask_llm_qk_outside_temperature", 1.0))
+            llm_qk_layers = str(getattr(self.config, "pgot_mask_llm_qk_outside_layers", "last4"))
+            llm_qk_losses = self._compute_llm_qk_outside_attention_loss(
+                hidden_states=out.hidden_states,
+                positions=positions,
+                ovt_abs_positions=ovt_abs_positions,
+                ovt_valid_mask=ovt_valid_mask,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                layers_spec=llm_qk_layers,
+                temperature=llm_qk_temp,
+            )
+            loss_mask_llm_qk_outside = llm_qk_losses["loss"]
+            llm_qk_self_mass = llm_qk_losses["self_mass"]
+            llm_qk_other_mass = llm_qk_losses["other_mass"]
+            llm_qk_neutral_mass = llm_qk_losses["neutral_mass"]
+
         loss_mask_tversky = zero
         if mask_tversky_w > 0.0:
             tversky_alpha = float(getattr(self.config, "pgot_mask_tversky_alpha", 0.5))
@@ -662,6 +931,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             + mask_bce_w * loss_mask_bce
             + mask_tversky_w * loss_mask_tversky
             + mask_spatial_outside_w * loss_mask_spatial_outside
+            + mask_spatial_outside_log_w * loss_mask_spatial_outside_log
+            + mask_llm_qk_outside_w * loss_mask_llm_qk_outside
         )
         total_loss = (
             lm_w * loss_lm
@@ -684,7 +955,6 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         details = {}
         if mask_ce_w > 0.0:
             details["loss_mask_ce"] = loss_mask_ce.detach()
-            details["loss_mask_owner"] = loss_mask_ce.detach()
         if mask_fg_w > 0.0:
             details["loss_mask_fg"] = loss_mask_fg.detach()
         if mask_outside_w > 0.0:
@@ -700,6 +970,16 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             details["spatial_self_mass"] = spatial_self_mass.detach()
             details["spatial_other_mass"] = spatial_other_mass.detach()
             details["spatial_neutral_mass"] = spatial_neutral_mass.detach()
+        if mask_spatial_outside_log_w > 0.0:
+            details["loss_mask_spatial_outside_log"] = loss_mask_spatial_outside_log.detach()
+            details["spatial_log_self_mass"] = spatial_log_self_mass.detach()
+            details["spatial_log_outside_mass"] = spatial_log_outside_mass.detach()
+            details["spatial_log_mean"] = spatial_log_mean.detach()
+        if mask_llm_qk_outside_w > 0.0:
+            details["loss_mask_llm_qk_outside"] = loss_mask_llm_qk_outside.detach()
+            details["llm_qk_self_mass"] = llm_qk_self_mass.detach()
+            details["llm_qk_other_mass"] = llm_qk_other_mass.detach()
+            details["llm_qk_neutral_mass"] = llm_qk_neutral_mass.detach()
         if use_null_bg and need_owner_loss:
             details["null_bg_prob_on_fg"] = null_bg_prob_on_fg.detach()
             details["thing_prob_on_bg"] = thing_prob_on_bg.detach()
