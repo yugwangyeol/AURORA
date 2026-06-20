@@ -5,7 +5,7 @@ Example:
       --sample_index 0 \
       --gt_source coco_instance \
       --model 'V3|/path/to/checkpoint|threshold|mean' \
-      --model 'V8|/path/to/checkpoint|spatial|mean'
+      --model 'V12|/path/to/checkpoint|ovt_owner|mean'
 """
 
 import argparse
@@ -26,10 +26,18 @@ from PIL import Image, ImageDraw, ImageFont
 sys.path.insert(0, "/home/jovyan/PGOT")
 from pgot.constants import NEW_SPECIAL_TOKENS, OVT_TOKEN, SCENE_END_TOKEN
 from pgot.eval.pgot_inference import pgot_forward_eval
-from pgot.eval.pgot_metrics import build_pred_mask_spatial_readout, ovt_logits_to_pred_mask
+from pgot.eval.pgot_metrics import (
+    build_pred_mask_spatial_readout,
+    ovt_logits_to_pred_mask,
+    preproc_masks_overlap,
+)
 from pgot.eval.run_eval import CocoInstanceMaskCache, load_gt_panoptic_mask, load_thing_categories
 from pgot.model.pgot_qwen2 import PGOTQwen2ForCausalLM
-from pgot.model.pgot_utils import build_pred_mask_competition_eval, build_pred_mask_null_bg_eval
+from pgot.model.pgot_utils import (
+    build_pred_mask_competition_eval,
+    build_pred_mask_null_bg_eval,
+    build_pred_mask_ovt_owner_eval,
+)
 from pgot.train.pgot_dataset import PGOTDataCollator, Pix2CapPGOTDataset
 from transformers import AutoConfig, AutoTokenizer
 
@@ -185,6 +193,15 @@ def _mask_np(mask: torch.Tensor, size=None) -> np.ndarray:
     return m
 
 
+def _source_from_target_tensor(image: torch.Tensor, processor) -> Image.Image:
+    x = image.detach().cpu().float()
+    mean = torch.tensor(getattr(processor, "image_mean", [0.5, 0.5, 0.5]), dtype=torch.float32).view(-1, 1, 1)
+    std = torch.tensor(getattr(processor, "image_std", [0.5, 0.5, 0.5]), dtype=torch.float32).view(-1, 1, 1)
+    x = (x * std + mean).clamp(0.0, 1.0)
+    arr = (x.permute(1, 2, 0).numpy() * 255.0).round().astype(np.uint8)
+    return Image.fromarray(arr)
+
+
 def _color_mask_overlay(source: Image.Image, mask: torch.Tensor, alpha: float = 0.55, size: int = None):
     if size is not None:
         src_img = source.convert("RGB").resize((size, size), Image.BILINEAR)
@@ -262,8 +279,15 @@ def _segment_labels(segments, thing_categories=None, thing_only: bool = False):
     return labels
 
 
+def _gt_eval_mask(gt: torch.Tensor, overlap: torch.Tensor | None) -> torch.Tensor:
+    if overlap is None:
+        return gt
+    gt_eval, _ = preproc_masks_overlap(gt, gt.clone(), overlap)
+    return gt_eval
+
+
 def _pred_labels_for_readout(args, spec, raw, thing_categories):
-    compact_thing_readouts = {"spatial", "competition", "nullbg"}
+    compact_thing_readouts = {"spatial", "competition", "nullbg", "ovt_owner"}
     if args.gt_source == "coco_instance" and spec["readout"] in compact_thing_readouts:
         return _segment_labels(raw["segments"], thing_categories=thing_categories, thing_only=True)
     return _segment_labels(raw["segments"])
@@ -345,6 +369,17 @@ def _build_pred(args, spec, out, batch, samples_iter, thing_categories):
             patch_grid=args.grid_size,
             merge=spec["merge"],
         )
+    if readout == "ovt_owner":
+        return build_pred_mask_ovt_owner_eval(
+            ovt_object_probs=out["ovt_object_probs"],
+            ovt_void_probs=out["ovt_void_probs"],
+            ovt_valid_mask=valid,
+            ovt_is_thing=ovt_is_thing,
+            target_size=args.eval_size,
+            n_ovt_per_object=args.n_ovt_per_object,
+            patch_grid=args.grid_size,
+            map_stuff_to_bg=(args.gt_source == "coco_instance"),
+        )
     return build_pred_mask_competition_eval(
         out["ovt_logits"],
         out["reg_logits"],
@@ -358,6 +393,19 @@ def _build_pred(args, spec, out, batch, samples_iter, thing_categories):
 
 
 def _object_maps(args, spec, out):
+    if spec["readout"] == "ovt_owner":
+        obj = out["ovt_object_probs"].float()
+        B, K, P = obj.shape
+        side = args.grid_size
+        obj_2d = obj.reshape(B, K, side, side)
+        up = F.interpolate(
+            obj_2d,
+            size=(args.eval_size, args.eval_size),
+            mode="bilinear",
+            align_corners=False,
+        )
+        return up[0]
+
     logits = out["ovt_logits"].float()
     B, M, P = logits.shape
     n = args.n_ovt_per_object
@@ -380,12 +428,14 @@ def _object_maps(args, spec, out):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", action="append", required=True,
-                        help="'label|checkpoint_path|readout|merge'. readout: threshold/spatial/competition/nullbg.")
+                        help="'label|checkpoint_path|readout|merge'. readout: threshold/spatial/competition/nullbg/ovt_owner.")
     parser.add_argument("--sample_index", type=int, default=0)
     parser.add_argument("--val_jsonl", default="/home/jovyan/PGOT/data/pgot_val.jsonl")
     parser.add_argument("--output_dir", default="/home/jovyan/PGOT/outputs/ovt_overlay_compare")
     parser.add_argument("--gt_source", choices=["pix2cap_panoptic", "coco_instance"], default="coco_instance")
     parser.add_argument("--coco_mask_cache", default="/home/jovyan/PGOT/data/coco_inst_mask_cache_coda256")
+    parser.add_argument("--image_preprocess_mode", choices=["default", "coda_center_crop"], default="default")
+    parser.add_argument("--coda_crop_size", type=int, default=512)
     parser.add_argument("--grid_size", type=int, default=32)
     parser.add_argument("--eval_size", type=int, default=256)
     parser.add_argument("--max_caption_tokens", type=int, default=2048)
@@ -409,56 +459,73 @@ def main():
     with open(args.val_jsonl) as f:
         raw_samples = [json.loads(line) for line in f]
     raw = raw_samples[args.sample_index]
-    source = Image.open(raw["image_path"]).convert("RGB").resize((args.eval_size, args.eval_size), Image.BILINEAR)
+    fallback_source = Image.open(raw["image_path"]).convert("RGB").resize((args.eval_size, args.eval_size), Image.BILINEAR)
     gt_from_cache = False
+    overlap = None
 
     if args.gt_source == "coco_instance":
         cache = CocoInstanceMaskCache(args.coco_mask_cache)
         gt = cache.get(int(raw["image_id"]))
+        overlap = cache.get_overlap(int(raw["image_id"]))
         if gt is None:
             seg_ids = [int(s["segment_id"]) for s in raw["segments"]]
             gt = load_gt_panoptic_mask(raw["panoptic_mask_path"], seg_ids, args.eval_size)
         else:
             gt_from_cache = True
             args.eval_size = cache.size
-            source = source.resize((args.eval_size, args.eval_size), Image.BILINEAR)
+            fallback_source = fallback_source.resize((args.eval_size, args.eval_size), Image.BILINEAR)
         thing_categories = load_thing_categories("/home/jovyan/data/coco/annotations/panoptic_val2017.json")
     else:
         seg_ids = [int(s["segment_id"]) for s in raw["segments"]]
         gt = load_gt_panoptic_mask(raw["panoptic_mask_path"], seg_ids, args.eval_size)
         thing_categories = None
 
-    comparison_tiles = [_add_title(source, f"source idx={args.sample_index} image_id={raw['image_id']}")]
-    comparison_tiles.append(_mask_overlay(source, gt, f"GT {args.gt_source}"))
+    gt_eval = _gt_eval_mask(gt, overlap if args.gt_source == "coco_instance" else None)
+    gt_title = (
+        f"GT {args.gt_source} (overlap removed)"
+        if args.gt_source == "coco_instance" and overlap is not None
+        else f"GT {args.gt_source}"
+    )
+
     large_dir = os.path.join(args.output_dir, "large_pred_overlays")
     os.makedirs(large_dir, exist_ok=True)
-    source_large = _add_title(
-        source.resize((args.large_overlay_size, args.large_overlay_size), Image.BILINEAR),
-        f"source idx={args.sample_index} image_id={raw['image_id']}",
-        height=46,
-    )
-    source_large_path = os.path.join(large_dir, "source.png")
-    source_large.save(source_large_path)
-    gt_labels = None if gt_from_cache else _segment_labels(raw["segments"])
-    gt_large = _large_mask_overlay(
-        source,
-        gt,
-        f"GT {args.gt_source}",
-        gt_labels,
-        alpha=args.large_overlay_alpha,
-        size=args.large_overlay_size,
-        max_legend_items=args.large_overlay_legend_items,
-    )
-    gt_large_path = os.path.join(large_dir, "GT_overlay.png")
-    gt_large.save(gt_large_path)
-    large_tiles = [source_large, gt_large]
-    summary = {
-        "sample_index": args.sample_index,
-        "image_id": raw["image_id"],
-        "large_source": source_large_path,
-        "large_gt_overlay": gt_large_path,
-        "models": [],
-    }
+    source = None
+    comparison_tiles = None
+    large_tiles = None
+    summary = None
+
+    def _init_artifacts(source_img: Image.Image, source_uses_eval_target_image: bool):
+        comparison = [_add_title(source_img, f"source idx={args.sample_index} image_id={raw['image_id']}")]
+        comparison.append(_mask_overlay(source_img, gt_eval, gt_title))
+        source_large = _add_title(
+            source_img.resize((args.large_overlay_size, args.large_overlay_size), Image.BILINEAR),
+            f"source idx={args.sample_index} image_id={raw['image_id']}",
+            height=46,
+        )
+        source_large_path = os.path.join(large_dir, "source.png")
+        source_large.save(source_large_path)
+        gt_labels = None if gt_from_cache else _segment_labels(raw["segments"])
+        gt_large = _large_mask_overlay(
+            source_img,
+            gt_eval,
+            gt_title,
+            gt_labels,
+            alpha=args.large_overlay_alpha,
+            size=args.large_overlay_size,
+            max_legend_items=args.large_overlay_legend_items,
+        )
+        gt_large_path = os.path.join(large_dir, "GT_overlay.png")
+        gt_large.save(gt_large_path)
+        summary_dict = {
+            "sample_index": args.sample_index,
+            "image_id": raw["image_id"],
+            "source_uses_eval_target_image": bool(source_uses_eval_target_image),
+            "gt_overlap_removed": bool(args.gt_source == "coco_instance" and overlap is not None),
+            "large_source": source_large_path,
+            "large_gt_overlay": gt_large_path,
+            "models": [],
+        }
+        return comparison, [source_large, gt_large], summary_dict
 
     for spec in specs:
         log.info("Loading %s from %s", spec["label"], spec["path"])
@@ -476,9 +543,21 @@ def main():
             n_ovt_per_object=args.n_ovt_per_object,
             max_objects=args.max_objects,
             panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_val2017.json",
+            image_preprocess_mode=args.image_preprocess_mode,
+            coda_crop_size=args.coda_crop_size,
         )
         collator = PGOTDataCollator(pad_token_id=tokenizer.pad_token_id)
         batch = collator([dataset[args.sample_index]])
+        if source is None:
+            source_uses_eval_target_image = True
+            try:
+                source = _source_from_target_tensor(batch["target_images"][0], target_proc)
+                source = source.resize((args.eval_size, args.eval_size), Image.BILINEAR)
+            except Exception as exc:
+                log.warning("Falling back to raw resized source image: %s", exc)
+                source_uses_eval_target_image = False
+                source = fallback_source
+            comparison_tiles, large_tiles, summary = _init_artifacts(source, source_uses_eval_target_image)
         with torch.no_grad():
             out = pgot_forward_eval(
                 model,
@@ -532,6 +611,10 @@ def main():
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
+
+    if summary is None:
+        source = fallback_source
+        comparison_tiles, large_tiles, summary = _init_artifacts(source, False)
 
     compare_path = os.path.join(args.output_dir, "comparison_segmentation.png")
     _concat_grid(comparison_tiles, cols=min(4, len(comparison_tiles))).save(compare_path)

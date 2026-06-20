@@ -1,0 +1,43 @@
+2026-06-16 11:24:46 PID=519508 __init__.py:49 setup_logging() INFO → 'standard' logger initialized.
+2026-06-16 11:24:50 PID=519508 run_eval.py:150 __init__() INFO → CocoInstanceMaskCache: (5000, 256, 256), size=256, mode=coda
+2026-06-16 11:24:50 PID=519508 run_eval.py:162 __init__() INFO → Loaded CODA overlap masks: (5000, 256, 256)
+2026-06-16 11:24:50 PID=519508 probe_encoder_compare.py:105 main() INFO → loading siglip2_512 (google/siglip2-so400m-patch16-512) ...
+/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/huggingface_hub/file_download.py:1142: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+/home/jovyan/PGOT/pgot/eval/run_eval.py:180: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+  return torch.from_numpy(np.asarray(self.overlap_masks[idx], dtype=np.uint8))
+2026-06-16 11:25:58 PID=519508 probe_encoder_compare.py:140 main() INFO →   siglip2_512: 100 done, grid=32x32, D=1152, fARI=0.336
+2026-06-16 11:26:32 PID=519508 probe_encoder_compare.py:140 main() INFO →   siglip2_512: 200 done, grid=32x32, D=1152, fARI=0.340
+2026-06-16 11:27:06 PID=519508 probe_encoder_compare.py:140 main() INFO →   siglip2_512: 300 done, grid=32x32, D=1152, fARI=0.340
+2026-06-16 11:27:41 PID=519508 probe_encoder_compare.py:140 main() INFO →   siglip2_512: 400 done, grid=32x32, D=1152, fARI=0.342
+2026-06-16 11:28:14 PID=519508 probe_encoder_compare.py:140 main() INFO →   siglip2_512: 500 done, grid=32x32, D=1152, fARI=0.330
+2026-06-16 11:28:16 PID=519508 probe_encoder_compare.py:143 main() INFO → == siglip2_512: fARI=0.3281 mBO=0.3383 (n=506)
+2026-06-16 11:28:16 PID=519508 probe_encoder_compare.py:105 main() INFO → loading dinov2_base (facebook/dinov2-base) ...
+2026-06-16 11:28:55 PID=519508 probe_encoder_compare.py:140 main() INFO →   dinov2_base: 100 done, grid=32x32, D=768, fARI=0.553
+2026-06-16 11:29:28 PID=519508 probe_encoder_compare.py:140 main() INFO →   dinov2_base: 200 done, grid=32x32, D=768, fARI=0.584
+2026-06-16 11:30:01 PID=519508 probe_encoder_compare.py:140 main() INFO →   dinov2_base: 300 done, grid=32x32, D=768, fARI=0.590
+2026-06-16 11:30:35 PID=519508 probe_encoder_compare.py:140 main() INFO →   dinov2_base: 400 done, grid=32x32, D=768, fARI=0.595
+2026-06-16 11:31:07 PID=519508 probe_encoder_compare.py:140 main() INFO →   dinov2_base: 500 done, grid=32x32, D=768, fARI=0.579
+2026-06-16 11:31:09 PID=519508 probe_encoder_compare.py:143 main() INFO → == dinov2_base: fARI=0.5796 mBO=0.5173 (n=506)
+2026-06-16 11:31:09 PID=519508 probe_encoder_compare.py:105 main() INFO → loading dinov2_reg_base (facebook/dinov2-with-registers-base) ...
+Traceback (most recent call last):
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/transformers/models/auto/configuration_auto.py", line 1117, in from_pretrained
+    config_class = CONFIG_MAPPING[config_dict["model_type"]]
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/transformers/models/auto/configuration_auto.py", line 813, in __getitem__
+    raise KeyError(key)
+KeyError: 'dinov2_with_registers'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/jovyan/PGOT/pgot/eval/probe_encoder_compare.py", line 157, in <module>
+    main()
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/jovyan/PGOT/pgot/eval/probe_encoder_compare.py", line 107, in main
+    model = AutoModel.from_pretrained(repo, torch_dtype=torch.float32).to(device).eval()
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/transformers/models/auto/auto_factory.py", line 526, in from_pretrained
+    config, kwargs = AutoConfig.from_pretrained(
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/transformers/models/auto/configuration_auto.py", line 1119, in from_pretrained
+    raise ValueError(
+ValueError: The checkpoint you are trying to load has model type `dinov2_with_registers` but Transformers does not recognize this architecture. This could be because of an issue with the checkpoint, or because your version of Transformers is out of date.

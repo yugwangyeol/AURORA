@@ -1,0 +1,46 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_main_v8_4_void_internal_outside",
+  "readout": "llm_attention",
+  "num_samples": 2338,
+  "fARI": 0.07592739495167264,
+  "mBO": 0.13676359451800876,
+  "mIoU": 0.24472078283606583,
+  "active_count_mean": 6.533789563729684,
+  "by_object_count": {
+    "1-3": {
+      "n": 532,
+      "fARI": 0.16113913943021804,
+      "mBO": 0.21885087937025316,
+      "mIoU": 0.35001995079779535
+    },
+    "7-10": {
+      "n": 632,
+      "fARI": 0.04033120708400431,
+      "mBO": 0.09615466870860494,
+      "mIoU": 0.1926552073387547
+    },
+    "11+": {
+      "n": 315,
+      "fARI": 0.01817287142397573,
+      "mBO": 0.05776305700040659,
+      "mIoU": 0.11476691251118032
+    },
+    "4-6": {
+      "n": 859,
+      "fARI": 0.07052206035447212,
+      "mBO": 0.14689827942906836,
+      "mIoU": 0.26546787889078
+    }
+  },
+  "gt_source": "coco_instance",
+  "coda_overlap_excluded": true,
+  "attention_source": "exact_llm_post_rope_full_key_softmax",
+  "attention_layers": "last4",
+  "eval_merge": "mean",
+  "void_tokens": 1,
+  "rFID": 34.84634780883789,
+  "recon_psnr": 10.32495487399138,
+  "recon_ssim": 0.22857569568528385,
+  "recon_mse": 0.10101854224379395,
+  "recon_mae": 0.24769807536986724
+}

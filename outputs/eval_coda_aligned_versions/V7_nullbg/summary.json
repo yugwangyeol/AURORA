@@ -1,0 +1,39 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_main_v7_nullbg/checkpoint-10000",
+  "readout": "nullbg",
+  "num_samples": 2338,
+  "fARI": 0.5702314190699764,
+  "mBO": 0.58231182986764,
+  "mIoU": 0.6347719165771384,
+  "active_count_mean": 6.533789563729684,
+  "by_object_count": {
+    "1-3": {
+      "n": 532,
+      "fARI": 0.4384090812727121,
+      "mBO": 0.6643935859586825,
+      "mIoU": 0.7187682533482636
+    },
+    "7-10": {
+      "n": 632,
+      "fARI": 0.6336647555709738,
+      "mBO": 0.5383820161090577,
+      "mIoU": 0.5923204962282053
+    },
+    "11+": {
+      "n": 315,
+      "fARI": 0.6693637866482494,
+      "mBO": 0.3895406736786725,
+      "mIoU": 0.41967599184976684
+    },
+    "4-6": {
+      "n": 859,
+      "fARI": 0.5688494857199861,
+      "mBO": 0.6369201898614953,
+      "mIoU": 0.6928609302993842
+    }
+  },
+  "gt_source": "coco_instance",
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "coda_overlap_excluded": true
+}

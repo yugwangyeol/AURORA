@@ -1,0 +1,45 @@
+{
+  "sample_index": 1407,
+  "image_id": 177934,
+  "large_source": "/home/jovyan/PGOT/outputs/v12_visual_sample1407/large_pred_overlays/source.png",
+  "large_gt_overlay": "/home/jovyan/PGOT/outputs/v12_visual_sample1407/large_pred_overlays/GT_overlay.png",
+  "models": [
+    {
+      "label": "V12",
+      "path": "/home/jovyan/PGOT/checkpoints/pgot_main_v12_ovt_update/checkpoint-10000",
+      "readout": "ovt_owner",
+      "merge": "mean",
+      "object_overlay": "/home/jovyan/PGOT/outputs/v12_visual_sample1407/V12_object_overlays.png",
+      "large_pred_overlay": "/home/jovyan/PGOT/outputs/v12_visual_sample1407/large_pred_overlays/V12_pred_overlay.png",
+      "labels": [
+        "1:road",
+        "2:sky-other-merged",
+        "3:tree-merged",
+        "4:truck",
+        "5:pavement-merged",
+        "6:motorcycle",
+        "7:building-other-merged",
+        "8:person",
+        "9:house",
+        "10:car",
+        "11:flower",
+        "12:person",
+        "13:person",
+        "14:car",
+        "15:person",
+        "16:motorcycle",
+        "17:truck",
+        "18:person",
+        "19:car",
+        "20:car",
+        "21:banner",
+        "22:car",
+        "23:car",
+        "24:person",
+        "25:mirror-stuff",
+        "26:truck"
+      ]
+    }
+  ],
+  "large_comparison": "/home/jovyan/PGOT/outputs/v12_visual_sample1407/large_pred_overlays/comparison_large_pred_overlays.png"
+}

@@ -167,6 +167,7 @@ class ScaleRAEQwenModel(ScaleRAEMetaModel, Qwen2Model):
         captionslot_attention_capture_layers: Optional[List[int]] = None,
         fixed_hidden_overrides: Optional[torch.Tensor] = None,
         fixed_hidden_override_mask: Optional[torch.Tensor] = None,
+        hidden_state_postprocess_fn = None,
     ) -> Union[Tuple, BaseModelOutputWithPast]:
 
 
@@ -332,6 +333,11 @@ class ScaleRAEQwenModel(ScaleRAEMetaModel, Qwen2Model):
             hidden_states = layer_outputs[0]
             if fixed_hidden_overrides is not None:
                 hidden_states = torch.where(fixed_hidden_mask_expanded, fixed_hidden_overrides, hidden_states)
+            if hidden_state_postprocess_fn is not None:
+                hidden_states = hidden_state_postprocess_fn(
+                    hidden_states=hidden_states,
+                    layer_idx=i,
+                )
 
             if use_cache:
                 next_decoder_cache = layer_outputs[2 if layer_output_attentions else 1]

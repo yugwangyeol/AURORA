@@ -29,10 +29,15 @@ def pgot_forward_eval(
     ovt_positions_in_caption: torch.Tensor,
     ovt_valid_mask: torch.Tensor,
     return_llm_qk_maps: bool = False,
+    return_llm_attention_maps: bool = False,
+    rae_access_mode: str = "baseline",
+    return_hidden_states: bool = False,
+    return_v12_block_maps: bool = False,
+    rae_block_ovt_indices: tuple[int, ...] = (),
 ) -> Dict[str, torch.Tensor]:
     model.eval()
 
-    device = model.pgot_register_embeddings.device
+    device = model._pgot_model_device() if hasattr(model, "_pgot_model_device") else model.pgot_register_embeddings.device
     images = images.to(device)
     target_images = target_images.to(device)
     caption_input_ids = caption_input_ids.to(device)
@@ -40,6 +45,69 @@ def pgot_forward_eval(
     ovt_positions_in_caption = ovt_positions_in_caption.to(device, dtype=torch.long)
     ovt_valid_mask = ovt_valid_mask.to(device, dtype=torch.bool)
     B, caption_len = caption_input_ids.shape
+
+    if bool(getattr(model.config, "pgot_v12_enable", False)):
+        if rae_access_mode != "baseline":
+            raise ValueError("V12 eval currently supports only rae_access_mode='baseline'.")
+        out = model._pgot_v12_forward_features(
+            images=images,
+            target_images=target_images,
+            caption_input_ids=caption_input_ids,
+            caption_attention_mask=caption_attention_mask,
+            ovt_positions_in_caption=ovt_positions_in_caption,
+            ovt_valid_mask=ovt_valid_mask,
+            output_hidden_states=bool(return_hidden_states),
+            return_v12_block_maps=bool(return_v12_block_maps),
+            rae_block_ovt_indices=tuple(rae_block_ovt_indices),
+        )
+        hidden = out["hidden"]
+        img_hidden = out["img_hidden"]
+        attn_temp = float(getattr(model.config, "pgot_attention_temperature", 1.0))
+        attn_ln = bool(getattr(model.config, "pgot_attention_use_layer_norm", True))
+        ovt_hidden = gather_ovt_hidden_states(hidden, out["ovt_abs_positions"], out["ovt_valid_mask"])
+        ovt_logits = compute_per_ovt_mask_logits(
+            ovt_hidden=ovt_hidden,
+            img_hidden=img_hidden,
+            temperature=attn_temp,
+            normalize_tokens=attn_ln,
+        )
+        P = img_hidden.shape[1]
+        reg_logits = img_hidden.new_empty(B, 0, P)
+        null_bg_logits = None
+        if out["void_ovts"].shape[1] > 0:
+            null_bg_logits = compute_per_ovt_mask_logits(
+                ovt_hidden=out["void_ovts"],
+                img_hidden=img_hidden,
+                temperature=attn_temp,
+                normalize_tokens=attn_ln,
+            )
+        result = {
+            "ovt_logits": ovt_logits,
+            "reg_logits": reg_logits,
+            "null_bg_logits": null_bg_logits,
+            "llm_qk_attn_maps": None,
+            "llm_attention_maps": None,
+            "llm_attention_void_maps": None,
+            "llm_attention_source": None,
+            "ovt_valid_mask": out["ovt_valid_mask"],
+            "rae_hidden": out["rae_hidden"],
+            "img_hidden": img_hidden,
+            "gt_siglip": out["gt_siglip"],
+            "rae_access_mode": rae_access_mode,
+            "hidden": hidden,
+            "attn_bias": out["attn_bias"],
+            "positions": out["positions"],
+            "ovt_abs_positions": out["ovt_abs_positions"],
+            "ovt_owner_logits": out["owner_logits"],
+            "ovt_object_probs": out["object_probs"],
+            "ovt_void_probs": out["void_probs"],
+            "ovt_object_valid": out["object_valid"],
+            "v12_block_owner_records": out.get("v12_block_owner_records"),
+        }
+        if return_hidden_states:
+            result["hidden_states"] = out["hidden_states"]
+            result["inputs_embeds"] = out["inputs_embeds"].detach()
+        return result
 
     # 1) Vision tower
     _, img_features, gt_siglip = model._encode_images_aurora(images, target_images=target_images)
@@ -99,16 +167,48 @@ def pgot_forward_eval(
         ovt_absolute_positions=ovt_abs_positions,
         ovt_valid_mask=ovt_valid_mask,
     )
+    rae_access_mode = str(rae_access_mode).lower()
+    if rae_access_mode not in {"baseline", "ovt_only", "register_only", "self_only"}:
+        raise ValueError(f"Unknown rae_access_mode={rae_access_mode}")
+    if rae_access_mode != "baseline":
+        attn_bias = attn_bias.clone()
+        rae_s, rae_e = positions["rae_s"], positions["rae_e"]
+        if rae_access_mode in {"ovt_only", "self_only"}:
+            attn_bias[:, :, rae_s:rae_e, positions["null_bg_s"]:positions["reg_e"]] = float("-inf")
+        if rae_access_mode in {"register_only", "self_only"}:
+            for b_idx in range(B):
+                valid_pos = ovt_abs_positions[b_idx][ovt_valid_mask[b_idx]]
+                if valid_pos.numel() > 0:
+                    attn_bias[b_idx, :, rae_s:rae_e, valid_pos] = float("-inf")
+    if rae_block_ovt_indices:
+        attn_bias = attn_bias.clone()
+        rae_s, rae_e = positions["rae_s"], positions["rae_e"]
+        for b_idx in range(B):
+            for ovt_idx in rae_block_ovt_indices:
+                if 0 <= ovt_idx < ovt_abs_positions.shape[1] and bool(ovt_valid_mask[b_idx, ovt_idx]):
+                    pos = int(ovt_abs_positions[b_idx, ovt_idx].item())
+                    attn_bias[b_idx, :, rae_s:rae_e, pos] = float("-inf")
 
     # 6) LLM forward
     need_llm_qk_maps = bool(return_llm_qk_maps) and (
         float(getattr(model.config, "pgot_mask_llm_qk_outside_weight", 0.0)) > 0.0
     )
+    llm_patch_attention_enabled = (
+        float(getattr(model.config, "pgot_mask_llm_patch_outside_weight", 0.0)) > 0.0
+        or float(getattr(model.config, "pgot_mask_llm_image_use_weight", 0.0)) > 0.0
+    )
+    need_llm_attention_maps = bool(return_llm_attention_maps) and (
+        float(getattr(model.config, "pgot_mask_llm_attention_outside_weight", 0.0)) > 0.0
+        or llm_patch_attention_enabled
+    )
+    need_hidden_states = (
+        need_llm_qk_maps or need_llm_attention_maps or bool(return_hidden_states)
+    )
     out = model.model(
         inputs_embeds=inputs_embeds,
         attention_bias=attn_bias,
         use_cache=False,
-        output_hidden_states=need_llm_qk_maps,
+        output_hidden_states=need_hidden_states,
         return_dict=True,
     )
     hidden = out.last_hidden_state
@@ -154,21 +254,73 @@ def pgot_forward_eval(
             temperature=float(getattr(model.config, "pgot_mask_llm_qk_outside_temperature", 1.0)),
         )
 
+    llm_attention_maps = None
+    llm_attention_void_maps = None
+    llm_attention_source = None
+    if (
+        need_llm_attention_maps
+        and llm_patch_attention_enabled
+        and hasattr(model, "_compute_llm_patch_attention_maps")
+    ):
+        llm_attention_maps, llm_attention_void_maps = (
+            model._compute_llm_patch_attention_maps(
+                hidden_states=out.hidden_states,
+                attention_bias=attn_bias,
+                positions=positions,
+                ovt_abs_positions=ovt_abs_positions,
+                ovt_valid_mask=ovt_valid_mask,
+                layers_spec=str(
+                    getattr(
+                        model.config,
+                        "pgot_mask_llm_patch_outside_layers",
+                        "last4",
+                    )
+                ),
+                temperature=float(
+                    getattr(
+                        model.config,
+                        "pgot_mask_llm_patch_outside_temperature",
+                        1.0,
+                    )
+                ),
+            )
+        )
+        llm_attention_source = "post_rope_image_patch_softmax"
+    elif need_llm_attention_maps and hasattr(model, "_compute_exact_llm_attention_maps"):
+        llm_attention_maps, llm_attention_void_maps = model._compute_exact_llm_attention_maps(
+            hidden_states=out.hidden_states,
+            attention_bias=attn_bias,
+            positions=positions,
+            ovt_abs_positions=ovt_abs_positions,
+            ovt_valid_mask=ovt_valid_mask,
+            layers_spec=str(
+                getattr(model.config, "pgot_mask_llm_attention_outside_layers", "last4")
+            ),
+        )
+        llm_attention_source = "post_rope_full_key_softmax"
+
     result = {
         "ovt_logits": ovt_logits,
         "reg_logits": reg_logits,
         "null_bg_logits": null_bg_logits,
         "llm_qk_attn_maps": llm_qk_attn_maps,
+        "llm_attention_maps": llm_attention_maps,
+        "llm_attention_void_maps": llm_attention_void_maps,
+        "llm_attention_source": llm_attention_source,
         "ovt_valid_mask": ovt_valid_mask,
         "rae_hidden": rae_hidden,
         "img_hidden": img_hidden,
         "gt_siglip": gt_siglip,
+        "rae_access_mode": rae_access_mode,
     }
     # Expose internals needed for ovt-swap editing
     result["hidden"] = hidden
     result["attn_bias"] = attn_bias
     result["positions"] = positions
     result["ovt_abs_positions"] = ovt_abs_positions
+    if return_hidden_states:
+        result["hidden_states"] = out.hidden_states
+        result["inputs_embeds"] = inputs_embeds.detach()
     return result
 
 

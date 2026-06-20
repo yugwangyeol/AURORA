@@ -16,7 +16,7 @@ import torch
 from PIL import Image, ImageDraw
 
 from pgot.eval.pgot_inference import pgot_forward_eval
-from pgot.eval.pgot_metrics import fari_metric, mbo_metric, miou_metric
+from pgot.eval.pgot_metrics import fari_metric, mbo_metric, miou_metric, preproc_masks_overlap
 from pgot.eval.run_eval import CocoInstanceMaskCache, load_gt_panoptic_mask, load_thing_categories
 from pgot.eval.visualize_ovt_overlays import (
     _add_title,
@@ -27,6 +27,7 @@ from pgot.eval.visualize_ovt_overlays import (
     _load_font,
     _load_model,
     _palette,
+    _source_from_target_tensor,
 )
 from pgot.train.pgot_dataset import PGOTDataCollator, Pix2CapPGOTDataset
 
@@ -150,13 +151,15 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_path", default="/home/jovyan/PGOT/checkpoints/pgot_main_v8_3_bce1_outlog1")
     parser.add_argument("--label", default="V8.3")
-    parser.add_argument("--readout", choices=["threshold", "spatial", "competition", "nullbg"], default="threshold")
+    parser.add_argument("--readout", choices=["threshold", "spatial", "competition", "nullbg", "ovt_owner"], default="threshold")
     parser.add_argument("--merge", choices=["mean", "max"], default="mean")
     parser.add_argument("--sample_index", type=int, default=1020)
     parser.add_argument("--val_jsonl", default="/home/jovyan/PGOT/data/pgot_val.jsonl")
     parser.add_argument("--output_dir", default="/home/jovyan/PGOT/outputs/fari_diagnostic_v83_sample1020")
     parser.add_argument("--gt_source", choices=["coco_instance", "pix2cap_panoptic"], default="coco_instance")
     parser.add_argument("--coco_mask_cache", default="/home/jovyan/PGOT/data/coco_inst_mask_cache_coda256")
+    parser.add_argument("--image_preprocess_mode", choices=["default", "coda_center_crop"], default="default")
+    parser.add_argument("--coda_crop_size", type=int, default=512)
     parser.add_argument("--grid_size", type=int, default=32)
     parser.add_argument("--eval_size", type=int, default=256)
     parser.add_argument("--max_caption_tokens", type=int, default=2048)
@@ -175,10 +178,12 @@ def main():
         raw_samples = [json.loads(line) for line in f]
     raw = raw_samples[args.sample_index]
     source = Image.open(raw["image_path"]).convert("RGB").resize((args.eval_size, args.eval_size), Image.BILINEAR)
+    overlap = None
 
     if args.gt_source == "coco_instance":
         cache = CocoInstanceMaskCache(args.coco_mask_cache)
         gt = cache.get(int(raw["image_id"]))
+        overlap = cache.get_overlap(int(raw["image_id"]))
         if gt is None:
             seg_ids = [int(s["segment_id"]) for s in raw["segments"]]
             gt = load_gt_panoptic_mask(raw["panoptic_mask_path"], seg_ids, args.eval_size)
@@ -203,9 +208,17 @@ def main():
         n_ovt_per_object=args.n_ovt_per_object,
         max_objects=args.max_objects,
         panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_val2017.json",
+        image_preprocess_mode=args.image_preprocess_mode,
+        coda_crop_size=args.coda_crop_size,
     )
     collator = PGOTDataCollator(pad_token_id=tokenizer.pad_token_id)
     batch = collator([dataset[args.sample_index]])
+    try:
+        target_proc = vt_list[1].image_processor if len(vt_list) > 1 else vt_list[0].image_processor
+        source = _source_from_target_tensor(batch["target_images"][0], target_proc)
+        source = source.resize((args.eval_size, args.eval_size), Image.BILINEAR)
+    except Exception:
+        pass
     with torch.no_grad():
         out = pgot_forward_eval(
             model,
@@ -219,6 +232,9 @@ def main():
         )
         spec = {"label": args.label, "path": args.model_path, "readout": args.readout, "merge": args.merge}
         pred = _build_pred(args, spec, out, batch, raw_samples, thing_categories)[0].detach().cpu()
+
+    if args.gt_source == "coco_instance" and overlap is not None:
+        gt, pred = preproc_masks_overlap(gt, pred, overlap)
 
     gt_t = gt.detach().cpu().to(torch.int64)
     pred_t = pred.to(torch.int64)

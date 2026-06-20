@@ -1,0 +1,25 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_smoke_v12_from_trainscript",
+  "readout": "slot_owner",
+  "num_samples": 2,
+  "fARI": -0.03242278844118118,
+  "mBO": 0.43835868313908577,
+  "mIoU": 0.42387211322784424,
+  "active_count_mean": 1.5,
+  "by_object_count": {
+    "1-3": {
+      "n": 2,
+      "fARI": -0.03242278844118118,
+      "mBO": 0.43835868313908577,
+      "mIoU": 0.42387211322784424
+    }
+  },
+  "gt_source": "pix2cap_panoptic",
+  "coda_overlap_excluded": false,
+  "owner_source": "v12_slot_owner_softmax",
+  "slot_layers": "12,16,20,24",
+  "slot_temperature": 1.0,
+  "owner_temperature": 1.0,
+  "owner_weight": 1.0,
+  "void_tokens": 1
+}

@@ -1,0 +1,19 @@
+{
+  "model": "/home/jovyan/PGOT/checkpoints/pgot_main_v11_bal_bce_ce03_mean",
+  "n_eval": 63,
+  "R0_current_threshold": {
+    "fARI": 0.3829207606170149,
+    "mBO": 0.37600057051768376,
+    "n": 63
+  },
+  "R1_feature_oracle": {
+    "fARI": 0.44548033761794786,
+    "mBO": 0.4239945341315534,
+    "n": 63
+  },
+  "R2_ovtmap_oracle_bg": {
+    "fARI": 0.3969142448130115,
+    "mBO": 0.38777106414075757,
+    "n": 61
+  }
+}

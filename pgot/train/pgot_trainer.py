@@ -47,6 +47,7 @@ class PGOTModelArguments:
     # back-compat but default to 0 weight.
     pgot_mask_ce_weight: float = field(default=1.0)
     pgot_mask_ce_temperature: float = field(default=1.0)
+    pgot_mask_ce_merge: str = field(default="max")
     pgot_use_null_bg_competition: bool = field(default=False)
     pgot_mask_fg_weight: float = field(default=0.0)
     pgot_mask_outside_weight: float = field(default=0.0)
@@ -55,6 +56,7 @@ class PGOTModelArguments:
     # them toward competition-friendly Q/K geometry. 0 disables; v6 default ~0.5.
     pgot_mask_aux_competition_weight: float = field(default=0.0)
     pgot_mask_bce_weight: float = field(default=0.0)
+    pgot_mask_object_balanced_bce_weight: float = field(default=0.0)
     pgot_mask_tversky_weight: float = field(default=0.0)
     pgot_mask_tversky_alpha: float = field(default=0.5)
     pgot_mask_tversky_beta: float = field(default=0.5)
@@ -71,6 +73,29 @@ class PGOTModelArguments:
     pgot_mask_llm_qk_outside_weight: float = field(default=0.0)
     pgot_mask_llm_qk_outside_temperature: float = field(default=1.0)
     pgot_mask_llm_qk_outside_layers: str = field(default="last4")
+    # v8.4: exact LLM attention outside-only log loss. Unlike the v8.1 Q/K
+    # diagnostic, this reproduces RoPE, the full allowed-key softmax denominator,
+    # and the model attention bias before selecting OVT -> image probabilities.
+    pgot_mask_llm_attention_outside_weight: float = field(default=0.0)
+    pgot_mask_llm_attention_outside_layers: str = field(default="last4")
+    pgot_mask_llm_attention_void_weight: float = field(default=1.0)
+    # v8.5: use the selected layers' real post-RoPE Q/K scores, but normalize
+    # only over image patches for spatial supervision. A separate weak hinge on
+    # the real full-key attention mass prevents escape to caption/self tokens.
+    pgot_mask_llm_patch_outside_weight: float = field(default=0.0)
+    pgot_mask_llm_patch_outside_layers: str = field(default="last4")
+    pgot_mask_llm_patch_outside_temperature: float = field(default=1.0)
+    pgot_mask_llm_patch_void_weight: float = field(default=1.0)
+    pgot_mask_llm_image_use_weight: float = field(default=0.0)
+    pgot_mask_llm_image_use_margin: float = field(default=0.05)
+
+    # V12: OVT-style owner competition injected between selected LLM layers.
+    pgot_v12_enable: bool = field(default=False)
+    pgot_v12_layers: str = field(default="12,16,20,24")
+    pgot_v12_ovt_temperature: Optional[float] = field(default=None)
+    pgot_v12_slot_temperature: float = field(default=1.0)
+    pgot_v12_owner_temperature: float = field(default=1.0)
+    pgot_v12_owner_weight: float = field(default=1.0)
 
     # CFG: randomly drop the rae_hidden condition during training so diff_head learns
     # an unconditional path; at inference we use guidance_scale > 1.
@@ -221,7 +246,10 @@ def freeze_for_pgot(
             n_trainable += param.numel()
 
     # PGOT register
-    if hasattr(model, "pgot_register_embeddings"):
+    if (
+        hasattr(model, "pgot_register_embeddings")
+        and model.pgot_register_embeddings.numel() > 0
+    ):
         model.pgot_register_embeddings.requires_grad_(True)
         n_trainable += model.pgot_register_embeddings.numel()
 
@@ -229,6 +257,16 @@ def freeze_for_pgot(
     if hasattr(model, "pgot_null_bg_embeddings"):
         model.pgot_null_bg_embeddings.requires_grad_(True)
         n_trainable += model.pgot_null_bg_embeddings.numel()
+
+    # V12 OVT-update / owner heads
+    if hasattr(model, "pgot_v12_slot_update_blocks"):
+        for p in model.pgot_v12_slot_update_blocks.parameters():
+            p.requires_grad_(True)
+            n_trainable += p.numel()
+    if hasattr(model, "pgot_v12_owner_head") and model.pgot_v12_owner_head is not None:
+        for p in model.pgot_v12_owner_head.parameters():
+            p.requires_grad_(True)
+            n_trainable += p.numel()
 
     # rae_query (latent_queries inside model.get_model())
     inner = model.get_model() if hasattr(model, "get_model") else model
@@ -373,8 +411,11 @@ class PGOTTrainer(Trainer):
         dit_body_names = {n for n, p in opt_model.named_parameters()
                           if p.requires_grad and "diff_head.model." in n and "adaLN_modulation" not in n}
         diff_body_names = dit_adaln_names | dit_body_names  # for assigned-set bookkeeping below
-        register_names = {n for n, p in opt_model.named_parameters()
-                          if p.requires_grad and "pgot_register_embeddings" in n}
+        register_names = {
+            n
+            for n, p in opt_model.named_parameters()
+            if p.requires_grad and p.numel() > 0 and "pgot_register_embeddings" in n
+        }
         null_bg_names = {n for n, p in opt_model.named_parameters()
                          if p.requires_grad and "pgot_null_bg_embeddings" in n}
         rae_query_names = {n for n, p in opt_model.named_parameters()
@@ -642,6 +683,31 @@ class PGOTTrainer(Trainer):
             return x[:n_images] if torch.is_tensor(x) else x
         ovt_pos = _slice(batch["ovt_positions_in_caption"])
         ovt_valid = _slice(batch["ovt_valid_mask"])
+        internal_attention_enabled = (
+            float(
+                getattr(
+                    inner.config, "pgot_mask_llm_attention_outside_weight", 0.0
+                )
+            ) > 0.0
+            or float(
+                getattr(
+                    inner.config, "pgot_mask_llm_patch_outside_weight", 0.0
+                )
+            ) > 0.0
+            or float(
+                getattr(inner.config, "pgot_mask_llm_image_use_weight", 0.0)
+            ) > 0.0
+        )
+        patch_internal_attention_enabled = (
+            float(
+                getattr(
+                    inner.config, "pgot_mask_llm_patch_outside_weight", 0.0
+                )
+            ) > 0.0
+            or float(
+                getattr(inner.config, "pgot_mask_llm_image_use_weight", 0.0)
+            ) > 0.0
+        )
         out = pgot_forward_eval(
             inner,
             images=_slice(batch["images"]).to(device),
@@ -651,6 +717,7 @@ class PGOTTrainer(Trainer):
             ovt_positions_in_caption=ovt_pos.to(device),
             ovt_valid_mask=ovt_valid.to(device),
             return_llm_qk_maps=False,
+            return_llm_attention_maps=internal_attention_enabled,
         )
         ovt_logits = out["ovt_logits"]
         n_per_obj = int(inner.pgot_n_ovt_per_object)
@@ -660,19 +727,31 @@ class PGOTTrainer(Trainer):
         if K * n_per_obj < M:
             ovt_logits = ovt_logits[:, : K * n_per_obj]
 
-        bce_enabled = float(getattr(inner.config, "pgot_mask_bce_weight", 0.0)) > 0.0
+        v12_enabled = bool(getattr(inner.config, "pgot_v12_enable", False))
+        bce_enabled = (
+            float(getattr(inner.config, "pgot_mask_bce_weight", 0.0)) > 0.0
+            or float(getattr(inner.config, "pgot_mask_object_balanced_bce_weight", 0.0)) > 0.0
+        )
         spatial_enabled = (
             float(getattr(inner.config, "pgot_mask_spatial_outside_weight", 0.0)) > 0.0
             or float(getattr(inner.config, "pgot_mask_spatial_outside_log_weight", 0.0)) > 0.0
         )
         map_modes = {}
-        if bce_enabled or not spatial_enabled:
+        void_maps_by_mode = {}
+        if v12_enabled and out.get("ovt_object_probs") is not None:
+            map_modes["ovt_owner"] = out["ovt_object_probs"].float()
+            if out.get("ovt_void_probs") is not None and out["ovt_void_probs"].shape[1] > 0:
+                void_maps_by_mode["ovt_owner"] = out["ovt_void_probs"].float().sum(dim=1)
+            per_obj_valid = out.get("ovt_object_valid")
+        else:
+            per_obj_valid = ovt_valid.reshape(B, K, n_per_obj).any(dim=2)
+        if (not v12_enabled) and (bce_enabled or not (spatial_enabled or internal_attention_enabled)):
             map_modes["sigmoid"] = (
                 torch.sigmoid(ovt_logits.float())
                 .reshape(B, K, n_per_obj, P)
                 .mean(dim=2)
             )
-        if spatial_enabled:
+        if (not v12_enabled) and spatial_enabled:
             spatial_temp = float(
                 getattr(
                     inner.config,
@@ -685,7 +764,22 @@ class PGOTTrainer(Trainer):
                 .reshape(B, K, n_per_obj, P)
                 .mean(dim=2)
             )
-        per_obj_valid = ovt_valid.reshape(B, K, n_per_obj).any(dim=2)
+        if (not v12_enabled) and internal_attention_enabled and out.get("llm_attention_maps") is not None:
+            internal_maps = out["llm_attention_maps"][:, : K * n_per_obj]
+            internal_mode = (
+                "llm_patch_attention"
+                if patch_internal_attention_enabled
+                else "llm_attention"
+            )
+            map_modes[internal_mode] = (
+                internal_maps.float()
+                .reshape(B, K, n_per_obj, P)
+                .mean(dim=2)
+            )
+            if out.get("llm_attention_void_maps") is not None:
+                void_maps_by_mode[internal_mode] = (
+                    out["llm_attention_void_maps"].float().mean(dim=1)
+                )
 
         chunk_labels = self._decode_chunk_labels(
             tokenizer=self.tokenizer,
@@ -709,7 +803,9 @@ class PGOTTrainer(Trainer):
                         m.unsqueeze(0).unsqueeze(0), size=(H, W),
                         mode="bilinear", align_corners=False,
                     )[0, 0].cpu()
-                    if mode == "spatial":
+                    if mode in {
+                        "spatial", "llm_attention", "llm_patch_attention", "ovt_owner"
+                    }:
                         # Spatial-softmax probabilities are O(1/P). Normalize
                         # each map only for visibility; the underlying loss and
                         # standalone eval still use the unscaled probabilities.
@@ -718,9 +814,21 @@ class PGOTTrainer(Trainer):
                     color = torch.tensor([1.0, 0.15, 0.15]).view(3, 1, 1)
                     overlay = source_pixels[b] * (1 - 0.6 * m) + color * 0.6 * m
                     tiles.append(overlay.clamp(0.0, 1.0))
+                if mode in void_maps_by_mode:
+                    m = void_maps_by_mode[mode][b].reshape(side, side)
+                    m = torch.nn.functional.interpolate(
+                        m.unsqueeze(0).unsqueeze(0), size=(H, W),
+                        mode="bilinear", align_corners=False,
+                    )[0, 0].cpu()
+                    m = m / m.amax().clamp_min(1e-6)
+                    color = torch.tensor([0.1, 0.35, 1.0]).view(3, 1, 1)
+                    overlay = source_pixels[b] * (1 - 0.6 * m) + color * 0.6 * m
+                    tiles.append(overlay.clamp(0.0, 1.0))
                 panel = torch.cat(tiles, dim=2)
                 images_by_mode[mode][b] = panel.permute(1, 2, 0).numpy()
             captions = " | ".join(chunk_labels[b][:8]) if b < len(chunk_labels) else ""
+            if void_maps_by_mode:
+                captions = f"{captions} | void" if captions else "void"
             labels_by_sample.append(captions)
         return {"images_by_mode": images_by_mode, "labels_by_sample": labels_by_sample}
 
@@ -962,37 +1070,39 @@ class PGOTTrainer(Trainer):
         # Each row is a sample at the current step. wandb UI shows two-axis navigation:
         # the run-history step slider + the table's sample column → "step × sample" grid.
         n = min(recon_pixels.shape[0], gt_pixels.shape[0], source_pixels.shape[0])
-        sigmoid_overlays = {}
-        spatial_overlays = {}
+        images_by_mode = {}
         chunk_labels_by_sample = [""] * n
         try:
             overlays_pack = self._build_pgot_attention_overlays_pack(
                 inner=inner, batch=batch, n_images=n_images, source_pixels=source_pixels,
             )
             images_by_mode = overlays_pack["images_by_mode"]
-            sigmoid_overlays = images_by_mode.get("sigmoid", {})
-            spatial_overlays = images_by_mode.get("spatial", {})
             chunk_labels_by_sample = overlays_pack["labels_by_sample"]
         except Exception as e:
             logger.warning(f"[PGOT/viz] attention overlay failed: {e}")
 
-        table = wandb.Table(columns=["step", "sample", "source", "gt_decoded", "our_recon",
-                                     "sigmoid_overlay", "spatial_overlay", "chunks"])
+        overlay_modes = list(images_by_mode.keys())
+        columns = ["step", "sample", "source", "gt_decoded", "our_recon"]
+        columns.extend(f"{mode}_overlay" for mode in overlay_modes)
+        columns.append("chunks")
+        table = wandb.Table(columns=columns)
         for i in range(n):
             src_np = source_pixels[i].permute(1, 2, 0).numpy()
             gt_np  = gt_pixels[i].permute(1, 2, 0).numpy()
             rec_np = recon_pixels[i].permute(1, 2, 0).numpy()
-            sigmoid_img = sigmoid_overlays.get(i, None)
-            spatial_img = spatial_overlays.get(i, None)
-            table.add_data(
+            row = [
                 int(self.state.global_step),
                 i,
                 wandb.Image(src_np),
                 wandb.Image(gt_np),
                 wandb.Image(rec_np),
-                wandb.Image(sigmoid_img) if sigmoid_img is not None else None,
-                wandb.Image(spatial_img) if spatial_img is not None else None,
-                chunk_labels_by_sample[i] if i < len(chunk_labels_by_sample) else "",
+            ]
+            for mode in overlay_modes:
+                overlay = images_by_mode[mode].get(i, None)
+                row.append(wandb.Image(overlay) if overlay is not None else None)
+            row.append(
+                chunk_labels_by_sample[i] if i < len(chunk_labels_by_sample) else ""
             )
+            table.add_data(*row)
 
         wandb.log({f"{step_prefix}/eval_table": table}, step=int(self.state.global_step))

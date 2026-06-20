@@ -1,0 +1,17 @@
+run,readout,fARI,mBO,mIoU,rFID,num_samples,image_preprocess_mode,overlap_excluded,ckpt
+V10_threshold,threshold,0.6968475485473768,0.4971727725954608,0.5598470614179395,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v10_bce_ce01/checkpoint-10000
+V11_threshold,threshold,0.7270761813107509,0.43965031992978443,0.504880607518518,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v11_bal_bce_ce03_mean/checkpoint-10000
+V12_ovt_owner,ovt_owner,0.5302968596741212,0.5648284803130693,0.6222507447829682,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v12_ovt_update/checkpoint-10000
+V3_threshold,threshold,0.6847701939147853,0.5198753076535064,0.5825801102175251,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v3/checkpoint-14000
+V4_competition,competition,0.5219120964173778,0.5473587388272221,0.6037360498390079,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v4/checkpoint-10000
+V5_competition,competition,0.529890533398759,0.5709288227804584,0.6270924618991907,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v5/checkpoint-10000
+V6_competition,competition,0.524341562272958,0.5712415129285996,0.6275304902529772,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v6/checkpoint-10000
+V7_nullbg,nullbg,0.5702314190699764,0.58231182986764,0.6347719165771384,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v7_nullbg/checkpoint-10000
+V8_1_spatial,spatial,0.1853251047852983,0.25343934290565256,0.3472460851446113,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v8_1_llm_qk_outside/checkpoint-6000
+V8_2_R_spatial_trainmatch,spatial_trainmatch,0.3375779184693243,0.3876301965758001,0.45687304253445365,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v8_2_noreg/checkpoint-10000
+V8_2_spatial_trainmatch,spatial_trainmatch,0.33118559812898507,0.382288189300139,0.452257821177052,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v8_2_spatial_outside_log/checkpoint-10000
+V8_3_threshold,threshold,0.6877962613247304,0.49783088017994753,0.5602350929039758,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v8_3_bce1_outlog1/checkpoint-10000
+V8_4_llm_attention,llm_attention,0.07855281976057864,0.1384185309606405,0.24706715051884626,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v8_4_void_internal_outside/checkpoint-10000
+V8_5_llm_attention,llm_attention,0.3088109195209852,0.3806534048831891,0.4641232503190879,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v8_5_llm_patch_outside/checkpoint-10000
+V8_spatial,spatial,0.3332296330859143,0.352847980104856,0.42813191570539166,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v8/checkpoint-10000
+V9_threshold,threshold,0.6965629531020371,0.49395118905262114,0.5562479225209602,,2338,coda_center_crop,True,/home/jovyan/PGOT/checkpoints/pgot_main_v9_bce_spatial_out03/checkpoint-10000

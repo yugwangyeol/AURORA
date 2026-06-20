@@ -40,7 +40,12 @@ from pgot.eval.pgot_metrics import (
     FIDAccumulator,
     compute_recon_metrics,
 )
-from pgot.model.pgot_utils import build_pred_mask_competition_eval, build_pred_mask_null_bg_eval
+from pgot.model.pgot_utils import (
+    build_pred_mask_competition_eval,
+    build_pred_mask_llm_attention_eval,
+    build_pred_mask_null_bg_eval,
+    build_pred_mask_ovt_owner_eval,
+)
 from pgot.eval.pgot_inference import pgot_forward_eval, generate_siglip_latent
 
 from transformers import AutoTokenizer, AutoConfig
@@ -135,11 +140,27 @@ class CocoInstanceMaskCache:
     def __init__(self, cache_dir: str):
         self.cache_dir = cache_dir
         self.masks = np.load(os.path.join(cache_dir, "masks.npy"), mmap_mode="r")
+        overlap_path = os.path.join(cache_dir, "overlap_masks.npy")
+        self.overlap_masks = (
+            np.load(overlap_path, mmap_mode="r") if os.path.exists(overlap_path) else None
+        )
         self.image_ids = np.load(os.path.join(cache_dir, "image_ids.npy")).tolist()
         self.id2idx = {int(iid): i for i, iid in enumerate(self.image_ids)}
         with open(os.path.join(cache_dir, "meta.json")) as f:
             self.meta = json.load(f)
         log.info(f"CocoInstanceMaskCache: {self.masks.shape}, size={self.meta.get('size')}, mode={self.meta.get('mode')}")
+        if self.overlap_masks is None:
+            log.warning(
+                "overlap_masks.npy not found; overlap pixels will not be excluded. "
+                "Run pgot.eval.build_coco_overlap_cache for CODA-matched metrics."
+            )
+        elif self.overlap_masks.shape != self.masks.shape:
+            raise ValueError(
+                f"Overlap cache shape {self.overlap_masks.shape} does not match "
+                f"GT cache shape {self.masks.shape}."
+            )
+        else:
+            log.info(f"Loaded CODA overlap masks: {self.overlap_masks.shape}")
 
     @property
     def size(self) -> int:
@@ -150,6 +171,14 @@ class CocoInstanceMaskCache:
         if idx is None:
             return None
         return torch.from_numpy(np.asarray(self.masks[idx], dtype=np.int64))
+
+    def get_overlap(self, image_id: int):
+        if self.overlap_masks is None:
+            return None
+        idx = self.id2idx.get(int(image_id))
+        if idx is None:
+            return None
+        return torch.from_numpy(np.asarray(self.overlap_masks[idx], dtype=np.uint8))
 
 
 # ----------------------------------------------------------------------
@@ -175,14 +204,20 @@ def main():
                    help="How to merge the n_ovt_per_object logits into one object score for competition.")
     p.add_argument(
         "--readout",
-        choices=["competition", "threshold", "nullbg", "spatial", "spatial_trainmatch"],
+        choices=[
+            "competition", "threshold", "nullbg", "spatial",
+            "spatial_trainmatch", "llm_attention", "ovt_owner", "slot_owner",
+        ],
         default="competition",
                    help="competition: argmax over {K objects, register-bg} (v5/v6 style). "
                         "threshold: filter stuff OVTs, sigmoid+bg_threshold on thing OVTs only (v3 style). "
                         "nullbg: argmax over {thing OVT objects, null-bg} (v7 style). "
                         "spatial: configurable per-OVT patch-axis softmax readout. "
                         "spatial_trainmatch: V8.2 training-matched patch-axis softmax, "
-                        "checkpoint temperature, and mean merge.")
+                        "checkpoint temperature, and mean merge. "
+                        "llm_attention: V8.4/V8.5 internal-attention maps with void. "
+                        "ovt_owner: V12 OVT-owner softmax maps with void. "
+                        "slot_owner is accepted as a legacy alias.")
     p.add_argument("--spatial_temperature", type=float, default=1.0,
                    help="Patch-axis softmax temperature for --readout spatial.")
     p.add_argument("--compute_rfid", action="store_true", help="Decode + FID (slow)")
@@ -190,9 +225,25 @@ def main():
     p.add_argument("--gt_source", choices=["pix2cap_panoptic", "coco_instance"], default="pix2cap_panoptic")
     p.add_argument("--coco_mask_cache", default="/home/jovyan/PGOT/data/coco_inst_mask_cache_coda256",
                    help="CODA-style mask cache (built by AURORA's coco_mask_cache.py mode=coda)")
+    p.add_argument(
+        "--image_preprocess_mode",
+        choices=["default", "coda_center_crop"],
+        default="default",
+        help="default: use the model's image processor on the raw image. "
+             "coda_center_crop: first apply CODA's resize-min-side + center crop "
+             "so predictions align with CODA-style COCO instance masks.",
+    )
+    p.add_argument(
+        "--coda_crop_size",
+        type=int,
+        default=512,
+        help="Square size used for the pre-SigLIP CODA center crop.",
+    )
     p.add_argument("--diffusion_inference_steps", type=int, default=10,
                    help="Number of RF denoising steps for rFID (AURORA uses 10).")
     args = p.parse_args()
+    if args.readout == "slot_owner":
+        args.readout = "ovt_owner"
 
     os.makedirs(args.output_dir, exist_ok=True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -200,42 +251,37 @@ def main():
 
     # ---- Load model
     log.info(f"Loading model from: {args.model_path}")
+    raw_config_path = os.path.join(args.model_path, "config.json")
+    raw_name_or_path = args.model_path
+    if os.path.exists(raw_config_path):
+        with open(raw_config_path, "r") as f:
+            raw_cfg = json.load(f)
+        raw_name_or_path = str(raw_cfg.get("_name_or_path", args.model_path))
     config = AutoConfig.from_pretrained(args.model_path)
+    import glob
+    has_lora_in_ckpt = False
+    index_path = os.path.join(args.model_path, "model.safetensors.index.json")
+    if os.path.exists(index_path):
+        with open(index_path, "r") as f:
+            index_json = json.load(f)
+        has_lora_in_ckpt = any(
+            "lora_" in k or ".base_layer." in k
+            for k in index_json.get("weight_map", {}).keys()
+        )
+
+    model_init_path = args.model_path
+    if has_lora_in_ckpt:
+        model_init_path = raw_name_or_path
+        log.info(
+            "[LoRA] adapter checkpoint detected; bootstrap model from base path: %s",
+            model_init_path,
+        )
+
     model = PGOTQwen2ForCausalLM.from_pretrained(
-        args.model_path, config=config, torch_dtype=dtype, ignore_mismatched_sizes=True,
+        model_init_path, config=config, torch_dtype=dtype, ignore_mismatched_sizes=True,
     )
     model.config.use_cache = False
     tokenizer = AutoTokenizer.from_pretrained(args.model_path, use_fast=False, padding_side="right")
-
-    # If checkpoint contains LoRA weights, inject the adapters first and reload them.
-    import glob, safetensors.torch as safe_torch
-    has_lora_in_ckpt = False
-    for shard in sorted(glob.glob(os.path.join(args.model_path, "*.safetensors"))):
-        with safe_torch.safe_open(shard, framework="pt", device="cpu") as f:
-            for k in f.keys():
-                if "lora_" in k:
-                    has_lora_in_ckpt = True
-                    break
-        if has_lora_in_ckpt:
-            break
-    if has_lora_in_ckpt:
-        from peft import LoraConfig, inject_adapter_in_model
-        lora_cfg = LoraConfig(
-            r=int(getattr(config, "captionslot_lora_r", 16)) if hasattr(config, "captionslot_lora_r") else 16,
-            lora_alpha=int(getattr(config, "captionslot_lora_alpha", 32)) if hasattr(config, "captionslot_lora_alpha") else 32,
-            lora_dropout=0.0, bias="none",
-            target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-            task_type="CAUSAL_LM",
-        )
-        inject_adapter_in_model(lora_cfg, model, adapter_name="default")
-        # Reload base + lora weights from shards
-        sd = {}
-        for shard in sorted(glob.glob(os.path.join(args.model_path, "*.safetensors"))):
-            with safe_torch.safe_open(shard, framework="pt", device="cpu") as f:
-                for k in f.keys():
-                    sd[k] = f.get_tensor(k)
-        missing, unexpected = model.load_state_dict(sd, strict=False)
-        log.info(f"[LoRA] re-loaded ckpt | missing={len(missing)} unexpected={len(unexpected)}")
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = "<|endoftext|>"
         tokenizer.pad_token_id = 151643
@@ -277,6 +323,34 @@ def main():
     model.pgot_ovt_token_id = tokenizer.convert_tokens_to_ids(OVT_TOKEN)
     model.pgot_scene_end_token_id = tokenizer.convert_tokens_to_ids(SCENE_END_TOKEN)
 
+    # If checkpoint contains LoRA-wrapped weights, inject the adapters AFTER
+    # all PGOT/vision modules exist, then load the checkpoint state once.
+    if has_lora_in_ckpt:
+        import safetensors.torch as safe_torch
+        from peft import LoraConfig, inject_adapter_in_model
+
+        lora_cfg = LoraConfig(
+            r=int(getattr(config, "captionslot_lora_r", 16)) if hasattr(config, "captionslot_lora_r") else 16,
+            lora_alpha=int(getattr(config, "captionslot_lora_alpha", 32)) if hasattr(config, "captionslot_lora_alpha") else 32,
+            lora_dropout=0.0,
+            bias="none",
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+            task_type="CAUSAL_LM",
+        )
+        inject_adapter_in_model(lora_cfg, model, adapter_name="default")
+
+        sd = {}
+        for shard in sorted(glob.glob(os.path.join(args.model_path, "*.safetensors"))):
+            with safe_torch.safe_open(shard, framework="pt", device="cpu") as f:
+                for k in f.keys():
+                    sd[k] = f.get_tensor(k)
+        missing, unexpected = model.load_state_dict(sd, strict=False)
+        log.info(
+            "[LoRA] re-loaded ckpt after adapter injection | missing=%d unexpected=%d",
+            len(missing),
+            len(unexpected),
+        )
+
     # Template ids
     blocks = {
         "pgot_system_prefix_ids": "<|im_start|>system\nYou are a vision assistant that describes scenes with grounded objects.",
@@ -307,6 +381,8 @@ def main():
         n_ovt_per_object=args.n_ovt_per_object,
         max_objects=args.max_objects,
         panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_val2017.json",
+        image_preprocess_mode=args.image_preprocess_mode,
+        coda_crop_size=args.coda_crop_size,
     )
     if args.max_samples is not None:
         val_dataset = torch.utils.data.Subset(val_dataset, list(range(min(args.max_samples, len(val_dataset)))))
@@ -381,6 +457,7 @@ def main():
             caption_attention_mask=batch["caption_attention_mask"],
             ovt_positions_in_caption=batch["ovt_positions_in_caption"],
             ovt_valid_mask=batch["ovt_valid_mask"],
+            return_llm_attention_maps=(args.readout == "llm_attention"),
         )
 
         # ── Readout: either v5/v6 competition (thing+stuff+register-bg argmax)
@@ -459,6 +536,38 @@ def main():
                 ovt_is_thing=ovt_is_thing,
                 map_stuff_to_bg=(args.gt_source == "coco_instance"),
             )
+        elif readout == "llm_attention":
+            if out.get("llm_attention_maps") is None:
+                raise ValueError(
+                    "--readout llm_attention requires a V8.4/V8.5 checkpoint "
+                    "with internal LLM-attention supervision enabled."
+                )
+            pred_mask = build_pred_mask_llm_attention_eval(
+                ovt_attention_maps=out["llm_attention_maps"],
+                void_attention_maps=out["llm_attention_void_maps"],
+                ovt_valid_mask=valid_for_pred,
+                ovt_is_thing=ovt_is_thing,
+                target_size=args.eval_size,
+                n_ovt_per_object=args.n_ovt_per_object,
+                patch_grid=args.grid_size,
+                merge="mean",
+                map_stuff_to_bg=(args.gt_source == "coco_instance"),
+            )
+        elif readout == "ovt_owner":
+            if out.get("ovt_object_probs") is None:
+                raise ValueError(
+                    "--readout ovt_owner requires a V12 checkpoint with OVT-owner outputs."
+                )
+            pred_mask = build_pred_mask_ovt_owner_eval(
+                ovt_object_probs=out["ovt_object_probs"],
+                ovt_void_probs=out["ovt_void_probs"],
+                ovt_valid_mask=valid_for_pred,
+                ovt_is_thing=ovt_is_thing,
+                target_size=args.eval_size,
+                n_ovt_per_object=args.n_ovt_per_object,
+                patch_grid=args.grid_size,
+                map_stuff_to_bg=(args.gt_source == "coco_instance"),
+            )
         else:
             # v5/v6 competition readout (default).
             pred_mask = build_pred_mask_competition_eval(
@@ -475,6 +584,7 @@ def main():
         # GT mask
         B = pred_mask.shape[0]
         gt_masks = []
+        overlap_masks = []
         for b in range(B):
             global_idx = batch_idx * args.batch_size + b
             samp = samples_iter[global_idx]
@@ -485,19 +595,29 @@ def main():
                     seg_ids = [int(s["segment_id"]) for s in samp["segments"]]
                     gt = load_gt_panoptic_mask(samp["panoptic_mask_path"], seg_ids, args.eval_size)
                 gt_masks.append(gt)
+                overlap = coco_cache.get_overlap(int(samp["image_id"]))
+                if overlap is None:
+                    overlap = torch.zeros_like(gt, dtype=torch.uint8)
+                overlap_masks.append(overlap)
             else:
                 seg_ids = [int(s["segment_id"]) for s in samp["segments"]]
                 gt = load_gt_panoptic_mask(samp["panoptic_mask_path"], seg_ids, args.eval_size)
                 gt_masks.append(gt)
         gt_mask = torch.stack(gt_masks).to(device=pred_mask.device)
+        overlap_mask = (
+            torch.stack(overlap_masks).to(device=pred_mask.device)
+            if overlap_masks
+            else None
+        )
 
         # Per-sample metrics (loop to handle nan-safe averaging)
         for b in range(B):
             gt_b = gt_mask[b:b+1]  # (1, H, W)
             pr_b = pred_mask[b:b+1]
-            fa = fari_metric(gt_b, pr_b)
-            mb = mbo_metric(gt_b, pr_b)
-            mi = miou_metric(gt_b, pr_b)
+            overlap_b = overlap_mask[b:b+1] if overlap_mask is not None else None
+            fa = fari_metric(gt_b, pr_b, overlap_b)
+            mb = mbo_metric(gt_b, pr_b, overlap_b)
+            mi = miou_metric(gt_b, pr_b, overlap_b)
             if not np.isnan(fa): fari_scores.append(fa)
             if not np.isnan(mb): mbo_scores.append(mb)
             if not np.isnan(mi): miou_scores.append(mi)
@@ -561,6 +681,11 @@ def main():
         },
     }
     summary["gt_source"] = args.gt_source
+    summary["image_preprocess_mode"] = args.image_preprocess_mode
+    summary["coda_crop_size"] = int(args.coda_crop_size)
+    summary["coda_overlap_excluded"] = bool(
+        coco_cache is not None and coco_cache.overlap_masks is not None
+    )
     if args.readout == "spatial_trainmatch":
         summary["softmax_axis"] = "patch"
         summary["spatial_temperature"] = float(
@@ -571,6 +696,69 @@ def main():
             )
         )
         summary["eval_merge"] = "mean"
+    if args.readout == "llm_attention":
+        patch_attention = (
+            float(
+                getattr(
+                    model.config, "pgot_mask_llm_patch_outside_weight", 0.0
+                )
+            ) > 0.0
+            or float(
+                getattr(model.config, "pgot_mask_llm_image_use_weight", 0.0)
+            ) > 0.0
+        )
+        if patch_attention:
+            summary["attention_source"] = (
+                "exact_llm_post_rope_image_patch_softmax"
+            )
+            summary["attention_layers"] = str(
+                getattr(
+                    model.config,
+                    "pgot_mask_llm_patch_outside_layers",
+                    "last4",
+                )
+            )
+            summary["attention_temperature"] = float(
+                getattr(
+                    model.config,
+                    "pgot_mask_llm_patch_outside_temperature",
+                    1.0,
+                )
+            )
+            summary["image_use_weight"] = float(
+                getattr(model.config, "pgot_mask_llm_image_use_weight", 0.0)
+            )
+            summary["image_use_margin"] = float(
+                getattr(model.config, "pgot_mask_llm_image_use_margin", 0.05)
+            )
+        else:
+            summary["attention_source"] = "exact_llm_post_rope_full_key_softmax"
+            summary["attention_layers"] = str(
+                getattr(
+                    model.config,
+                    "pgot_mask_llm_attention_outside_layers",
+                    "last4",
+                )
+            )
+        summary["eval_merge"] = "mean"
+        summary["void_tokens"] = int(getattr(model.config, "pgot_n_null_bg", 0))
+    if args.readout == "ovt_owner":
+        summary["owner_source"] = "v12_ovt_owner_softmax"
+        summary["ovt_layers"] = str(getattr(model.config, "pgot_v12_layers", ""))
+        summary["ovt_temperature"] = float(
+            getattr(
+                model.config,
+                "pgot_v12_ovt_temperature",
+                getattr(model.config, "pgot_v12_slot_temperature", 1.0),
+            )
+        )
+        summary["owner_temperature"] = float(
+            getattr(model.config, "pgot_v12_owner_temperature", 1.0)
+        )
+        summary["owner_weight"] = float(
+            getattr(model.config, "pgot_v12_owner_weight", 1.0)
+        )
+        summary["void_tokens"] = int(getattr(model.config, "pgot_n_null_bg", 0))
     if fid_acc is not None:
         try:
             summary["rFID"] = fid_acc.compute()

@@ -317,6 +317,64 @@ def compute_mask_bce_loss(
     return (bce * valid).sum() / denom
 
 
+def compute_object_balanced_mask_bce_loss(
+    ovt_logits: torch.Tensor,
+    gt_masks_per_ovt: torch.Tensor,
+    ovt_valid_mask: torch.Tensor,
+    n_ovt_per_object: int,
+    merge: str = "mean",
+) -> Dict[str, torch.Tensor]:
+    """Object-balanced BCE for V11.
+
+    Two balances are applied:
+      1. The n OVTs for one object are merged before BCE, matching eval.
+      2. Each object contributes equally, and each object averages its inside
+         and outside BCE terms separately so small objects are not drowned by
+         background patches.
+    """
+    B, M, P = ovt_logits.shape
+    n = max(int(n_ovt_per_object), 1)
+    K = M // n
+    if K <= 0:
+        z = ovt_logits.new_zeros((), dtype=torch.float32)
+        return {"loss": z, "pos_loss": z, "neg_loss": z}
+
+    logits = ovt_logits[:, : K * n].reshape(B, K, n, P).float()
+    if merge == "max":
+        obj_logits = logits.amax(dim=2)
+    else:
+        obj_logits = logits.mean(dim=2)
+
+    masks = gt_masks_per_ovt[:, : K * n].reshape(B, K, n, P).float().amax(dim=2)
+    masks = masks.clamp(0.0, 1.0)
+    obj_valid = ovt_valid_mask[:, : K * n].reshape(B, K, n).any(dim=2)
+
+    bce = F.binary_cross_entropy_with_logits(obj_logits, masks, reduction="none")
+    pos_w = masks
+    neg_w = (1.0 - masks).clamp(0.0, 1.0)
+
+    pos_loss = (bce * pos_w).sum(dim=-1) / pos_w.sum(dim=-1).clamp_min(1.0)
+    neg_loss = (bce * neg_w).sum(dim=-1) / neg_w.sum(dim=-1).clamp_min(1.0)
+    per_obj = 0.5 * (pos_loss + neg_loss)
+
+    valid = obj_valid.float()
+    denom = valid.sum().clamp_min(1.0)
+    loss = (per_obj * valid).sum() / denom
+    pos_mean = (pos_loss * valid).sum() / denom
+    neg_mean = (neg_loss * valid).sum() / denom
+
+    for val in (loss, pos_mean, neg_mean):
+        if not torch.isfinite(val):
+            z = ovt_logits.new_zeros((), dtype=torch.float32)
+            return {"loss": z, "pos_loss": z, "neg_loss": z}
+
+    return {
+        "loss": loss,
+        "pos_loss": pos_mean.detach(),
+        "neg_loss": neg_mean.detach(),
+    }
+
+
 def compute_spatial_outside_attention_loss(
     ovt_logits: torch.Tensor,
     gt_masks_per_ovt: torch.Tensor,
@@ -473,6 +531,7 @@ def compute_competition_ce_loss(
     ovt_valid_mask: torch.Tensor,    # (B, M) bool
     n_ovt_per_object: int,
     temperature: float = 1.0,
+    merge: str = "max",
 ) -> torch.Tensor:
     """Object-level CODA-style competition CE with a register BACKGROUND class.
 
@@ -494,8 +553,10 @@ def compute_competition_ce_loss(
     temp = max(float(temperature), 1e-6)
     neg = torch.finfo(torch.float32).min
 
-    # object logits: max over the n OVTs per object
-    obj_logits = ovt_logits[:, : K * n].reshape(B, K, n, P).float().amax(dim=2) / temp  # (B,K,P)
+    # object logits: merge the n OVTs per object. V11 uses mean to match eval;
+    # older competition runs keep max by default for back-compat.
+    logits = ovt_logits[:, : K * n].reshape(B, K, n, P).float()
+    obj_logits = (logits.mean(dim=2) if merge == "mean" else logits.amax(dim=2)) / temp  # (B,K,P)
     obj_valid = ovt_valid_mask[:, : K * n].reshape(B, K, n).any(dim=2)                   # (B,K)
     obj_logits = obj_logits.masked_fill(~obj_valid.unsqueeze(-1), neg)
 
@@ -636,6 +697,118 @@ def build_pred_mask_null_bg_eval(
         rank = 0
         for k in range(K):
             if not bool(thing_valid[b, k]):
+                continue
+            rank += 1
+            pred[b][assign[b] == k] = rank
+    return pred
+
+
+def build_pred_mask_llm_attention_eval(
+    ovt_attention_maps: torch.Tensor,   # (B, M, P), actual LLM attention
+    void_attention_maps: torch.Tensor,  # (B, V, P), actual LLM attention
+    ovt_valid_mask: torch.Tensor,       # (B, M)
+    ovt_is_thing: torch.Tensor,         # (B, M)
+    target_size: int,
+    n_ovt_per_object: int,
+    patch_grid: int = 32,
+    merge: str = "mean",
+    map_stuff_to_bg: bool = True,
+) -> torch.Tensor:
+    """Read out the same internal-attention maps supervised by v8.4.
+
+    Object pairs are merged, then thing/stuff objects and the always-present
+    void token compete for each patch. Void always maps to background; stuff
+    also maps to background for COCO-instance evaluation.
+    """
+    B, M, P = ovt_attention_maps.shape
+    n = max(int(n_ovt_per_object), 1)
+    K = M // n
+    maps = ovt_attention_maps[:, : K * n].reshape(B, K, n, P).float()
+    obj_maps = maps.amax(dim=2) if merge == "max" else maps.mean(dim=2)
+    obj_valid = ovt_valid_mask[:, : K * n].reshape(B, K, n).any(dim=2)
+    obj_thing = ovt_is_thing[:, : K * n].reshape(B, K, n).any(dim=2)
+
+    if void_attention_maps is None or void_attention_maps.shape[1] <= 0:
+        raise ValueError("LLM-attention readout requires an always-present void map.")
+    void_map = void_attention_maps.float().mean(dim=1, keepdim=True)
+
+    all_maps = torch.cat([obj_maps, void_map], dim=1)
+    valid_full = torch.cat(
+        [obj_valid, torch.ones(B, 1, device=obj_valid.device, dtype=torch.bool)],
+        dim=1,
+    )
+    all_2d = all_maps.reshape(B, K + 1, patch_grid, patch_grid)
+    up = F.interpolate(
+        all_2d, size=(target_size, target_size), mode="bilinear", align_corners=False
+    )
+    up = up.masked_fill(
+        ~valid_full.view(B, K + 1, 1, 1), torch.finfo(up.dtype).min
+    )
+    assign = up.argmax(dim=1)
+
+    pred = torch.zeros(
+        (B, target_size, target_size), dtype=torch.int64, device=up.device
+    )
+    for b in range(B):
+        rank = 0
+        for k in range(K):
+            if not bool(obj_valid[b, k]):
+                continue
+            if map_stuff_to_bg and not bool(obj_thing[b, k]):
+                continue
+            rank += 1
+            pred[b][assign[b] == k] = rank
+    return pred
+
+
+def build_pred_mask_ovt_owner_eval(
+    ovt_object_probs: torch.Tensor,    # (B, K, P)
+    ovt_void_probs: torch.Tensor,      # (B, V, P)
+    ovt_valid_mask: torch.Tensor,      # (B, M)
+    ovt_is_thing: torch.Tensor,        # (B, M)
+    target_size: int,
+    n_ovt_per_object: int,
+    patch_grid: int = 32,
+    map_stuff_to_bg: bool = True,
+) -> torch.Tensor:
+    """Eval readout for V12 OVT-owner competition.
+
+    The OVT-owner softmax already runs across object OVTs (+ void) per patch
+    during training. Eval uses the same object-level owner maps:
+      - valid thing/stuff object OVTs compete with the void OVT
+      - void always maps to background 0
+      - for COCO-instance evaluation, stuff winners are also mapped to 0
+    """
+    B, K, P = ovt_object_probs.shape
+    n = max(int(n_ovt_per_object), 1)
+    obj_valid = ovt_valid_mask[:, : K * n].reshape(B, K, n).any(dim=2)
+    obj_thing = ovt_is_thing[:, : K * n].reshape(B, K, n).any(dim=2)
+
+    if ovt_void_probs is None or ovt_void_probs.shape[1] <= 0:
+        raise ValueError("ovt-owner readout requires at least one void OVT.")
+    void_prob = ovt_void_probs.float().sum(dim=1, keepdim=True)
+
+    all_maps = torch.cat([ovt_object_probs.float(), void_prob], dim=1)
+    valid_full = torch.cat(
+        [obj_valid, torch.ones(B, 1, dtype=torch.bool, device=obj_valid.device)],
+        dim=1,
+    )
+    all_2d = all_maps.reshape(B, K + 1, patch_grid, patch_grid)
+    up = F.interpolate(
+        all_2d, size=(target_size, target_size), mode="bilinear", align_corners=False
+    )
+    up = up.masked_fill(
+        ~valid_full.view(B, K + 1, 1, 1), torch.finfo(up.dtype).min
+    )
+    assign = up.argmax(dim=1)
+
+    pred = torch.zeros((B, target_size, target_size), dtype=torch.int64, device=up.device)
+    for b in range(B):
+        rank = 0
+        for k in range(K):
+            if not bool(obj_valid[b, k]):
+                continue
+            if map_stuff_to_bg and not bool(obj_thing[b, k]):
                 continue
             rank += 1
             pred[b][assign[b] == k] = rank

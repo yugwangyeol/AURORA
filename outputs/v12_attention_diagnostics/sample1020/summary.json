@@ -1,0 +1,161 @@
+{
+  "sample_index": 1020,
+  "image_id": 85772,
+  "paths": {
+    "block_segmentation": "/home/jovyan/PGOT/outputs/v12_attention_diagnostics/sample1020/block_segmentation.png",
+    "object_owner_maps": "/home/jovyan/PGOT/outputs/v12_attention_diagnostics/sample1020/object_owner_maps.png",
+    "rae_source_mass": "/home/jovyan/PGOT/outputs/v12_attention_diagnostics/sample1020/rae_source_mass.png"
+  },
+  "selected_objects": [
+    {
+      "object_index": 4,
+      "label": "sports ball 2 (thing)",
+      "is_thing": true
+    },
+    {
+      "object_index": 3,
+      "label": "sports ball 1 (thing)",
+      "is_thing": true
+    },
+    {
+      "object_index": 2,
+      "label": "tennis racket 1 (thing)",
+      "is_thing": true
+    },
+    {
+      "object_index": 1,
+      "label": "person 1 (thing)",
+      "is_thing": true
+    },
+    {
+      "object_index": 0,
+      "label": "fence-merged 1 (stuff)",
+      "is_thing": false
+    }
+  ],
+  "block_metrics": [
+    {
+      "fARI": -0.00539254629984498,
+      "mBO": 0.10428718477487564,
+      "mIoU": 0.28293535113334656,
+      "layer": 12
+    },
+    {
+      "fARI": 0.0018686369294300675,
+      "mBO": 0.1060127392411232,
+      "mIoU": 0.2206735759973526,
+      "layer": 16
+    },
+    {
+      "fARI": 0.0010802916949614882,
+      "mBO": 0.09979217499494553,
+      "mIoU": 0.2606295645236969,
+      "layer": 20
+    },
+    {
+      "fARI": -0.0013354114489629865,
+      "mBO": 0.08212826400995255,
+      "mIoU": 0.2149573415517807,
+      "layer": 24
+    }
+  ],
+  "final_metrics": {
+    "fARI": 0.003105454845353961,
+    "mBO": 0.26494836807250977,
+    "mIoU": 0.45608147978782654
+  },
+  "rae_source_mass": [
+    {
+      "layer": 24,
+      "thing_ovt": 0.005521821789443493,
+      "stuff_ovt": 0.00137220264878124,
+      "void": 0.0015729464357718825,
+      "rae_self": 0.9915330410003662,
+      "other": 0.0
+    },
+    {
+      "layer": 25,
+      "thing_ovt": 0.0008909582975320518,
+      "stuff_ovt": 0.00022245917352847755,
+      "void": 0.00023047009017318487,
+      "rae_self": 0.998656153678894,
+      "other": 0.0
+    },
+    {
+      "layer": 26,
+      "thing_ovt": 0.0003798683756031096,
+      "stuff_ovt": 0.00019054432050324976,
+      "void": 9.674258762970567e-05,
+      "rae_self": 0.999332845211029,
+      "other": 0.0
+    },
+    {
+      "layer": 27,
+      "thing_ovt": 2.3787761165294796e-05,
+      "stuff_ovt": 3.332708729431033e-05,
+      "void": 1.0976334124279674e-05,
+      "rae_self": 0.9999319314956665,
+      "other": 0.0
+    }
+  ],
+  "rae_source_mass_mean": {
+    "thing_ovt": 0.0017041090559359873,
+    "stuff_ovt": 0.0004546333075268194,
+    "void": 0.0004777838619247632,
+    "rae_self": 0.997363492846489,
+    "other": 0.0
+  },
+  "baseline_recon_loss": 0.9202716946601868,
+  "object_drop": [
+    {
+      "object_index": 4,
+      "label": "sports ball 2 (thing)",
+      "blocked_ovt_indices": [
+        8,
+        9
+      ],
+      "recon_loss": 0.9173267483711243,
+      "delta_from_baseline": -0.0029449462890625
+    },
+    {
+      "object_index": 3,
+      "label": "sports ball 1 (thing)",
+      "blocked_ovt_indices": [
+        6,
+        7
+      ],
+      "recon_loss": 0.9202248454093933,
+      "delta_from_baseline": -4.684925079345703e-05
+    },
+    {
+      "object_index": 2,
+      "label": "tennis racket 1 (thing)",
+      "blocked_ovt_indices": [
+        4,
+        5
+      ],
+      "recon_loss": 0.9205042719841003,
+      "delta_from_baseline": 0.00023257732391357422
+    },
+    {
+      "object_index": 1,
+      "label": "person 1 (thing)",
+      "blocked_ovt_indices": [
+        2,
+        3
+      ],
+      "recon_loss": 0.9203888773918152,
+      "delta_from_baseline": 0.00011718273162841797
+    },
+    {
+      "object_index": 0,
+      "label": "fence-merged 1 (stuff)",
+      "blocked_ovt_indices": [
+        0,
+        1
+      ],
+      "recon_loss": 0.9249928593635559,
+      "delta_from_baseline": 0.004721164703369141
+    }
+  ]
+}

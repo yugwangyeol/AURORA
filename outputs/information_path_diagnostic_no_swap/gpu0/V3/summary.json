@@ -1,0 +1,305 @@
+[
+  {
+    "sample_index": 0,
+    "image_id": 285,
+    "recon_loss": {
+      "baseline": 0.5313442945480347,
+      "ovt_only": 1.1122169494628906,
+      "register_only": 0.531689465045929,
+      "self_only": 3.6754395961761475
+    },
+    "rae_hidden_shift": {
+      "baseline": {
+        "cosine_to_baseline": 0.9999998807907104,
+        "relative_l2_to_baseline": 0.0
+      },
+      "ovt_only": {
+        "cosine_to_baseline": 0.7043456435203552,
+        "relative_l2_to_baseline": 0.7801206707954407
+      },
+      "register_only": {
+        "cosine_to_baseline": 0.9997815489768982,
+        "relative_l2_to_baseline": 0.021357722580432892
+      },
+      "self_only": {
+        "cosine_to_baseline": 0.04526802897453308,
+        "relative_l2_to_baseline": 1.2114856243133545
+      }
+    },
+    "rae_source_preference": [
+      {
+        "layer": 24,
+        "ovt_mass": 0.01816769689321518,
+        "register_mass": 0.9818323850631714
+      },
+      {
+        "layer": 25,
+        "ovt_mass": 0.006487026810646057,
+        "register_mass": 0.9935129880905151
+      },
+      {
+        "layer": 26,
+        "ovt_mass": 0.0017542977584525943,
+        "register_mass": 0.9982457160949707
+      },
+      {
+        "layer": 27,
+        "ovt_mass": 0.001182957785204053,
+        "register_mass": 0.9988171458244324
+      }
+    ],
+    "register_dot_maps": {
+      "path": "/home/jovyan/PGOT/outputs/information_path_diagnostic_no_swap/gpu0/V3/sample0_register_dot.png",
+      "lowest_entropy_registers": [
+        42,
+        6,
+        33,
+        35,
+        54
+      ]
+    },
+    "register_llm_qk_maps": {
+      "path": "/home/jovyan/PGOT/outputs/information_path_diagnostic_no_swap/gpu0/V3/sample0_register_llm_qk.png",
+      "lowest_entropy_registers": [
+        34,
+        51,
+        42,
+        33,
+        32
+      ]
+    },
+    "input_gradient": {
+      "loss": 0.5313442945480347,
+      "image": {
+        "mean": 0.002204151125624776,
+        "sum": 2.2570507526397705,
+        "max": 0.05151716619729996
+      },
+      "ovt": {
+        "mean": 0.04229844734072685,
+        "sum": 0.0845968946814537,
+        "max": 0.05418705195188522
+      },
+      "register": {
+        "mean": 0.14812326431274414,
+        "sum": 9.479888916015625,
+        "max": 0.9601633548736572
+      },
+      "rae_query": {
+        "mean": 0.016132894903421402,
+        "sum": 4.130021095275879,
+        "max": 0.05912025272846222
+      }
+    },
+    "recon_ablation_image": "/home/jovyan/PGOT/outputs/information_path_diagnostic_no_swap/gpu0/V3/sample0_recon_ablation.png",
+    "recon_ablation_order": [
+      "source",
+      "baseline",
+      "ovt_only",
+      "register_only",
+      "self_only"
+    ]
+  },
+  {
+    "sample_index": 1020,
+    "image_id": 85772,
+    "recon_loss": {
+      "baseline": 0.66180020570755,
+      "ovt_only": 1.1675889492034912,
+      "register_only": 0.6598458886146545,
+      "self_only": 3.7952380180358887
+    },
+    "rae_hidden_shift": {
+      "baseline": {
+        "cosine_to_baseline": 1.0,
+        "relative_l2_to_baseline": 0.0
+      },
+      "ovt_only": {
+        "cosine_to_baseline": 0.7273855805397034,
+        "relative_l2_to_baseline": 0.7289251089096069
+      },
+      "register_only": {
+        "cosine_to_baseline": 0.9994417428970337,
+        "relative_l2_to_baseline": 0.035917188972234726
+      },
+      "self_only": {
+        "cosine_to_baseline": 0.04845840483903885,
+        "relative_l2_to_baseline": 1.2244988679885864
+      }
+    },
+    "rae_source_preference": [
+      {
+        "layer": 24,
+        "ovt_mass": 0.035698384046554565,
+        "register_mass": 0.964301586151123
+      },
+      {
+        "layer": 25,
+        "ovt_mass": 0.029900474473834038,
+        "register_mass": 0.9700995683670044
+      },
+      {
+        "layer": 26,
+        "ovt_mass": 0.007794082164764404,
+        "register_mass": 0.9922059774398804
+      },
+      {
+        "layer": 27,
+        "ovt_mass": 0.007356630172580481,
+        "register_mass": 0.9926433563232422
+      }
+    ],
+    "register_dot_maps": {
+      "path": "/home/jovyan/PGOT/outputs/information_path_diagnostic_no_swap/gpu0/V3/sample1020_register_dot.png",
+      "lowest_entropy_registers": [
+        32,
+        56,
+        55,
+        48,
+        36
+      ]
+    },
+    "register_llm_qk_maps": {
+      "path": "/home/jovyan/PGOT/outputs/information_path_diagnostic_no_swap/gpu0/V3/sample1020_register_llm_qk.png",
+      "lowest_entropy_registers": [
+        42,
+        56,
+        6,
+        32,
+        19
+      ]
+    },
+    "input_gradient": {
+      "loss": 0.66180020570755,
+      "image": {
+        "mean": 0.002883459907025099,
+        "sum": 2.952662944793701,
+        "max": 0.06852924078702927
+      },
+      "ovt": {
+        "mean": 0.03318561241030693,
+        "sum": 0.3318561017513275,
+        "max": 0.06259740889072418
+      },
+      "register": {
+        "mean": 0.15245318412780762,
+        "sum": 9.757003784179688,
+        "max": 0.6334931254386902
+      },
+      "rae_query": {
+        "mean": 0.029307087883353233,
+        "sum": 7.502614498138428,
+        "max": 0.1317339539527893
+      }
+    },
+    "recon_ablation_image": "/home/jovyan/PGOT/outputs/information_path_diagnostic_no_swap/gpu0/V3/sample1020_recon_ablation.png",
+    "recon_ablation_order": [
+      "source",
+      "baseline",
+      "ovt_only",
+      "register_only",
+      "self_only"
+    ]
+  },
+  {
+    "sample_index": 1407,
+    "image_id": 177934,
+    "recon_loss": {
+      "baseline": 0.8303645253181458,
+      "ovt_only": 1.283653736114502,
+      "register_only": 0.8305308222770691,
+      "self_only": 3.902104616165161
+    },
+    "rae_hidden_shift": {
+      "baseline": {
+        "cosine_to_baseline": 0.9999999403953552,
+        "relative_l2_to_baseline": 0.0
+      },
+      "ovt_only": {
+        "cosine_to_baseline": 0.7399720549583435,
+        "relative_l2_to_baseline": 0.7170829772949219
+      },
+      "register_only": {
+        "cosine_to_baseline": 0.9979591965675354,
+        "relative_l2_to_baseline": 0.06572526693344116
+      },
+      "self_only": {
+        "cosine_to_baseline": 0.05105214565992355,
+        "relative_l2_to_baseline": 1.2544047832489014
+      }
+    },
+    "rae_source_preference": [
+      {
+        "layer": 24,
+        "ovt_mass": 0.08611422777175903,
+        "register_mass": 0.913885772228241
+      },
+      {
+        "layer": 25,
+        "ovt_mass": 0.05895792692899704,
+        "register_mass": 0.9410420656204224
+      },
+      {
+        "layer": 26,
+        "ovt_mass": 0.035183027386665344,
+        "register_mass": 0.9648169875144958
+      },
+      {
+        "layer": 27,
+        "ovt_mass": 0.016059674322605133,
+        "register_mass": 0.9839403033256531
+      }
+    ],
+    "register_dot_maps": {
+      "path": "/home/jovyan/PGOT/outputs/information_path_diagnostic_no_swap/gpu0/V3/sample1407_register_dot.png",
+      "lowest_entropy_registers": [
+        48,
+        56,
+        33,
+        17,
+        27
+      ]
+    },
+    "register_llm_qk_maps": {
+      "path": "/home/jovyan/PGOT/outputs/information_path_diagnostic_no_swap/gpu0/V3/sample1407_register_llm_qk.png",
+      "lowest_entropy_registers": [
+        48,
+        34,
+        57,
+        28,
+        35
+      ]
+    },
+    "input_gradient": {
+      "loss": 0.8303645253181458,
+      "image": {
+        "mean": 0.0023555958177894354,
+        "sum": 2.412130117416382,
+        "max": 0.05604414641857147
+      },
+      "ovt": {
+        "mean": 0.01180501189082861,
+        "sum": 0.6138606071472168,
+        "max": 0.04317529499530792
+      },
+      "register": {
+        "mean": 0.1745365560054779,
+        "sum": 11.170339584350586,
+        "max": 0.9114997386932373
+      },
+      "rae_query": {
+        "mean": 0.01543914433568716,
+        "sum": 3.952420949935913,
+        "max": 0.07905265688896179
+      }
+    },
+    "recon_ablation_image": "/home/jovyan/PGOT/outputs/information_path_diagnostic_no_swap/gpu0/V3/sample1407_recon_ablation.png",
+    "recon_ablation_order": [
+      "source",
+      "baseline",
+      "ovt_only",
+      "register_only",
+      "self_only"
+    ]
+  }
+]

@@ -23,6 +23,8 @@ EVAL_MERGE="${EVAL_MERGE:-max}"
 GRID_SIZE="${GRID_SIZE:-32}"
 EVAL_SIZE="${EVAL_SIZE:-224}"
 COCO_MASK_CACHE="${COCO_MASK_CACHE:-/home/jovyan/PGOT/data/coco_inst_mask_cache_coda256}"
+IMAGE_PREPROCESS_MODE="${IMAGE_PREPROCESS_MODE:-default}"
+CODA_CROP_SIZE="${CODA_CROP_SIZE:-512}"
 DIFF_INFER_STEPS="${DIFF_INFER_STEPS:-25}"
 GUIDANCE_SCALE="${GUIDANCE_SCALE:-2.5}"
 
@@ -46,6 +48,7 @@ echo "Out:    ${OUTPUT_DIR}"
 echo "Batch:  ${BATCH_SIZE}"
 echo "Grid:   ${GRID_SIZE}"
 echo "GT:     ${GT_SOURCE}"
+echo "Image:  ${IMAGE_PREPROCESS_MODE}"
 echo "Readout:${READOUT}"
 echo "Merge:  ${EVAL_MERGE}"
 echo "rFID:   ${COMPUTE_RFID}"
@@ -73,6 +76,8 @@ fi
     --bg_threshold 0.05 \
     --dtype fp32 \
     --gt_source "${GT_SOURCE}" \
+    --image_preprocess_mode "${IMAGE_PREPROCESS_MODE}" \
+    --coda_crop_size "${CODA_CROP_SIZE}" \
     --readout "${READOUT}" \
     --eval_merge "${EVAL_MERGE}" \
     --spatial_temperature "${SPATIAL_TEMPERATURE}" \

@@ -1,0 +1,22 @@
+{
+  "note": "GT-prototype oracle on RAW frozen patch features @32x32. Stand-in for perfect OVT query. Measures feature-map ceiling. CODA fARI target 0.475.",
+  "siglip2_512_raw": {
+    "fARI": 0.3281,
+    "mBO": 0.3383,
+    "n": 506
+  },
+  "siglip2_via_Qwen_R1": {
+    "fARI": 0.417,
+    "note": "from probe_feature_ceiling"
+  },
+  "dinov2_base_raw": {
+    "fARI": 0.5796,
+    "mBO": 0.5173,
+    "n": 506
+  },
+  "CODA_target": {
+    "fARI": 0.475,
+    "mBO": 0.363
+  },
+  "conclusion": "DINOv2 frozen features (0.58) blow past CODA (0.475); SigLIP (0.33-0.42) is the bottleneck. Swap mask feature-map to frozen DINO (dual encoder), no vision training needed."
+}

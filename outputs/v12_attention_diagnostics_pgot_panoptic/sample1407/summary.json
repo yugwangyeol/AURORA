@@ -1,0 +1,188 @@
+{
+  "sample_index": 1407,
+  "image_id": 177934,
+  "gt_source": "pix2cap_panoptic",
+  "source_uses_eval_target_image": true,
+  "paths": {
+    "block_segmentation": "/home/jovyan/PGOT/outputs/v12_attention_diagnostics_pgot_panoptic/sample1407/block_segmentation.png",
+    "object_owner_maps": "/home/jovyan/PGOT/outputs/v12_attention_diagnostics_pgot_panoptic/sample1407/object_owner_maps.png",
+    "rae_source_mass": "/home/jovyan/PGOT/outputs/v12_attention_diagnostics_pgot_panoptic/sample1407/rae_source_mass.png"
+  },
+  "selected_objects": [
+    {
+      "object_index": 23,
+      "label": "person 6 (thing)",
+      "is_thing": true
+    },
+    {
+      "object_index": 25,
+      "label": "truck 3 (thing)",
+      "is_thing": true
+    },
+    {
+      "object_index": 19,
+      "label": "car 4 (thing)",
+      "is_thing": true
+    },
+    {
+      "object_index": 21,
+      "label": "car 5 (thing)",
+      "is_thing": true
+    },
+    {
+      "object_index": 22,
+      "label": "car 6 (thing)",
+      "is_thing": true
+    },
+    {
+      "object_index": 18,
+      "label": "car 3 (thing)",
+      "is_thing": true
+    },
+    {
+      "object_index": 16,
+      "label": "truck 2 (thing)",
+      "is_thing": true
+    },
+    {
+      "object_index": 15,
+      "label": "motorcycle 2 (thing)",
+      "is_thing": true
+    }
+  ],
+  "block_metrics": [
+    {
+      "fARI": 0.07408718764781952,
+      "mBO": 0.07163134217262268,
+      "mIoU": 0.030844734981656075,
+      "layer": 12
+    },
+    {
+      "fARI": 0.1503046602010727,
+      "mBO": 0.06925095617771149,
+      "mIoU": 0.049972813576459885,
+      "layer": 16
+    },
+    {
+      "fARI": 0.2790830433368683,
+      "mBO": 0.11680496484041214,
+      "mIoU": 0.07100532948970795,
+      "layer": 20
+    },
+    {
+      "fARI": 0.006592485588043928,
+      "mBO": 0.04613552615046501,
+      "mIoU": 0.020054927095770836,
+      "layer": 24
+    }
+  ],
+  "final_metrics": {
+    "fARI": 0.7722443342208862,
+    "mBO": 0.39878880977630615,
+    "mIoU": 0.37807178497314453
+  },
+  "rae_source_mass": [
+    {
+      "layer": 24,
+      "thing_ovt": 0.0027278854977339506,
+      "stuff_ovt": 0.0015390947228297591,
+      "void": 0.0015676245093345642,
+      "rae_self": 0.9941654205322266,
+      "other": 0.0
+    },
+    {
+      "layer": 25,
+      "thing_ovt": 0.0005238924059085548,
+      "stuff_ovt": 0.00032380566699430346,
+      "void": 0.002154312329366803,
+      "rae_self": 0.9969980120658875,
+      "other": 0.0
+    },
+    {
+      "layer": 26,
+      "thing_ovt": 0.0002564449096098542,
+      "stuff_ovt": 0.0008182364399544895,
+      "void": 0.00012950316886417568,
+      "rae_self": 0.9987958669662476,
+      "other": 0.0
+    },
+    {
+      "layer": 27,
+      "thing_ovt": 2.545748975535389e-05,
+      "stuff_ovt": 2.6300955141778104e-05,
+      "void": 1.8125230781151913e-05,
+      "rae_self": 0.9999301433563232,
+      "other": 0.0
+    }
+  ],
+  "rae_source_mass_mean": {
+    "thing_ovt": 0.0008834200757519284,
+    "stuff_ovt": 0.0006768594462300825,
+    "void": 0.0009673913095866737,
+    "rae_self": 0.9974723607301712,
+    "other": 0.0
+  },
+  "baseline_recon_loss": 1.0526055097579956,
+  "object_drop": [
+    {
+      "object_index": 23,
+      "label": "person 6 (thing)",
+      "blocked_ovt_indices": [
+        46,
+        47
+      ],
+      "recon_loss": 1.0529285669326782,
+      "delta_from_baseline": 0.0003230571746826172
+    },
+    {
+      "object_index": 25,
+      "label": "truck 3 (thing)",
+      "blocked_ovt_indices": [
+        50,
+        51
+      ],
+      "recon_loss": 1.0526542663574219,
+      "delta_from_baseline": 4.875659942626953e-05
+    },
+    {
+      "object_index": 19,
+      "label": "car 4 (thing)",
+      "blocked_ovt_indices": [
+        38,
+        39
+      ],
+      "recon_loss": 1.052620768547058,
+      "delta_from_baseline": 1.52587890625e-05
+    },
+    {
+      "object_index": 21,
+      "label": "car 5 (thing)",
+      "blocked_ovt_indices": [
+        42,
+        43
+      ],
+      "recon_loss": 1.0527195930480957,
+      "delta_from_baseline": 0.00011408329010009766
+    },
+    {
+      "object_index": 22,
+      "label": "car 6 (thing)",
+      "blocked_ovt_indices": [
+        44,
+        45
+      ],
+      "recon_loss": 1.0527331829071045,
+      "delta_from_baseline": 0.00012767314910888672
+    },
+    {
+      "object_index": 18,
+      "label": "car 3 (thing)",
+      "blocked_ovt_indices": [
+        36,
+        37
+      ],
+      "recon_loss": 1.052626609802246,
+      "delta_from_baseline": 2.110004425048828e-05
+    }
+  ]
+}

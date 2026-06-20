@@ -1,0 +1,44 @@
+{
+  "model": "/home/jovyan/PGOT/checkpoints/pgot_main_v11_bal_bce_ce03_mean",
+  "n_eval": 507,
+  "R0_current_threshold": {
+    "fARI": 0.36011016786051653,
+    "mBO": 0.3725581252426221,
+    "n": 507
+  },
+  "R1_feature_oracle": {
+    "fARI": 0.41688190812234827,
+    "mBO": 0.4161120487108786,
+    "n": 506
+  },
+  "R1_feature_oracle_g128": {
+    "fARI": 0.45026014915764884,
+    "mBO": null,
+    "n": 507
+  },
+  "R1_feature_oracle_g64": {
+    "fARI": 0.4471845101463673,
+    "mBO": null,
+    "n": 507
+  },
+  "R2_ovtmap_oracle_bg": {
+    "fARI": 0.36318056055384956,
+    "mBO": 0.3840267582460894,
+    "n": 487
+  },
+  "Rres_g128": {
+    "fARI": 0.6879508258584673,
+    "mBO": null,
+    "n": 507
+  },
+  "Rres_g64": {
+    "fARI": 0.604109828661973,
+    "mBO": null,
+    "n": 507
+  },
+  "Rres_resolution_ceiling": {
+    "fARI": 0.49321825657259594,
+    "mBO": 0.6552219805794472,
+    "n": 507
+  }
+}

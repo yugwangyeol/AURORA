@@ -1,0 +1,103 @@
+{
+  "sample_index": 0,
+  "image_id": 285,
+  "gt_source": "pix2cap_panoptic",
+  "source_uses_eval_target_image": true,
+  "paths": {
+    "block_segmentation": "/home/jovyan/PGOT/outputs/v12_attention_diagnostics_pgot_panoptic/sample0/block_segmentation.png",
+    "object_owner_maps": "/home/jovyan/PGOT/outputs/v12_attention_diagnostics_pgot_panoptic/sample0/object_owner_maps.png",
+    "rae_source_mass": "/home/jovyan/PGOT/outputs/v12_attention_diagnostics_pgot_panoptic/sample0/rae_source_mass.png"
+  },
+  "selected_objects": [
+    {
+      "object_index": 0,
+      "label": "bear 1 (thing)",
+      "is_thing": true
+    }
+  ],
+  "block_metrics": [
+    {
+      "fARI": 0.0,
+      "mBO": 0.5751309990882874,
+      "mIoU": 0.47441524267196655,
+      "layer": 12
+    },
+    {
+      "fARI": 0.0,
+      "mBO": 0.7378380298614502,
+      "mIoU": 0.37671488523483276,
+      "layer": 16
+    },
+    {
+      "fARI": 0.0,
+      "mBO": 0.7311270236968994,
+      "mIoU": 0.37057730555534363,
+      "layer": 20
+    },
+    {
+      "fARI": 0.0,
+      "mBO": 0.61602783203125,
+      "mIoU": 0.308013916015625,
+      "layer": 24
+    }
+  ],
+  "final_metrics": {
+    "fARI": 0.0,
+    "mBO": 0.9447043538093567,
+    "mIoU": 0.8966957330703735
+  },
+  "rae_source_mass": [
+    {
+      "layer": 24,
+      "thing_ovt": 0.006853945087641478,
+      "stuff_ovt": 0.0,
+      "void": 0.0010196133516728878,
+      "rae_self": 0.99212646484375,
+      "other": 0.0
+    },
+    {
+      "layer": 25,
+      "thing_ovt": 0.0010537217603996396,
+      "stuff_ovt": 0.0,
+      "void": 0.0002552520309109241,
+      "rae_self": 0.9986910223960876,
+      "other": 0.0
+    },
+    {
+      "layer": 26,
+      "thing_ovt": 0.00026232245727442205,
+      "stuff_ovt": 0.0,
+      "void": 0.00012375785445328802,
+      "rae_self": 0.9996139407157898,
+      "other": 0.0
+    },
+    {
+      "layer": 27,
+      "thing_ovt": 2.5335873942822218e-05,
+      "stuff_ovt": 0.0,
+      "void": 3.791631024796516e-05,
+      "rae_self": 0.9999367594718933,
+      "other": 0.0
+    }
+  ],
+  "rae_source_mass_mean": {
+    "thing_ovt": 0.0020488312948145904,
+    "stuff_ovt": 0.0,
+    "void": 0.00035913488682126626,
+    "rae_self": 0.9975920468568802,
+    "other": 0.0
+  },
+  "baseline_recon_loss": 0.7106083035469055,
+  "object_drop": [
+    {
+      "object_index": 0,
+      "label": "bear 1 (thing)",
+      "blocked_ovt_indices": [
+        0,
+        1
+      ],
+      "recon_loss": 0.7392289638519287,
+      "delta_from_baseline": 0.028620660305023193
+    }
+  ]
+}

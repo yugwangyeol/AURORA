@@ -1,0 +1,50 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_main_v12_ovt_update/checkpoint-10000",
+  "readout": "ovt_owner",
+  "num_samples": 2338,
+  "fARI": 0.5302968596741212,
+  "mBO": 0.5648284803130693,
+  "mIoU": 0.6222507447829682,
+  "active_count_mean": 6.533789563729684,
+  "by_object_count": {
+    "1-3": {
+      "n": 532,
+      "fARI": 0.4108673058451247,
+      "mBO": 0.6511804862806172,
+      "mIoU": 0.7092495484879815
+    },
+    "7-10": {
+      "n": 632,
+      "fARI": 0.5920428852006825,
+      "mBO": 0.5163839879953458,
+      "mIoU": 0.5747723005169744
+    },
+    "11+": {
+      "n": 315,
+      "fARI": 0.6314684014669605,
+      "mBO": 0.37608857384082744,
+      "mIoU": 0.4101230975536127
+    },
+    "4-6": {
+      "n": 859,
+      "fARI": 0.521733412455838,
+      "mBO": 0.6187347196422491,
+      "mIoU": 0.6810903513979718
+    }
+  },
+  "gt_source": "coco_instance",
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "coda_overlap_excluded": true,
+  "owner_source": "v12_ovt_owner_softmax",
+  "ovt_layers": "12,16,20,24",
+  "ovt_temperature": 1.0,
+  "owner_temperature": 1.0,
+  "owner_weight": 1.0,
+  "void_tokens": 1,
+  "rFID": 40.797706604003906,
+  "recon_psnr": 9.592768755501616,
+  "recon_ssim": 0.1938791114030688,
+  "recon_mse": 0.11874601815391406,
+  "recon_mae": 0.27267030525515995
+}

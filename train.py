@@ -141,8 +141,12 @@ def train():
     config.pgot_n_ovt_per_object = model_args.pgot_n_ovt_per_object
     config.pgot_max_objects = model_args.pgot_max_objects
     config.pgot_use_null_bg_competition = bool(model_args.pgot_use_null_bg_competition)
+    config.pgot_mask_ce_weight = float(model_args.pgot_mask_ce_weight)
+    config.pgot_mask_ce_temperature = float(model_args.pgot_mask_ce_temperature)
+    config.pgot_mask_ce_merge = str(model_args.pgot_mask_ce_merge)
     config.pgot_mask_fg_weight = float(model_args.pgot_mask_fg_weight)
     config.pgot_mask_outside_weight = float(model_args.pgot_mask_outside_weight)
+    config.pgot_mask_object_balanced_bce_weight = float(model_args.pgot_mask_object_balanced_bce_weight)
     config.pgot_mask_spatial_outside_weight = float(model_args.pgot_mask_spatial_outside_weight)
     config.pgot_mask_spatial_temperature = float(model_args.pgot_mask_spatial_temperature)
     config.pgot_mask_spatial_outside_log_weight = float(model_args.pgot_mask_spatial_outside_log_weight)
@@ -150,6 +154,44 @@ def train():
     config.pgot_mask_llm_qk_outside_weight = float(model_args.pgot_mask_llm_qk_outside_weight)
     config.pgot_mask_llm_qk_outside_temperature = float(model_args.pgot_mask_llm_qk_outside_temperature)
     config.pgot_mask_llm_qk_outside_layers = str(model_args.pgot_mask_llm_qk_outside_layers)
+    config.pgot_mask_llm_attention_outside_weight = float(
+        model_args.pgot_mask_llm_attention_outside_weight
+    )
+    config.pgot_mask_llm_attention_outside_layers = str(
+        model_args.pgot_mask_llm_attention_outside_layers
+    )
+    config.pgot_mask_llm_attention_void_weight = float(
+        model_args.pgot_mask_llm_attention_void_weight
+    )
+    config.pgot_mask_llm_patch_outside_weight = float(
+        model_args.pgot_mask_llm_patch_outside_weight
+    )
+    config.pgot_mask_llm_patch_outside_layers = str(
+        model_args.pgot_mask_llm_patch_outside_layers
+    )
+    config.pgot_mask_llm_patch_outside_temperature = float(
+        model_args.pgot_mask_llm_patch_outside_temperature
+    )
+    config.pgot_mask_llm_patch_void_weight = float(
+        model_args.pgot_mask_llm_patch_void_weight
+    )
+    config.pgot_mask_llm_image_use_weight = float(
+        model_args.pgot_mask_llm_image_use_weight
+    )
+    config.pgot_mask_llm_image_use_margin = float(
+        model_args.pgot_mask_llm_image_use_margin
+    )
+    config.pgot_v12_enable = bool(model_args.pgot_v12_enable)
+    config.pgot_v12_layers = str(model_args.pgot_v12_layers)
+    v12_ovt_temp = float(
+        model_args.pgot_v12_ovt_temperature
+        if model_args.pgot_v12_ovt_temperature is not None
+        else model_args.pgot_v12_slot_temperature
+    )
+    config.pgot_v12_ovt_temperature = v12_ovt_temp
+    config.pgot_v12_slot_temperature = v12_ovt_temp
+    config.pgot_v12_owner_temperature = float(model_args.pgot_v12_owner_temperature)
+    config.pgot_v12_owner_weight = float(model_args.pgot_v12_owner_weight)
     config.pgot_rae_bidirectional = model_args.pgot_rae_bidirectional
     config.pgot_attention_use_layer_norm = model_args.pgot_attention_use_layer_norm
     config.pgot_attention_temperature = model_args.pgot_attention_temperature
@@ -175,12 +217,14 @@ def train():
     # rather than the getattr defaults.
     model.config.pgot_mask_ce_weight = float(model_args.pgot_mask_ce_weight)
     model.config.pgot_mask_ce_temperature = float(model_args.pgot_mask_ce_temperature)
+    model.config.pgot_mask_ce_merge = str(model_args.pgot_mask_ce_merge)
     model.config.pgot_use_null_bg_competition = bool(model_args.pgot_use_null_bg_competition)
     model.config.pgot_n_null_bg = int(model_args.pgot_n_null_bg)
     model.config.pgot_mask_fg_weight = float(model_args.pgot_mask_fg_weight)
     model.config.pgot_mask_outside_weight = float(model_args.pgot_mask_outside_weight)
     model.config.pgot_mask_aux_competition_weight = float(model_args.pgot_mask_aux_competition_weight)
     model.config.pgot_mask_bce_weight = float(model_args.pgot_mask_bce_weight)
+    model.config.pgot_mask_object_balanced_bce_weight = float(model_args.pgot_mask_object_balanced_bce_weight)
     model.config.pgot_mask_tversky_weight = float(model_args.pgot_mask_tversky_weight)
     model.config.pgot_mask_tversky_alpha = float(model_args.pgot_mask_tversky_alpha)
     model.config.pgot_mask_tversky_beta = float(model_args.pgot_mask_tversky_beta)
@@ -191,13 +235,48 @@ def train():
     model.config.pgot_mask_llm_qk_outside_weight = float(model_args.pgot_mask_llm_qk_outside_weight)
     model.config.pgot_mask_llm_qk_outside_temperature = float(model_args.pgot_mask_llm_qk_outside_temperature)
     model.config.pgot_mask_llm_qk_outside_layers = str(model_args.pgot_mask_llm_qk_outside_layers)
+    model.config.pgot_mask_llm_attention_outside_weight = float(
+        model_args.pgot_mask_llm_attention_outside_weight
+    )
+    model.config.pgot_mask_llm_attention_outside_layers = str(
+        model_args.pgot_mask_llm_attention_outside_layers
+    )
+    model.config.pgot_mask_llm_attention_void_weight = float(
+        model_args.pgot_mask_llm_attention_void_weight
+    )
+    model.config.pgot_mask_llm_patch_outside_weight = float(
+        model_args.pgot_mask_llm_patch_outside_weight
+    )
+    model.config.pgot_mask_llm_patch_outside_layers = str(
+        model_args.pgot_mask_llm_patch_outside_layers
+    )
+    model.config.pgot_mask_llm_patch_outside_temperature = float(
+        model_args.pgot_mask_llm_patch_outside_temperature
+    )
+    model.config.pgot_mask_llm_patch_void_weight = float(
+        model_args.pgot_mask_llm_patch_void_weight
+    )
+    model.config.pgot_mask_llm_image_use_weight = float(
+        model_args.pgot_mask_llm_image_use_weight
+    )
+    model.config.pgot_mask_llm_image_use_margin = float(
+        model_args.pgot_mask_llm_image_use_margin
+    )
+    model.config.pgot_v12_enable = bool(model_args.pgot_v12_enable)
+    model.config.pgot_v12_layers = str(model_args.pgot_v12_layers)
+    model.config.pgot_v12_ovt_temperature = v12_ovt_temp
+    model.config.pgot_v12_slot_temperature = v12_ovt_temp
+    model.config.pgot_v12_owner_temperature = float(model_args.pgot_v12_owner_temperature)
+    model.config.pgot_v12_owner_weight = float(model_args.pgot_v12_owner_weight)
     model.config.pgot_cfg_drop_rate = float(model_args.pgot_cfg_drop_rate)
     model.config.pgot_rae_attends_caption = bool(model_args.pgot_rae_attends_caption)
     logger.info(
         f"[PGOT] mask loss weights -> ce={model.config.pgot_mask_ce_weight} "
         f"fg={model.config.pgot_mask_fg_weight} outside={model.config.pgot_mask_outside_weight} "
         f"ce_aux={model.config.pgot_mask_aux_competition_weight} "
-        f"bce={model.config.pgot_mask_bce_weight} tversky={model.config.pgot_mask_tversky_weight} "
+        f"bce={model.config.pgot_mask_bce_weight} "
+        f"obj_bal_bce={model.config.pgot_mask_object_balanced_bce_weight} "
+        f"tversky={model.config.pgot_mask_tversky_weight} "
         f"spatial_out={model.config.pgot_mask_spatial_outside_weight} "
         f"(spatial_temp={model.config.pgot_mask_spatial_temperature}) "
         f"spatial_out_log={model.config.pgot_mask_spatial_outside_log_weight} "
@@ -205,7 +284,21 @@ def train():
         f"llm_qk_out={model.config.pgot_mask_llm_qk_outside_weight} "
         f"(llm_qk_temp={model.config.pgot_mask_llm_qk_outside_temperature}, "
         f"llm_qk_layers={model.config.pgot_mask_llm_qk_outside_layers}) "
-        f"(ce_temp={model.config.pgot_mask_ce_temperature}); "
+        f"llm_attn_out={model.config.pgot_mask_llm_attention_outside_weight} "
+        f"(llm_attn_layers={model.config.pgot_mask_llm_attention_outside_layers}, "
+        f"void_w={model.config.pgot_mask_llm_attention_void_weight}) "
+        f"llm_patch_out={model.config.pgot_mask_llm_patch_outside_weight} "
+        f"(llm_patch_layers={model.config.pgot_mask_llm_patch_outside_layers}, "
+        f"temp={model.config.pgot_mask_llm_patch_outside_temperature}, "
+        f"void_w={model.config.pgot_mask_llm_patch_void_weight}, "
+        f"image_use_w={model.config.pgot_mask_llm_image_use_weight}, "
+        f"image_use_margin={model.config.pgot_mask_llm_image_use_margin}) "
+        f"v12={bool(getattr(model.config, 'pgot_v12_enable', False))} "
+        f"(layers={getattr(model.config, 'pgot_v12_layers', '12,16,20,24')}, "
+        f"ovt_temp={getattr(model.config, 'pgot_v12_ovt_temperature', getattr(model.config, 'pgot_v12_slot_temperature', 1.0))}, "
+        f"owner_temp={getattr(model.config, 'pgot_v12_owner_temperature', 1.0)}, "
+        f"owner_w={getattr(model.config, 'pgot_v12_owner_weight', 1.0)}) "
+        f"(ce_temp={model.config.pgot_mask_ce_temperature}, ce_merge={model.config.pgot_mask_ce_merge}); "
         f"null_bg={model.config.pgot_use_null_bg_competition}; cfg_drop={model.config.pgot_cfg_drop_rate}"
     )
     logger.info("[PGOT] model checkpoint loaded")

@@ -1,0 +1,425 @@
+[
+  {
+    "sample_index": 0,
+    "image_id": 285,
+    "recon_loss": {
+      "baseline": 0.7735517024993896,
+      "ovt_only": 0.7735517024993896,
+      "register_only": 2.197561740875244,
+      "self_only": 2.197561740875244
+    },
+    "rae_hidden_shift": {
+      "baseline": {
+        "cosine_to_baseline": 1.0,
+        "relative_l2_to_baseline": 0.0
+      },
+      "ovt_only": {
+        "cosine_to_baseline": 1.0,
+        "relative_l2_to_baseline": 0.0
+      },
+      "register_only": {
+        "cosine_to_baseline": 0.06877133250236511,
+        "relative_l2_to_baseline": 0.9990503191947937
+      },
+      "self_only": {
+        "cosine_to_baseline": 0.06877133250236511,
+        "relative_l2_to_baseline": 0.9990503191947937
+      }
+    },
+    "rae_source_preference": [
+      {
+        "layer": 24,
+        "ovt_mass": 1.0,
+        "register_mass": 0.0
+      },
+      {
+        "layer": 25,
+        "ovt_mass": 1.0,
+        "register_mass": 0.0
+      },
+      {
+        "layer": 26,
+        "ovt_mass": 1.0,
+        "register_mass": 0.0
+      },
+      {
+        "layer": 27,
+        "ovt_mass": 1.0,
+        "register_mass": 0.0
+      }
+    ],
+    "register_dot_maps": null,
+    "register_llm_qk_maps": null,
+    "object_ovt_drop": [
+      {
+        "object_index": 0,
+        "recon_loss": 2.197561740875244,
+        "delta_from_baseline": 1.4240100383758545,
+        "relative_l2_to_baseline": 0.9990503191947937
+      }
+    ],
+    "input_gradient": {
+      "loss": 0.7735517024993896,
+      "image": {
+        "mean": 4.778337461175397e-05,
+        "sum": 0.048930175602436066,
+        "max": 0.0007894574664533138
+      },
+      "ovt": {
+        "mean": 0.3300032913684845,
+        "sum": 0.660006582736969,
+        "max": 0.36036643385887146
+      },
+      "register": {
+        "mean": 0.0,
+        "sum": 0.0,
+        "max": 0.0
+      },
+      "rae_query": {
+        "mean": 0.013707899488508701,
+        "sum": 3.5092222690582275,
+        "max": 0.32439082860946655
+      }
+    }
+  },
+  {
+    "sample_index": 1020,
+    "image_id": 85772,
+    "recon_loss": {
+      "baseline": 0.9279912114143372,
+      "ovt_only": 0.9279912114143372,
+      "register_only": 2.3602185249328613,
+      "self_only": 2.3602185249328613
+    },
+    "rae_hidden_shift": {
+      "baseline": {
+        "cosine_to_baseline": 1.0,
+        "relative_l2_to_baseline": 0.0
+      },
+      "ovt_only": {
+        "cosine_to_baseline": 1.0,
+        "relative_l2_to_baseline": 0.0
+      },
+      "register_only": {
+        "cosine_to_baseline": 0.0666181892156601,
+        "relative_l2_to_baseline": 0.9992026090621948
+      },
+      "self_only": {
+        "cosine_to_baseline": 0.0666181892156601,
+        "relative_l2_to_baseline": 0.9992026090621948
+      }
+    },
+    "rae_source_preference": [
+      {
+        "layer": 24,
+        "ovt_mass": 1.0,
+        "register_mass": 0.0
+      },
+      {
+        "layer": 25,
+        "ovt_mass": 1.0,
+        "register_mass": 0.0
+      },
+      {
+        "layer": 26,
+        "ovt_mass": 1.0,
+        "register_mass": 0.0
+      },
+      {
+        "layer": 27,
+        "ovt_mass": 1.0,
+        "register_mass": 0.0
+      }
+    ],
+    "register_dot_maps": null,
+    "register_llm_qk_maps": null,
+    "object_ovt_drop": [
+      {
+        "object_index": 0,
+        "recon_loss": 0.9287550449371338,
+        "delta_from_baseline": 0.0007638335227966309,
+        "relative_l2_to_baseline": 0.021371575072407722
+      },
+      {
+        "object_index": 1,
+        "recon_loss": 0.9286437630653381,
+        "delta_from_baseline": 0.0006525516510009766,
+        "relative_l2_to_baseline": 0.014467530883848667
+      },
+      {
+        "object_index": 2,
+        "recon_loss": 0.9287212491035461,
+        "delta_from_baseline": 0.0007300376892089844,
+        "relative_l2_to_baseline": 0.024991272017359734
+      },
+      {
+        "object_index": 3,
+        "recon_loss": 0.9288285374641418,
+        "delta_from_baseline": 0.0008373260498046875,
+        "relative_l2_to_baseline": 0.018459608778357506
+      },
+      {
+        "object_index": 4,
+        "recon_loss": 0.9304671883583069,
+        "delta_from_baseline": 0.0024759769439697266,
+        "relative_l2_to_baseline": 0.054764412343502045
+      }
+    ],
+    "input_gradient": {
+      "loss": 0.9279912114143372,
+      "image": {
+        "mean": 2.091331589326728e-05,
+        "sum": 0.021415235474705696,
+        "max": 0.00044430914567783475
+      },
+      "ovt": {
+        "mean": 0.029685545712709427,
+        "sum": 0.29685544967651367,
+        "max": 0.04308932274580002
+      },
+      "register": {
+        "mean": 0.0,
+        "sum": 0.0,
+        "max": 0.0
+      },
+      "rae_query": {
+        "mean": 0.003962452989071608,
+        "sum": 1.0143879652023315,
+        "max": 0.11553975939750671
+      }
+    }
+  },
+  {
+    "sample_index": 1407,
+    "image_id": 177934,
+    "recon_loss": {
+      "baseline": 1.1101689338684082,
+      "ovt_only": 1.1101689338684082,
+      "register_only": 2.292341709136963,
+      "self_only": 2.292341709136963
+    },
+    "rae_hidden_shift": {
+      "baseline": {
+        "cosine_to_baseline": 0.9999999403953552,
+        "relative_l2_to_baseline": 0.0
+      },
+      "ovt_only": {
+        "cosine_to_baseline": 0.9999999403953552,
+        "relative_l2_to_baseline": 0.0
+      },
+      "register_only": {
+        "cosine_to_baseline": 0.06760284304618835,
+        "relative_l2_to_baseline": 0.9986845850944519
+      },
+      "self_only": {
+        "cosine_to_baseline": 0.06760284304618835,
+        "relative_l2_to_baseline": 0.9986845850944519
+      }
+    },
+    "rae_source_preference": [
+      {
+        "layer": 24,
+        "ovt_mass": 1.0,
+        "register_mass": 0.0
+      },
+      {
+        "layer": 25,
+        "ovt_mass": 1.0,
+        "register_mass": 0.0
+      },
+      {
+        "layer": 26,
+        "ovt_mass": 1.0,
+        "register_mass": 0.0
+      },
+      {
+        "layer": 27,
+        "ovt_mass": 1.0,
+        "register_mass": 0.0
+      }
+    ],
+    "register_dot_maps": null,
+    "register_llm_qk_maps": null,
+    "object_ovt_drop": [
+      {
+        "object_index": 0,
+        "recon_loss": 1.1106675863265991,
+        "delta_from_baseline": 0.000498652458190918,
+        "relative_l2_to_baseline": 0.023937132209539413
+      },
+      {
+        "object_index": 1,
+        "recon_loss": 1.1093385219573975,
+        "delta_from_baseline": -0.0008304119110107422,
+        "relative_l2_to_baseline": 0.011849233880639076
+      },
+      {
+        "object_index": 2,
+        "recon_loss": 1.1098507642745972,
+        "delta_from_baseline": -0.00031816959381103516,
+        "relative_l2_to_baseline": 0.005561892408877611
+      },
+      {
+        "object_index": 3,
+        "recon_loss": 1.109841227531433,
+        "delta_from_baseline": -0.00032770633697509766,
+        "relative_l2_to_baseline": 0.007522709667682648
+      },
+      {
+        "object_index": 4,
+        "recon_loss": 1.110080361366272,
+        "delta_from_baseline": -8.857250213623047e-05,
+        "relative_l2_to_baseline": 0.005344770383089781
+      },
+      {
+        "object_index": 5,
+        "recon_loss": 1.1101266145706177,
+        "delta_from_baseline": -4.2319297790527344e-05,
+        "relative_l2_to_baseline": 0.0037909946404397488
+      },
+      {
+        "object_index": 6,
+        "recon_loss": 1.1101107597351074,
+        "delta_from_baseline": -5.817413330078125e-05,
+        "relative_l2_to_baseline": 0.0032221379224210978
+      },
+      {
+        "object_index": 7,
+        "recon_loss": 1.1099287271499634,
+        "delta_from_baseline": -0.00024020671844482422,
+        "relative_l2_to_baseline": 0.003431696444749832
+      },
+      {
+        "object_index": 8,
+        "recon_loss": 1.1106334924697876,
+        "delta_from_baseline": 0.00046455860137939453,
+        "relative_l2_to_baseline": 0.006964875850826502
+      },
+      {
+        "object_index": 9,
+        "recon_loss": 1.1100900173187256,
+        "delta_from_baseline": -7.891654968261719e-05,
+        "relative_l2_to_baseline": 0.002671976573765278
+      },
+      {
+        "object_index": 10,
+        "recon_loss": 1.1103960275650024,
+        "delta_from_baseline": 0.00022709369659423828,
+        "relative_l2_to_baseline": 0.0038772618863731623
+      },
+      {
+        "object_index": 11,
+        "recon_loss": 1.1101526021957397,
+        "delta_from_baseline": -1.633167266845703e-05,
+        "relative_l2_to_baseline": 0.003286265069618821
+      },
+      {
+        "object_index": 12,
+        "recon_loss": 1.110224962234497,
+        "delta_from_baseline": 5.602836608886719e-05,
+        "relative_l2_to_baseline": 0.0018802345730364323
+      },
+      {
+        "object_index": 13,
+        "recon_loss": 1.1101899147033691,
+        "delta_from_baseline": 2.09808349609375e-05,
+        "relative_l2_to_baseline": 0.0018981571774929762
+      },
+      {
+        "object_index": 14,
+        "recon_loss": 1.11028254032135,
+        "delta_from_baseline": 0.00011360645294189453,
+        "relative_l2_to_baseline": 0.003383520059287548
+      },
+      {
+        "object_index": 15,
+        "recon_loss": 1.110277533531189,
+        "delta_from_baseline": 0.00010859966278076172,
+        "relative_l2_to_baseline": 0.002968271728605032
+      },
+      {
+        "object_index": 16,
+        "recon_loss": 1.1102639436721802,
+        "delta_from_baseline": 9.500980377197266e-05,
+        "relative_l2_to_baseline": 0.0024108095094561577
+      },
+      {
+        "object_index": 17,
+        "recon_loss": 1.1100260019302368,
+        "delta_from_baseline": -0.00014293193817138672,
+        "relative_l2_to_baseline": 0.003958722110837698
+      },
+      {
+        "object_index": 18,
+        "recon_loss": 1.110210657119751,
+        "delta_from_baseline": 4.172325134277344e-05,
+        "relative_l2_to_baseline": 0.0032473551109433174
+      },
+      {
+        "object_index": 19,
+        "recon_loss": 1.1103782653808594,
+        "delta_from_baseline": 0.00020933151245117188,
+        "relative_l2_to_baseline": 0.0021282515954226255
+      },
+      {
+        "object_index": 20,
+        "recon_loss": 1.1102526187896729,
+        "delta_from_baseline": 8.368492126464844e-05,
+        "relative_l2_to_baseline": 0.0022340300492942333
+      },
+      {
+        "object_index": 21,
+        "recon_loss": 1.1102087497711182,
+        "delta_from_baseline": 3.981590270996094e-05,
+        "relative_l2_to_baseline": 0.0018328145379200578
+      },
+      {
+        "object_index": 22,
+        "recon_loss": 1.1101142168045044,
+        "delta_from_baseline": -5.4717063903808594e-05,
+        "relative_l2_to_baseline": 0.002449018880724907
+      },
+      {
+        "object_index": 23,
+        "recon_loss": 1.1104768514633179,
+        "delta_from_baseline": 0.00030791759490966797,
+        "relative_l2_to_baseline": 0.0038267706986516714
+      },
+      {
+        "object_index": 24,
+        "recon_loss": 1.1103583574295044,
+        "delta_from_baseline": 0.0001894235610961914,
+        "relative_l2_to_baseline": 0.007729638367891312
+      },
+      {
+        "object_index": 25,
+        "recon_loss": 1.1102367639541626,
+        "delta_from_baseline": 6.783008575439453e-05,
+        "relative_l2_to_baseline": 0.0282729659229517
+      }
+    ],
+    "input_gradient": {
+      "loss": 1.1101689338684082,
+      "image": {
+        "mean": 4.9081078032031655e-05,
+        "sum": 0.050259023904800415,
+        "max": 0.0005605242913588881
+      },
+      "ovt": {
+        "mean": 0.01805177330970764,
+        "sum": 0.9386921525001526,
+        "max": 0.10326721519231796
+      },
+      "register": {
+        "mean": 0.0,
+        "sum": 0.0,
+        "max": 0.0
+      },
+      "rae_query": {
+        "mean": 0.006498261354863644,
+        "sum": 1.6635549068450928,
+        "max": 0.24069006741046906
+      }
+    }
+  }
+]

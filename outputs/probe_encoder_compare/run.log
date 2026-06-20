@@ -1,0 +1,31 @@
+2026-06-16 11:19:04 PID=518642 __init__.py:49 setup_logging() INFO → 'standard' logger initialized.
+2026-06-16 11:19:08 PID=518642 run_eval.py:150 __init__() INFO → CocoInstanceMaskCache: (5000, 256, 256), size=256, mode=coda
+2026-06-16 11:19:08 PID=518642 run_eval.py:162 __init__() INFO → Loaded CODA overlap masks: (5000, 256, 256)
+2026-06-16 11:19:08 PID=518642 probe_encoder_compare.py:90 main() INFO → loading siglip2_512 (google/siglip2-so400m-patch16-512) ...
+/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/huggingface_hub/file_download.py:1142: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+/home/jovyan/PGOT/pgot/eval/run_eval.py:180: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+  return torch.from_numpy(np.asarray(self.overlap_masks[idx], dtype=np.uint8))
+2026-06-16 11:20:16 PID=518642 probe_encoder_compare.py:125 main() INFO →   siglip2_512: 100 done, grid=32x32, D=1152, fARI=0.336
+2026-06-16 11:20:49 PID=518642 probe_encoder_compare.py:125 main() INFO →   siglip2_512: 200 done, grid=32x32, D=1152, fARI=0.340
+2026-06-16 11:21:22 PID=518642 probe_encoder_compare.py:125 main() INFO →   siglip2_512: 300 done, grid=32x32, D=1152, fARI=0.340
+2026-06-16 11:21:57 PID=518642 probe_encoder_compare.py:125 main() INFO →   siglip2_512: 400 done, grid=32x32, D=1152, fARI=0.342
+2026-06-16 11:22:30 PID=518642 probe_encoder_compare.py:125 main() INFO →   siglip2_512: 500 done, grid=32x32, D=1152, fARI=0.330
+2026-06-16 11:22:32 PID=518642 probe_encoder_compare.py:128 main() INFO → == siglip2_512: fARI=0.3281 mBO=0.3383 (n=506)
+2026-06-16 11:22:32 PID=518642 probe_encoder_compare.py:90 main() INFO → loading dinov2_base (facebook/dinov2-base) ...
+Traceback (most recent call last):
+  File "/home/jovyan/PGOT/pgot/eval/probe_encoder_compare.py", line 142, in <module>
+    main()
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/jovyan/PGOT/pgot/eval/probe_encoder_compare.py", line 106, in main
+    feats2d, g = patch_feats(model, proc, name, img, size, is_dino, patch_size, device)  # (g,g,D)
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 124, in decorate_context
+    return func(*args, **kwargs)
+  File "/home/jovyan/PGOT/pgot/eval/probe_encoder_compare.py", line 58, in patch_feats
+    out = model(pixel_values=px, interpolate_pos_encoding=True)
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in _call_impl
+    return forward_call(*args, **kwargs)
+TypeError: Dinov2Model.forward() got an unexpected keyword argument 'interpolate_pos_encoding'

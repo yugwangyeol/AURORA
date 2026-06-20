@@ -1,0 +1,46 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_main_v8_5_llm_patch_outside/checkpoint-10000",
+  "readout": "llm_attention",
+  "num_samples": 2338,
+  "fARI": 0.3088109195209852,
+  "mBO": 0.3806534048831891,
+  "mIoU": 0.4641232503190879,
+  "active_count_mean": 6.533789563729684,
+  "by_object_count": {
+    "1-3": {
+      "n": 532,
+      "fARI": 0.2822153478198297,
+      "mBO": 0.44319659006581,
+      "mIoU": 0.5572033855447868
+    },
+    "7-10": {
+      "n": 632,
+      "fARI": 0.32926164239595856,
+      "mBO": 0.34427789613979437,
+      "mIoU": 0.4136579692057228
+    },
+    "11+": {
+      "n": 315,
+      "fARI": 0.3511641802013769,
+      "mBO": 0.2723108472261903,
+      "mIoU": 0.29744154418271684
+    },
+    "4-6": {
+      "n": 859,
+      "fARI": 0.2947046449851392,
+      "mBO": 0.4101772351714658,
+      "mIoU": 0.5047287953208711
+    }
+  },
+  "gt_source": "coco_instance",
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "coda_overlap_excluded": true,
+  "attention_source": "exact_llm_post_rope_image_patch_softmax",
+  "attention_layers": "last4",
+  "attention_temperature": 1.0,
+  "image_use_weight": 0.1,
+  "image_use_margin": 0.05,
+  "eval_merge": "mean",
+  "void_tokens": 1
+}

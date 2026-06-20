@@ -1,0 +1,24 @@
+{
+  "model": "/home/jovyan/PGOT/checkpoints/pgot_main_v3/checkpoint-14000",
+  "n_eval": 507,
+  "R0_current_threshold": {
+    "fARI": 0.30355626578581396,
+    "mBO": 0.3770719830343303,
+    "n": 507
+  },
+  "R1_feature_oracle": {
+    "fARI": 0.38803440745468726,
+    "mBO": 0.44322809895450843,
+    "n": 506
+  },
+  "R2_ovtmap_oracle_bg": {
+    "fARI": 0.2865848493858122,
+    "mBO": 0.3859331626869361,
+    "n": 487
+  },
+  "Rres_resolution_ceiling": {
+    "fARI": 0.49321825657259594,
+    "mBO": 0.6552219805794472,
+    "n": 507
+  }
+}

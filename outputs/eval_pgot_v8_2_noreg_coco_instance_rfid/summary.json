@@ -1,0 +1,45 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_main_v8_2_noreg",
+  "readout": "spatial_trainmatch",
+  "num_samples": 2338,
+  "fARI": 0.22619188622063832,
+  "mBO": 0.29879527018671354,
+  "mIoU": 0.3903040846401843,
+  "active_count_mean": 6.533789563729684,
+  "by_object_count": {
+    "1-3": {
+      "n": 532,
+      "fARI": 0.25571554321235157,
+      "mBO": 0.39021319040170344,
+      "mIoU": 0.4985310119765818
+    },
+    "7-10": {
+      "n": 632,
+      "fARI": 0.21862796460072328,
+      "mBO": 0.242697520998335,
+      "mIoU": 0.32719510528435813
+    },
+    "11+": {
+      "n": 315,
+      "fARI": 0.21130624506000031,
+      "mBO": 0.16807268652436694,
+      "mIoU": 0.2066639427213915
+    },
+    "4-6": {
+      "n": 859,
+      "fARI": 0.21893087331003971,
+      "mBO": 0.3339091673518497,
+      "mIoU": 0.4370500617232325
+    }
+  },
+  "gt_source": "coco_instance",
+  "coda_overlap_excluded": true,
+  "softmax_axis": "patch",
+  "spatial_temperature": 1.0,
+  "eval_merge": "mean",
+  "rFID": 37.61835479736328,
+  "recon_psnr": 9.670527777374046,
+  "recon_ssim": 0.19625683655481152,
+  "recon_mse": 0.11648147770938988,
+  "recon_mae": 0.2715651639079925
+}

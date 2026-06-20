@@ -1,0 +1,39 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_main_v11_bal_bce_ce03_mean/checkpoint-10000",
+  "readout": "threshold",
+  "num_samples": 2338,
+  "fARI": 0.7270761813107509,
+  "mBO": 0.43965031992978443,
+  "mIoU": 0.504880607518518,
+  "active_count_mean": 6.533789563729684,
+  "by_object_count": {
+    "1-3": {
+      "n": 532,
+      "fARI": 0.6358343552887694,
+      "mBO": 0.5240650428440787,
+      "mIoU": 0.6042603543518406
+    },
+    "7-10": {
+      "n": 632,
+      "fARI": 0.7703509804152939,
+      "mBO": 0.39585726486781697,
+      "mIoU": 0.4537471996832497
+    },
+    "11+": {
+      "n": 315,
+      "fARI": 0.759367382946232,
+      "mBO": 0.2922435179973642,
+      "mIoU": 0.31818626453242604
+    },
+    "4-6": {
+      "n": 859,
+      "fARI": 0.7399041788595826,
+      "mBO": 0.47601028671351686,
+      "mIoU": 0.5494149573173318
+    }
+  },
+  "gt_source": "coco_instance",
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "coda_overlap_excluded": true
+}

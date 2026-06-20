@@ -1,0 +1,48 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_main_v12_ovt_update/checkpoint-10000",
+  "readout": "ovt_owner",
+  "num_samples": 2338,
+  "fARI": 0.27685266479617193,
+  "mBO": 0.3719664071549681,
+  "mIoU": 0.47096017172274884,
+  "active_count_mean": 6.533789563729684,
+  "by_object_count": {
+    "1-3": {
+      "n": 532,
+      "fARI": 0.24949053546064262,
+      "mBO": 0.4783085242680767,
+      "mIoU": 0.5881270165590191
+    },
+    "7-10": {
+      "n": 632,
+      "fARI": 0.2987779041457958,
+      "mBO": 0.3138149134373708,
+      "mIoU": 0.4074724068676558
+    },
+    "11+": {
+      "n": 315,
+      "fARI": 0.324253456812748,
+      "mBO": 0.21890292533364752,
+      "mIoU": 0.27249783807330663
+    },
+    "4-6": {
+      "n": 859,
+      "fARI": 0.260285321434493,
+      "mBO": 0.4079266763013156,
+      "mIoU": 0.5178835023806037
+    }
+  },
+  "gt_source": "coco_instance",
+  "coda_overlap_excluded": true,
+  "owner_source": "v12_ovt_owner_softmax",
+  "ovt_layers": "12,16,20,24",
+  "ovt_temperature": 1.0,
+  "owner_temperature": 1.0,
+  "owner_weight": 1.0,
+  "void_tokens": 1,
+  "rFID": 39.53585433959961,
+  "recon_psnr": 9.63212656607681,
+  "recon_ssim": 0.19132461236157255,
+  "recon_mse": 0.11806469994307942,
+  "recon_mae": 0.2719719801400848
+}

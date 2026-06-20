@@ -49,6 +49,18 @@ def _mask_to_patch_mask(mask: torch.Tensor, grid_size: int) -> torch.Tensor:
     return patches.flatten(start_dim=1).squeeze(0)  # (grid_size**2,)
 
 
+def _coda_center_crop_image(image: Image.Image, size: int) -> Image.Image:
+    """CODA COCO transform: resize min side to size, then center-crop square."""
+    w, h = image.size
+    factor = max(float(size) / float(h), float(size) / float(w))
+    rw = int(round(w * factor))
+    rh = int(round(h * factor))
+    image = image.resize((rw, rh), Image.BILINEAR)
+    left = max((rw - size) // 2, 0)
+    top = max((rh - size) // 2, 0)
+    return image.crop((left, top, left + size, top + size))
+
+
 class Pix2CapPGOTDataset(Dataset):
     """Loads the JSONL written by preprocess/prepare_pgot_data.py."""
 
@@ -66,6 +78,8 @@ class Pix2CapPGOTDataset(Dataset):
         scene_end_token: str = "<scene_end>",
         rebuild_caption: bool = True,
         panoptic_categories_json: Optional[str] = None,
+        image_preprocess_mode: str = "default",
+        coda_crop_size: int = 512,
     ):
         super().__init__()
         self.jsonl_path = jsonl_path
@@ -80,6 +94,10 @@ class Pix2CapPGOTDataset(Dataset):
         self.scene_end_token = scene_end_token
         self.rebuild_caption = rebuild_caption
         self.thing_category_ids = self._load_thing_category_ids(panoptic_categories_json)
+        self.image_preprocess_mode = str(image_preprocess_mode)
+        self.coda_crop_size = int(coda_crop_size)
+        if self.image_preprocess_mode not in {"default", "coda_center_crop"}:
+            raise ValueError(f"Unknown image_preprocess_mode={self.image_preprocess_mode}")
 
         self.ovt_token_id = tokenizer.convert_tokens_to_ids(ovt_token)
         self.scene_end_token_id = tokenizer.convert_tokens_to_ids(scene_end_token)
@@ -143,6 +161,8 @@ class Pix2CapPGOTDataset(Dataset):
 
         # 1) Image
         image = Image.open(sample["image_path"]).convert("RGB")
+        if self.image_preprocess_mode == "coda_center_crop":
+            image = _coda_center_crop_image(image, self.coda_crop_size)
         image_tensor = self.image_processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
         target_image_tensor = self.target_image_processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
 

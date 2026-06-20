@@ -39,9 +39,35 @@ def _adjusted_rand_index(true_ids: torch.Tensor, pred_ids: torch.Tensor, ignore_
     return torch.where(denominator != 0, ari, torch.tensor(1.0, device=ari.device, dtype=ari.dtype))
 
 
-def fari_metric(gt_mask: torch.Tensor, pred_mask: torch.Tensor) -> float:
+def preproc_masks_overlap(
+    gt_mask: torch.Tensor,
+    pred_mask: torch.Tensor,
+    inst_overlap_mask: Optional[torch.Tensor] = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Match CODA's handling of pixels covered by multiple COCO instances."""
+    if inst_overlap_mask is None:
+        return gt_mask, pred_mask
+    overlap = inst_overlap_mask.to(device=gt_mask.device, dtype=torch.bool)
+    gt_mask = gt_mask.clone()
+    pred_mask = pred_mask.clone()
+    gt_mask[overlap] = 0
+    pred_mask[overlap] = pred_mask.max() + 1
+    return gt_mask, pred_mask
+
+
+def fari_metric(
+    gt_mask: torch.Tensor,
+    pred_mask: torch.Tensor,
+    inst_overlap_mask: Optional[torch.Tensor] = None,
+) -> float:
     """gt_mask, pred_mask: (B, H, W) integer maps. 0 = background."""
     assert "int" in str(gt_mask.dtype) and "int" in str(pred_mask.dtype)
+    if inst_overlap_mask is not None:
+        gt_mask, pred_mask = gt_mask.clone(), pred_mask.clone()
+        for i in range(gt_mask.shape[0]):
+            gt_mask[i], pred_mask[i] = preproc_masks_overlap(
+                gt_mask[i], pred_mask[i], inst_overlap_mask[i]
+            )
     return _adjusted_rand_index(gt_mask, pred_mask, ignore_background=True).mean().item()
 
 
@@ -62,12 +88,22 @@ def _mean_best_overlap_single(gt_mask: torch.Tensor, pred_mask: torch.Tensor) ->
     return float(iou.max(dim=1).values.mean().item())
 
 
-def mbo_metric(gt_mask: torch.Tensor, pred_mask: torch.Tensor) -> float:
+def mbo_metric(
+    gt_mask: torch.Tensor,
+    pred_mask: torch.Tensor,
+    inst_overlap_mask: Optional[torch.Tensor] = None,
+) -> float:
     gt_flat = gt_mask.flatten(1, 2)
     pred_flat = pred_mask.flatten(1, 2)
+    overlap_flat = (
+        inst_overlap_mask.flatten(1, 2)
+        if inst_overlap_mask is not None
+        else [None] * gt_flat.shape[0]
+    )
     scores = []
     for i in range(gt_flat.shape[0]):
-        scores.append(_mean_best_overlap_single(gt_flat[i], pred_flat[i]))
+        gt_i, pred_i = preproc_masks_overlap(gt_flat[i], pred_flat[i], overlap_flat[i])
+        scores.append(_mean_best_overlap_single(gt_i, pred_i))
     valid = [s for s in scores if not math.isnan(s)]
     return float(np.mean(valid)) if valid else float("nan")
 
@@ -128,12 +164,22 @@ def _hungarian_miou(gt_mask: torch.Tensor, pred_mask: torch.Tensor, ignore_backg
     return float((best_sum / float(n_true)).item())
 
 
-def miou_metric(gt_mask: torch.Tensor, pred_mask: torch.Tensor) -> float:
+def miou_metric(
+    gt_mask: torch.Tensor,
+    pred_mask: torch.Tensor,
+    inst_overlap_mask: Optional[torch.Tensor] = None,
+) -> float:
     gt_flat = gt_mask.flatten(1, 2)
     pred_flat = pred_mask.flatten(1, 2)
+    overlap_flat = (
+        inst_overlap_mask.flatten(1, 2)
+        if inst_overlap_mask is not None
+        else [None] * gt_flat.shape[0]
+    )
     scores = []
     for i in range(gt_flat.shape[0]):
-        scores.append(_hungarian_miou(gt_flat[i], pred_flat[i], ignore_background=False))
+        gt_i, pred_i = preproc_masks_overlap(gt_flat[i], pred_flat[i], overlap_flat[i])
+        scores.append(_hungarian_miou(gt_i, pred_i, ignore_background=False))
     valid = [s for s in scores if not math.isnan(s)]
     return float(np.mean(valid)) if valid else float("nan")
 
