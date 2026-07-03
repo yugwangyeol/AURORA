@@ -556,7 +556,7 @@ def main():
         elif readout == "ovt_owner":
             if out.get("ovt_object_probs") is None:
                 raise ValueError(
-                    "--readout ovt_owner requires a V12 checkpoint with OVT-owner outputs."
+                    "--readout ovt_owner requires a V12/V14 checkpoint with OVT-owner outputs."
                 )
             pred_mask = build_pred_mask_ovt_owner_eval(
                 ovt_object_probs=out["ovt_object_probs"],
@@ -743,21 +743,28 @@ def main():
         summary["eval_merge"] = "mean"
         summary["void_tokens"] = int(getattr(model.config, "pgot_n_null_bg", 0))
     if args.readout == "ovt_owner":
-        summary["owner_source"] = "v12_ovt_owner_softmax"
-        summary["ovt_layers"] = str(getattr(model.config, "pgot_v12_layers", ""))
-        summary["ovt_temperature"] = float(
-            getattr(
-                model.config,
-                "pgot_v12_ovt_temperature",
-                getattr(model.config, "pgot_v12_slot_temperature", 1.0),
+        if bool(getattr(model.config, "pgot_v14_enable", False)):
+            summary["owner_source"] = "v14_ovt_bottleneck_route"
+            summary["route_temperature"] = float(getattr(model.config, "pgot_v14_route_temperature", 1.0))
+            summary["route_weight"] = float(getattr(model.config, "pgot_v14_route_weight", 1.0))
+            summary["route_void_weight"] = float(getattr(model.config, "pgot_v14_void_weight", 0.5))
+            summary["route_position_weight"] = float(getattr(model.config, "pgot_v14_position_weight", 1.0))
+        else:
+            summary["owner_source"] = "v12_ovt_owner_softmax"
+            summary["ovt_layers"] = str(getattr(model.config, "pgot_v12_layers", ""))
+            summary["ovt_temperature"] = float(
+                getattr(
+                    model.config,
+                    "pgot_v12_ovt_temperature",
+                    getattr(model.config, "pgot_v12_slot_temperature", 1.0),
+                )
             )
-        )
-        summary["owner_temperature"] = float(
-            getattr(model.config, "pgot_v12_owner_temperature", 1.0)
-        )
-        summary["owner_weight"] = float(
-            getattr(model.config, "pgot_v12_owner_weight", 1.0)
-        )
+            summary["owner_temperature"] = float(
+                getattr(model.config, "pgot_v12_owner_temperature", 1.0)
+            )
+            summary["owner_weight"] = float(
+                getattr(model.config, "pgot_v12_owner_weight", 1.0)
+            )
         summary["void_tokens"] = int(getattr(model.config, "pgot_n_null_bg", 0))
     if fid_acc is not None:
         try:

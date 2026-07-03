@@ -53,7 +53,7 @@ def main():
     p.add_argument("--output_dir", required=True)
     p.add_argument("--batch_size", type=int, default=4)
     p.add_argument("--num_workers", type=int, default=4)
-    p.add_argument("--max_samples", type=int, default=500)
+    p.add_argument("--max_samples", type=int, default=None)
     p.add_argument("--grid_size", type=int, default=32)
     p.add_argument("--eval_size", type=int, default=256)
     p.add_argument("--max_caption_tokens", type=int, default=2048)
@@ -61,6 +61,13 @@ def main():
     p.add_argument("--max_objects", type=int, default=50)
     p.add_argument("--gt_source", choices=["pix2cap_panoptic", "coco_instance"], default="coco_instance")
     p.add_argument("--coco_mask_cache", default="/home/jovyan/PGOT/data/coco_inst_mask_cache_coda256")
+    p.add_argument(
+        "--image_preprocess_mode",
+        choices=["default", "coda_center_crop"],
+        default="default",
+        help="Match run_eval.py image preprocessing.",
+    )
+    p.add_argument("--coda_crop_size", type=int, default=512)
     p.add_argument("--dtype", choices=["fp32", "bf16"], default="fp32")
     # Sweep grids (comma-separated)
     p.add_argument("--bg_thresholds", default="0.0,0.01,0.03,0.05,0.10,0.15,0.20")
@@ -79,21 +86,39 @@ def main():
     # ---- Load model
     log.info(f"Loading model: {args.model_path}")
     config = AutoConfig.from_pretrained(args.model_path)
+    raw_config_path = os.path.join(args.model_path, "config.json")
+    raw_name_or_path = args.model_path
+    if os.path.exists(raw_config_path):
+        with open(raw_config_path, "r") as f:
+            raw_cfg = json.load(f)
+        raw_name_or_path = str(raw_cfg.get("_name_or_path", args.model_path))
+    import glob, safetensors.torch as safe_torch
+    has_lora = False
+    index_path = os.path.join(args.model_path, "model.safetensors.index.json")
+    if os.path.exists(index_path):
+        with open(index_path, "r") as f:
+            index_json = json.load(f)
+        has_lora = any(
+            "lora_" in k or ".base_layer." in k
+            for k in index_json.get("weight_map", {}).keys()
+        )
+    else:
+        for shard in sorted(glob.glob(os.path.join(args.model_path, "*.safetensors"))):
+            with safe_torch.safe_open(shard, framework="pt", device="cpu") as f:
+                if any("lora_" in k or ".base_layer." in k for k in f.keys()):
+                    has_lora = True
+                    break
+    model_init_path = raw_name_or_path if has_lora else args.model_path
+    if has_lora:
+        log.info("[LoRA] adapter checkpoint detected; bootstrap model from base path: %s", model_init_path)
     model = PGOTQwen2ForCausalLM.from_pretrained(
-        args.model_path, config=config, torch_dtype=dtype, ignore_mismatched_sizes=True)
+        model_init_path, config=config, torch_dtype=dtype, ignore_mismatched_sizes=True)
     model.config.use_cache = False
     tokenizer = AutoTokenizer.from_pretrained(args.model_path, use_fast=False, padding_side="right")
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = "<|endoftext|>"
         tokenizer.pad_token_id = 151643
 
-    import glob, safetensors.torch as safe_torch
-    has_lora = False
-    for shard in sorted(glob.glob(os.path.join(args.model_path, "*.safetensors"))):
-        with safe_torch.safe_open(shard, framework="pt", device="cpu") as f:
-            if any("lora_" in k for k in f.keys()):
-                has_lora = True
-                break
     if has_lora:
         from peft import LoraConfig, inject_adapter_in_model
         inject_adapter_in_model(LoraConfig(r=16, lora_alpha=32, lora_dropout=0.0, bias="none",
@@ -104,8 +129,8 @@ def main():
             with safe_torch.safe_open(shard, framework="pt", device="cpu") as f:
                 for k in f.keys():
                     sd[k] = f.get_tensor(k)
-        model.load_state_dict(sd, strict=False)
-        log.info("LoRA re-loaded.")
+        missing, unexpected = model.load_state_dict(sd, strict=False)
+        log.info("LoRA re-loaded | missing=%d unexpected=%d", len(missing), len(unexpected))
 
     parsed_towers = getattr(config, "mm_vision_tower_aux_list", None) or json.loads(
         getattr(config, "vision_tower_aux_list", '["google/siglip2-so400m-patch14-224"]'))
@@ -154,7 +179,9 @@ def main():
         jsonl_path=args.val_jsonl, tokenizer=tokenizer,
         image_processor=image_proc, target_image_processor=target_proc,
         grid_size=args.grid_size, max_caption_tokens=args.max_caption_tokens,
-        n_ovt_per_object=args.n_ovt_per_object, max_objects=args.max_objects)
+        n_ovt_per_object=args.n_ovt_per_object, max_objects=args.max_objects,
+        image_preprocess_mode=args.image_preprocess_mode,
+        coda_crop_size=args.coda_crop_size)
     if args.max_samples is not None and len(dataset) > args.max_samples:
         dataset = torch.utils.data.Subset(dataset, list(range(args.max_samples)))
     samples_ref = dataset.dataset.samples if isinstance(dataset, torch.utils.data.Subset) else dataset.samples
@@ -322,7 +349,17 @@ def main():
     # ---- save
     out_json = os.path.join(args.output_dir, "sweep_readout.json")
     with open(out_json, "w") as f:
-        json.dump({"n_samples": n, "gt_source": args.gt_source, "results": results}, f, indent=2)
+        json.dump(
+            {
+                "n_samples": n,
+                "gt_source": args.gt_source,
+                "image_preprocess_mode": args.image_preprocess_mode,
+                "coda_crop_size": int(args.coda_crop_size),
+                "results": results,
+            },
+            f,
+            indent=2,
+        )
     log.info(f"\nSaved: {out_json}")
     best = results[0]
     log.info(f"\n★ BEST fARI = {best['fARI']:.4f}  with "

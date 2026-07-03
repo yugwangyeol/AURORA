@@ -1,0 +1,265 @@
+{
+  "sample_index": 1020,
+  "image_id": 85772,
+  "n_objects": 5,
+  "recon_loss": {
+    "baseline": 0.66180020570755,
+    "ovt_only_access": 1.1675889492034912,
+    "register_only_access": 0.6598458886146545,
+    "self_only_access": 3.7952380180358887,
+    "zero_ovt_inputs": 0.6471251249313354,
+    "zero_register_inputs": 0.7290645837783813,
+    "zero_ovt_and_register_inputs": 0.7574823498725891
+  },
+  "rae_hidden_shift": {
+    "baseline": {
+      "cosine_to_baseline": 1.0,
+      "relative_l2_to_baseline": 0.0,
+      "delta_recon_loss": 0.0
+    },
+    "ovt_only_access": {
+      "cosine_to_baseline": 0.7273855805397034,
+      "relative_l2_to_baseline": 0.7289251089096069,
+      "delta_recon_loss": 0.5057887434959412
+    },
+    "register_only_access": {
+      "cosine_to_baseline": 0.9994417428970337,
+      "relative_l2_to_baseline": 0.035917188972234726,
+      "delta_recon_loss": -0.001954317092895508
+    },
+    "self_only_access": {
+      "cosine_to_baseline": 0.04845840483903885,
+      "relative_l2_to_baseline": 1.2244988679885864,
+      "delta_recon_loss": 3.1334378123283386
+    },
+    "zero_ovt_inputs": {
+      "cosine_to_baseline": 0.9972667098045349,
+      "relative_l2_to_baseline": 0.07412849366664886,
+      "delta_recon_loss": -0.0146750807762146
+    },
+    "zero_register_inputs": {
+      "cosine_to_baseline": 0.9009338617324829,
+      "relative_l2_to_baseline": 0.4789577126502991,
+      "delta_recon_loss": 0.0672643780708313
+    },
+    "zero_ovt_and_register_inputs": {
+      "cosine_to_baseline": 0.8773914575576782,
+      "relative_l2_to_baseline": 0.5723453164100647,
+      "delta_recon_loss": 0.09568214416503906
+    }
+  },
+  "rae_qk_source_mass_with_bias": [
+    {
+      "layer": 24,
+      "image_mass": 0.0,
+      "ovt_mass": 0.015631897374987602,
+      "register_mass": 0.5963627099990845,
+      "rae_self_mass": 0.38800546526908875,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.12848985195159912
+    },
+    {
+      "layer": 25,
+      "image_mass": 0.0,
+      "ovt_mass": 0.011372129432857037,
+      "register_mass": 0.4775863587856293,
+      "rae_self_mass": 0.5110415816307068,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.12848985195159912
+    },
+    {
+      "layer": 26,
+      "image_mass": 0.0,
+      "ovt_mass": 0.0025140452198684216,
+      "register_mass": 0.6823149919509888,
+      "rae_self_mass": 0.3151710033416748,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.12848985195159912
+    },
+    {
+      "layer": 27,
+      "image_mass": 0.0,
+      "ovt_mass": 0.0018131097313016653,
+      "register_mass": 0.76861572265625,
+      "rae_self_mass": 0.22957120835781097,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.12848985195159912
+    }
+  ],
+  "object_swap": {
+    "source_sample_index": 0,
+    "target_object_index": 0,
+    "source_object_index": 0,
+    "recon_loss": 8.588727951049805,
+    "delta_recon_loss": 7.926927745342255,
+    "relative_l2_to_baseline": 98.7856216430664,
+    "cosine_to_baseline": 0.048577044159173965
+  },
+  "gradient_comparison": {
+    "loss_values": {
+      "recon": 0.66180020570755,
+      "full_bce": 0.0793653279542923,
+      "sigmoid_outside": 0.07044980674982071,
+      "register_suppression": 0.6916810870170593,
+      "weighted_mask_total": 0.0,
+      "selected_mask": 0.03968266397714615,
+      "mask_mode": "v3_bce",
+      "legacy_bce_weight": 0.5,
+      "sigmoid_outside_weight": 0.0,
+      "register_suppression_weight": 0.0
+    },
+    "grad_norms": {
+      "recon": {
+        "image": {
+          "l2": 0.16465596854686737,
+          "token_norm_mean": 0.0028834575787186623,
+          "token_norm_max": 0.06852906942367554
+        },
+        "ovt": {
+          "l2": 0.11188072711229324,
+          "token_norm_mean": 0.033185698091983795,
+          "token_norm_max": 0.06259843707084656
+        },
+        "register": {
+          "l2": 1.5628594160079956,
+          "token_norm_mean": 0.15245169401168823,
+          "token_norm_max": 0.633445680141449
+        },
+        "rae_query": {
+          "l2": 0.5370427966117859,
+          "token_norm_mean": 0.029307087883353233,
+          "token_norm_max": 0.1317339539527893
+        }
+      },
+      "full_bce": {
+        "image": {
+          "l2": 0.030717739835381508,
+          "token_norm_mean": 0.0006141758058220148,
+          "token_norm_max": 0.006748564075678587
+        },
+        "ovt": {
+          "l2": 0.32632437348365784,
+          "token_norm_mean": 0.052066635340452194,
+          "token_norm_max": 0.30434495210647583
+        },
+        "register": {
+          "l2": 0.0,
+          "token_norm_mean": 0.0,
+          "token_norm_max": 0.0
+        },
+        "rae_query": {
+          "l2": 0.0,
+          "token_norm_mean": 0.0,
+          "token_norm_max": 0.0
+        }
+      },
+      "sigmoid_outside": {
+        "image": {
+          "l2": 0.0290659312158823,
+          "token_norm_mean": 0.0005860113305971026,
+          "token_norm_max": 0.008752008900046349
+        },
+        "ovt": {
+          "l2": 0.38777074217796326,
+          "token_norm_mean": 0.06102116033434868,
+          "token_norm_max": 0.36288657784461975
+        },
+        "register": {
+          "l2": 0.0,
+          "token_norm_mean": 0.0,
+          "token_norm_max": 0.0
+        },
+        "rae_query": {
+          "l2": 0.0,
+          "token_norm_mean": 0.0,
+          "token_norm_max": 0.0
+        }
+      },
+      "register_suppression": {
+        "image": {
+          "l2": 0.756303071975708,
+          "token_norm_mean": 0.01548165362328291,
+          "token_norm_max": 0.2049320787191391
+        },
+        "ovt": {
+          "l2": 1.5206081867218018,
+          "token_norm_mean": 0.42689085006713867,
+          "token_norm_max": 0.9263691902160645
+        },
+        "register": {
+          "l2": 12.61566162109375,
+          "token_norm_mean": 1.297107219696045,
+          "token_norm_max": 4.091169834136963
+        },
+        "rae_query": {
+          "l2": 0.0,
+          "token_norm_mean": 0.0,
+          "token_norm_max": 0.0
+        }
+      },
+      "selected_mask": {
+        "image": {
+          "l2": 0.015358876436948776,
+          "token_norm_mean": 0.0003070879902224988,
+          "token_norm_max": 0.003374289721250534
+        },
+        "ovt": {
+          "l2": 0.1631622016429901,
+          "token_norm_mean": 0.026033321395516396,
+          "token_norm_max": 0.1521725058555603
+        },
+        "register": {
+          "l2": 0.0,
+          "token_norm_mean": 0.0,
+          "token_norm_max": 0.0
+        },
+        "rae_query": {
+          "l2": 0.0,
+          "token_norm_mean": 0.0,
+          "token_norm_max": 0.0
+        }
+      }
+    },
+    "cosine_recon_vs_full_bce": {
+      "all_tokens": 0.0018651083810254931,
+      "image": -0.0012273892061784863,
+      "ovt": 0.0810345783829689,
+      "register": null,
+      "rae_query": null
+    },
+    "cosine_recon_vs_sigmoid_outside": {
+      "all_tokens": 0.005784770008176565,
+      "image": 0.00036120027652941644,
+      "ovt": 0.0968417376279831,
+      "register": null,
+      "rae_query": null
+    },
+    "cosine_recon_vs_selected_mask": {
+      "all_tokens": 0.001865179161541164,
+      "image": -0.0012273350730538368,
+      "ovt": 0.08103395253419876,
+      "register": null,
+      "rae_query": null
+    }
+  },
+  "recon_grid": "/home/jovyan/PGOT/outputs/v3_causal_path_diagnostics/V3/sample1020_causal_recon_grid.png",
+  "recon_grid_order": [
+    "source",
+    "baseline",
+    "ovt_only_access",
+    "register_only_access",
+    "self_only_access",
+    "zero_ovt_inputs",
+    "zero_register_inputs",
+    "zero_ovt_and_register_inputs",
+    "object_swap"
+  ]
+}

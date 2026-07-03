@@ -56,6 +56,12 @@ class PGOTModelArguments:
     # them toward competition-friendly Q/K geometry. 0 disables; v6 default ~0.5.
     pgot_mask_aux_competition_weight: float = field(default=0.0)
     pgot_mask_bce_weight: float = field(default=0.0)
+    # V13: V3 sigmoid BCE's negative term only:
+    # -(1-y)log(1-sigmoid(dot(OVT, patch))).
+    pgot_mask_sigmoid_outside_weight: float = field(default=0.0)
+    # V13: apply the same negative term to register-vs-patch scores on the
+    # union of annotated object/stuff masks so registers remain residual/bg.
+    pgot_register_foreground_suppression_weight: float = field(default=0.0)
     pgot_mask_object_balanced_bce_weight: float = field(default=0.0)
     pgot_mask_tversky_weight: float = field(default=0.0)
     pgot_mask_tversky_alpha: float = field(default=0.5)
@@ -96,6 +102,13 @@ class PGOTModelArguments:
     pgot_v12_slot_temperature: float = field(default=1.0)
     pgot_v12_owner_temperature: float = field(default=1.0)
     pgot_v12_owner_weight: float = field(default=1.0)
+
+    # V14: OVT bottleneck route. Diffusion condition is built from OVT/void only.
+    pgot_v14_enable: bool = field(default=False)
+    pgot_v14_route_temperature: float = field(default=1.0)
+    pgot_v14_route_weight: float = field(default=1.0)
+    pgot_v14_void_weight: float = field(default=0.5)
+    pgot_v14_position_weight: float = field(default=1.0)
 
     # CFG: randomly drop the rae_hidden condition during training so diff_head learns
     # an unconditional path; at inference we use guidance_scale > 1.
@@ -268,6 +281,12 @@ def freeze_for_pgot(
             p.requires_grad_(True)
             n_trainable += p.numel()
 
+    # V14 OVT bottleneck router
+    if hasattr(model, "pgot_v14_router") and model.pgot_v14_router is not None:
+        for p in model.pgot_v14_router.parameters():
+            p.requires_grad_(True)
+            n_trainable += p.numel()
+
     # rae_query (latent_queries inside model.get_model())
     inner = model.get_model() if hasattr(model, "get_model") else model
     if hasattr(inner, "latent_queries") and inner.latent_queries is not None:
@@ -420,50 +439,71 @@ class PGOTTrainer(Trainer):
                          if p.requires_grad and "pgot_null_bg_embeddings" in n}
         rae_query_names = {n for n, p in opt_model.named_parameters()
                            if p.requires_grad and "latent_queries" in n}
+        v14_names = {n for n, p in opt_model.named_parameters()
+                     if p.requires_grad and "pgot_v14_router" in n}
         llm_names = {n for n, p in opt_model.named_parameters()
                      if p.requires_grad and (n.startswith("model.layers.")
                                              or n.startswith("model.model.layers.")
                                              or "lora_" in n)}
 
-        assigned = projector_names | diff_body_names | register_names | null_bg_names | rae_query_names | llm_names
+        assigned = projector_names | diff_body_names | register_names | null_bg_names | rae_query_names | v14_names | llm_names
 
         groups = []
+        used_param_ids = set()
+
+        def _take_params(names=None):
+            params = []
+            for n, p in opt_model.named_parameters():
+                if not p.requires_grad:
+                    continue
+                if names is None:
+                    if n in assigned:
+                        continue
+                elif n not in names:
+                    continue
+                pid = id(p)
+                if pid in used_param_ids:
+                    continue
+                used_param_ids.add(pid)
+                params.append(p)
+            return params
+
         # default group (e.g., embed_tokens trainable rows, lm_head)
-        default = [
-            p for n, p in opt_model.named_parameters()
-            if p.requires_grad and n not in assigned
-        ]
+        default = _take_params(None)
         if default:
             groups.append({"params": default, "weight_decay": self.args.weight_decay, "lr": self.args.learning_rate})
 
-        if projector_names:
-            groups.append({"params": [p for n, p in opt_model.named_parameters() if n in projector_names],
-                           "weight_decay": self.args.weight_decay, "lr": diff_head_lr})
-        if dit_adaln_names:
-            groups.append({"params": [p for n, p in opt_model.named_parameters() if n in dit_adaln_names],
-                           "weight_decay": self.args.weight_decay, "lr": diff_head_lr})
-        if dit_body_names:
-            groups.append({"params": [p for n, p in opt_model.named_parameters() if n in dit_body_names],
-                           "weight_decay": self.args.weight_decay, "lr": dit_body_lr})
-        if register_names:
-            groups.append({"params": [p for n, p in opt_model.named_parameters() if n in register_names],
-                           "weight_decay": 0.0, "lr": register_lr})
-        if null_bg_names:
-            groups.append({"params": [p for n, p in opt_model.named_parameters() if n in null_bg_names],
-                           "weight_decay": 0.0, "lr": register_lr})
-        if rae_query_names:
-            groups.append({"params": [p for n, p in opt_model.named_parameters() if n in rae_query_names],
-                           "weight_decay": 0.0, "lr": rae_query_lr})
-        if llm_names:
-            groups.append({"params": [p for n, p in opt_model.named_parameters() if n in llm_names],
-                           "weight_decay": self.args.weight_decay, "lr": llm_lr})
+        params = _take_params(projector_names)
+        if params:
+            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": diff_head_lr})
+        params = _take_params(dit_adaln_names)
+        if params:
+            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": diff_head_lr})
+        params = _take_params(dit_body_names)
+        if params:
+            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": dit_body_lr})
+        params = _take_params(register_names)
+        if params:
+            groups.append({"params": params, "weight_decay": 0.0, "lr": register_lr})
+        params = _take_params(null_bg_names)
+        if params:
+            groups.append({"params": params, "weight_decay": 0.0, "lr": register_lr})
+        params = _take_params(rae_query_names)
+        if params:
+            groups.append({"params": params, "weight_decay": 0.0, "lr": rae_query_lr})
+        params = _take_params(v14_names)
+        if params:
+            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": self.args.learning_rate})
+        params = _take_params(llm_names)
+        if params:
+            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": llm_lr})
 
         logger.info(
             "[PGOT] optimizer | base=%g diff_head=%g dit_body=%g register=%g rae_query=%g llm=%g | "
-            "projector=%d dit_adaln=%d dit_body=%d register=%d null_bg=%d rae_query=%d llm=%d",
+            "projector=%d dit_adaln=%d dit_body=%d register=%d null_bg=%d rae_query=%d v14=%d llm=%d",
             self.args.learning_rate, diff_head_lr, dit_body_lr, register_lr, rae_query_lr, llm_lr,
             len(projector_names), len(dit_adaln_names), len(dit_body_names), len(register_names),
-            len(null_bg_names), len(rae_query_names), len(llm_names),
+            len(null_bg_names), len(rae_query_names), len(v14_names), len(llm_names),
         )
 
         optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(self.args)
@@ -727,10 +767,15 @@ class PGOTTrainer(Trainer):
         if K * n_per_obj < M:
             ovt_logits = ovt_logits[:, : K * n_per_obj]
 
-        v12_enabled = bool(getattr(inner.config, "pgot_v12_enable", False))
+        v14_owner_enabled = (
+            bool(getattr(inner.config, "pgot_v14_enable", False))
+            and float(getattr(inner.config, "pgot_v14_route_weight", 1.0)) > 0.0
+        )
+        owner_enabled = bool(getattr(inner.config, "pgot_v12_enable", False)) or v14_owner_enabled
         bce_enabled = (
             float(getattr(inner.config, "pgot_mask_bce_weight", 0.0)) > 0.0
             or float(getattr(inner.config, "pgot_mask_object_balanced_bce_weight", 0.0)) > 0.0
+            or float(getattr(inner.config, "pgot_mask_sigmoid_outside_weight", 0.0)) > 0.0
         )
         spatial_enabled = (
             float(getattr(inner.config, "pgot_mask_spatial_outside_weight", 0.0)) > 0.0
@@ -738,20 +783,20 @@ class PGOTTrainer(Trainer):
         )
         map_modes = {}
         void_maps_by_mode = {}
-        if v12_enabled and out.get("ovt_object_probs") is not None:
+        if owner_enabled and out.get("ovt_object_probs") is not None:
             map_modes["ovt_owner"] = out["ovt_object_probs"].float()
             if out.get("ovt_void_probs") is not None and out["ovt_void_probs"].shape[1] > 0:
                 void_maps_by_mode["ovt_owner"] = out["ovt_void_probs"].float().sum(dim=1)
             per_obj_valid = out.get("ovt_object_valid")
         else:
             per_obj_valid = ovt_valid.reshape(B, K, n_per_obj).any(dim=2)
-        if (not v12_enabled) and (bce_enabled or not (spatial_enabled or internal_attention_enabled)):
+        if (not owner_enabled) and (bce_enabled or not (spatial_enabled or internal_attention_enabled)):
             map_modes["sigmoid"] = (
                 torch.sigmoid(ovt_logits.float())
                 .reshape(B, K, n_per_obj, P)
                 .mean(dim=2)
             )
-        if (not v12_enabled) and spatial_enabled:
+        if (not owner_enabled) and spatial_enabled:
             spatial_temp = float(
                 getattr(
                     inner.config,
@@ -764,7 +809,7 @@ class PGOTTrainer(Trainer):
                 .reshape(B, K, n_per_obj, P)
                 .mean(dim=2)
             )
-        if (not v12_enabled) and internal_attention_enabled and out.get("llm_attention_maps") is not None:
+        if (not owner_enabled) and internal_attention_enabled and out.get("llm_attention_maps") is not None:
             internal_maps = out["llm_attention_maps"][:, : K * n_per_obj]
             internal_mode = (
                 "llm_patch_attention"
@@ -798,7 +843,8 @@ class PGOTTrainer(Trainer):
             for mode, per_obj in map_modes.items():
                 tiles = [source_pixels[b]]
                 for k in valid_obj_idx[:8]:
-                    m = per_obj[b, k].reshape(side, side)
+                    mode_side = int(round(float(per_obj.shape[-1]) ** 0.5))
+                    m = per_obj[b, k].reshape(mode_side, mode_side)
                     m = torch.nn.functional.interpolate(
                         m.unsqueeze(0).unsqueeze(0), size=(H, W),
                         mode="bilinear", align_corners=False,
@@ -815,7 +861,8 @@ class PGOTTrainer(Trainer):
                     overlay = source_pixels[b] * (1 - 0.6 * m) + color * 0.6 * m
                     tiles.append(overlay.clamp(0.0, 1.0))
                 if mode in void_maps_by_mode:
-                    m = void_maps_by_mode[mode][b].reshape(side, side)
+                    mode_side = int(round(float(void_maps_by_mode[mode].shape[-1]) ** 0.5))
+                    m = void_maps_by_mode[mode][b].reshape(mode_side, mode_side)
                     m = torch.nn.functional.interpolate(
                         m.unsqueeze(0).unsqueeze(0), size=(H, W),
                         mode="bilinear", align_corners=False,

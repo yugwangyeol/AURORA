@@ -29,6 +29,8 @@ from pgot.model.pgot_utils import (
     gather_ovt_hidden_states,
     compute_per_ovt_mask_logits,
     compute_mask_bce_loss,
+    compute_sigmoid_outside_bce_loss,
+    compute_register_foreground_suppression_loss,
     compute_object_balanced_mask_bce_loss,
     compute_spatial_outside_attention_loss,
     compute_spatial_outside_log_attention_loss,
@@ -184,6 +186,58 @@ class PGOTOVTUpdateBlock(nn.Module):
         return updated, owner_logits, owner_probs
 
 
+class PGOTOVTBottleneckRouter(nn.Module):
+    """Build diffusion condition tokens from OVT/void states only.
+
+    The learned latent queries are used as positional queries. They no longer
+    carry image content from the LLM residual stream; image/object content must
+    flow through the OVT/void states selected by the route softmax.
+    """
+
+    def __init__(self, dim: int, temperature: float = 1.0, position_weight: float = 1.0):
+        super().__init__()
+        self.query_ln = nn.LayerNorm(dim)
+        self.ovt_ln = nn.LayerNorm(dim)
+        self.context_ln = nn.LayerNorm(dim)
+        self.q_proj = nn.Linear(dim, dim, bias=False)
+        self.k_proj = nn.Linear(dim, dim, bias=False)
+        self.v_proj = nn.Linear(dim, dim, bias=False)
+        self.pos_proj = nn.Linear(dim, dim, bias=False)
+        self.out_proj = nn.Linear(dim, dim, bias=False)
+        self.temperature = float(temperature)
+        self.position_weight = float(position_weight)
+
+    def forward(
+        self,
+        query_base: torch.Tensor,
+        ovt_states: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        temperature: Optional[float] = None,
+        position_weight: Optional[float] = None,
+    ) -> Dict[str, torch.Tensor]:
+        temp = max(float(self.temperature if temperature is None else temperature), 1e-6)
+        pos_w = float(self.position_weight if position_weight is None else position_weight)
+        q = self.q_proj(self.query_ln(query_base)).float()
+        k = self.k_proj(self.ovt_ln(ovt_states)).float()
+        logits_qs = torch.einsum("bqd,bsd->bqs", q, k) / math.sqrt(float(q.shape[-1]))
+        logits_qs = logits_qs / temp
+        logits_qs = logits_qs.masked_fill(~ovt_valid_mask.unsqueeze(1), -1e4)
+        route_qs = F.softmax(logits_qs, dim=-1)
+        route_qs = route_qs * ovt_valid_mask.unsqueeze(1).float()
+        route_qs = route_qs / route_qs.sum(dim=-1, keepdim=True).clamp_min(1e-6)
+
+        values = self.v_proj(self.ovt_ln(ovt_states))
+        context = torch.einsum("bqs,bsd->bqd", route_qs.to(values.dtype), values)
+        pos = self.pos_proj(query_base)
+        condition = self.out_proj(self.context_ln(context + pos_w * pos))
+        condition = torch.where(torch.isfinite(condition), condition, torch.zeros_like(condition))
+        return {
+            "condition_hidden": condition,
+            "owner_logits": logits_qs.transpose(1, 2).contiguous(),
+            "owner_probs": route_qs.transpose(1, 2).contiguous(),
+        }
+
+
 class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
     """PGOT model: caption-grounded variable-K object tokens."""
 
@@ -197,7 +251,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
 
     def _pgot_enforce_stable_train_modes(self) -> None:
         """Keep frozen/high-risk submodules in eval mode during V12 training."""
-        if not self.training or not bool(getattr(self.config, "pgot_v12_enable", False)):
+        if not self.training or not (
+            bool(getattr(self.config, "pgot_v12_enable", False))
+            or bool(getattr(self.config, "pgot_v14_enable", False))
+        ):
             return
 
         # Eval mode removes train-time stochasticity but still allows gradients
@@ -239,6 +296,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             )
 
         self.pgot_v12_enable = bool(getattr(self.config, "pgot_v12_enable", False))
+        self.pgot_v14_enable = bool(getattr(self.config, "pgot_v14_enable", False))
         self.pgot_v12_layers = _resolve_layer_spec(
             str(getattr(self.config, "pgot_v12_layers", "12,16,20,24")),
             int(getattr(self.config, "num_hidden_layers", 0)),
@@ -263,6 +321,17 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         else:
             self.pgot_v12_slot_update_blocks = nn.ModuleList()
             self.pgot_v12_owner_head = None
+
+        if self.pgot_v14_enable:
+            route_temp = float(getattr(self.config, "pgot_v14_route_temperature", 1.0))
+            position_weight = float(getattr(self.config, "pgot_v14_position_weight", 1.0))
+            self.pgot_v14_router = PGOTOVTBottleneckRouter(
+                dim=D,
+                temperature=route_temp,
+                position_weight=position_weight,
+            )
+        else:
+            self.pgot_v14_router = None
 
         # rae_query는 부모 클래스의 self.get_model().latent_queries에 이미 있음
         # → scale-rae checkpoint에서 fine-tune
@@ -291,7 +360,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             f"[PGOT] Initialised — D={D}, N_register={self.pgot_n_register}, "
             f"n_ovt_per_object={self.pgot_n_ovt_per_object}, "
             f"N_null_bg={self.pgot_n_null_bg}, "
-            f"v12={self.pgot_v12_enable}, v12_layers={self.pgot_v12_layers}"
+            f"v12={self.pgot_v12_enable}, v12_layers={self.pgot_v12_layers}, "
+            f"v14={self.pgot_v14_enable}"
         )
 
     # ------------------------------------------------------------------
@@ -863,6 +933,173 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             }
         )
         seq.update(owner)
+        return seq
+
+
+    def _pgot_v14_compute_route_loss(
+        self,
+        owner_logits: torch.Tensor,
+        owner_probs: torch.Tensor,
+        gt_masks_per_ovt: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+    ) -> Dict[str, torch.Tensor]:
+        B, S, P = owner_logits.shape
+        n = max(int(self.pgot_n_ovt_per_object), 1)
+        M = gt_masks_per_ovt.shape[1]
+        K = min(M // n, S)
+        V = max(S - K, 0)
+        zero = owner_logits.new_zeros(())
+        if K <= 0:
+            return {
+                "loss": zero,
+                "object_loss": zero,
+                "void_loss": zero,
+                "fg_acc": zero,
+                "bg_acc": zero,
+                "void_prob_on_fg": zero,
+                "object_prob_on_bg": zero,
+                "entropy": zero,
+                "object_count": zero,
+            }
+
+        gt_masks = gt_masks_per_ovt[:, : K * n].to(owner_logits.device).float()
+        if gt_masks.shape[-1] != P:
+            src_side = int(round(float(gt_masks.shape[-1]) ** 0.5))
+            dst_side = int(round(float(P) ** 0.5))
+            if src_side * src_side != gt_masks.shape[-1] or dst_side * dst_side != P:
+                raise ValueError(
+                    f"V14 route loss expects square masks, got gt={gt_masks.shape[-1]} route={P}."
+                )
+            gt_masks = F.interpolate(
+                gt_masks.reshape(B * K * n, 1, src_side, src_side),
+                size=(dst_side, dst_side),
+                mode="area",
+            ).reshape(B, K * n, P).clamp(0.0, 1.0)
+        obj_cover = gt_masks.reshape(B, K, n, P).amax(dim=2).clamp(0.0, 1.0)
+        obj_valid = ovt_valid_mask[:, : K * n].to(owner_logits.device, dtype=torch.bool)
+        obj_valid = obj_valid.reshape(B, K, n).any(dim=2)
+        obj_cover = obj_cover.masked_fill(~obj_valid.unsqueeze(-1), 0.0)
+
+        log_probs = F.log_softmax(owner_logits.float(), dim=1)
+        obj_area = obj_cover.sum(dim=-1)
+        valid_obj = obj_valid & (obj_area > 0.0)
+        per_obj = -(obj_cover * log_probs[:, :K]).sum(dim=-1) / obj_area.clamp_min(1.0)
+        object_loss = (
+            per_obj[valid_obj].mean()
+            if bool(valid_obj.any())
+            else zero
+        )
+
+        fg_union = obj_cover.amax(dim=1)
+        bg_mask = (1.0 - fg_union).clamp(0.0, 1.0)
+        void_loss = zero
+        void_log_prob = None
+        if V > 0:
+            void_log_prob = torch.logsumexp(owner_logits[:, K:].float(), dim=1) - torch.logsumexp(owner_logits.float(), dim=1)
+            bg_area = bg_mask.sum(dim=-1)
+            valid_bg = bg_area > 0.0
+            per_bg = -(bg_mask * void_log_prob).sum(dim=-1) / bg_area.clamp_min(1.0)
+            void_loss = per_bg[valid_bg].mean() if bool(valid_bg.any()) else zero
+
+        void_w = float(getattr(self.config, "pgot_v14_void_weight", 0.5))
+        loss = object_loss + void_w * void_loss
+        if not torch.isfinite(loss):
+            loss = zero
+
+        pred = owner_logits.argmax(dim=1)
+        best_cover, best_idx = obj_cover.max(dim=1)
+        fg_mask = best_cover > 0.0
+        hard_bg = ~fg_mask
+        fg_acc = (
+            (pred[fg_mask] == best_idx[fg_mask]).float().mean()
+            if bool(fg_mask.any())
+            else zero
+        )
+        bg_acc = (
+            (pred[hard_bg] >= K).float().mean()
+            if V > 0 and bool(hard_bg.any())
+            else zero
+        )
+        void_prob = owner_probs[:, K:].sum(dim=1) if V > 0 else owner_probs.new_zeros(B, P)
+        object_prob = owner_probs[:, :K].sum(dim=1)
+        void_prob_on_fg = void_prob[fg_mask].mean() if bool(fg_mask.any()) else zero
+        object_prob_on_bg = object_prob[hard_bg].mean() if bool(hard_bg.any()) else zero
+        prob = owner_probs.float().clamp_min(1e-8)
+        entropy = (-(prob * prob.log()).sum(dim=1)).mean()
+        return {
+            "loss": loss,
+            "object_loss": object_loss.detach(),
+            "void_loss": void_loss.detach(),
+            "fg_acc": fg_acc.detach(),
+            "bg_acc": bg_acc.detach(),
+            "void_prob_on_fg": void_prob_on_fg.detach(),
+            "object_prob_on_bg": object_prob_on_bg.detach(),
+            "entropy": entropy.detach(),
+            "object_count": valid_obj.float().sum(dim=1).mean().detach(),
+        }
+
+    def _pgot_v14_forward_features(
+        self,
+        *,
+        images: torch.Tensor,
+        target_images: torch.Tensor,
+        caption_input_ids: torch.LongTensor,
+        caption_attention_mask: torch.Tensor,
+        ovt_positions_in_caption: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        output_hidden_states: bool = False,
+    ) -> Dict[str, torch.Tensor]:
+        seq = self._pgot_build_sequence_inputs(
+            images=images,
+            target_images=target_images,
+            caption_input_ids=caption_input_ids,
+            caption_attention_mask=caption_attention_mask,
+            ovt_positions_in_caption=ovt_positions_in_caption,
+            ovt_valid_mask=ovt_valid_mask,
+        )
+        out = self.model(
+            inputs_embeds=seq["inputs_embeds"],
+            attention_bias=seq["attn_bias"],
+            use_cache=False,
+            output_hidden_states=output_hidden_states,
+            return_dict=True,
+        )
+        hidden = out.last_hidden_state
+        ovt_pack = self._pgot_v12_build_ovt_states(
+            hidden_states=hidden,
+            positions=seq["positions"],
+            ovt_abs_positions=seq["ovt_abs_positions"],
+            ovt_valid_mask=seq["ovt_valid_mask"],
+        )
+        query_base = self.get_model().latent_queries.unsqueeze(0).expand(
+            hidden.shape[0], -1, -1
+        ).to(device=hidden.device, dtype=hidden.dtype)
+        route = self.pgot_v14_router(
+            query_base=query_base,
+            ovt_states=ovt_pack["ovt_states"],
+            ovt_valid_mask=ovt_pack["ovt_valid"],
+            temperature=float(getattr(self.config, "pgot_v14_route_temperature", 1.0)),
+            position_weight=float(getattr(self.config, "pgot_v14_position_weight", 1.0)),
+        )
+        K = ovt_pack["object_ovts"].shape[1]
+        seq.update(
+            {
+                "hidden": hidden,
+                "rae_hidden": hidden[:, seq["positions"]["rae_s"]:seq["positions"]["rae_e"], :],
+                "condition_hidden": route["condition_hidden"],
+                "outputs": out,
+                "hidden_states": out.hidden_states if output_hidden_states else None,
+                "img_hidden": hidden[:, seq["positions"]["img_s"]:seq["positions"]["img_e"], :],
+                "owner_logits": route["owner_logits"],
+                "owner_probs": route["owner_probs"],
+                "object_probs": route["owner_probs"][:, :K],
+                "void_probs": route["owner_probs"][:, K:],
+                "object_valid": ovt_pack["object_valid"],
+                "ovt_valid": ovt_pack["ovt_valid"],
+                "object_ovts": ovt_pack["object_ovts"],
+                "void_ovts": ovt_pack["void_ovts"],
+            }
+        )
         return seq
 
     def _resolve_llm_qk_outside_layers(self, spec: str) -> List[int]:
@@ -1585,6 +1822,18 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         Used for eval-time image reconstruction sampling. Mirrors the first 7
         steps of `_forward_pgot` (sections 1–7) but stops before any loss compute.
         """
+        if bool(getattr(self.config, "pgot_v14_enable", False)):
+            feats = self._pgot_v14_forward_features(
+                images=images,
+                target_images=target_images,
+                caption_input_ids=caption_input_ids,
+                caption_attention_mask=caption_attention_mask,
+                ovt_positions_in_caption=ovt_positions_in_caption,
+                ovt_valid_mask=ovt_valid_mask,
+                output_hidden_states=False,
+            )
+            return {"rae_hidden": feats["condition_hidden"], "gt_siglip": feats["gt_siglip"]}
+
         if bool(getattr(self.config, "pgot_v12_enable", False)):
             feats = self._pgot_v12_forward_features(
                 images=images,
@@ -1808,6 +2057,142 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "void_probs": seq["void_probs"].detach(),
         }
 
+
+    def _forward_pgot_v14(
+        self,
+        images: torch.Tensor,
+        caption_input_ids: torch.LongTensor,
+        caption_attention_mask: torch.Tensor,
+        caption_labels: Optional[torch.LongTensor],
+        ovt_positions_in_caption: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        ovt_is_thing: Optional[torch.Tensor],
+        gt_masks_per_ovt: torch.Tensor,
+        target_images: torch.Tensor,
+        pgot_contrastive_weight: Optional[float] = None,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        del ovt_is_thing, pgot_contrastive_weight
+
+        seq = self._pgot_v14_forward_features(
+            images=images,
+            target_images=target_images,
+            caption_input_ids=caption_input_ids,
+            caption_attention_mask=caption_attention_mask,
+            ovt_positions_in_caption=ovt_positions_in_caption,
+            ovt_valid_mask=ovt_valid_mask,
+            output_hidden_states=False,
+        )
+        hidden = seq["hidden"]
+        condition_hidden = seq["condition_hidden"]
+        gt_siglip = seq["gt_siglip"]
+        B = hidden.shape[0]
+
+        if caption_labels is not None:
+            caption_labels = caption_labels.to(hidden.device, dtype=torch.long)
+        gt_masks_per_ovt = gt_masks_per_ovt.to(hidden.device).float()
+        ovt_valid_mask = ovt_valid_mask.to(hidden.device, dtype=torch.bool)
+        caption_input_ids = caption_input_ids.to(hidden.device)
+        caption_attention_mask = caption_attention_mask.to(hidden.device, dtype=torch.bool)
+
+        loss_lm = self._compute_lm_loss(
+            hidden=hidden,
+            positions=seq["positions"],
+            caption_input_ids=caption_input_ids,
+            caption_attention_mask=caption_attention_mask,
+            caption_labels=caption_labels,
+        )
+        route_w = float(getattr(self.config, "pgot_v14_route_weight", 1.0))
+        mask_bce_w = float(getattr(self.config, "pgot_mask_bce_weight", 0.0))
+        zero = hidden.new_zeros(())
+
+        route_stats = None
+        loss_route = zero
+        if route_w > 0.0:
+            route_stats = self._pgot_v14_compute_route_loss(
+                owner_logits=seq["owner_logits"],
+                owner_probs=seq["owner_probs"],
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+            )
+            loss_route = route_stats["loss"]
+
+        loss_mask_bce = zero
+        if mask_bce_w > 0.0:
+            attn_temp = float(getattr(self.config, "pgot_attention_temperature", 1.0))
+            attn_ln = bool(getattr(self.config, "pgot_attention_use_layer_norm", True))
+            ovt_hidden = gather_ovt_hidden_states(
+                hidden,
+                seq["ovt_abs_positions"],
+                seq["ovt_valid_mask"],
+            )
+            ovt_logits = compute_per_ovt_mask_logits(
+                ovt_hidden=ovt_hidden,
+                img_hidden=seq["img_hidden"],
+                temperature=attn_temp,
+                normalize_tokens=attn_ln,
+            )
+            loss_mask_bce = compute_mask_bce_loss(
+                ovt_logits=ovt_logits,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+            )
+
+        cfg_drop_rate = float(getattr(self.config, "pgot_cfg_drop_rate", 0.0))
+        condition_for_diff = condition_hidden
+        if self.training and cfg_drop_rate > 0.0:
+            drop_mask = (torch.rand(B, device=condition_hidden.device) < cfg_drop_rate).view(B, 1, 1)
+            condition_for_diff = condition_hidden * (~drop_mask).to(condition_hidden.dtype)
+        loss_recon = self._captionslot_compute_diffusion_loss(
+            hidden=condition_for_diff,
+            target_features=gt_siglip,
+            slot_context=None,
+            slot_mask=None,
+        )
+
+        lm_w = float(getattr(self.config, "pgot_lm_loss_weight", 1.0))
+        recon_w = float(getattr(self.config, "pgot_recon_loss_weight", 1.0))
+        loss_mask = route_w * loss_route + mask_bce_w * loss_mask_bce
+        total_loss = lm_w * loss_lm + recon_w * loss_recon + loss_mask
+
+        B_mask = ovt_valid_mask.shape[0]
+        n = max(int(self.pgot_n_ovt_per_object), 1)
+        K = ovt_valid_mask.shape[1] // n
+        n_objects_mean = (
+            ovt_valid_mask[:, : K * n].reshape(B_mask, K, n).any(dim=2).float().sum(dim=1).mean()
+            if K > 0
+            else hidden.new_zeros(())
+        )
+
+        self.pgot_loss_lm = loss_lm.detach()
+        self.pgot_loss_mask = loss_mask.detach()
+        self.pgot_loss_recon = loss_recon.detach()
+        self.pgot_loss_contrastive = hidden.new_zeros(())
+        self.pgot_n_objects_mean = n_objects_mean.detach()
+        details = {}
+        if route_w > 0.0 and route_stats is not None:
+            details.update(
+                {
+                    "loss_v14_route": loss_route.detach(),
+                    "v14_route_object_loss": route_stats["object_loss"],
+                    "v14_route_void_loss": route_stats["void_loss"],
+                    "v14_route_fg_acc": route_stats["fg_acc"],
+                    "v14_route_bg_acc": route_stats["bg_acc"],
+                    "v14_route_void_prob_on_fg": route_stats["void_prob_on_fg"],
+                    "v14_route_object_prob_on_bg": route_stats["object_prob_on_bg"],
+                    "v14_route_entropy": route_stats["entropy"],
+                    "v14_route_object_count": route_stats["object_count"],
+                }
+            )
+        if mask_bce_w > 0.0:
+            details["loss_mask_bce"] = loss_mask_bce.detach()
+        self.pgot_loss_details = details
+        return total_loss, {
+            "owner_logits": seq["owner_logits"].detach(),
+            "owner_probs": seq["owner_probs"].detach(),
+            "object_probs": seq["object_probs"].detach(),
+            "void_probs": seq["void_probs"].detach(),
+        }
+
     def _forward_pgot(
         self,
         images: torch.Tensor,
@@ -1821,6 +2206,19 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         target_images: torch.Tensor,
         pgot_contrastive_weight: Optional[float] = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        if bool(getattr(self.config, "pgot_v14_enable", False)):
+            return self._forward_pgot_v14(
+                images=images,
+                caption_input_ids=caption_input_ids,
+                caption_attention_mask=caption_attention_mask,
+                caption_labels=caption_labels,
+                ovt_positions_in_caption=ovt_positions_in_caption,
+                ovt_valid_mask=ovt_valid_mask,
+                ovt_is_thing=ovt_is_thing,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                target_images=target_images,
+                pgot_contrastive_weight=pgot_contrastive_weight,
+            )
         if bool(getattr(self.config, "pgot_v12_enable", False)):
             return self._forward_pgot_v12(
                 images=images,
@@ -1992,6 +2390,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         mask_outside_w = float(getattr(self.config, "pgot_mask_outside_weight", 0.0))
         mask_ce_aux_w = float(getattr(self.config, "pgot_mask_aux_competition_weight", 0.0))
         mask_bce_w = float(getattr(self.config, "pgot_mask_bce_weight", 0.0))
+        mask_sigmoid_outside_w = float(getattr(self.config, "pgot_mask_sigmoid_outside_weight", 0.0))
+        register_fg_suppression_w = float(
+            getattr(self.config, "pgot_register_foreground_suppression_weight", 0.0)
+        )
         mask_object_balanced_bce_w = float(getattr(self.config, "pgot_mask_object_balanced_bce_weight", 0.0))
         mask_tversky_w = float(getattr(self.config, "pgot_mask_tversky_weight", 0.0))
         mask_spatial_outside_w = float(getattr(self.config, "pgot_mask_spatial_outside_weight", 0.0))
@@ -2078,6 +2480,34 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 gt_masks_per_ovt=gt_masks_per_ovt,
                 ovt_valid_mask=ovt_valid_mask,
             )
+
+        loss_mask_sigmoid_outside = zero
+        sigmoid_outside_inside_prob = zero
+        sigmoid_outside_outside_prob = zero
+        if mask_sigmoid_outside_w > 0.0:
+            sigmoid_outside = compute_sigmoid_outside_bce_loss(
+                ovt_logits=ovt_logits,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+            )
+            loss_mask_sigmoid_outside = sigmoid_outside["loss"]
+            sigmoid_outside_inside_prob = sigmoid_outside["inside_prob"]
+            sigmoid_outside_outside_prob = sigmoid_outside["outside_prob"]
+
+        loss_register_foreground_suppression = zero
+        register_fg_prob = zero
+        register_bg_prob = zero
+        register_fg_fraction = zero
+        if register_fg_suppression_w > 0.0:
+            register_suppression = compute_register_foreground_suppression_loss(
+                reg_logits=reg_logits,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+            )
+            loss_register_foreground_suppression = register_suppression["loss"]
+            register_fg_prob = register_suppression["fg_prob"]
+            register_bg_prob = register_suppression["bg_prob"]
+            register_fg_fraction = register_suppression["fg_fraction"]
 
         loss_mask_object_balanced_bce = zero
         object_balanced_bce_pos = zero
@@ -2327,6 +2757,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             + mask_outside_w * loss_mask_outside
             + mask_ce_aux_w * loss_mask_ce_aux
             + mask_bce_w * loss_mask_bce
+            + mask_sigmoid_outside_w * loss_mask_sigmoid_outside
+            + register_fg_suppression_w * loss_register_foreground_suppression
             + mask_object_balanced_bce_w * loss_mask_object_balanced_bce
             + mask_tversky_w * loss_mask_tversky
             + mask_spatial_outside_w * loss_mask_spatial_outside
@@ -2365,6 +2797,17 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             details["loss_mask_ce_aux"] = loss_mask_ce_aux.detach()
         if mask_bce_w > 0.0:
             details["loss_mask_bce"] = loss_mask_bce.detach()
+        if mask_sigmoid_outside_w > 0.0:
+            details["loss_mask_sigmoid_outside"] = loss_mask_sigmoid_outside.detach()
+            details["sigmoid_outside_inside_prob"] = sigmoid_outside_inside_prob.detach()
+            details["sigmoid_outside_outside_prob"] = sigmoid_outside_outside_prob.detach()
+        if register_fg_suppression_w > 0.0:
+            details["loss_register_foreground_suppression"] = (
+                loss_register_foreground_suppression.detach()
+            )
+            details["register_fg_prob"] = register_fg_prob.detach()
+            details["register_bg_prob"] = register_bg_prob.detach()
+            details["register_fg_fraction"] = register_fg_fraction.detach()
         if mask_object_balanced_bce_w > 0.0:
             details["loss_mask_object_balanced_bce"] = loss_mask_object_balanced_bce.detach()
             details["object_balanced_bce_pos"] = object_balanced_bce_pos.detach()

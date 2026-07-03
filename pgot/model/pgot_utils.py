@@ -317,6 +317,94 @@ def compute_mask_bce_loss(
     return (bce * valid).sum() / denom
 
 
+def compute_sigmoid_outside_bce_loss(
+    ovt_logits: torch.Tensor,
+    gt_masks_per_ovt: torch.Tensor,
+    ovt_valid_mask: torch.Tensor,
+) -> Dict[str, torch.Tensor]:
+    """V3-style BCE with only the negative/outside term kept.
+
+    Full V3 BCE is
+        -y log(sigmoid(logit)) - (1-y) log(1-sigmoid(logit)).
+    This loss keeps only the second term. The reduction mirrors the original
+    BCE reduction: mean over all patches for each valid OVT, with inside
+    patches contributing zero.
+    """
+    logits_f = ovt_logits.float()
+    targets_f = gt_masks_per_ovt.float().clamp(0.0, 1.0)
+    outside = (1.0 - targets_f).clamp(0.0, 1.0)
+    valid = ovt_valid_mask.float()
+
+    # softplus(logit) == -log(1 - sigmoid(logit)), computed stably.
+    neg_term = F.softplus(logits_f)
+    per_ovt_loss = (neg_term * outside).mean(dim=-1)
+
+    denom = valid.sum().clamp_min(1.0)
+    loss = (per_ovt_loss * valid).sum() / denom
+
+    probs = torch.sigmoid(logits_f)
+    outside_denom = outside.sum(dim=-1).clamp_min(1.0)
+    inside = targets_f
+    inside_denom = inside.sum(dim=-1).clamp_min(1.0)
+    outside_prob = ((probs * outside).sum(dim=-1) / outside_denom * valid).sum() / denom
+    inside_prob = ((probs * inside).sum(dim=-1) / inside_denom * valid).sum() / denom
+
+    if not torch.isfinite(loss):
+        z = ovt_logits.new_zeros((), dtype=torch.float32)
+        return {"loss": z, "outside_prob": z, "inside_prob": z}
+
+    return {
+        "loss": loss,
+        "outside_prob": outside_prob.detach(),
+        "inside_prob": inside_prob.detach(),
+    }
+
+
+def compute_register_foreground_suppression_loss(
+    reg_logits: torch.Tensor,
+    gt_masks_per_ovt: torch.Tensor,
+    ovt_valid_mask: torch.Tensor,
+) -> Dict[str, torch.Tensor]:
+    """Suppress register attention on annotated object/stuff foreground.
+
+    Registers are intended to carry residual scene/background information. This
+    applies the same BCE negative term to register-vs-patch logits, but only on
+    the union of valid OVT masks:
+        -F_p log(1 - sigmoid(reg_logit_{r,p})).
+    """
+    if reg_logits.numel() == 0:
+        z = gt_masks_per_ovt.new_zeros((), dtype=torch.float32)
+        return {"loss": z, "fg_prob": z, "bg_prob": z, "fg_fraction": z}
+
+    logits_f = reg_logits.float()
+    masks = gt_masks_per_ovt.float().clamp(0.0, 1.0)
+    valid = ovt_valid_mask.float().unsqueeze(-1)
+    fg = (masks * valid).amax(dim=1).clamp(0.0, 1.0)  # (B,P)
+    bg = (1.0 - fg).clamp(0.0, 1.0)
+
+    neg_term = F.softplus(logits_f)
+    per_reg_loss = (neg_term * fg.unsqueeze(1)).mean(dim=-1)  # (B,R)
+    loss = per_reg_loss.mean()
+
+    probs = torch.sigmoid(logits_f)
+    fg_denom = fg.sum(dim=-1, keepdim=True).clamp_min(1.0)
+    bg_denom = bg.sum(dim=-1, keepdim=True).clamp_min(1.0)
+    fg_prob = ((probs * fg.unsqueeze(1)).sum(dim=-1) / fg_denom).mean()
+    bg_prob = ((probs * bg.unsqueeze(1)).sum(dim=-1) / bg_denom).mean()
+    fg_fraction = fg.mean()
+
+    if not torch.isfinite(loss):
+        z = reg_logits.new_zeros((), dtype=torch.float32)
+        return {"loss": z, "fg_prob": z, "bg_prob": z, "fg_fraction": z}
+
+    return {
+        "loss": loss,
+        "fg_prob": fg_prob.detach(),
+        "bg_prob": bg_prob.detach(),
+        "fg_fraction": fg_fraction.detach(),
+    }
+
+
 def compute_object_balanced_mask_bce_loss(
     ovt_logits: torch.Tensor,
     gt_masks_per_ovt: torch.Tensor,

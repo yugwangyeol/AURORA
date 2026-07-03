@@ -1,0 +1,44 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_main_v15_bce_bottleneck",
+  "readout": "threshold",
+  "num_samples": 2338,
+  "fARI": 0.6944680977468732,
+  "mBO": 0.49081267293182335,
+  "mIoU": 0.5520119053894021,
+  "active_count_mean": 6.391360136869119,
+  "by_object_count": {
+    "1-3": {
+      "n": 532,
+      "fARI": 0.5942433429315429,
+      "mBO": 0.5687949346506275,
+      "mIoU": 0.6397626120877221
+    },
+    "7-10": {
+      "n": 632,
+      "fARI": 0.7369505206505871,
+      "mBO": 0.4500039759698647,
+      "mIoU": 0.5074951809276885
+    },
+    "11+": {
+      "n": 315,
+      "fARI": 0.7372176169462147,
+      "mBO": 0.3202678242050636,
+      "mIoU": 0.3480998515609711
+    },
+    "4-6": {
+      "n": 859,
+      "fARI": 0.7096073058246565,
+      "mBO": 0.5373554181315129,
+      "mIoU": 0.6051940833314889
+    }
+  },
+  "gt_source": "coco_instance",
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "coda_overlap_excluded": true,
+  "rFID": 31.457462310791016,
+  "recon_psnr": 11.21609835669564,
+  "recon_ssim": 0.2497325617169931,
+  "recon_mse": 0.08189641887099396,
+  "recon_mae": 0.21772552150962085
+}
