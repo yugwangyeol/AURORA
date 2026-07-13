@@ -1,0 +1,15 @@
+{
+  "oracle": "o0_decoder_gt_coco",
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_main_v16_bce_bottleneck_void4",
+  "image_dir": "/home/jovyan/data/coco/val2017",
+  "captions_json": "/home/jovyan/data/coco/annotations/captions_val2017.json",
+  "num_samples": 5000,
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "fid_backend": "pgot_torchmetrics_fid",
+  "rFID": 4.454935073852539,
+  "recon_psnr": 22.033865784454346,
+  "recon_ssim": 0.6637890362083911,
+  "recon_mse": 0.007775925557917799,
+  "recon_mae": 0.055318011082615706
+}

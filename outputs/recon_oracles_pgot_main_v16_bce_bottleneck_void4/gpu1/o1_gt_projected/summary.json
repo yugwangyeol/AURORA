@@ -1,0 +1,11 @@
+{
+  "oracle": "o1_gt_projected",
+  "num_samples": 2338,
+  "rFID": 405.1612243652344,
+  "guidance_scale": 2.5,
+  "diffusion_inference_steps": 25,
+  "recon_psnr": 11.05538026362632,
+  "recon_ssim": 0.10286625674340183,
+  "recon_mse": 0.0841321041114418,
+  "recon_mae": 0.24270288771141074
+}

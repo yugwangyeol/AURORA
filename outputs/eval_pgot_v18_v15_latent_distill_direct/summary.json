@@ -1,0 +1,45 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_main_v18_v15_latent_distill",
+  "readout": "threshold",
+  "num_samples": 2338,
+  "fARI": 0.6896889839468888,
+  "mBO": 0.4913948351478775,
+  "mIoU": 0.5539879194190733,
+  "active_count_mean": 6.334687767322498,
+  "by_object_count": {
+    "1-3": {
+      "n": 532,
+      "fARI": 0.5746800552214558,
+      "mBO": 0.5681336767478462,
+      "mIoU": 0.6430355413795862
+    },
+    "7-10": {
+      "n": 632,
+      "fARI": 0.743594485947317,
+      "mBO": 0.4507305368754523,
+      "mIoU": 0.5087274575158011
+    },
+    "11+": {
+      "n": 315,
+      "fARI": 0.7359242228525026,
+      "mBO": 0.3246512204566638,
+      "mIoU": 0.351214204196419
+    },
+    "4-6": {
+      "n": 859,
+      "fARI": 0.7043017575934446,
+      "mBO": 0.5371704525237844,
+      "mIoU": 0.6064966473992962
+    }
+  },
+  "gt_source": "coco_instance",
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "recon_source": "direct_latent",
+  "coda_overlap_excluded": true,
+  "rFID": 258.76776123046875,
+  "recon_psnr": 11.192661822912935,
+  "recon_ssim": 0.26703755460819745,
+  "recon_mse": 0.0877636965436716,
+  "recon_mae": 0.232594567565351
+}

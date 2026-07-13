@@ -1,0 +1,17 @@
+{
+  "oracle": "o1_native_scale_rae",
+  "model_path": "/home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B",
+  "num_samples": 2338,
+  "rFID": 33.529701232910156,
+  "guidance_scale": 1.5,
+  "diffusion_inference_steps": 25,
+  "dtype": "fp32",
+  "condition_mean": -0.35974463498270187,
+  "condition_std": 1.25073409241599,
+  "rae_hidden_mean": -0.0002751976302337229,
+  "rae_hidden_std": 0.09691802502886669,
+  "recon_psnr": 9.892199571159173,
+  "recon_ssim": 0.23552170034156997,
+  "recon_mse": 0.11042497730339894,
+  "recon_mae": 0.25909763363638527
+}

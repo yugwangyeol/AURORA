@@ -1,0 +1,2 @@
+oracle,model_path,num_samples,rFID,guidance_scale,diffusion_inference_steps,dtype,condition_mean,condition_std,rae_hidden_mean,rae_hidden_std,recon_psnr,recon_ssim,recon_mse,recon_mae
+o1_native_scale_rae,/home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B,8,220.4879608154297,2.5,25,fp32,-0.3627448081970215,1.2556891441345215,-0.00029817584436386824,0.09699976444244385,10.149773955345154,0.16550138220191002,0.10195376304909587,0.24145888909697533

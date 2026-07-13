@@ -1,0 +1,38 @@
+{
+  "runs": [
+    {
+      "oracle": "o1_native_scale_rae",
+      "model_path": "/home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B",
+      "num_samples": 2338,
+      "rFID": 33.460636138916016,
+      "guidance_scale": 2.5,
+      "diffusion_inference_steps": 25,
+      "dtype": "fp32",
+      "condition_mean": -0.35989933371950744,
+      "condition_std": 1.2508259303740674,
+      "rae_hidden_mean": -0.00027810182706137034,
+      "rae_hidden_std": 0.09691952062141367,
+      "recon_psnr": 9.897936345166483,
+      "recon_ssim": 0.2359410963324755,
+      "recon_mse": 0.11014094892482953,
+      "recon_mae": 0.25932192924481057
+    },
+    {
+      "oracle": "o1_native_scale_rae",
+      "model_path": "/home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B",
+      "num_samples": 2338,
+      "rFID": 34.7841682434082,
+      "guidance_scale": 2.5,
+      "diffusion_inference_steps": 50,
+      "dtype": "fp32",
+      "condition_mean": -0.35989933371950744,
+      "condition_std": 1.2508259303740674,
+      "rae_hidden_mean": -0.00027810182706137034,
+      "rae_hidden_std": 0.09691952062141367,
+      "recon_psnr": 9.90854855905342,
+      "recon_ssim": 0.23751359016111104,
+      "recon_mse": 0.10955717137053138,
+      "recon_mae": 0.25829928075469283
+    }
+  ]
+}

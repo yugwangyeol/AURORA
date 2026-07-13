@@ -1,0 +1,2 @@
+oracle,model_path,image_dir,captions_json,num_samples,image_preprocess_mode,coda_crop_size,fid_backend,rFID,recon_psnr,recon_ssim,recon_mse,recon_mae
+o0_decoder_gt_coco,/home/jovyan/PGOT/checkpoints/pgot_main_v16_bce_bottleneck_void4,/home/jovyan/data/coco/val2017,/home/jovyan/data/coco/annotations/captions_val2017.json,5000,coda_center_crop,512,pgot_torchmetrics_fid,4.454935073852539,22.033865784454346,0.6637890362083911,0.007775925557917799,0.055318011082615706

@@ -1,0 +1,11 @@
+{
+  "oracle": "o2_gt_mask_routed_projected",
+  "num_samples": 2338,
+  "rFID": 405.1993103027344,
+  "guidance_scale": 2.5,
+  "diffusion_inference_steps": 25,
+  "recon_psnr": 11.055480939083573,
+  "recon_ssim": 0.10287573898626991,
+  "recon_mse": 0.08413190657386065,
+  "recon_mae": 0.24269852596689637
+}

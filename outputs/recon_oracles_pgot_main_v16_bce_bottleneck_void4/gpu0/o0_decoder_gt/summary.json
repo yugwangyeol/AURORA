@@ -1,0 +1,11 @@
+{
+  "oracle": "o0_decoder_gt",
+  "num_samples": 2338,
+  "rFID": 8.835601806640625,
+  "guidance_scale": 2.5,
+  "diffusion_inference_steps": 25,
+  "recon_psnr": 22.551382543288103,
+  "recon_ssim": 0.6797332866412131,
+  "recon_mse": 0.006941296520788679,
+  "recon_mae": 0.05267625949142375
+}

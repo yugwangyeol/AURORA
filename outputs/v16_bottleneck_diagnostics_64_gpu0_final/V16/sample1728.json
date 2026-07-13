@@ -1,0 +1,530 @@
+{
+  "sample_index": 1728,
+  "image_id": 177935,
+  "n_ovt_tokens": 22,
+  "n_objects": 11,
+  "route_stats": {
+    "loss": 1.389100193977356,
+    "object_loss": 1.1343125104904175,
+    "void_loss": 0.509575366973877,
+    "fg_acc": 0.20512820780277252,
+    "bg_acc": 0.8707865476608276,
+    "void_prob_on_fg": 0.45641785860061646,
+    "object_prob_on_bg": 0.21970152854919434,
+    "entropy": 0.9157362580299377,
+    "object_count": 8.0,
+    "void_prob_on_gt_bg_mean": 0.7363997101783752,
+    "void_prob_on_gt_fg_mean": 0.473026841878891,
+    "object_prob_on_gt_bg_mean": 0.26360026001930237,
+    "foreground_area_frac": 0.2080078125,
+    "per_object": [
+      {
+        "index": 0,
+        "valid": true,
+        "gt_area_frac": 0.17431640625,
+        "prob_sum": 26.523122787475586,
+        "inside_prob_mean": 0.19573532044887543,
+        "outside_prob_mean": 0.08415582031011581,
+        "inside_fraction_of_object_prob": 0.32932353019714355
+      },
+      {
+        "index": 1,
+        "valid": true,
+        "gt_area_frac": 0.01708984375,
+        "prob_sum": 11.434120178222656,
+        "inside_prob_mean": 0.4417807459831238,
+        "outside_prob_mean": 0.03775987774133682,
+        "inside_fraction_of_object_prob": 0.1690371185541153
+      },
+      {
+        "index": 2,
+        "valid": true,
+        "gt_area_frac": 0.01171875,
+        "prob_sum": 11.882575988769531,
+        "inside_prob_mean": 0.5825924277305603,
+        "outside_prob_mean": 0.04005848988890648,
+        "inside_fraction_of_object_prob": 0.14708741009235382
+      },
+      {
+        "index": 3,
+        "valid": true,
+        "gt_area_frac": 0.001953125,
+        "prob_sum": 7.231977462768555,
+        "inside_prob_mean": 0.1333313286304474,
+        "outside_prob_mean": 0.02804427407681942,
+        "inside_fraction_of_object_prob": 0.009218179620802402
+      },
+      {
+        "index": 4,
+        "valid": true,
+        "gt_area_frac": 0.001953125,
+        "prob_sum": 5.941844940185547,
+        "inside_prob_mean": 0.15500038862228394,
+        "outside_prob_mean": 0.022952428087592125,
+        "inside_fraction_of_object_prob": 0.013043119572103024
+      },
+      {
+        "index": 5,
+        "valid": true,
+        "gt_area_frac": 0.0009765625,
+        "prob_sum": 2.7404534816741943,
+        "inside_prob_mean": 0.04585045203566551,
+        "outside_prob_mean": 0.010670541785657406,
+        "inside_fraction_of_object_prob": 0.00418274337425828
+      },
+      {
+        "index": 6,
+        "valid": true,
+        "gt_area_frac": 0.0,
+        "prob_sum": 4.187891006469727,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.01635894924402237,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 7,
+        "valid": true,
+        "gt_area_frac": 0.001953125,
+        "prob_sum": 2.677259922027588,
+        "inside_prob_mean": 0.07769839465618134,
+        "outside_prob_mean": 0.010326460935175419,
+        "inside_fraction_of_object_prob": 0.014510804787278175
+      },
+      {
+        "index": 8,
+        "valid": true,
+        "gt_area_frac": 0.0,
+        "prob_sum": 3.4333906173706055,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.013411682099103928,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 9,
+        "valid": true,
+        "gt_area_frac": 0.0009765625,
+        "prob_sum": 3.0747296810150146,
+        "inside_prob_mean": 0.04617072269320488,
+        "outside_prob_mean": 0.011977271176874638,
+        "inside_fraction_of_object_prob": 0.0037540472112596035
+      },
+      {
+        "index": 10,
+        "valid": true,
+        "gt_area_frac": 0.0,
+        "prob_sum": 2.3789072036743164,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.009292606264352798,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 11,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 12,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 13,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 14,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 15,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 16,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 17,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 18,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 19,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 20,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 21,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 22,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 23,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 24,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 25,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 26,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 27,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 28,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 29,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 30,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 31,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 32,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 33,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 34,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 35,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 36,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 37,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 38,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 39,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 40,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 41,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 42,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 43,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 44,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 45,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 46,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 47,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 48,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      },
+      {
+        "index": 49,
+        "valid": false,
+        "gt_area_frac": 0.0,
+        "prob_sum": 0.0,
+        "inside_prob_mean": 0.0,
+        "outside_prob_mean": 0.0,
+        "inside_fraction_of_object_prob": 0.0
+      }
+    ]
+  },
+  "recon_loss": {
+    "baseline": 0.9170114994049072,
+    "zero_final_object_ovt": 0.9648983478546143,
+    "zero_final_void": 1.14806067943573,
+    "zero_final_object_and_void": 38.71315383911133,
+    "zero_input_object_ovt": 0.9173105359077454,
+    "zero_input_void": 0.9038286209106445,
+    "swap_final_object_ovt": 0.9293192028999329
+  },
+  "recon_shift": {
+    "baseline": {
+      "cosine_to_baseline": 1.0,
+      "relative_l2_to_baseline": 0.0,
+      "delta_recon_loss": 0.0
+    },
+    "zero_final_object_ovt": {
+      "cosine_to_baseline": 0.9284261465072632,
+      "relative_l2_to_baseline": 0.374146431684494,
+      "delta_recon_loss": 0.04788684844970703
+    },
+    "zero_final_void": {
+      "cosine_to_baseline": 0.7579209804534912,
+      "relative_l2_to_baseline": 0.6848284602165222,
+      "delta_recon_loss": 0.23104918003082275
+    },
+    "zero_final_object_and_void": {
+      "cosine_to_baseline": -0.034912627190351486,
+      "relative_l2_to_baseline": 1.3471285104751587,
+      "delta_recon_loss": 37.79614233970642
+    },
+    "zero_input_object_ovt": {
+      "cosine_to_baseline": 0.9277522563934326,
+      "relative_l2_to_baseline": 0.3750961720943451,
+      "delta_recon_loss": 0.00029903650283813477
+    },
+    "zero_input_void": {
+      "cosine_to_baseline": 0.9172545671463013,
+      "relative_l2_to_baseline": 0.4028855562210083,
+      "delta_recon_loss": -0.013182878494262695
+    },
+    "swap_final_object_ovt": {
+      "cosine_to_baseline": 0.956015944480896,
+      "relative_l2_to_baseline": 0.3009711802005768,
+      "delta_recon_loss": 0.012307703495025635
+    }
+  },
+  "variant_order": [
+    "baseline",
+    "zero_final_object_ovt",
+    "zero_final_void",
+    "zero_final_object_and_void",
+    "zero_input_object_ovt",
+    "zero_input_void",
+    "swap_final_object_ovt"
+  ],
+  "route_visuals": "/home/jovyan/PGOT/outputs/v16_bottleneck_diagnostics_64_gpu0_final/V16/sample1728_route_visuals.png",
+  "recon_grid": "/home/jovyan/PGOT/outputs/v16_bottleneck_diagnostics_64_gpu0_final/V16/sample1728_bottleneck_recon_grid.png"
+}
