@@ -56,40 +56,42 @@ def _parse_model_spec(spec: str):
 
 def _load_model(model_path: str, dtype: torch.dtype, device: str):
     config = AutoConfig.from_pretrained(model_path)
+    raw_config_path = os.path.join(model_path, "config.json")
+    raw_name_or_path = model_path
+    if os.path.exists(raw_config_path):
+        with open(raw_config_path, "r") as f:
+            raw_cfg = json.load(f)
+        raw_name_or_path = str(raw_cfg.get("_name_or_path", model_path))
+
+    import safetensors.torch as safe_torch
+
+    has_lora = False
+    index_path = os.path.join(model_path, "model.safetensors.index.json")
+    if os.path.exists(index_path):
+        with open(index_path, "r") as f:
+            index_json = json.load(f)
+        has_lora = any(
+            "lora_" in k or ".base_layer." in k
+            for k in index_json.get("weight_map", {}).keys()
+        )
+    else:
+        for shard in sorted(glob.glob(os.path.join(model_path, "*.safetensors"))):
+            with safe_torch.safe_open(shard, framework="pt", device="cpu") as f:
+                if any("lora_" in k or ".base_layer." in k for k in f.keys()):
+                    has_lora = True
+                    break
+
+    model_init_path = raw_name_or_path if has_lora else model_path
+    if has_lora:
+        log.info("[LoRA] adapter checkpoint detected; bootstrap model from base path: %s", model_init_path)
     model = PGOTQwen2ForCausalLM.from_pretrained(
-        model_path,
+        model_init_path,
         config=config,
         torch_dtype=dtype,
         ignore_mismatched_sizes=True,
     )
     model.config.use_cache = False
     tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=False, padding_side="right")
-
-    import safetensors.torch as safe_torch
-    has_lora = False
-    for shard in sorted(glob.glob(os.path.join(model_path, "*.safetensors"))):
-        with safe_torch.safe_open(shard, framework="pt", device="cpu") as f:
-            if any("lora_" in k for k in f.keys()):
-                has_lora = True
-                break
-    if has_lora:
-        from peft import LoraConfig, inject_adapter_in_model
-        lora_cfg = LoraConfig(
-            r=16,
-            lora_alpha=32,
-            lora_dropout=0.0,
-            bias="none",
-            target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-            task_type="CAUSAL_LM",
-        )
-        inject_adapter_in_model(lora_cfg, model, adapter_name="default")
-        state = {}
-        for shard in sorted(glob.glob(os.path.join(model_path, "*.safetensors"))):
-            with safe_torch.safe_open(shard, framework="pt", device="cpu") as f:
-                for k in f.keys():
-                    state[k] = f.get_tensor(k)
-        missing, unexpected = model.load_state_dict(state, strict=False)
-        log.info("[%s] LoRA reload missing=%d unexpected=%d", model_path, len(missing), len(unexpected))
 
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = "<|endoftext|>"
@@ -121,6 +123,29 @@ def _load_model(model_path: str, dtype: torch.dtype, device: str):
     model.load_vision_head(model_args=vt_args)
     for vt in model.get_vision_tower_aux_list():
         vt.to(dtype=dtype, device=device)
+
+    if has_lora:
+        from peft import LoraConfig, inject_adapter_in_model
+
+        lora_cfg = LoraConfig(
+            r=int(getattr(config, "captionslot_lora_r", 16)) if hasattr(config, "captionslot_lora_r") else 16,
+            lora_alpha=int(getattr(config, "captionslot_lora_alpha", 32)) if hasattr(config, "captionslot_lora_alpha") else 32,
+            lora_dropout=0.0,
+            bias="none",
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+            task_type="CAUSAL_LM",
+        )
+        inject_adapter_in_model(lora_cfg, model, adapter_name="default")
+        total_unexpected = 0
+        for shard in sorted(glob.glob(os.path.join(model_path, "*.safetensors"))):
+            state = {}
+            with safe_torch.safe_open(shard, framework="pt", device="cpu") as f:
+                for k in f.keys():
+                    state[k] = f.get_tensor(k)
+            _, unexpected = model.load_state_dict(state, strict=False)
+            total_unexpected += len(unexpected)
+            del state
+        log.info("[LoRA] re-loaded ckpt after adapter injection | unexpected=%d", total_unexpected)
 
     model.pgot_ovt_token_id = tokenizer.convert_tokens_to_ids(OVT_TOKEN)
     model.pgot_scene_end_token_id = tokenizer.convert_tokens_to_ids(SCENE_END_TOKEN)

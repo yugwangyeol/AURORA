@@ -241,6 +241,17 @@ def main():
     )
     p.add_argument("--diffusion_inference_steps", type=int, default=10,
                    help="Number of RF denoising steps for rFID (AURORA uses 10).")
+    p.add_argument(
+        "--recon_source",
+        choices=["diffusion", "direct_latent"],
+        default="diffusion",
+        help="For rFID: diffusion samples through DiT; direct_latent decodes the V18 latent head output.",
+    )
+    p.add_argument(
+        "--disable_dit_ovt_cross_attn",
+        action="store_true",
+        help="Ablation: keep the checkpoint architecture but do not pass OVT/void slot context to DiT during rFID.",
+    )
     args = p.parse_args()
     if args.readout == "slot_owner":
         args.readout = "ovt_owner"
@@ -281,6 +292,9 @@ def main():
         model_init_path, config=config, torch_dtype=dtype, ignore_mismatched_sizes=True,
     )
     model.config.use_cache = False
+    if args.disable_dit_ovt_cross_attn:
+        model.config.pgot_dit_ovt_cross_attn_enable = False
+        log.info("[Ablation] Disabled DiT OVT/void cross-attn slot context for eval.")
     tokenizer = AutoTokenizer.from_pretrained(args.model_path, use_fast=False, padding_side="right")
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = "<|endoftext|>"
@@ -639,7 +653,18 @@ def main():
         # rFID
         if fid_acc is not None and rae_decoder is not None:
             try:
-                generated_latent = generate_siglip_latent(model, out["rae_hidden"], guidance_level=float(args.guidance_scale))
+                if args.recon_source == "direct_latent":
+                    generated_latent = out.get("direct_latent")
+                    if generated_latent is None:
+                        raise ValueError("direct_latent recon requested but checkpoint has no V18 latent head output")
+                else:
+                    generated_latent = generate_siglip_latent(
+                        model,
+                        out["rae_hidden"],
+                        guidance_level=float(args.guidance_scale),
+                        slot_context=out.get("slot_context"),
+                        slot_mask=out.get("slot_mask"),
+                    )
                 recon_images = decode_to_image(rae_decoder, generated_latent, device)
                 # Real image: denormalize target_images (which was SigLIP-preprocessed)
                 target_proc = vt_list[1].image_processor if len(vt_list) > 1 else vt_list[0].image_processor
@@ -683,6 +708,8 @@ def main():
     summary["gt_source"] = args.gt_source
     summary["image_preprocess_mode"] = args.image_preprocess_mode
     summary["coda_crop_size"] = int(args.coda_crop_size)
+    summary["recon_source"] = args.recon_source
+    summary["dit_ovt_cross_attn_disabled"] = bool(args.disable_dit_ovt_cross_attn)
     summary["coda_overlap_excluded"] = bool(
         coco_cache is not None and coco_cache.overlap_masks is not None
     )

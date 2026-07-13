@@ -573,17 +573,26 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
             
             # Ensure diffusion backbone selection is propagated
             self.diff_head_config["dit_cls"] = getattr(config, 'dit_cls', 'DiT')
-            if (
+            pgot_dit_ovt_xattn = bool(getattr(config, 'pgot_dit_ovt_cross_attn_enable', False))
+            captionslot_xattn = (
                 getattr(config, 'use_captionslot', False)
                 and getattr(config, 'captionslot_add_cross_attention', False)
-                and not self.diff_head_config.get("use_mlp", False)
-            ):
+            )
+            if (pgot_dit_ovt_xattn or captionslot_xattn) and not self.diff_head_config.get("use_mlp", False):
                 self.diff_head_config["slot_cross_attn_enabled"] = True
                 self.diff_head_config["slot_cross_attn_start_block"] = int(
-                    getattr(config, "captionslot_cross_attention_start_block", 8)
+                    getattr(
+                        config,
+                        "pgot_dit_ovt_cross_attn_start_block",
+                        getattr(config, "captionslot_cross_attention_start_block", 8),
+                    )
                 )
                 self.diff_head_config["slot_cross_attn_every_n_blocks"] = int(
-                    getattr(config, "captionslot_cross_attention_every_n_blocks", 4)
+                    getattr(
+                        config,
+                        "pgot_dit_ovt_cross_attn_every_n_blocks",
+                        getattr(config, "captionslot_cross_attention_every_n_blocks", 4),
+                    )
                 )
                 self.diff_head_config["slot_cross_attn_context_dim"] = int(self.diff_head_config["z_channels"])
 

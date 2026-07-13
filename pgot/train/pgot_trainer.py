@@ -109,6 +109,29 @@ class PGOTModelArguments:
     pgot_v14_route_weight: float = field(default=1.0)
     pgot_v14_void_weight: float = field(default=0.5)
     pgot_v14_position_weight: float = field(default=1.0)
+    pgot_v14_router_depth: int = field(default=1)
+    pgot_v14_router_mlp_ratio: int = field(default=4)
+
+    # V20: keep V15 router AdaLN conditioning, and additionally expose
+    # OVT/void states to DiT through zero-init sparse slot cross-attention.
+    pgot_dit_ovt_cross_attn_enable: bool = field(default=False)
+    pgot_dit_ovt_cross_attn_start_block: int = field(default=25)
+    pgot_dit_ovt_cross_attn_every_n_blocks: int = field(default=1)
+
+    # V17: Generative Binding. Diffusion condition comes from the final-layer
+    # RAE query hidden states; ownership CE supervises RAE query -> OVT attention.
+    pgot_v17_enable: bool = field(default=False)
+    pgot_v17_ownership_weight: float = field(default=0.0)
+    pgot_v17_ownership_layers: str = field(default="last4")
+
+    # V18: V15 object-causal bottleneck + direct decoder-native latent distill.
+    # The head predicts SigLIP decoder latents from the same bottleneck condition
+    # used by DiT, so we can optimize toward the decoder_gt oracle directly.
+    pgot_latent_distill_enable: bool = field(default=False)
+    pgot_latent_distill_weight: float = field(default=0.0)
+    pgot_latent_distill_mse_weight: float = field(default=1.0)
+    pgot_latent_distill_cos_weight: float = field(default=1.0)
+    pgot_latent_distill_l1_weight: float = field(default=0.0)
 
     # CFG: randomly drop the rae_hidden condition during training so diff_head learns
     # an unconditional path; at inference we use guidance_scale > 1.
@@ -287,6 +310,12 @@ def freeze_for_pgot(
             p.requires_grad_(True)
             n_trainable += p.numel()
 
+    # V18 latent distillation head
+    if hasattr(model, "pgot_latent_head") and model.pgot_latent_head is not None:
+        for p in model.pgot_latent_head.parameters():
+            p.requires_grad_(True)
+            n_trainable += p.numel()
+
     # rae_query (latent_queries inside model.get_model())
     inner = model.get_model() if hasattr(model, "get_model") else model
     if hasattr(inner, "latent_queries") and inner.latent_queries is not None:
@@ -441,12 +470,23 @@ class PGOTTrainer(Trainer):
                            if p.requires_grad and "latent_queries" in n}
         v14_names = {n for n, p in opt_model.named_parameters()
                      if p.requires_grad and "pgot_v14_router" in n}
+        latent_head_names = {n for n, p in opt_model.named_parameters()
+                             if p.requires_grad and "pgot_latent_head" in n}
         llm_names = {n for n, p in opt_model.named_parameters()
                      if p.requires_grad and (n.startswith("model.layers.")
                                              or n.startswith("model.model.layers.")
                                              or "lora_" in n)}
 
-        assigned = projector_names | diff_body_names | register_names | null_bg_names | rae_query_names | v14_names | llm_names
+        assigned = (
+            projector_names
+            | diff_body_names
+            | register_names
+            | null_bg_names
+            | rae_query_names
+            | v14_names
+            | latent_head_names
+            | llm_names
+        )
 
         groups = []
         used_param_ids = set()
@@ -494,16 +534,19 @@ class PGOTTrainer(Trainer):
         params = _take_params(v14_names)
         if params:
             groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": self.args.learning_rate})
+        params = _take_params(latent_head_names)
+        if params:
+            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": diff_head_lr})
         params = _take_params(llm_names)
         if params:
             groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": llm_lr})
 
         logger.info(
             "[PGOT] optimizer | base=%g diff_head=%g dit_body=%g register=%g rae_query=%g llm=%g | "
-            "projector=%d dit_adaln=%d dit_body=%d register=%d null_bg=%d rae_query=%d v14=%d llm=%d",
+            "projector=%d dit_adaln=%d dit_body=%d register=%d null_bg=%d rae_query=%d v14=%d latent_head=%d llm=%d",
             self.args.learning_rate, diff_head_lr, dit_body_lr, register_lr, rae_query_lr, llm_lr,
             len(projector_names), len(dit_adaln_names), len(dit_body_names), len(register_names),
-            len(null_bg_names), len(rae_query_names), len(v14_names), len(llm_names),
+            len(null_bg_names), len(rae_query_names), len(v14_names), len(latent_head_names), len(llm_names),
         )
 
         optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(self.args)
@@ -1086,9 +1129,15 @@ class PGOTTrainer(Trainer):
 
         pred_latent = out["pred_latent"]
         gt_siglip = out["gt_siglip"]
+        direct_latent = out.get("direct_latent")
 
         recon_pixels = self._decode_latents(decoder, pred_latent, device)
         gt_pixels = self._decode_latents(decoder, gt_siglip, device)
+        direct_pixels = (
+            self._decode_latents(decoder, direct_latent, device)
+            if direct_latent is not None
+            else None
+        )
 
         # Denormalize source target_images from SigLIP-target normalization to [0,1].
         # We use the second image processor (siglip2_decoder-aligned target) if any.
@@ -1112,11 +1161,15 @@ class PGOTTrainer(Trainer):
         source_pixels = _match(source_pixels)
         gt_pixels = _match(gt_pixels)
         recon_pixels = _match(recon_pixels)
+        if direct_pixels is not None:
+            direct_pixels = _match(direct_pixels)
 
         # Build ONE wandb.Table with columns: step, sample, source, gt_decoded, our_recon, attn_overlay, caption.
         # Each row is a sample at the current step. wandb UI shows two-axis navigation:
         # the run-history step slider + the table's sample column → "step × sample" grid.
         n = min(recon_pixels.shape[0], gt_pixels.shape[0], source_pixels.shape[0])
+        if direct_pixels is not None:
+            n = min(n, direct_pixels.shape[0])
         images_by_mode = {}
         chunk_labels_by_sample = [""] * n
         try:
@@ -1130,6 +1183,8 @@ class PGOTTrainer(Trainer):
 
         overlay_modes = list(images_by_mode.keys())
         columns = ["step", "sample", "source", "gt_decoded", "our_recon"]
+        if direct_pixels is not None:
+            columns.append("direct_recon")
         columns.extend(f"{mode}_overlay" for mode in overlay_modes)
         columns.append("chunks")
         table = wandb.Table(columns=columns)
@@ -1144,6 +1199,9 @@ class PGOTTrainer(Trainer):
                 wandb.Image(gt_np),
                 wandb.Image(rec_np),
             ]
+            if direct_pixels is not None:
+                direct_np = direct_pixels[i].permute(1, 2, 0).numpy()
+                row.append(wandb.Image(direct_np))
             for mode in overlay_modes:
                 overlay = images_by_mode[mode].get(i, None)
                 row.append(wandb.Image(overlay) if overlay is not None else None)

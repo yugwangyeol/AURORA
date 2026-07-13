@@ -197,6 +197,19 @@ def train():
     config.pgot_v14_route_weight = float(model_args.pgot_v14_route_weight)
     config.pgot_v14_void_weight = float(model_args.pgot_v14_void_weight)
     config.pgot_v14_position_weight = float(model_args.pgot_v14_position_weight)
+    config.pgot_v14_router_depth = int(model_args.pgot_v14_router_depth)
+    config.pgot_v14_router_mlp_ratio = int(model_args.pgot_v14_router_mlp_ratio)
+    config.pgot_dit_ovt_cross_attn_enable = bool(model_args.pgot_dit_ovt_cross_attn_enable)
+    config.pgot_dit_ovt_cross_attn_start_block = int(model_args.pgot_dit_ovt_cross_attn_start_block)
+    config.pgot_dit_ovt_cross_attn_every_n_blocks = int(model_args.pgot_dit_ovt_cross_attn_every_n_blocks)
+    config.pgot_v17_enable = bool(model_args.pgot_v17_enable)
+    config.pgot_v17_ownership_weight = float(model_args.pgot_v17_ownership_weight)
+    config.pgot_v17_ownership_layers = str(model_args.pgot_v17_ownership_layers)
+    config.pgot_latent_distill_enable = bool(model_args.pgot_latent_distill_enable)
+    config.pgot_latent_distill_weight = float(model_args.pgot_latent_distill_weight)
+    config.pgot_latent_distill_mse_weight = float(model_args.pgot_latent_distill_mse_weight)
+    config.pgot_latent_distill_cos_weight = float(model_args.pgot_latent_distill_cos_weight)
+    config.pgot_latent_distill_l1_weight = float(model_args.pgot_latent_distill_l1_weight)
     config.pgot_rae_bidirectional = model_args.pgot_rae_bidirectional
     config.pgot_attention_use_layer_norm = model_args.pgot_attention_use_layer_norm
     config.pgot_attention_temperature = model_args.pgot_attention_temperature
@@ -284,6 +297,19 @@ def train():
     model.config.pgot_v14_route_weight = float(model_args.pgot_v14_route_weight)
     model.config.pgot_v14_void_weight = float(model_args.pgot_v14_void_weight)
     model.config.pgot_v14_position_weight = float(model_args.pgot_v14_position_weight)
+    model.config.pgot_v14_router_depth = int(model_args.pgot_v14_router_depth)
+    model.config.pgot_v14_router_mlp_ratio = int(model_args.pgot_v14_router_mlp_ratio)
+    model.config.pgot_dit_ovt_cross_attn_enable = bool(model_args.pgot_dit_ovt_cross_attn_enable)
+    model.config.pgot_dit_ovt_cross_attn_start_block = int(model_args.pgot_dit_ovt_cross_attn_start_block)
+    model.config.pgot_dit_ovt_cross_attn_every_n_blocks = int(model_args.pgot_dit_ovt_cross_attn_every_n_blocks)
+    model.config.pgot_v17_enable = bool(model_args.pgot_v17_enable)
+    model.config.pgot_v17_ownership_weight = float(model_args.pgot_v17_ownership_weight)
+    model.config.pgot_v17_ownership_layers = str(model_args.pgot_v17_ownership_layers)
+    model.config.pgot_latent_distill_enable = bool(model_args.pgot_latent_distill_enable)
+    model.config.pgot_latent_distill_weight = float(model_args.pgot_latent_distill_weight)
+    model.config.pgot_latent_distill_mse_weight = float(model_args.pgot_latent_distill_mse_weight)
+    model.config.pgot_latent_distill_cos_weight = float(model_args.pgot_latent_distill_cos_weight)
+    model.config.pgot_latent_distill_l1_weight = float(model_args.pgot_latent_distill_l1_weight)
     model.config.pgot_cfg_drop_rate = float(model_args.pgot_cfg_drop_rate)
     model.config.pgot_rae_attends_caption = bool(model_args.pgot_rae_attends_caption)
     logger.info(
@@ -320,7 +346,15 @@ def train():
         f"(route_temp={getattr(model.config, 'pgot_v14_route_temperature', 1.0)}, "
         f"route_w={getattr(model.config, 'pgot_v14_route_weight', 1.0)}, "
         f"void_w={getattr(model.config, 'pgot_v14_void_weight', 0.5)}, "
-        f"pos_w={getattr(model.config, 'pgot_v14_position_weight', 1.0)}) "
+        f"pos_w={getattr(model.config, 'pgot_v14_position_weight', 1.0)}, "
+        f"router_depth={getattr(model.config, 'pgot_v14_router_depth', 1)}, "
+        f"router_mlp={getattr(model.config, 'pgot_v14_router_mlp_ratio', 4)}, "
+        f"dit_ovt_xattn={getattr(model.config, 'pgot_dit_ovt_cross_attn_enable', False)}, "
+        f"xattn_start={getattr(model.config, 'pgot_dit_ovt_cross_attn_start_block', 25)}, "
+        f"xattn_every={getattr(model.config, 'pgot_dit_ovt_cross_attn_every_n_blocks', 1)}) "
+        f"v17={bool(getattr(model.config, 'pgot_v17_enable', False))} "
+        f"(ownership_w={getattr(model.config, 'pgot_v17_ownership_weight', 0.0)}, "
+        f"ownership_layers={getattr(model.config, 'pgot_v17_ownership_layers', 'last4')}) "
         f"(ce_temp={model.config.pgot_mask_ce_temperature}, ce_merge={model.config.pgot_mask_ce_merge}); "
         f"null_bg={model.config.pgot_use_null_bg_competition}; cfg_drop={model.config.pgot_cfg_drop_rate}"
     )
@@ -398,6 +432,32 @@ def train():
             f"[PGOT/LoRA] injected r={training_args.pgot_lora_r} α={training_args.pgot_lora_alpha} "
             f"targets={lora_targets} | lora_params={n_lora_params:,}"
         )
+        # from_pretrained() cannot match PEFT's base_layer/lora_ keys before
+        # adapters exist. Reload those keys after injection so structural
+        # variants such as V17 can warm-start from a prior PGOT LoRA checkpoint
+        # with a fresh optimizer.
+        try:
+            import glob
+            from safetensors import safe_open
+
+            lora_reload_sd = {}
+            shard_files = sorted(glob.glob(os.path.join(model_args.model_name_or_path, "*.safetensors")))
+            for shard_file in shard_files:
+                with safe_open(shard_file, framework="pt", device="cpu") as sf:
+                    for key in sf.keys():
+                        if "base_layer" in key or "lora_" in key:
+                            lora_reload_sd[key] = sf.get_tensor(key)
+            if lora_reload_sd:
+                missing_keys, unexpected_keys = model.load_state_dict(lora_reload_sd, strict=False)
+                lora_missing = [k for k in missing_keys if "base_layer" in k or "lora_" in k]
+                logger.info(
+                    "[PGOT/LoRA] reloaded checkpoint adapter weights | keys=%d missing_lora=%d unexpected=%d",
+                    len(lora_reload_sd),
+                    len(lora_missing),
+                    len(unexpected_keys),
+                )
+        except Exception as exc:
+            logger.warning("[PGOT/LoRA] checkpoint adapter reload skipped: %s", exc)
 
     # ---- Apply freeze policy
     model = freeze_for_pgot(

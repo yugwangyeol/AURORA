@@ -95,6 +95,13 @@ def _up_2d(x: torch.Tensor, size: int, grid: int):
     )[0]
 
 
+def _infer_square_grid(n_patches: int, *, name: str) -> int:
+    grid = int(round(float(n_patches) ** 0.5))
+    if grid * grid != int(n_patches):
+        raise ValueError(f"{name} patch count must be square, got {n_patches}")
+    return grid
+
+
 def v14_forward_variant(
     model,
     batch,
@@ -332,6 +339,7 @@ def _source_tile(source: Image.Image, title: str):
 
 
 def _pred_from_owner(out, batch, eval_size: int, grid_size: int, n_ovt_per_object: int, map_stuff_to_bg: bool):
+    owner_grid = _infer_square_grid(out["object_probs"].shape[-1], name="owner_probs")
     return build_pred_mask_ovt_owner_eval(
         ovt_object_probs=out["object_probs"],
         ovt_void_probs=out["void_probs"],
@@ -339,7 +347,7 @@ def _pred_from_owner(out, batch, eval_size: int, grid_size: int, n_ovt_per_objec
         ovt_is_thing=batch["ovt_is_thing"].to(out["condition_hidden"].device, dtype=torch.bool),
         target_size=eval_size,
         n_ovt_per_object=n_ovt_per_object,
-        patch_grid=grid_size,
+        patch_grid=owner_grid,
         map_stuff_to_bg=map_stuff_to_bg,
     )
 
@@ -358,6 +366,7 @@ def save_route_visuals(
 ):
     source = _source_from_target_tensor(batch["target_images"][0], target_proc)
     source = source.resize((eval_size, eval_size), Image.BILINEAR)
+    owner_grid = _infer_square_grid(out["object_probs"].shape[-1], name="owner_probs")
     pred_thing = _pred_from_owner(out, batch, eval_size, grid_size, n_ovt_per_object, True)[0].detach().cpu()
     pred_all = _pred_from_owner(out, batch, eval_size, grid_size, n_ovt_per_object, False)[0].detach().cpu()
 
@@ -366,7 +375,7 @@ def save_route_visuals(
     gt_label = torch.zeros(eval_size, eval_size, dtype=torch.long)
     if K > 0:
         cover = _resize_cover_to_p(cover[:, :K], out["object_probs"].shape[-1])
-        cover_up = _up_2d(cover, eval_size, grid_size).detach().cpu()
+        cover_up = _up_2d(cover, eval_size, owner_grid).detach().cpu()
         assign = cover_up.argmax(dim=0)
         fg = cover_up.amax(dim=0) > 0.0
         for k in range(K):
@@ -381,10 +390,10 @@ def save_route_visuals(
         _large_mask_overlay(source, pred_thing, "V14 route pred: thing eval", labels, size=eval_size),
     ]
     void = out["void_probs"].float().sum(dim=1)
-    if void.shape[1] == grid_size * grid_size:
-        void_up = _up_2d(void, eval_size, grid_size)[0].detach().cpu()
+    if void.shape[1] == owner_grid * owner_grid:
+        void_up = _up_2d(void, eval_size, owner_grid)[0].detach().cpu()
         tiles.append(_heat_overlay(source, void_up, "void probability"))
-    obj_up = _up_2d(out["object_probs"].float()[:, :K], eval_size, grid_size).detach().cpu()
+    obj_up = _up_2d(out["object_probs"].float()[:, :K], eval_size, owner_grid).detach().cpu()
     for k in range(min(K, max_object_maps)):
         cat = raw.get("segments", [{}])[k].get("category", f"obj{k}") if k < len(raw.get("segments", [])) else f"obj{k}"
         tiles.append(_heat_overlay(source, obj_up[k], f"object route {k + 1}: {cat}"))

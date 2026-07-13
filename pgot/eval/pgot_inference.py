@@ -81,6 +81,16 @@ def pgot_forward_eval(
                 temperature=attn_temp,
                 normalize_tokens=attn_ln,
             )
+        slot_context = None
+        slot_mask = None
+        if (
+            hasattr(model, "_pgot_prepare_dit_ovt_context")
+            and bool(getattr(model.config, "pgot_dit_ovt_cross_attn_enable", False))
+        ):
+            slot_context, slot_mask = model._pgot_prepare_dit_ovt_context(
+                out["ovt_states"],
+                out["ovt_valid"],
+            )
         result = {
             "ovt_logits": ovt_logits,
             "reg_logits": reg_logits,
@@ -92,6 +102,8 @@ def pgot_forward_eval(
             "ovt_valid_mask": out["ovt_valid_mask"],
             "rae_hidden": out["condition_hidden"],
             "raw_rae_hidden": out["rae_hidden"],
+            "slot_context": slot_context,
+            "slot_mask": slot_mask,
             "img_hidden": img_hidden,
             "gt_siglip": out["gt_siglip"],
             "rae_access_mode": rae_access_mode,
@@ -105,6 +117,8 @@ def pgot_forward_eval(
             "ovt_object_valid": out["object_valid"],
             "v12_block_owner_records": None,
         }
+        if getattr(model, "pgot_latent_head", None) is not None and hasattr(model, "pgot_predict_direct_latent"):
+            result["direct_latent"] = model.pgot_predict_direct_latent(out["condition_hidden"])
         if return_hidden_states:
             result["hidden_states"] = out["hidden_states"]
             result["inputs_embeds"] = out["inputs_embeds"].detach()
@@ -465,7 +479,13 @@ def ovt_swap_inference(
 
 
 @torch.no_grad()
-def generate_siglip_latent(model, rae_hidden: torch.Tensor, guidance_level: float = 1.0) -> torch.Tensor:
+def generate_siglip_latent(
+    model,
+    rae_hidden: torch.Tensor,
+    guidance_level: float = 1.0,
+    slot_context: torch.Tensor | None = None,
+    slot_mask: torch.Tensor | None = None,
+) -> torch.Tensor:
     """Run diff_head.infer to denoise SigLIP latent from rae_hidden.
 
     Returns: (B, P, C)  — SigLIP target-space latent (P = diffusion_target_token_len).
@@ -482,5 +502,11 @@ def generate_siglip_latent(model, rae_hidden: torch.Tensor, guidance_level: floa
     B = cond.shape[0]
     x_end = torch.randn((B, C, side, side), device=device, dtype=torch.float32)
 
-    generated = diff_head.infer(z=cond, x_end=x_end, guidance_level=guidance_level)
+    generated = diff_head.infer(
+        z=cond,
+        x_end=x_end,
+        guidance_level=guidance_level,
+        slot_context=slot_context,
+        slot_mask=slot_mask,
+    )
     return generated  # (B, P, C)
