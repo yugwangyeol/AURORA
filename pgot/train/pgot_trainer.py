@@ -182,6 +182,9 @@ class PGOTModelArguments:
     # Frozen/Trainable policy
     freeze_dit_body: bool = field(default=True)  # True = only AdaLN trainable in DiT
     freeze_vision_tower: bool = field(default=True)
+    # V15.1: adapt the Scale-RAE input projector to the 512px/1024-token
+    # SigLIP feature distribution while keeping the vision tower frozen.
+    pgot_unfreeze_mm_projector: bool = field(default=False)
     # Partial DiT unfreeze: unfreeze the last N dit_blocks fully (in addition to AdaLN-everywhere).
     # 0 = behave like freeze_dit_body. N > 0 implies AdaLN of all blocks PLUS last N blocks self-attn/MLP.
     pgot_dit_unfreeze_last_n_blocks: int = field(default=0)
@@ -194,6 +197,8 @@ class PGOTDataArguments:
     max_caption_tokens: int = field(default=2048)
     grid_size: int = field(default=16)
     eval_num_images: int = field(default=128)
+    image_preprocess_mode: str = field(default="default")
+    coda_crop_size: int = field(default=512)
     is_multimodal: bool = field(default=True)
     # image_processor_aux_list / vision_tower_aux_token_len_list are populated
     # at runtime by train.py (they are not CLI args).
@@ -209,6 +214,7 @@ class PGOTTrainingArguments(transformers.TrainingArguments):
     pgot_register_lr: Optional[float] = field(default=None)
     pgot_rae_query_lr: Optional[float] = field(default=None)
     pgot_llm_lr: Optional[float] = field(default=None)
+    pgot_mm_projector_lr: Optional[float] = field(default=None)
     # LR for unfrozen DiT body params (non-AdaLN, non-projector). Falls back to diff_head_lr.
     pgot_dit_body_lr: Optional[float] = field(default=None)
 
@@ -241,6 +247,7 @@ def freeze_for_pgot(
     model,
     freeze_dit_body: bool = True,
     freeze_vision_tower: bool = True,
+    unfreeze_mm_projector: bool = False,
     dit_unfreeze_last_n_blocks: int = 0,
 ):
     """Apply PGOT freeze policy.
@@ -253,6 +260,7 @@ def freeze_for_pgot(
       - register embedding (full)
       - latent_queries (rae_query, full fine-tune)
       - diff_head_projector (full fine-tune)
+      - mm_projector if unfreeze_mm_projector=True
       - diff_head AdaLN modulation only (if freeze_dit_body=True)
     Frozen:
       - Vision tower
@@ -321,6 +329,13 @@ def freeze_for_pgot(
     if hasattr(inner, "latent_queries") and inner.latent_queries is not None:
         inner.latent_queries.requires_grad_(True)
         n_trainable += inner.latent_queries.numel()
+
+    n_mm_projector = 0
+    if bool(unfreeze_mm_projector) and hasattr(inner, "mm_projector") and inner.mm_projector is not None:
+        for p in inner.mm_projector.parameters():
+            p.requires_grad_(True)
+            n_mm_projector += p.numel()
+            n_trainable += p.numel()
 
     # diff_head_projector
     if hasattr(model, "diff_head_projector") and model.diff_head_projector is not None:
@@ -405,7 +420,12 @@ def freeze_for_pgot(
 
     # Vision tower: leave frozen (already requires_grad_(False))
 
-    logger.info(f"[PGOT/Freeze] Total trainable params: {n_trainable:,}  (LoRA: {n_lora:,})")
+    logger.info(
+        "[PGOT/Freeze] Total trainable params: %s  (LoRA: %s, mm_projector: %s)",
+        f"{n_trainable:,}",
+        f"{n_lora:,}",
+        f"{n_mm_projector:,}",
+    )
     return model
 
 
@@ -447,10 +467,17 @@ class PGOTTrainer(Trainer):
         llm_lr = (
             self.args.pgot_llm_lr if self.args.pgot_llm_lr is not None else self.args.learning_rate
         )
+        mm_projector_lr = (
+            self.args.pgot_mm_projector_lr
+            if getattr(self.args, "pgot_mm_projector_lr", None) is not None
+            else self.args.learning_rate
+        )
         dit_body_lr = (
             self.args.pgot_dit_body_lr if getattr(self.args, "pgot_dit_body_lr", None) is not None else diff_head_lr
         )
 
+        mm_projector_names = {n for n, p in opt_model.named_parameters()
+                              if p.requires_grad and "mm_projector" in n}
         projector_names = {n for n, p in opt_model.named_parameters()
                            if p.requires_grad and "diff_head_projector" in n}
         # Split diff_head.model.* into AdaLN (faster, diff_head_lr) vs body (slower, dit_body_lr).
@@ -479,6 +506,7 @@ class PGOTTrainer(Trainer):
 
         assigned = (
             projector_names
+            | mm_projector_names
             | diff_body_names
             | register_names
             | null_bg_names
@@ -513,6 +541,9 @@ class PGOTTrainer(Trainer):
         if default:
             groups.append({"params": default, "weight_decay": self.args.weight_decay, "lr": self.args.learning_rate})
 
+        params = _take_params(mm_projector_names)
+        if params:
+            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": mm_projector_lr})
         params = _take_params(projector_names)
         if params:
             groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": diff_head_lr})
@@ -542,10 +573,10 @@ class PGOTTrainer(Trainer):
             groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": llm_lr})
 
         logger.info(
-            "[PGOT] optimizer | base=%g diff_head=%g dit_body=%g register=%g rae_query=%g llm=%g | "
-            "projector=%d dit_adaln=%d dit_body=%d register=%d null_bg=%d rae_query=%d v14=%d latent_head=%d llm=%d",
-            self.args.learning_rate, diff_head_lr, dit_body_lr, register_lr, rae_query_lr, llm_lr,
-            len(projector_names), len(dit_adaln_names), len(dit_body_names), len(register_names),
+            "[PGOT] optimizer | base=%g mm_projector=%g diff_head=%g dit_body=%g register=%g rae_query=%g llm=%g | "
+            "mm_projector=%d projector=%d dit_adaln=%d dit_body=%d register=%d null_bg=%d rae_query=%d v14=%d latent_head=%d llm=%d",
+            self.args.learning_rate, mm_projector_lr, diff_head_lr, dit_body_lr, register_lr, rae_query_lr, llm_lr,
+            len(mm_projector_names), len(projector_names), len(dit_adaln_names), len(dit_body_names), len(register_names),
             len(null_bg_names), len(rae_query_names), len(v14_names), len(latent_head_names), len(llm_names),
         )
 

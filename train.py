@@ -218,6 +218,9 @@ def train():
     config.pgot_recon_loss_weight = model_args.pgot_recon_loss_weight
     config.pgot_contrastive_loss_weight = model_args.pgot_contrastive_loss_weight  # start at 0
     config.pgot_contrastive_sampling_rate = model_args.pgot_contrastive_sampling_rate
+    config.pgot_unfreeze_mm_projector = bool(model_args.pgot_unfreeze_mm_projector)
+    config.image_preprocess_mode = str(data_args.image_preprocess_mode)
+    config.coda_crop_size = int(data_args.coda_crop_size)
     if model_args.diffusion_norm_stats_path:
         config.diffusion_norm_stats_path = model_args.diffusion_norm_stats_path
 
@@ -312,6 +315,9 @@ def train():
     model.config.pgot_latent_distill_l1_weight = float(model_args.pgot_latent_distill_l1_weight)
     model.config.pgot_cfg_drop_rate = float(model_args.pgot_cfg_drop_rate)
     model.config.pgot_rae_attends_caption = bool(model_args.pgot_rae_attends_caption)
+    model.config.pgot_unfreeze_mm_projector = bool(model_args.pgot_unfreeze_mm_projector)
+    model.config.image_preprocess_mode = str(data_args.image_preprocess_mode)
+    model.config.coda_crop_size = int(data_args.coda_crop_size)
     logger.info(
         f"[PGOT] mask loss weights -> ce={model.config.pgot_mask_ce_weight} "
         f"fg={model.config.pgot_mask_fg_weight} outside={model.config.pgot_mask_outside_weight} "
@@ -464,6 +470,7 @@ def train():
         model,
         freeze_dit_body=bool(model_args.freeze_dit_body),
         freeze_vision_tower=bool(model_args.freeze_vision_tower),
+        unfreeze_mm_projector=bool(model_args.pgot_unfreeze_mm_projector),
         dit_unfreeze_last_n_blocks=int(getattr(model_args, "pgot_dit_unfreeze_last_n_blocks", 0)),
     )
 
@@ -490,6 +497,8 @@ def train():
         n_ovt_per_object=model_args.pgot_n_ovt_per_object,
         max_objects=model_args.pgot_max_objects,
         panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_train2017.json",
+        image_preprocess_mode=data_args.image_preprocess_mode,
+        coda_crop_size=data_args.coda_crop_size,
     )
     val_dataset = Pix2CapPGOTDataset(
         jsonl_path=data_args.val_jsonl,
@@ -505,6 +514,8 @@ def train():
         n_ovt_per_object=model_args.pgot_n_ovt_per_object,
         max_objects=model_args.pgot_max_objects,
         panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_val2017.json",
+        image_preprocess_mode=data_args.image_preprocess_mode,
+        coda_crop_size=data_args.coda_crop_size,
     )
     # Cap eval size
     if len(val_dataset) > data_args.eval_num_images:

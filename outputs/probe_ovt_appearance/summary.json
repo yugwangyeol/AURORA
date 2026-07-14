@@ -1,0 +1,46 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_main_v15_bce_bottleneck",
+  "num_images": 2337,
+  "num_objects": 13719,
+  "split_ratio": 0.8,
+  "probes": {
+    "P0_mean_floor": {
+      "r2": 0.0,
+      "cosine": 0.6227451143504178,
+      "rel_l2": 0.7766850429196733,
+      "lambda": null
+    },
+    "P1_ovt_text_stream": {
+      "r2": 0.410352407680474,
+      "cosine": 0.8047879303475587,
+      "rel_l2": 0.5815469103164501,
+      "lambda": 10000.0
+    },
+    "P2_llm_image_stream": {
+      "r2": 0.46599048569103385,
+      "cosine": 0.8241139022150257,
+      "rel_l2": 0.5554866724309365,
+      "lambda": 1000.0
+    }
+  },
+  "effective_dim": {
+    "OVT_text_stream": {
+      "nominal_dim": 3072,
+      "participation_ratio": 47.354816975780096,
+      "dims_for_90pct_var": 253,
+      "dims_for_99pct_var": 1104
+    },
+    "LLM_image_stream": {
+      "nominal_dim": 1536,
+      "participation_ratio": 30.24223015324309,
+      "dims_for_90pct_var": 186,
+      "dims_for_99pct_var": 962
+    },
+    "appearance_target": {
+      "nominal_dim": 1152,
+      "participation_ratio": 127.87978397382527,
+      "dims_for_90pct_var": 486,
+      "dims_for_99pct_var": 1001
+    }
+  }
+}

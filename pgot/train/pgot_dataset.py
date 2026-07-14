@@ -49,13 +49,24 @@ def _mask_to_patch_mask(mask: torch.Tensor, grid_size: int) -> torch.Tensor:
     return patches.flatten(start_dim=1).squeeze(0)  # (grid_size**2,)
 
 
-def _coda_center_crop_image(image: Image.Image, size: int) -> Image.Image:
+def _pil_resample(name: str):
+    resampling = getattr(Image, "Resampling", Image)
+    return getattr(resampling, name)
+
+
+def _coda_center_crop_image(
+    image: Image.Image,
+    size: int,
+    resample=None,
+) -> Image.Image:
     """CODA COCO transform: resize min side to size, then center-crop square."""
+    if resample is None:
+        resample = _pil_resample("BILINEAR")
     w, h = image.size
     factor = max(float(size) / float(h), float(size) / float(w))
     rw = int(round(w * factor))
     rh = int(round(h * factor))
-    image = image.resize((rw, rh), Image.BILINEAR)
+    image = image.resize((rw, rh), resample)
     left = max((rw - size) // 2, 0)
     top = max((rh - size) // 2, 0)
     return image.crop((left, top, left + size, top + size))
@@ -129,7 +140,14 @@ class Pix2CapPGOTDataset(Dataset):
     # --------------------------------------------------------------
     def _load_panoptic_id_map(self, mask_path: str) -> np.ndarray:
         """Load a panoptic PNG and decode RGB -> int segment id."""
-        rgb = np.array(Image.open(mask_path).convert("RGB"))  # (H, W, 3)
+        mask_img = Image.open(mask_path).convert("RGB")
+        if self.image_preprocess_mode == "coda_center_crop":
+            mask_img = _coda_center_crop_image(
+                mask_img,
+                self.coda_crop_size,
+                resample=_pil_resample("NEAREST"),
+            )
+        rgb = np.array(mask_img)  # (H, W, 3)
         seg_id = (
             rgb[..., 0].astype(np.int64)
             + rgb[..., 1].astype(np.int64) * 256
