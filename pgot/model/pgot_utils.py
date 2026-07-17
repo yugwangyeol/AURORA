@@ -869,6 +869,11 @@ def build_pred_mask_ovt_owner_eval(
     """
     B, K, P = ovt_object_probs.shape
     n = max(int(n_ovt_per_object), 1)
+    owner_grid = int(round(float(P) ** 0.5))
+    if owner_grid * owner_grid != P:
+        raise ValueError(f"ovt-owner readout expects square owner maps, got P={P}.")
+    if int(patch_grid) != owner_grid:
+        patch_grid = owner_grid
     obj_valid = ovt_valid_mask[:, : K * n].reshape(B, K, n).any(dim=2)
     obj_thing = ovt_is_thing[:, : K * n].reshape(B, K, n).any(dim=2)
 

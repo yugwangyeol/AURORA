@@ -1,0 +1,19 @@
+{
+  "sample_indices": [
+    0,
+    1,
+    2
+  ],
+  "versions": {
+    "V15.1": "/home/jovyan/PGOT/checkpoints/pgot_main_v15_1_coda_mmproj",
+    "V17": "/home/jovyan/PGOT/checkpoints/pgot_main_v17_generative_binding",
+    "V18": "/home/jovyan/PGOT/checkpoints/pgot_main_v18_v15_latent_distill",
+    "V19": "/home/jovyan/PGOT/checkpoints/pgot_main_v19_stronger_router",
+    "V20": "/home/jovyan/PGOT/checkpoints/pgot_main_v20_dit_ovt_xattn",
+    "V21": "/home/jovyan/PGOT/checkpoints/pgot_main_v21_group_grounded/checkpoint-10000",
+    "V22a": "/home/jovyan/PGOT/checkpoints/pgot_main_v22a_attention_binding"
+  },
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "grid_size": 32
+}

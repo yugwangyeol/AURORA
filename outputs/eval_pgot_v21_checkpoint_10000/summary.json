@@ -1,0 +1,52 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_main_v21_group_grounded/checkpoint-10000",
+  "readout": "ovt_owner",
+  "num_samples": 2338,
+  "fARI": 0.32456857521922117,
+  "mBO": 0.3817349422608026,
+  "mIoU": 0.4781409418043084,
+  "active_count_mean": 6.533789563729684,
+  "by_object_count": {
+    "1-3": {
+      "n": 532,
+      "fARI": 0.26288186072668296,
+      "mBO": 0.432914036171803,
+      "mIoU": 0.556496366046201
+    },
+    "7-10": {
+      "n": 632,
+      "fARI": 0.3600543947488359,
+      "mBO": 0.3501658422116739,
+      "mIoU": 0.43593749526558045
+    },
+    "11+": {
+      "n": 315,
+      "fARI": 0.412283728593249,
+      "mBO": 0.25744903604232056,
+      "mIoU": 0.3061973166016359
+    },
+    "4-6": {
+      "n": 859,
+      "fARI": 0.3044987508356299,
+      "mBO": 0.42038538152834287,
+      "mIoU": 0.5237168841263468
+    }
+  },
+  "gt_source": "coco_instance",
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "recon_source": "diffusion",
+  "dit_ovt_cross_attn_disabled": false,
+  "coda_overlap_excluded": true,
+  "owner_source": "v14_ovt_bottleneck_route",
+  "route_temperature": 1.0,
+  "route_weight": 0.0,
+  "route_void_weight": 0.5,
+  "route_position_weight": 1.0,
+  "void_tokens": 1,
+  "rFID": 30.057950973510742,
+  "recon_psnr": 11.736027669253973,
+  "recon_ssim": 0.2770820929676014,
+  "recon_mse": 0.07323276566503246,
+  "recon_mae": 0.20503242338559025
+}

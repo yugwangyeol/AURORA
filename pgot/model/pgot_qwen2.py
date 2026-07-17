@@ -305,6 +305,117 @@ class PGOTOVTBottleneckRouter(nn.Module):
         }
 
 
+class PGOTGroupGroundedRouter(nn.Module):
+    """Group-level generative responsibility router for V21.
+
+    Unlike V14, object OVTs are not averaged before routing. The same per-object
+    responsibility map is used both for grounding loss and for composing the
+    per-patch diffusion condition.
+    """
+
+    def __init__(
+        self,
+        dim: int,
+        code_dim: int = 0,
+        temperature: float = 1.0,
+        position_weight: float = 1.0,
+    ):
+        super().__init__()
+        code_dim = int(code_dim) if int(code_dim or 0) > 0 else int(dim)
+        self.query_ln = nn.LayerNorm(dim)
+        self.ovt_ln = nn.LayerNorm(dim)
+        self.context_ln = nn.LayerNorm(dim)
+        self.code_proj = nn.Linear(dim, code_dim, bias=False)
+        self.q_proj = nn.Linear(dim, code_dim, bias=False)
+        self.k_proj = nn.Linear(code_dim, code_dim, bias=False)
+        self.v_proj = nn.Linear(code_dim, dim, bias=False)
+        self.pos_proj = nn.Linear(dim, dim, bias=False)
+        self.out_proj = nn.Linear(dim, dim, bias=False)
+        self.temperature = float(temperature)
+        self.position_weight = float(position_weight)
+
+    def forward(
+        self,
+        query_base: torch.Tensor,          # (B, Q, D)
+        object_ovts: torch.Tensor,         # (B, K, n, D)
+        object_token_valid: torch.Tensor,  # (B, K, n)
+        void_ovts: torch.Tensor,           # (B, V, D)
+        void_valid: torch.Tensor,          # (B, V)
+        temperature: Optional[float] = None,
+        position_weight: Optional[float] = None,
+    ) -> Dict[str, torch.Tensor]:
+        B, Q, D = query_base.shape
+        K = int(object_ovts.shape[1])
+        n = int(object_ovts.shape[2]) if object_ovts.dim() >= 3 else 0
+        V = int(void_ovts.shape[1])
+        temp = max(float(self.temperature if temperature is None else temperature), 1e-6)
+        pos_w = float(self.position_weight if position_weight is None else position_weight)
+        neg = -1e4
+
+        q = self.q_proj(self.query_ln(query_base)).float()                 # (B,Q,C)
+        obj_flat = object_ovts.reshape(B, max(K * n, 0), D)
+        obj_code = self.code_proj(self.ovt_ln(obj_flat)).float() if K > 0 else q.new_empty(B, 0, q.shape[-1])
+        obj_key = self.k_proj(obj_code)
+        obj_val = self.v_proj(obj_code.to(next(self.v_proj.parameters()).dtype)).to(query_base.dtype)
+        obj_valid_flat = object_token_valid.reshape(B, max(K * n, 0)).to(device=query_base.device, dtype=torch.bool)
+
+        if K > 0:
+            obj_logits = torch.einsum("bqc,bsc->bqs", q, obj_key) / math.sqrt(float(q.shape[-1]))
+            obj_logits = (obj_logits / temp).masked_fill(~obj_valid_flat.unsqueeze(1), neg)
+            obj_logits_kn = obj_logits.reshape(B, Q, K, n)
+            obj_scores = torch.logsumexp(obj_logits_kn.float(), dim=-1)     # (B,Q,K)
+            obj_valid = object_token_valid.to(device=query_base.device, dtype=torch.bool).any(dim=2)
+            obj_scores = obj_scores.masked_fill(~obj_valid.unsqueeze(1), neg)
+
+            beta_obj = F.softmax(obj_logits_kn.float(), dim=-1)
+            beta_obj = beta_obj * object_token_valid.to(beta_obj.device).unsqueeze(1).float()
+            beta_obj = beta_obj / beta_obj.sum(dim=-1, keepdim=True).clamp_min(1e-6)
+            obj_val_kn = obj_val.reshape(B, K, n, D)
+            obj_content = torch.einsum("bqkn,bknd->bqkd", beta_obj.to(obj_val_kn.dtype), obj_val_kn)
+        else:
+            obj_scores = q.new_empty(B, Q, 0)
+            obj_content = query_base.new_empty(B, Q, 0, D)
+            obj_valid = torch.zeros(B, 0, device=query_base.device, dtype=torch.bool)
+
+        bg_scores = q.new_empty(B, Q, 0)
+        bg_content = query_base.new_empty(B, Q, 0, D)
+        if V > 0:
+            void_code = self.code_proj(self.ovt_ln(void_ovts)).float()
+            void_key = self.k_proj(void_code)
+            void_val = self.v_proj(void_code.to(next(self.v_proj.parameters()).dtype)).to(query_base.dtype)
+            void_valid = void_valid.to(device=query_base.device, dtype=torch.bool)
+            void_logits = torch.einsum("bqc,bvc->bqv", q, void_key) / math.sqrt(float(q.shape[-1]))
+            void_logits = (void_logits / temp).masked_fill(~void_valid.unsqueeze(1), neg)
+            bg_score = torch.logsumexp(void_logits.float(), dim=-1, keepdim=True)
+            bg_is_valid = void_valid.any(dim=1, keepdim=True)
+            bg_scores = bg_score.masked_fill(~bg_is_valid.unsqueeze(1), neg)
+            beta_bg = F.softmax(void_logits.float(), dim=-1)
+            beta_bg = beta_bg * void_valid.unsqueeze(1).float()
+            beta_bg = beta_bg / beta_bg.sum(dim=-1, keepdim=True).clamp_min(1e-6)
+            bg_content = torch.einsum("bqv,bvd->bqd", beta_bg.to(void_val.dtype), void_val).unsqueeze(2)
+
+        group_scores = torch.cat([obj_scores, bg_scores], dim=-1)          # (B,Q,K+bg)
+        if group_scores.shape[-1] == 0:
+            group_scores = query_base.new_zeros(B, Q, 1).float()
+            group_content = query_base.new_zeros(B, Q, 1, D)
+        else:
+            group_content = torch.cat([obj_content, bg_content], dim=2)
+        resp = F.softmax(group_scores.float(), dim=-1)
+        resp = torch.nan_to_num(resp, nan=0.0, posinf=0.0, neginf=0.0)
+        context = torch.einsum("bqg,bqgd->bqd", resp.to(group_content.dtype), group_content)
+        pos = self.pos_proj(query_base)
+        condition = self.out_proj(self.context_ln(context + pos_w * pos))
+        condition = torch.where(torch.isfinite(condition), condition, torch.zeros_like(condition))
+        return {
+            "condition_hidden": condition,
+            "owner_logits": group_scores.transpose(1, 2).contiguous(),
+            "owner_probs": resp.transpose(1, 2).contiguous(),
+            "object_probs": resp[:, :, :K].transpose(1, 2).contiguous(),
+            "void_probs": resp[:, :, K:].transpose(1, 2).contiguous(),
+            "object_valid": obj_valid,
+        }
+
+
 class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
     """PGOT model: caption-grounded variable-K object tokens."""
 
@@ -364,6 +475,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
 
         self.pgot_v12_enable = bool(getattr(self.config, "pgot_v12_enable", False))
         self.pgot_v14_enable = bool(getattr(self.config, "pgot_v14_enable", False))
+        self.pgot_v21_enable = bool(getattr(self.config, "pgot_v21_enable", False))
         self.pgot_v17_enable = bool(getattr(self.config, "pgot_v17_enable", False))
         self.pgot_v12_layers = _resolve_layer_spec(
             str(getattr(self.config, "pgot_v12_layers", "12,16,20,24")),
@@ -390,7 +502,18 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             self.pgot_v12_slot_update_blocks = nn.ModuleList()
             self.pgot_v12_owner_head = None
 
-        if self.pgot_v14_enable and not self.pgot_v17_enable:
+        if self.pgot_v14_enable and self.pgot_v21_enable:
+            route_temp = float(getattr(self.config, "pgot_v21_temperature", getattr(self.config, "pgot_v14_route_temperature", 1.0)))
+            position_weight = float(getattr(self.config, "pgot_v21_position_weight", getattr(self.config, "pgot_v14_position_weight", 1.0)))
+            code_dim = int(getattr(self.config, "pgot_v21_code_dim", 0))
+            self.pgot_v21_router = PGOTGroupGroundedRouter(
+                dim=D,
+                code_dim=code_dim,
+                temperature=route_temp,
+                position_weight=position_weight,
+            )
+            self.pgot_v14_router = None
+        elif self.pgot_v14_enable and not self.pgot_v17_enable:
             route_temp = float(getattr(self.config, "pgot_v14_route_temperature", 1.0))
             position_weight = float(getattr(self.config, "pgot_v14_position_weight", 1.0))
             router_depth = int(getattr(self.config, "pgot_v14_router_depth", 1))
@@ -404,6 +527,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             )
         else:
             self.pgot_v14_router = None
+        if not (self.pgot_v14_enable and self.pgot_v21_enable):
+            self.pgot_v21_router = None
 
         self.pgot_latent_distill_enable = bool(
             getattr(self.config, "pgot_latent_distill_enable", False)
@@ -454,6 +579,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             f"v12={self.pgot_v12_enable}, v12_layers={self.pgot_v12_layers}, "
             f"v14={self.pgot_v14_enable}, "
             f"v14_router_depth={getattr(self.config, 'pgot_v14_router_depth', 1)}, "
+            f"v21={self.pgot_v21_enable}, "
             f"latent_distill={self.pgot_latent_head is not None}"
         )
 
@@ -764,6 +890,50 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         return {
             "object_ovts": object_ovts,
             "object_valid": object_valid,
+            "void_ovts": void_ovts,
+            "void_valid": void_valid,
+            "ovt_states": ovt_states,
+            "ovt_valid": ovt_valid,
+        }
+
+    def _pgot_v21_build_ovt_states(
+        self,
+        hidden_states: torch.Tensor,
+        positions: Dict[str, int],
+        ovt_abs_positions: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+    ) -> Dict[str, torch.Tensor]:
+        ovt_hidden = gather_ovt_hidden_states(hidden_states, ovt_abs_positions, ovt_valid_mask)
+        B, M, D = ovt_hidden.shape
+        n = max(int(self.pgot_n_ovt_per_object), 1)
+        K = M // n
+        if K > 0:
+            object_ovts = ovt_hidden[:, : K * n].reshape(B, K, n, D)
+            object_token_valid = ovt_valid_mask[:, : K * n].reshape(B, K, n).to(dtype=torch.bool)
+            object_valid = object_token_valid.any(dim=2)
+            object_flat = object_ovts.reshape(B, K * n, D)
+            object_flat_valid = object_token_valid.reshape(B, K * n)
+        else:
+            object_ovts = hidden_states.new_empty(B, 0, n, D)
+            object_token_valid = hidden_states.new_zeros(B, 0, n, dtype=torch.bool)
+            object_valid = hidden_states.new_zeros(B, 0, dtype=torch.bool)
+            object_flat = hidden_states.new_empty(B, 0, D)
+            object_flat_valid = hidden_states.new_zeros(B, 0, dtype=torch.bool)
+
+        void_s = int(positions.get("null_bg_s", 0))
+        void_e = int(positions.get("null_bg_e", void_s))
+        void_ovts = hidden_states[:, void_s:void_e, :]
+        if void_ovts.shape[1] > 0:
+            void_valid = torch.ones(B, void_ovts.shape[1], device=hidden_states.device, dtype=torch.bool)
+        else:
+            void_valid = hidden_states.new_zeros(B, 0, dtype=torch.bool)
+        ovt_states = torch.cat([object_flat, void_ovts], dim=1)
+        ovt_valid = torch.cat([object_flat_valid, void_valid], dim=1)
+        return {
+            "object_ovts_grouped": object_ovts,
+            "object_token_valid": object_token_valid,
+            "object_valid": object_valid,
+            "object_ovts": object_flat,
             "void_ovts": void_ovts,
             "void_valid": void_valid,
             "ovt_states": ovt_states,
@@ -1158,20 +1328,45 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             return_dict=True,
         )
         hidden = out.last_hidden_state
-        ovt_pack = self._pgot_v12_build_ovt_states(
-            hidden_states=hidden,
-            positions=seq["positions"],
-            ovt_abs_positions=seq["ovt_abs_positions"],
-            ovt_valid_mask=seq["ovt_valid_mask"],
-        )
+        if bool(getattr(self.config, "pgot_v21_enable", False)):
+            ovt_pack = self._pgot_v21_build_ovt_states(
+                hidden_states=hidden,
+                positions=seq["positions"],
+                ovt_abs_positions=seq["ovt_abs_positions"],
+                ovt_valid_mask=seq["ovt_valid_mask"],
+            )
+        else:
+            ovt_pack = self._pgot_v12_build_ovt_states(
+                hidden_states=hidden,
+                positions=seq["positions"],
+                ovt_abs_positions=seq["ovt_abs_positions"],
+                ovt_valid_mask=seq["ovt_valid_mask"],
+            )
         B = hidden.shape[0]
-        K = ovt_pack["object_ovts"].shape[1]
+        K = ovt_pack["object_valid"].shape[1]
         Q = int(seq["positions"]["rae_e"] - seq["positions"]["rae_s"])
         rae_hidden = hidden[:, seq["positions"]["rae_s"]:seq["positions"]["rae_e"], :]
         if bool(getattr(self.config, "pgot_v17_enable", False)):
             condition_hidden = rae_hidden
             owner_logits = hidden.new_zeros(B, K + ovt_pack["void_ovts"].shape[1], Q)
             owner_probs = owner_logits
+        elif bool(getattr(self.config, "pgot_v21_enable", False)):
+            query_base = self.get_model().latent_queries.unsqueeze(0).expand(
+                B, -1, -1
+            ).to(device=hidden.device, dtype=hidden.dtype)
+            route = self.pgot_v21_router(
+                query_base=query_base,
+                object_ovts=ovt_pack["object_ovts_grouped"],
+                object_token_valid=ovt_pack["object_token_valid"],
+                void_ovts=ovt_pack["void_ovts"],
+                void_valid=ovt_pack["void_valid"],
+                temperature=float(getattr(self.config, "pgot_v21_temperature", getattr(self.config, "pgot_v14_route_temperature", 1.0))),
+                position_weight=float(getattr(self.config, "pgot_v21_position_weight", getattr(self.config, "pgot_v14_position_weight", 1.0))),
+            )
+            condition_hidden = route["condition_hidden"]
+            owner_logits = route["owner_logits"]
+            owner_probs = route["owner_probs"]
+            ovt_pack["object_valid"] = route["object_valid"]
         else:
             query_base = self.get_model().latent_queries.unsqueeze(0).expand(
                 B, -1, -1
@@ -2041,6 +2236,143 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 averaged[key] = averaged[key].detach()
         return averaged
 
+    def _compute_v22_attention_competition_loss(
+        self,
+        *,
+        hidden_states: Tuple[torch.Tensor, ...],
+        attention_bias: torch.Tensor,
+        positions: Dict[str, int],
+        ovt_abs_positions: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        gt_masks_per_ovt: torch.Tensor,
+        layers_spec: str,
+        temperature: float = 1.0,
+        include_void: bool = False,
+        bg_weight: float = 0.25,
+        eps: float = 1e-6,
+    ) -> Dict[str, torch.Tensor]:
+        """Weak patch->object CE from LLM-internal OVT image attention maps.
+
+        The selected LLM attention maps are first normalized over image patches
+        per OVT token. For each object group, we average over its OVTs and heads,
+        then run a per-patch softmax across object groups. GT masks supervise
+        only which object owns foreground patches; the object appearance/content
+        inside that region remains governed by reconstruction.
+        """
+        z = gt_masks_per_ovt.new_zeros((), dtype=torch.float32)
+        empty = {
+            "loss": z,
+            "fg_acc": z,
+            "bg_acc": z,
+            "entropy": z,
+            "valid_fraction": z,
+            "object_inside_mass": z,
+            "object_outside_mass": z,
+            "void_bg_mass": z,
+        }
+        if hidden_states is None:
+            return empty
+
+        B, M_total, P = gt_masks_per_ovt.shape
+        n = max(int(self.pgot_n_ovt_per_object), 1)
+        K = M_total // n
+        if K <= 0:
+            return empty
+
+        M = K * n
+        masks = gt_masks_per_ovt[:, :M].float().clamp(0.0, 1.0).reshape(B, K, n, P).amax(dim=2)
+        object_valid = ovt_valid_mask[:, :M].reshape(B, K, n).any(dim=2)
+        masks = masks * object_valid.unsqueeze(-1).float()
+        target_mass = masks.sum(dim=1)
+        fg_patch = target_mass > eps
+        bg_patch = target_mass <= eps
+        valid_fraction = fg_patch.float().mean()
+        if not fg_patch.any() and not (include_void and bg_patch.any()):
+            empty["valid_fraction"] = valid_fraction.detach()
+            return empty
+
+        layers = self._resolve_llm_qk_outside_layers(layers_spec)
+        if not layers:
+            empty["valid_fraction"] = valid_fraction.detach()
+            return empty
+
+        temp = max(float(temperature), 1e-6)
+        bg_w = max(float(bg_weight), 0.0)
+        losses: List[torch.Tensor] = []
+        fg_accs: List[torch.Tensor] = []
+        bg_accs: List[torch.Tensor] = []
+        entropies: List[torch.Tensor] = []
+        inside_masses: List[torch.Tensor] = []
+        outside_masses: List[torch.Tensor] = []
+        void_bg_masses: List[torch.Tensor] = []
+        target_fg = (masks / target_mass[:, None, :].clamp_min(eps)).transpose(1, 2)
+        target_argmax = target_fg.argmax(dim=-1)
+
+        for layer_idx in layers:
+            if layer_idx >= len(hidden_states) - 1:
+                continue
+            (
+                _object_full,
+                _void_full,
+                object_patch,
+                void_patch,
+            ) = self._compute_exact_llm_attention_components_for_layer(
+                layer_input=hidden_states[layer_idx],
+                layer_idx=layer_idx,
+                attention_bias=attention_bias,
+                positions=positions,
+                ovt_abs_positions=ovt_abs_positions[:, :M],
+                ovt_valid_mask=ovt_valid_mask[:, :M],
+                patch_temperature=temp,
+            )
+            H = object_patch.shape[1]
+            object_maps = object_patch.reshape(B, H, K, n, P).mean(dim=3)
+            object_maps = object_maps * object_valid[:, None, :, None].float()
+            class_scores = object_maps.clamp_min(eps).log().mean(dim=1)
+
+            if include_void and void_patch.shape[2] > 0:
+                void_map = void_patch.mean(dim=(1, 2)).clamp_min(eps).log().unsqueeze(1)
+                class_scores = torch.cat([class_scores, void_map], dim=1)
+
+            probs = F.softmax(class_scores.transpose(1, 2), dim=-1)
+            obj_probs = probs[..., :K]
+            if fg_patch.any():
+                ce = -(target_fg * obj_probs.clamp_min(eps).log()).sum(dim=-1)
+                losses.append(ce[fg_patch].mean())
+                pred = obj_probs.argmax(dim=-1)
+                fg_accs.append((pred[fg_patch] == target_argmax[fg_patch]).float().mean())
+                entropy = -(probs.clamp_min(eps) * probs.clamp_min(eps).log()).sum(dim=-1)
+                entropies.append(entropy[fg_patch].mean())
+
+                object_group_maps = object_maps.mean(dim=1)
+                self_mass = (object_group_maps * masks).sum(dim=-1)
+                out_mass = (object_group_maps * (1.0 - masks).clamp(0.0, 1.0)).sum(dim=-1)
+                denom = object_valid.float().sum().clamp_min(1.0)
+                inside_masses.append((self_mass * object_valid.float()).sum() / denom)
+                outside_masses.append((out_mass * object_valid.float()).sum() / denom)
+
+            if include_void and bg_patch.any() and probs.shape[-1] == K + 1:
+                bg_ce = -probs[..., -1].clamp_min(eps).log()
+                if bg_w > 0.0:
+                    losses.append(bg_w * bg_ce[bg_patch].mean())
+                bg_accs.append((probs.argmax(dim=-1)[bg_patch] == K).float().mean())
+                void_bg_masses.append(probs[..., -1][bg_patch].mean())
+
+        if not losses:
+            empty["valid_fraction"] = valid_fraction.detach()
+            return empty
+
+        return {
+            "loss": torch.stack(losses).mean(),
+            "fg_acc": torch.stack(fg_accs).mean().detach() if fg_accs else z,
+            "bg_acc": torch.stack(bg_accs).mean().detach() if bg_accs else z,
+            "entropy": torch.stack(entropies).mean().detach() if entropies else z,
+            "valid_fraction": valid_fraction.detach(),
+            "object_inside_mass": torch.stack(inside_masses).mean().detach() if inside_masses else z,
+            "object_outside_mass": torch.stack(outside_masses).mean().detach() if outside_masses else z,
+            "void_bg_mass": torch.stack(void_bg_masses).mean().detach() if void_bg_masses else z,
+        }
+
     def _compute_llm_patch_attention_maps(
         self,
         *,
@@ -2454,6 +2786,22 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         del ovt_is_thing, pgot_contrastive_weight
         v17_enabled = bool(getattr(self.config, "pgot_v17_enable", False))
         v17_w = float(getattr(self.config, "pgot_v17_ownership_weight", 0.0))
+        v21_enabled = bool(getattr(self.config, "pgot_v21_enable", False))
+        mask_llm_patch_outside_w = float(
+            getattr(self.config, "pgot_mask_llm_patch_outside_weight", 0.0)
+        )
+        mask_llm_image_use_w = float(
+            getattr(self.config, "pgot_mask_llm_image_use_weight", 0.0)
+        )
+        v22_attention_comp_w = float(
+            getattr(self.config, "pgot_v22_attention_competition_weight", 0.0)
+        )
+        needs_exact_attention = (
+            (v17_enabled and v17_w > 0.0)
+            or mask_llm_patch_outside_w > 0.0
+            or mask_llm_image_use_w > 0.0
+            or v22_attention_comp_w > 0.0
+        )
 
         seq = self._pgot_v14_forward_features(
             images=images,
@@ -2462,7 +2810,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             caption_attention_mask=caption_attention_mask,
             ovt_positions_in_caption=ovt_positions_in_caption,
             ovt_valid_mask=ovt_valid_mask,
-            output_hidden_states=v17_enabled and v17_w > 0.0,
+            output_hidden_states=needs_exact_attention,
         )
         hidden = seq["hidden"]
         condition_hidden = seq["condition_hidden"]
@@ -2484,12 +2832,19 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             caption_labels=caption_labels,
         )
         route_w = float(getattr(self.config, "pgot_v14_route_weight", 1.0))
+        v21_ground_w = float(
+            getattr(
+                self.config,
+                "pgot_v21_ground_weight_effective",
+                getattr(self.config, "pgot_v21_ground_weight", 0.0),
+            )
+        )
         mask_bce_w = float(getattr(self.config, "pgot_mask_bce_weight", 0.0))
         zero = hidden.new_zeros(())
 
         route_stats = None
         loss_route = zero
-        if route_w > 0.0 and not v17_enabled:
+        if ((route_w > 0.0 and not v21_enabled) or (v21_ground_w > 0.0 and v21_enabled)) and not v17_enabled:
             route_stats = self._pgot_v14_compute_route_loss(
                 owner_logits=seq["owner_logits"],
                 owner_probs=seq["owner_probs"],
@@ -2533,6 +2888,62 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             )
             loss_v17_ownership = ownership_stats["loss"]
 
+        llm_patch_stats = None
+        loss_mask_llm_patch_outside = zero
+        loss_mask_llm_image_use = zero
+        if mask_llm_patch_outside_w > 0.0 or mask_llm_image_use_w > 0.0:
+            llm_patch_layers = str(
+                getattr(self.config, "pgot_mask_llm_patch_outside_layers", "last4")
+            )
+            llm_patch_temperature = float(
+                getattr(self.config, "pgot_mask_llm_patch_outside_temperature", 1.0)
+            )
+            llm_patch_void_weight = float(
+                getattr(self.config, "pgot_mask_llm_patch_void_weight", 1.0)
+            )
+            llm_image_use_margin = float(
+                getattr(self.config, "pgot_mask_llm_image_use_margin", 0.05)
+            )
+            llm_patch_stats = self._compute_llm_patch_outside_and_image_use_loss(
+                hidden_states=seq["hidden_states"],
+                attention_bias=seq["attn_bias"],
+                positions=seq["positions"],
+                ovt_abs_positions=seq["ovt_abs_positions"],
+                ovt_valid_mask=seq["ovt_valid_mask"],
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                layers_spec=llm_patch_layers,
+                temperature=llm_patch_temperature,
+                void_weight=llm_patch_void_weight,
+                image_use_margin=llm_image_use_margin,
+            )
+            loss_mask_llm_patch_outside = llm_patch_stats["outside_loss"]
+            loss_mask_llm_image_use = llm_patch_stats["image_use_loss"]
+
+        v22_attention_comp_stats = None
+        loss_v22_attention_competition = zero
+        if v22_attention_comp_w > 0.0:
+            v22_attention_comp_stats = self._compute_v22_attention_competition_loss(
+                hidden_states=seq["hidden_states"],
+                attention_bias=seq["attn_bias"],
+                positions=seq["positions"],
+                ovt_abs_positions=seq["ovt_abs_positions"],
+                ovt_valid_mask=seq["ovt_valid_mask"],
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                layers_spec=str(
+                    getattr(self.config, "pgot_v22_attention_competition_layers", "26,27")
+                ),
+                temperature=float(
+                    getattr(self.config, "pgot_v22_attention_competition_temperature", 1.0)
+                ),
+                include_void=bool(
+                    getattr(self.config, "pgot_v22_attention_competition_include_void", False)
+                ),
+                bg_weight=float(
+                    getattr(self.config, "pgot_v22_attention_competition_bg_weight", 0.25)
+                ),
+            )
+            loss_v22_attention_competition = v22_attention_comp_stats["loss"]
+
         cfg_drop_rate = float(getattr(self.config, "pgot_cfg_drop_rate", 0.0))
         condition_for_diff = condition_hidden
         slot_context_for_diff = None
@@ -2568,7 +2979,15 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
 
         lm_w = float(getattr(self.config, "pgot_lm_loss_weight", 1.0))
         recon_w = float(getattr(self.config, "pgot_recon_loss_weight", 1.0))
-        loss_mask = route_w * loss_route + mask_bce_w * loss_mask_bce + v17_w * loss_v17_ownership
+        route_loss_weight = v21_ground_w if v21_enabled else route_w
+        loss_mask = (
+            route_loss_weight * loss_route
+            + mask_bce_w * loss_mask_bce
+            + v17_w * loss_v17_ownership
+            + mask_llm_patch_outside_w * loss_mask_llm_patch_outside
+            + mask_llm_image_use_w * loss_mask_llm_image_use
+            + v22_attention_comp_w * loss_v22_attention_competition
+        )
         total_loss = (
             lm_w * loss_lm
             + recon_w * loss_recon
@@ -2591,7 +3010,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_loss_contrastive = hidden.new_zeros(())
         self.pgot_n_objects_mean = n_objects_mean.detach()
         details = {}
-        if route_w > 0.0 and route_stats is not None:
+        if (not v21_enabled) and route_w > 0.0 and route_stats is not None:
             details.update(
                 {
                     "loss_v14_route": loss_route.detach(),
@@ -2603,6 +3022,21 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                     "v14_route_object_prob_on_bg": route_stats["object_prob_on_bg"],
                     "v14_route_entropy": route_stats["entropy"],
                     "v14_route_object_count": route_stats["object_count"],
+                }
+            )
+        if v21_enabled and v21_ground_w > 0.0 and route_stats is not None:
+            details.update(
+                {
+                    "loss_v21_ground": loss_route.detach(),
+                    "v21_ground_weight": hidden.new_tensor(v21_ground_w).detach(),
+                    "v21_ground_object_loss": route_stats["object_loss"],
+                    "v21_ground_void_loss": route_stats["void_loss"],
+                    "v21_ground_fg_acc": route_stats["fg_acc"],
+                    "v21_ground_bg_acc": route_stats["bg_acc"],
+                    "v21_ground_bg_prob_on_fg": route_stats["void_prob_on_fg"],
+                    "v21_ground_object_prob_on_bg": route_stats["object_prob_on_bg"],
+                    "v21_ground_entropy": route_stats["entropy"],
+                    "v21_ground_object_count": route_stats["object_count"],
                 }
             )
         if mask_bce_w > 0.0:
@@ -2617,6 +3051,37 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                     "v17_ownership_entropy": ownership_stats["entropy"],
                     "v17_ownership_acc": ownership_stats["acc"],
                     "v17_ownership_valid_fraction": ownership_stats["valid_fraction"],
+                }
+            )
+        if mask_llm_patch_outside_w > 0.0 or mask_llm_image_use_w > 0.0:
+            details.update(
+                {
+                    "loss_mask_llm_patch_outside": loss_mask_llm_patch_outside.detach(),
+                    "loss_mask_llm_image_use": loss_mask_llm_image_use.detach(),
+                    "llm_patch_object_outside_loss": llm_patch_stats["object_outside_loss"],
+                    "llm_patch_void_outside_loss": llm_patch_stats["void_outside_loss"],
+                    "llm_patch_object_image_use_loss": llm_patch_stats["object_image_use_loss"],
+                    "llm_patch_void_image_use_loss": llm_patch_stats["void_image_use_loss"],
+                    "llm_patch_object_self_mass": llm_patch_stats["object_self_mass"],
+                    "llm_patch_object_outside_mass": llm_patch_stats["object_outside_mass"],
+                    "llm_patch_object_full_image_mass": llm_patch_stats["object_full_image_mass"],
+                    "llm_patch_void_self_mass": llm_patch_stats["void_self_mass"],
+                    "llm_patch_void_outside_mass": llm_patch_stats["void_outside_mass"],
+                    "llm_patch_void_full_image_mass": llm_patch_stats["void_full_image_mass"],
+                    "llm_patch_void_valid_fraction": llm_patch_stats["void_valid_fraction"],
+                }
+            )
+        if v22_attention_comp_w > 0.0 and v22_attention_comp_stats is not None:
+            details.update(
+                {
+                    "loss_v22_attention_competition": loss_v22_attention_competition.detach(),
+                    "v22_attention_competition_fg_acc": v22_attention_comp_stats["fg_acc"],
+                    "v22_attention_competition_bg_acc": v22_attention_comp_stats["bg_acc"],
+                    "v22_attention_competition_entropy": v22_attention_comp_stats["entropy"],
+                    "v22_attention_competition_valid_fraction": v22_attention_comp_stats["valid_fraction"],
+                    "v22_attention_object_inside_mass": v22_attention_comp_stats["object_inside_mass"],
+                    "v22_attention_object_outside_mass": v22_attention_comp_stats["object_outside_mass"],
+                    "v22_attention_void_bg_mass": v22_attention_comp_stats["void_bg_mass"],
                 }
             )
         if latent_distill_w > 0.0 and latent_stats is not None:

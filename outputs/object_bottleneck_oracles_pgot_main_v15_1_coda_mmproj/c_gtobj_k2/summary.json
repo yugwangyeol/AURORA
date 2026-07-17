@@ -1,0 +1,20 @@
+{
+  "oracle": "c_gtobj",
+  "object_tokens": 2,
+  "num_samples": 2338,
+  "rFID": 307.9617004394531,
+  "guidance_scale": 2.5,
+  "diffusion_inference_steps": 25,
+  "train_steps": 5000,
+  "dit_last_n_blocks": 8,
+  "recon_psnr": 8.808636101420054,
+  "recon_ssim": 0.08819520787094537,
+  "recon_mse": 0.14721442640809243,
+  "recon_mae": 0.3162910629787233,
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_main_v15_1_coda_mmproj",
+  "adapter_lr": 0.0001,
+  "dit_lr": 1e-05,
+  "last_train_loss": 52.45709991455078,
+  "mean_last_20_train_loss": 15.97188422679901,
+  "checkpoint": "/home/jovyan/PGOT/outputs/object_bottleneck_oracles_pgot_main_v15_1_coda_mmproj/c_gtobj_k2/oracle_checkpoint.pt"
+}

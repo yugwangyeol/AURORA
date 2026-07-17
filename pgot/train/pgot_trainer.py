@@ -124,6 +124,26 @@ class PGOTModelArguments:
     pgot_v17_ownership_weight: float = field(default=0.0)
     pgot_v17_ownership_layers: str = field(default="last4")
 
+    # V21: Group-grounded generative OVT. Same object OVTs form one group
+    # responsibility map that is both grounded and used to compose DiT condition.
+    pgot_v21_enable: bool = field(default=False)
+    pgot_v21_ground_weight: float = field(default=0.0)
+    pgot_v21_ground_final_weight: float = field(default=-1.0)
+    pgot_v21_ground_anneal_steps: int = field(default=0)
+    pgot_v21_temperature: float = field(default=1.0)
+    pgot_v21_position_weight: float = field(default=1.0)
+    pgot_v21_code_dim: int = field(default=0)
+
+    # V22a: keep V15/V15.1 BCE grounding, but supervise the LLM-internal
+    # OVT -> image attention maps to become object-local. The outside term
+    # reuses the v8.5 patch-normalized attention loss; this weak competition CE
+    # asks foreground patches to be owned by the matching object OVT group.
+    pgot_v22_attention_competition_weight: float = field(default=0.0)
+    pgot_v22_attention_competition_layers: str = field(default="26,27")
+    pgot_v22_attention_competition_temperature: float = field(default=1.0)
+    pgot_v22_attention_competition_include_void: bool = field(default=False)
+    pgot_v22_attention_competition_bg_weight: float = field(default=0.25)
+
     # V18: V15 object-causal bottleneck + direct decoder-native latent distill.
     # The head predicts SigLIP decoder latents from the same bottleneck condition
     # used by DiT, so we can optimize toward the decoder_gt oracle directly.
@@ -318,6 +338,12 @@ def freeze_for_pgot(
             p.requires_grad_(True)
             n_trainable += p.numel()
 
+    # V21 group-grounded router
+    if hasattr(model, "pgot_v21_router") and model.pgot_v21_router is not None:
+        for p in model.pgot_v21_router.parameters():
+            p.requires_grad_(True)
+            n_trainable += p.numel()
+
     # V18 latent distillation head
     if hasattr(model, "pgot_latent_head") and model.pgot_latent_head is not None:
         for p in model.pgot_latent_head.parameters():
@@ -497,6 +523,8 @@ class PGOTTrainer(Trainer):
                            if p.requires_grad and "latent_queries" in n}
         v14_names = {n for n, p in opt_model.named_parameters()
                      if p.requires_grad and "pgot_v14_router" in n}
+        v21_names = {n for n, p in opt_model.named_parameters()
+                     if p.requires_grad and "pgot_v21_router" in n}
         latent_head_names = {n for n, p in opt_model.named_parameters()
                              if p.requires_grad and "pgot_latent_head" in n}
         llm_names = {n for n, p in opt_model.named_parameters()
@@ -512,6 +540,7 @@ class PGOTTrainer(Trainer):
             | null_bg_names
             | rae_query_names
             | v14_names
+            | v21_names
             | latent_head_names
             | llm_names
         )
@@ -565,6 +594,9 @@ class PGOTTrainer(Trainer):
         params = _take_params(v14_names)
         if params:
             groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": self.args.learning_rate})
+        params = _take_params(v21_names)
+        if params:
+            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": self.args.learning_rate})
         params = _take_params(latent_head_names)
         if params:
             groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": diff_head_lr})
@@ -574,10 +606,10 @@ class PGOTTrainer(Trainer):
 
         logger.info(
             "[PGOT] optimizer | base=%g mm_projector=%g diff_head=%g dit_body=%g register=%g rae_query=%g llm=%g | "
-            "mm_projector=%d projector=%d dit_adaln=%d dit_body=%d register=%d null_bg=%d rae_query=%d v14=%d latent_head=%d llm=%d",
+            "mm_projector=%d projector=%d dit_adaln=%d dit_body=%d register=%d null_bg=%d rae_query=%d v14=%d v21=%d latent_head=%d llm=%d",
             self.args.learning_rate, mm_projector_lr, diff_head_lr, dit_body_lr, register_lr, rae_query_lr, llm_lr,
             len(mm_projector_names), len(projector_names), len(dit_adaln_names), len(dit_body_names), len(register_names),
-            len(null_bg_names), len(rae_query_names), len(v14_names), len(latent_head_names), len(llm_names),
+            len(null_bg_names), len(rae_query_names), len(v14_names), len(v21_names), len(latent_head_names), len(llm_names),
         )
 
         optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(self.args)
@@ -625,6 +657,18 @@ class PGOTTrainer(Trainer):
         else:
             contrastive_w = 0.0
 
+        inner_model = model.module if hasattr(model, "module") else model
+        if bool(getattr(inner_model.config, "pgot_v21_enable", False)):
+            start_w = float(getattr(inner_model.config, "pgot_v21_ground_weight", 0.0))
+            final_w = float(getattr(inner_model.config, "pgot_v21_ground_final_weight", -1.0))
+            anneal_steps = int(getattr(inner_model.config, "pgot_v21_ground_anneal_steps", 0) or 0)
+            if final_w >= 0.0 and anneal_steps > 0:
+                t = min(max(float(global_step) / float(max(anneal_steps, 1)), 0.0), 1.0)
+                eff_w = start_w + (final_w - start_w) * t
+            else:
+                eff_w = start_w
+            inner_model.config.pgot_v21_ground_weight_effective = float(eff_w)
+
         images = inputs.pop("images")
         target_images = inputs.pop("target_images")
         outputs = model(
@@ -642,7 +686,7 @@ class PGOTTrainer(Trainer):
         loss = outputs.loss
 
         # Record per-loss metrics for logging
-        inner = model.module if hasattr(model, "module") else model
+        inner = inner_model
         for key, attr in [
             ("loss_lm", "pgot_loss_lm"),
             ("loss_mask", "pgot_loss_mask"),
@@ -845,7 +889,8 @@ class PGOTTrainer(Trainer):
             bool(getattr(inner.config, "pgot_v14_enable", False))
             and float(getattr(inner.config, "pgot_v14_route_weight", 1.0)) > 0.0
         )
-        owner_enabled = bool(getattr(inner.config, "pgot_v12_enable", False)) or v14_owner_enabled
+        v21_owner_enabled = bool(getattr(inner.config, "pgot_v21_enable", False))
+        owner_enabled = bool(getattr(inner.config, "pgot_v12_enable", False)) or v14_owner_enabled or v21_owner_enabled
         bce_enabled = (
             float(getattr(inner.config, "pgot_mask_bce_weight", 0.0)) > 0.0
             or float(getattr(inner.config, "pgot_mask_object_balanced_bce_weight", 0.0)) > 0.0

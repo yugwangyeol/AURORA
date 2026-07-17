@@ -33,7 +33,6 @@ from tqdm import tqdm
 
 from pgot.eval.eval_recon_oracles import (
     build_loader,
-    encode_gt_siglip,
     infer_from_z,
     load_model_and_tokenizer,
 )
@@ -48,7 +47,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("pgot.object_bottleneck_oracle")
 
-ORACLES = {"c_full", "c_gtobj", "c_ovt"}
+ORACLES = {"c_current", "c_full", "c_gtobj", "c_ovt"}
 
 
 def seed_everything(seed: int) -> None:
@@ -255,47 +254,53 @@ class OracleConditioner(nn.Module):
 
 
 @torch.no_grad()
-def extract_ovt_source(model, batch: Dict[str, torch.Tensor], device: torch.device):
+def extract_current_pack(model, batch: Dict[str, torch.Tensor], device: torch.device):
+    """Extract the frozen PGOT condition and all oracle source features once."""
     if not bool(getattr(model.config, "pgot_v14_enable", False)):
-        raise ValueError("c_ovt requires a V14-style bottleneck checkpoint.")
-    seq = model._pgot_build_sequence_inputs(
+        raise ValueError("Object bottleneck oracles require a V14-style checkpoint.")
+    router_dtype = next(model.model.parameters()).dtype
+    if next(model.pgot_v14_router.parameters()).dtype != router_dtype:
+        model.pgot_v14_router.to(device=device, dtype=router_dtype)
+    features = model._pgot_v14_forward_features(
         images=batch["images"].to(device),
         target_images=batch["target_images"].to(device),
         caption_input_ids=batch["caption_input_ids"].to(device),
         caption_attention_mask=batch["caption_attention_mask"].to(device),
         ovt_positions_in_caption=batch["ovt_positions_in_caption"].to(device),
         ovt_valid_mask=batch["ovt_valid_mask"].to(device),
-    )
-    output = model.model(
-        inputs_embeds=seq["inputs_embeds"],
-        attention_bias=seq["attn_bias"],
-        use_cache=False,
         output_hidden_states=False,
-        return_dict=True,
     )
-    ovt_pack = model._pgot_v12_build_ovt_states(
-        hidden_states=output.last_hidden_state,
-        positions=seq["positions"],
-        ovt_abs_positions=seq["ovt_abs_positions"],
-        ovt_valid_mask=seq["ovt_valid_mask"],
-    )
-    return (
-        ovt_pack["ovt_states"].float(),
-        ovt_pack["ovt_valid"].bool(),
-        seq["gt_siglip"].float(),
-    )
+    teacher = model._captionslot_prepare_diffusion_condition(
+        features["condition_hidden"]
+    ).float()
+    return {
+        "teacher_condition": teacher.detach(),
+        "target": features["gt_siglip"].float().detach(),
+        "ovt_states": features["ovt_states"].float().detach(),
+        "ovt_valid": features["ovt_valid"].bool().detach(),
+    }
 
 
 @torch.no_grad()
-def extract_frozen_source(args, model, batch, device):
+def extract_frozen_source(args, model, batch, device, pack=None):
+    pack = extract_current_pack(model, batch, device) if pack is None else pack
+    target = pack["target"]
     if args.oracle == "c_ovt":
-        source, source_valid, target = extract_ovt_source(model, batch, device)
-        return source.detach(), source_valid.detach(), target.detach(), None, None
+        return (
+            pack["ovt_states"],
+            pack["ovt_valid"],
+            target,
+            None,
+            None,
+            pack["teacher_condition"],
+        )
 
-    target = encode_gt_siglip(model, batch, device).detach()
     if args.oracle == "c_full":
         valid = torch.ones(target.shape[:2], device=device, dtype=torch.bool)
-        return target, valid, target, None, None
+        return target, valid, target, None, None, pack["teacher_condition"]
+
+    if args.oracle == "c_current":
+        return None, None, target, None, None, pack["teacher_condition"]
 
     masks, valid_objects = resize_object_masks(
         batch["gt_masks_per_ovt"].to(device),
@@ -303,12 +308,16 @@ def extract_frozen_source(args, model, batch, device):
         n_ovt_per_object=args.n_ovt_per_object,
         target_tokens=target.shape[1],
     )
-    return target, None, target, masks, valid_objects
+    return target, None, target, masks, valid_objects, pack["teacher_condition"]
 
 
 def configure_trainable_dit(model, last_n_blocks: int) -> Dict[str, nn.Parameter]:
     model.requires_grad_(False)
     trainable = {}
+    if int(last_n_blocks) <= 0:
+        log.info("Trainable DiT: none (frozen pretrained DiT)")
+        return trainable
+
     for name, param in model.diff_head.named_parameters():
         if "adaLN_modulation" in name:
             param.requires_grad_(True)
@@ -331,9 +340,11 @@ def configure_trainable_dit(model, last_n_blocks: int) -> Dict[str, nn.Parameter
 
 
 def build_conditioner(args, model, first_batch, device) -> OracleConditioner:
-    source, _, target, _, _ = extract_frozen_source(args, model, first_batch, device)
-    condition_dim = int(model.diff_head.z_channels)
-    condition_tokens = int(model.get_model().latent_queries.shape[0])
+    source, _, target, _, _, teacher = extract_frozen_source(
+        args, model, first_batch, device
+    )
+    condition_dim = int(teacher.shape[-1])
+    condition_tokens = int(teacher.shape[1])
     conditioner = OracleConditioner(
         oracle=args.oracle,
         source_dim=int(source.shape[-1]),
@@ -355,7 +366,15 @@ def build_conditioner(args, model, first_batch, device) -> OracleConditioner:
     return conditioner
 
 
-def save_checkpoint(args, conditioner, model, trainable_dit, losses) -> Path:
+def save_checkpoint(
+    args,
+    conditioner,
+    model,
+    trainable_dit,
+    losses,
+    distill_losses,
+    diffusion_losses,
+) -> Path:
     output = Path(args.output_dir)
     output.mkdir(parents=True, exist_ok=True)
     path = output / "oracle_checkpoint.pt"
@@ -368,6 +387,8 @@ def save_checkpoint(args, conditioner, model, trainable_dit, losses) -> Path:
             "dit": {k: p.detach().cpu() for k, p in trainable_dit.items()},
             "last_loss": losses[-1] if losses else None,
             "mean_last_20": sum(losses[-20:]) / max(len(losses[-20:]), 1),
+            "last_distill_loss": distill_losses[-1] if distill_losses else None,
+            "last_diffusion_loss": diffusion_losses[-1] if diffusion_losses else None,
         },
         path,
     )
@@ -376,15 +397,14 @@ def save_checkpoint(args, conditioner, model, trainable_dit, losses) -> Path:
 
 def train_oracle(args, model, conditioner, trainable_dit, train_loader, device):
     conditioner.train()
-    model.diff_head.train()
+    model.diff_head.train(bool(trainable_dit))
     adapter_params = list(conditioner.parameters())
-    optimizer = torch.optim.AdamW(
-        [
-            {"params": adapter_params, "lr": args.adapter_lr},
-            {"params": list(trainable_dit.values()), "lr": args.dit_lr},
-        ],
-        weight_decay=args.weight_decay,
-    )
+    parameter_groups = [{"params": adapter_params, "lr": args.adapter_lr}]
+    base_lrs = [args.adapter_lr]
+    if trainable_dit:
+        parameter_groups.append({"params": list(trainable_dit.values()), "lr": args.dit_lr})
+        base_lrs.append(args.dit_lr)
+    optimizer = torch.optim.AdamW(parameter_groups, weight_decay=args.weight_decay)
     warmup = max(int(args.warmup_steps), 0)
 
     def lr_scale(step: int) -> float:
@@ -393,40 +413,77 @@ def train_oracle(args, model, conditioner, trainable_dit, train_loader, device):
         return min(float(step + 1) / float(warmup), 1.0)
 
     loader = cycle(train_loader)
-    optimizer.zero_grad(set_to_none=True)
     losses = []
+    distill_losses = []
+    diffusion_losses = []
+    accumulation = max(int(args.gradient_accumulation_steps), 1)
     progress = tqdm(range(args.train_steps), desc=f"Train {args.oracle}")
-    for step in progress:
-        batch = next(loader)
-        source, source_valid, target, masks, object_valid = extract_frozen_source(
-            args, model, batch, device
+    for optimizer_step in progress:
+        optimizer.zero_grad(set_to_none=True)
+        step_total = 0.0
+        step_distill = 0.0
+        step_diffusion = 0.0
+        use_diffusion = (
+            optimizer_step >= int(args.distill_steps)
+            and float(args.diffusion_loss_weight) > 0.0
         )
-        condition = conditioner(source, source_valid, masks, object_valid)
-        loss = model.diff_head.training_loss(z=condition.float(), x=target.float()).mean()
-        scaled_loss = loss / max(int(args.gradient_accumulation_steps), 1)
-        scaled_loss.backward()
-
-        should_step = (step + 1) % max(int(args.gradient_accumulation_steps), 1) == 0
-        if should_step or step + 1 == args.train_steps:
-            torch.nn.utils.clip_grad_norm_(
-                adapter_params + list(trainable_dit.values()), args.max_grad_norm
+        for _ in range(accumulation):
+            batch = next(loader)
+            source, source_valid, target, masks, object_valid, teacher = extract_frozen_source(
+                args, model, batch, device
             )
-            scale = lr_scale(step)
-            for group, base_lr in zip(optimizer.param_groups, (args.adapter_lr, args.dit_lr)):
-                group["lr"] = base_lr * scale
-            optimizer.step()
-            optimizer.zero_grad(set_to_none=True)
+            condition = conditioner(source, source_valid, masks, object_valid).float()
+            distill_loss = F.mse_loss(condition, teacher.float())
+            diffusion_loss = condition.new_zeros(())
+            if use_diffusion:
+                condition_for_diff = condition
+                if args.cfg_drop_rate > 0.0:
+                    drop_mask = (
+                        torch.rand(condition.shape[0], device=device) < args.cfg_drop_rate
+                    ).view(-1, 1, 1)
+                    condition_for_diff = condition * (~drop_mask).to(condition.dtype)
+                diffusion_loss = model.diff_head.training_loss(
+                    z=condition_for_diff,
+                    x=target.float(),
+                ).mean()
+            loss = (
+                float(args.distill_loss_weight) * distill_loss
+                + float(args.diffusion_loss_weight) * diffusion_loss
+            )
+            (loss / accumulation).backward()
+            step_total += float(loss.detach().cpu()) / accumulation
+            step_distill += float(distill_loss.detach().cpu()) / accumulation
+            step_diffusion += float(diffusion_loss.detach().cpu()) / accumulation
 
-        value = float(loss.detach().cpu())
-        losses.append(value)
-        if step % max(int(args.log_every), 1) == 0 or step + 1 == args.train_steps:
-            progress.set_postfix(loss=f"{value:.4f}", mean20=f"{sum(losses[-20:]) / len(losses[-20:]):.4f}")
-    return losses
+        torch.nn.utils.clip_grad_norm_(
+            adapter_params + list(trainable_dit.values()), args.max_grad_norm
+        )
+        scale = lr_scale(optimizer_step)
+        for group, base_lr in zip(optimizer.param_groups, base_lrs):
+            group["lr"] = base_lr * scale
+        optimizer.step()
+
+        losses.append(step_total)
+        distill_losses.append(step_distill)
+        diffusion_losses.append(step_diffusion)
+        if (
+            optimizer_step % max(int(args.log_every), 1) == 0
+            or optimizer_step + 1 == args.train_steps
+        ):
+            phase = "distill" if not use_diffusion else "joint"
+            progress.set_postfix(
+                phase=phase,
+                loss=f"{step_total:.4f}",
+                distill=f"{step_distill:.4f}",
+                diffusion=f"{step_diffusion:.4f}",
+            )
+    return losses, distill_losses, diffusion_losses
 
 
 @torch.no_grad()
 def evaluate_oracle(args, model, conditioner, val_loader, device):
-    conditioner.eval()
+    if conditioner is not None:
+        conditioner.eval()
     model.diff_head.eval()
     decoder = load_rae_decoder(model, device=device, dtype=torch.float32)
     fid = None if args.skip_fid else FIDAccumulator(device=device, feature=2048)
@@ -439,10 +496,14 @@ def evaluate_oracle(args, model, conditioner, val_loader, device):
     target_std = torch.tensor(target_processor.image_std)
 
     for batch in tqdm(val_loader, desc=f"Eval {args.oracle}"):
-        source, source_valid, _, masks, object_valid = extract_frozen_source(
+        source, source_valid, _, masks, object_valid, teacher = extract_frozen_source(
             args, model, batch, device
         )
-        condition = conditioner(source, source_valid, masks, object_valid)
+        condition = (
+            teacher
+            if args.oracle == "c_current"
+            else conditioner(source, source_valid, masks, object_valid)
+        )
         generated = infer_from_z(model, condition, args.guidance_scale)
         fake = decode_to_image(decoder, generated, device)
         real = denormalize_images(batch["target_images"].to(device).float(), target_mean, target_std)
@@ -463,6 +524,10 @@ def evaluate_oracle(args, model, conditioner, val_loader, device):
         "guidance_scale": float(args.guidance_scale),
         "diffusion_inference_steps": int(args.diffusion_inference_steps),
         "train_steps": int(args.train_steps),
+        "distill_steps": int(args.distill_steps),
+        "distill_loss_weight": float(args.distill_loss_weight),
+        "diffusion_loss_weight": float(args.diffusion_loss_weight),
+        "cfg_drop_rate": float(args.cfg_drop_rate),
         "dit_last_n_blocks": int(args.dit_last_n_blocks),
     }
     for key, values in metrics.items():
@@ -496,7 +561,11 @@ def parse_args():
     parser.add_argument("--weight_decay", type=float, default=0.01)
     parser.add_argument("--warmup_steps", type=int, default=100)
     parser.add_argument("--max_grad_norm", type=float, default=1.0)
-    parser.add_argument("--dit_last_n_blocks", type=int, default=8)
+    parser.add_argument("--dit_last_n_blocks", type=int, default=0)
+    parser.add_argument("--distill_steps", type=int, default=2000)
+    parser.add_argument("--distill_loss_weight", type=float, default=1.0)
+    parser.add_argument("--diffusion_loss_weight", type=float, default=0.1)
+    parser.add_argument("--cfg_drop_rate", type=float, default=0.1)
     parser.add_argument("--adapter_heads", type=int, default=16)
     parser.add_argument("--adapter_depth", type=int, default=2)
     parser.add_argument("--guidance_scale", type=float, default=2.5)
@@ -508,6 +577,10 @@ def parse_args():
     args = parser.parse_args()
     if args.object_tokens <= 0:
         parser.error("--object_tokens must be positive")
+    if args.oracle == "c_current" and args.train_steps != 0:
+        parser.error("c_current is a frozen control and requires --train_steps 0")
+    if args.oracle != "c_current" and not 0 <= args.distill_steps <= args.train_steps:
+        parser.error("--distill_steps must be between 0 and --train_steps")
     return args
 
 
@@ -517,14 +590,16 @@ def main():
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
     model, tokenizer, device, _ = load_model_and_tokenizer(args)
-    train_loader = build_loader(
-        args,
-        tokenizer,
-        model,
-        args.train_jsonl,
-        shuffle=True,
-        max_samples=args.max_train_samples,
-    )
+    train_loader = None
+    if args.oracle != "c_current":
+        train_loader = build_loader(
+            args,
+            tokenizer,
+            model,
+            args.train_jsonl,
+            shuffle=True,
+            max_samples=args.max_train_samples,
+        )
     val_loader = build_loader(
         args,
         tokenizer,
@@ -533,14 +608,31 @@ def main():
         shuffle=False,
         max_samples=args.max_samples,
     )
-    first_batch = next(iter(train_loader))
-    conditioner = build_conditioner(args, model, first_batch, device)
-    trainable_dit = configure_trainable_dit(model, args.dit_last_n_blocks)
-    losses = train_oracle(args, model, conditioner, trainable_dit, train_loader, device)
+
+    conditioner = None
+    trainable_dit = {}
+    losses = []
+    distill_losses = []
+    diffusion_losses = []
+    if args.oracle != "c_current":
+        first_batch = next(iter(train_loader))
+        conditioner = build_conditioner(args, model, first_batch, device)
+        trainable_dit = configure_trainable_dit(model, args.dit_last_n_blocks)
+        losses, distill_losses, diffusion_losses = train_oracle(
+            args, model, conditioner, trainable_dit, train_loader, device
+        )
 
     checkpoint_path = None
-    if not args.no_save_checkpoint:
-        checkpoint_path = save_checkpoint(args, conditioner, model, trainable_dit, losses)
+    if conditioner is not None and not args.no_save_checkpoint:
+        checkpoint_path = save_checkpoint(
+            args,
+            conditioner,
+            model,
+            trainable_dit,
+            losses,
+            distill_losses,
+            diffusion_losses,
+        )
         log.info("Saved %s", checkpoint_path)
 
     summary = evaluate_oracle(args, model, conditioner, val_loader, device)
@@ -551,6 +643,8 @@ def main():
             "dit_lr": float(args.dit_lr),
             "last_train_loss": losses[-1] if losses else None,
             "mean_last_20_train_loss": sum(losses[-20:]) / max(len(losses[-20:]), 1),
+            "last_distill_loss": distill_losses[-1] if distill_losses else None,
+            "last_diffusion_loss": diffusion_losses[-1] if diffusion_losses else None,
             "checkpoint": None if checkpoint_path is None else str(checkpoint_path),
         }
     )

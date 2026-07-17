@@ -205,6 +205,28 @@ def train():
     config.pgot_v17_enable = bool(model_args.pgot_v17_enable)
     config.pgot_v17_ownership_weight = float(model_args.pgot_v17_ownership_weight)
     config.pgot_v17_ownership_layers = str(model_args.pgot_v17_ownership_layers)
+    config.pgot_v21_enable = bool(model_args.pgot_v21_enable)
+    config.pgot_v21_ground_weight = float(model_args.pgot_v21_ground_weight)
+    config.pgot_v21_ground_final_weight = float(model_args.pgot_v21_ground_final_weight)
+    config.pgot_v21_ground_anneal_steps = int(model_args.pgot_v21_ground_anneal_steps)
+    config.pgot_v21_temperature = float(model_args.pgot_v21_temperature)
+    config.pgot_v21_position_weight = float(model_args.pgot_v21_position_weight)
+    config.pgot_v21_code_dim = int(model_args.pgot_v21_code_dim)
+    config.pgot_v22_attention_competition_weight = float(
+        model_args.pgot_v22_attention_competition_weight
+    )
+    config.pgot_v22_attention_competition_layers = str(
+        model_args.pgot_v22_attention_competition_layers
+    )
+    config.pgot_v22_attention_competition_temperature = float(
+        model_args.pgot_v22_attention_competition_temperature
+    )
+    config.pgot_v22_attention_competition_include_void = bool(
+        model_args.pgot_v22_attention_competition_include_void
+    )
+    config.pgot_v22_attention_competition_bg_weight = float(
+        model_args.pgot_v22_attention_competition_bg_weight
+    )
     config.pgot_latent_distill_enable = bool(model_args.pgot_latent_distill_enable)
     config.pgot_latent_distill_weight = float(model_args.pgot_latent_distill_weight)
     config.pgot_latent_distill_mse_weight = float(model_args.pgot_latent_distill_mse_weight)
@@ -308,6 +330,28 @@ def train():
     model.config.pgot_v17_enable = bool(model_args.pgot_v17_enable)
     model.config.pgot_v17_ownership_weight = float(model_args.pgot_v17_ownership_weight)
     model.config.pgot_v17_ownership_layers = str(model_args.pgot_v17_ownership_layers)
+    model.config.pgot_v21_enable = bool(model_args.pgot_v21_enable)
+    model.config.pgot_v21_ground_weight = float(model_args.pgot_v21_ground_weight)
+    model.config.pgot_v21_ground_final_weight = float(model_args.pgot_v21_ground_final_weight)
+    model.config.pgot_v21_ground_anneal_steps = int(model_args.pgot_v21_ground_anneal_steps)
+    model.config.pgot_v21_temperature = float(model_args.pgot_v21_temperature)
+    model.config.pgot_v21_position_weight = float(model_args.pgot_v21_position_weight)
+    model.config.pgot_v21_code_dim = int(model_args.pgot_v21_code_dim)
+    model.config.pgot_v22_attention_competition_weight = float(
+        model_args.pgot_v22_attention_competition_weight
+    )
+    model.config.pgot_v22_attention_competition_layers = str(
+        model_args.pgot_v22_attention_competition_layers
+    )
+    model.config.pgot_v22_attention_competition_temperature = float(
+        model_args.pgot_v22_attention_competition_temperature
+    )
+    model.config.pgot_v22_attention_competition_include_void = bool(
+        model_args.pgot_v22_attention_competition_include_void
+    )
+    model.config.pgot_v22_attention_competition_bg_weight = float(
+        model_args.pgot_v22_attention_competition_bg_weight
+    )
     model.config.pgot_latent_distill_enable = bool(model_args.pgot_latent_distill_enable)
     model.config.pgot_latent_distill_weight = float(model_args.pgot_latent_distill_weight)
     model.config.pgot_latent_distill_mse_weight = float(model_args.pgot_latent_distill_mse_weight)
@@ -361,6 +405,17 @@ def train():
         f"v17={bool(getattr(model.config, 'pgot_v17_enable', False))} "
         f"(ownership_w={getattr(model.config, 'pgot_v17_ownership_weight', 0.0)}, "
         f"ownership_layers={getattr(model.config, 'pgot_v17_ownership_layers', 'last4')}) "
+        f"v21={bool(getattr(model.config, 'pgot_v21_enable', False))} "
+        f"(ground_w={getattr(model.config, 'pgot_v21_ground_weight', 0.0)}, "
+        f"ground_final={getattr(model.config, 'pgot_v21_ground_final_weight', -1.0)}, "
+        f"anneal={getattr(model.config, 'pgot_v21_ground_anneal_steps', 0)}, "
+        f"temp={getattr(model.config, 'pgot_v21_temperature', 1.0)}, "
+        f"pos_w={getattr(model.config, 'pgot_v21_position_weight', 1.0)}, "
+        f"code_dim={getattr(model.config, 'pgot_v21_code_dim', 0)}) "
+        f"v22a=(attn_comp_w={getattr(model.config, 'pgot_v22_attention_competition_weight', 0.0)}, "
+        f"attn_comp_layers={getattr(model.config, 'pgot_v22_attention_competition_layers', '26,27')}, "
+        f"attn_comp_temp={getattr(model.config, 'pgot_v22_attention_competition_temperature', 1.0)}, "
+        f"attn_comp_void={getattr(model.config, 'pgot_v22_attention_competition_include_void', False)}) "
         f"(ce_temp={model.config.pgot_mask_ce_temperature}, ce_merge={model.config.pgot_mask_ce_merge}); "
         f"null_bg={model.config.pgot_use_null_bg_competition}; cfg_drop={model.config.pgot_cfg_drop_rate}"
     )

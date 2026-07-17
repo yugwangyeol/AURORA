@@ -46,6 +46,7 @@ PGOT_V14_POSITION_WEIGHT="${PGOT_V14_POSITION_WEIGHT:-1.0}"
 PGOT_CFG_DROP_RATE="${PGOT_CFG_DROP_RATE:-0.1}"
 PGOT_DIT_UNFREEZE_LAST_N_BLOCKS="${PGOT_DIT_UNFREEZE_LAST_N_BLOCKS:-8}"
 PGOT_EVAL_LOG_RECON_IMAGES="${PGOT_EVAL_LOG_RECON_IMAGES:-4}"
+PGOT_RAE_ATTENDS_CAPTION="${PGOT_RAE_ATTENDS_CAPTION:-False}"
 IMAGE_PREPROCESS_MODE="${IMAGE_PREPROCESS_MODE:-coda_center_crop}"
 CODA_CROP_SIZE="${CODA_CROP_SIZE:-512}"
 
@@ -87,6 +88,7 @@ echo "Image preprocess:       ${IMAGE_PREPROCESS_MODE} (${CODA_CROP_SIZE})"
 echo "mm_projector:           trainable, lr=${MM_PROJECTOR_LR}"
 echo "Loss weights:           LM=${PGOT_LM_LOSS_WEIGHT}, recon=${PGOT_RECON_LOSS_WEIGHT}, BCE=${PGOT_MASK_BCE_WEIGHT}, route=${PGOT_V14_ROUTE_WEIGHT}"
 echo "Route temp / pos weight:${PGOT_V14_ROUTE_TEMPERATURE} / ${PGOT_V14_POSITION_WEIGHT}"
+echo "RAE attends caption:    ${PGOT_RAE_ATTENDS_CAPTION}"
 echo "Other mask losses:      all off"
 echo "Eval overlay:           sigmoid + reconstruction"
 echo "W&B eval table imgs:    ${PGOT_EVAL_LOG_RECON_IMAGES}"
@@ -132,7 +134,7 @@ echo "==============================================================="
     --pgot_contrastive_warmup_steps 0 \
     --pgot_attention_use_layer_norm True \
     --pgot_attention_temperature 0.5 \
-    --pgot_rae_attends_caption False \
+    --pgot_rae_attends_caption "${PGOT_RAE_ATTENDS_CAPTION}" \
     --pgot_unfreeze_mm_projector True \
     --freeze_dit_body True --pgot_dit_unfreeze_last_n_blocks "${PGOT_DIT_UNFREEZE_LAST_N_BLOCKS}" --freeze_vision_tower True \
     --pgot_lora_enable True --pgot_lora_r 16 --pgot_lora_alpha 32 --pgot_lora_dropout 0.05 \
