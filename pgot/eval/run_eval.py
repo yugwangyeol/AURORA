@@ -30,7 +30,7 @@ from tqdm import tqdm
 
 # Project imports
 sys.path.insert(0, "/home/jovyan/PGOT")
-from pgot.constants import OVT_TOKEN, SCENE_END_TOKEN, NEW_SPECIAL_TOKENS
+from pgot.constants import OVT_TOKEN, SCENE_END_TOKEN, NEW_SPECIAL_TOKENS, get_pgot_prompts
 from pgot.model.pgot_qwen2 import PGOTQwen2ForCausalLM
 from pgot.train.pgot_dataset import Pix2CapPGOTDataset, PGOTDataCollator
 from pgot.eval.pgot_metrics import (
@@ -365,12 +365,15 @@ def main():
             len(unexpected),
         )
 
-    # Template ids
+    # Template ids (stored dataset format selects the exact training prompt).
+    system_prompt, user_instruction = get_pgot_prompts(
+        getattr(config, "pgot_dataset_format", "pix2cap")
+    )
     blocks = {
-        "pgot_system_prefix_ids": "<|im_start|>system\nYou are a vision assistant that describes scenes with grounded objects.",
+        "pgot_system_prefix_ids": f"<|im_start|>system\n{system_prompt}",
         "pgot_system_suffix_ids": "<|im_end|>\n",
         "pgot_user_prefix_ids":   "<|im_start|>user\n",
-        "pgot_user_suffix_ids":   "\nDescribe all objects and regions in this scene with grounded tokens.<|im_end|>\n",
+        "pgot_user_suffix_ids":   f"{user_instruction}<|im_end|>\n",
         "pgot_assistant_prefix_ids": "<|im_start|>assistant\n",
         "pgot_assistant_suffix_ids": "<|im_end|>",
     }
@@ -414,6 +417,7 @@ def main():
     active_counts = []
     image_ids = []
     n_objects_list = []
+    background_attention_source_used = None
 
     # CODA-style GT cache (optional)
     coco_cache = None
@@ -556,9 +560,32 @@ def main():
                     "--readout llm_attention requires a V8.4/V8.5 checkpoint "
                     "with internal LLM-attention supervision enabled."
                 )
+            bg_attention_maps = out.get("llm_attention_void_maps")
+            batch_background_source = "void_mean"
+            if bg_attention_maps is None or bg_attention_maps.numel() == 0:
+                bg_attention_maps = out.get("llm_attention_register_maps")
+                batch_background_source = "register_mean"
+            if bg_attention_maps is None or bg_attention_maps.numel() == 0:
+                batch_background_source = "none"
+                if (
+                    int(getattr(model, "pgot_n_register", 0)) > 0
+                    or int(getattr(model, "pgot_n_null_bg", 0)) > 0
+                ):
+                    raise RuntimeError(
+                        "The checkpoint declares void/register background tokens, "
+                        "but no background attention map was produced. Refusing to "
+                        "silently evaluate with object-only argmax."
+                    )
+            if background_attention_source_used is None:
+                background_attention_source_used = batch_background_source
+            elif background_attention_source_used != batch_background_source:
+                raise RuntimeError(
+                    "Background attention source changed across evaluation batches: "
+                    f"{background_attention_source_used} -> {batch_background_source}"
+                )
             pred_mask = build_pred_mask_llm_attention_eval(
                 ovt_attention_maps=out["llm_attention_maps"],
-                void_attention_maps=out["llm_attention_void_maps"],
+                void_attention_maps=bg_attention_maps,
                 ovt_valid_mask=valid_for_pred,
                 ovt_is_thing=ovt_is_thing,
                 target_size=args.eval_size,
@@ -606,7 +633,10 @@ def main():
                 gt = coco_cache.get(int(samp["image_id"]))
                 if gt is None:
                     # Image not in COCO val cache — fall back to panoptic-from-pix2cap
-                    seg_ids = [int(s["segment_id"]) for s in samp["segments"]]
+                    seg_ids = [
+                        int(s["segment_id"])
+                        for s in samp["segments"][: batch["n_objects_list"][b]]
+                    ]
                     gt = load_gt_panoptic_mask(samp["panoptic_mask_path"], seg_ids, args.eval_size)
                 gt_masks.append(gt)
                 overlap = coco_cache.get_overlap(int(samp["image_id"]))
@@ -614,7 +644,10 @@ def main():
                     overlap = torch.zeros_like(gt, dtype=torch.uint8)
                 overlap_masks.append(overlap)
             else:
-                seg_ids = [int(s["segment_id"]) for s in samp["segments"]]
+                seg_ids = [
+                    int(s["segment_id"])
+                    for s in samp["segments"][: batch["n_objects_list"][b]]
+                ]
                 gt = load_gt_panoptic_mask(samp["panoptic_mask_path"], seg_ids, args.eval_size)
                 gt_masks.append(gt)
         gt_mask = torch.stack(gt_masks).to(device=pred_mask.device)
@@ -708,6 +741,16 @@ def main():
     summary["gt_source"] = args.gt_source
     summary["image_preprocess_mode"] = args.image_preprocess_mode
     summary["coda_crop_size"] = int(args.coda_crop_size)
+    summary["metric_resolution"] = int(args.eval_size)
+    summary["image_patch_grid"] = int(args.grid_size)
+    summary["image_patch_tokens"] = int(args.grid_size) ** 2
+    summary["teacher_forced_caption"] = True
+    summary["register_hard_gt_mask_training"] = bool(
+        getattr(model.config, "pgot_register_hard_gt_mask", False)
+    )
+    # Standalone evaluation never passes GT masks into the MLLM forward path.
+    # This is the deployable, non-oracle setting even for hard-route checkpoints.
+    summary["register_hard_gt_mask_used_in_eval"] = False
     summary["recon_source"] = args.recon_source
     summary["dit_ovt_cross_attn_disabled"] = bool(args.disable_dit_ovt_cross_attn)
     summary["coda_overlap_excluded"] = bool(
@@ -724,6 +767,11 @@ def main():
         )
         summary["eval_merge"] = "mean"
     if args.readout == "llm_attention":
+        core_attention = (
+            float(getattr(model.config, "pgot_core_outside_weight", 0.0)) > 0.0
+            or float(getattr(model.config, "pgot_core_tail_weight", 0.0)) > 0.0
+            or float(getattr(model.config, "pgot_core_register_outside_weight", 0.0)) > 0.0
+        )
         patch_attention = (
             float(
                 getattr(
@@ -733,23 +781,24 @@ def main():
             or float(
                 getattr(model.config, "pgot_mask_llm_image_use_weight", 0.0)
             ) > 0.0
+            or core_attention
         )
         if patch_attention:
             summary["attention_source"] = (
                 "exact_llm_post_rope_image_patch_softmax"
             )
             summary["attention_layers"] = str(
-                getattr(
-                    model.config,
-                    "pgot_mask_llm_patch_outside_layers",
-                    "last4",
+                getattr(model.config, "pgot_core_outside_layers", "all")
+                if core_attention
+                else getattr(
+                    model.config, "pgot_mask_llm_patch_outside_layers", "last4"
                 )
             )
             summary["attention_temperature"] = float(
-                getattr(
-                    model.config,
-                    "pgot_mask_llm_patch_outside_temperature",
-                    1.0,
+                getattr(model.config, "pgot_core_outside_temperature", 1.0)
+                if core_attention
+                else getattr(
+                    model.config, "pgot_mask_llm_patch_outside_temperature", 1.0
                 )
             )
             summary["image_use_weight"] = float(
@@ -757,6 +806,17 @@ def main():
             )
             summary["image_use_margin"] = float(
                 getattr(model.config, "pgot_mask_llm_image_use_margin", 0.05)
+            )
+            if core_attention:
+                summary["core_void_weight"] = float(
+                    getattr(model.config, "pgot_core_void_weight", 1.0)
+                )
+            summary["background_attention_source"] = (
+                background_attention_source_used or "none"
+            )
+            summary["register_tokens"] = int(getattr(model, "pgot_n_register", 0))
+            summary["register_attends_caption"] = bool(
+                getattr(model.config, "pgot_register_attends_caption", True)
             )
         else:
             summary["attention_source"] = "exact_llm_post_rope_full_key_softmax"

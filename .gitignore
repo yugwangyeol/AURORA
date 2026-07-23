@@ -4,6 +4,12 @@ __pycache__/
 
 wandb/
 checkpoints/
+checkpoint_archive/
 data/
+
+# Generated analysis weights can exceed GitHub's per-file limit. Keep the
+# lightweight summaries, logs, and visualizations versioned instead.
+outputs/**/oracle_checkpoint.pt
+outputs/**/*.pt
 
 .ipynb_checkpoints/

@@ -311,6 +311,9 @@ def main():
     parser.add_argument('--swap_source_object', type=int, default=0)
     parser.add_argument('--val_jsonl', default='/home/jovyan/PGOT/data/pgot_val.jsonl')
     parser.add_argument('--image_preprocess_mode', default='default', choices=['default', 'coda_center_crop'])
+    parser.add_argument('--coda_crop_size', type=int, default=512)
+    parser.add_argument('--max_caption_tokens', type=int, default=2048)
+    parser.add_argument('--n_ovt_per_object', type=int, default=2)
     parser.add_argument('--output_dir', default='/home/jovyan/PGOT/outputs/v13_causal_path_diagnostics')
     parser.add_argument('--layers', default='last4')
     parser.add_argument('--compute_gradients', action='store_true')
@@ -349,11 +352,12 @@ def main():
             image_processor=image_proc,
             target_image_processor=target_proc,
             grid_size=32,
-            max_caption_tokens=2048,
-            n_ovt_per_object=2,
+            max_caption_tokens=args.max_caption_tokens,
+            n_ovt_per_object=args.n_ovt_per_object,
             max_objects=50,
             panoptic_categories_json='/home/jovyan/data/coco/annotations/panoptic_val2017.json',
             image_preprocess_mode=args.image_preprocess_mode,
+            coda_crop_size=args.coda_crop_size,
         )
         collator = PGOTDataCollator(pad_token_id=tokenizer.pad_token_id)
         decoder = load_rae_decoder(model, device, dtype) if args.decode_recon else None
@@ -420,7 +424,7 @@ def main():
             record = {
                 'sample_index': sample_idx,
                 'image_id': raw_samples[sample_idx]['image_id'],
-                'n_objects': int(batch['ovt_valid_mask'][0].sum().item() // 2),
+                'n_objects': int(batch['ovt_valid_mask'][0].sum().item() // args.n_ovt_per_object),
                 'recon_loss': losses,
                 'rae_hidden_shift': shifts,
                 'rae_qk_source_mass_with_bias': rae_qk_source_mass(
@@ -455,7 +459,7 @@ def main():
                         base,
                         swap_out,
                         [(args.swap_target_object, args.swap_source_object)],
-                        2,
+                        args.n_ovt_per_object,
                     )
                     record['object_swap'] = {
                         'source_sample_index': int(swap_source_idx),

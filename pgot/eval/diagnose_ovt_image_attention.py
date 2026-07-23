@@ -337,6 +337,13 @@ def main():
                 args.n_ovt_per_object,
                 args.patch_temperature,
             )
+            register_maps = model._compute_llm_register_patch_attention_maps(
+                hidden_states=out["hidden_states"],
+                attention_bias=out["attn_bias"],
+                positions=out["positions"],
+                layers_spec=args.layers,
+                temperature=args.patch_temperature,
+            ) if hasattr(model, "_compute_llm_register_patch_attention_maps") else None
 
         source_records.extend(layer_records)
         ovt_is_thing = _remap_thing_flags(
@@ -347,9 +354,12 @@ def main():
             args.n_ovt_per_object,
         ).to(out["ovt_valid_mask"].device)
         attn_grid = int(round(float(attn_maps.shape[-1]) ** 0.5))
+        bg_maps = void_maps
+        if bg_maps is None or bg_maps.numel() == 0:
+            bg_maps = register_maps
         pred_attn = build_pred_mask_llm_attention_eval(
             attn_maps,
-            void_maps,
+            bg_maps,
             out["ovt_valid_mask"],
             ovt_is_thing,
             target_size=args.eval_size,

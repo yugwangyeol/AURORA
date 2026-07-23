@@ -22,9 +22,12 @@ from transformers import AutoConfig, AutoTokenizer
 from pgot.constants import (
     OVT_TOKEN,
     SCENE_END_TOKEN,
+    THING_TOKEN,
+    STUFF_TOKEN,
     NEW_SPECIAL_TOKENS,
     PGOT_SYSTEM_PROMPT,
     PGOT_USER_INSTRUCTION,
+    get_pgot_prompts,
 )
 from pgot.model.pgot_qwen2 import PGOTQwen2ForCausalLM, PGOTQwen2Config
 from pgot.train.pgot_dataset import Pix2CapPGOTDataset, PGOTDataCollator
@@ -44,13 +47,14 @@ logging.basicConfig(
 logger = logging.getLogger("pgot.train")
 
 
-def _register_template_token_ids(model, tokenizer):
+def _register_template_token_ids(model, tokenizer, dataset_format: str = "pix2cap"):
     """Pre-tokenize ChatML template blocks ONCE and cache on the model."""
+    system_prompt, user_instruction = get_pgot_prompts(dataset_format)
     blocks = {
-        "pgot_system_prefix_ids": f"<|im_start|>system\n{PGOT_SYSTEM_PROMPT}",
+        "pgot_system_prefix_ids": f"<|im_start|>system\n{system_prompt}",
         "pgot_system_suffix_ids": "<|im_end|>\n",
         "pgot_user_prefix_ids":   "<|im_start|>user\n<image>",
-        "pgot_user_suffix_ids":   f"{PGOT_USER_INSTRUCTION}<|im_end|>\n",
+        "pgot_user_suffix_ids":   f"{user_instruction}<|im_end|>\n",
         "pgot_assistant_prefix_ids": "<|im_start|>assistant\n",
         "pgot_assistant_suffix_ids": "<|im_end|>",
     }
@@ -68,12 +72,15 @@ def _register_template_token_ids(model, tokenizer):
 
 
 def _register_ovt_token_ids(model, tokenizer):
-    """Register <ovt> and <scene_end> token ids on the model."""
+    """Register core object-format token ids on the model."""
     model.pgot_ovt_token_id = tokenizer.convert_tokens_to_ids(OVT_TOKEN)
     model.pgot_scene_end_token_id = tokenizer.convert_tokens_to_ids(SCENE_END_TOKEN)
+    model.pgot_thing_token_id = tokenizer.convert_tokens_to_ids(THING_TOKEN)
+    model.pgot_stuff_token_id = tokenizer.convert_tokens_to_ids(STUFF_TOKEN)
     logger.info(
         f"[PGOT] token ids: <ovt>={model.pgot_ovt_token_id}, "
-        f"<scene_end>={model.pgot_scene_end_token_id}"
+        f"<scene_end>={model.pgot_scene_end_token_id}, "
+        f"<thing>={model.pgot_thing_token_id}, <stuff>={model.pgot_stuff_token_id}"
     )
 
 
@@ -118,6 +125,7 @@ def train():
     config.use_aurora = False
     config.use_captionslot = False
     config.use_pgot = True
+    config.pgot_dataset_format = str(data_args.dataset_format)
 
     if parsed_towers:
         config.mm_vision_tower_aux_list = parsed_towers
@@ -181,6 +189,37 @@ def train():
     config.pgot_mask_llm_image_use_margin = float(
         model_args.pgot_mask_llm_image_use_margin
     )
+    config.pgot_core_outside_weight = float(model_args.pgot_core_outside_weight)
+    config.pgot_core_outside_layers = str(model_args.pgot_core_outside_layers)
+    config.pgot_core_outside_temperature = float(model_args.pgot_core_outside_temperature)
+    config.pgot_core_void_weight = float(model_args.pgot_core_void_weight)
+    config.pgot_core_tail_weight = float(model_args.pgot_core_tail_weight)
+    config.pgot_core_tail_fraction = float(model_args.pgot_core_tail_fraction)
+    config.pgot_core_register_outside_weight = float(
+        model_args.pgot_core_register_outside_weight
+    )
+    config.pgot_e3_attention_competition_weight = float(
+        model_args.pgot_e3_attention_competition_weight
+    )
+    config.pgot_e3_attention_competition_layers = str(
+        model_args.pgot_e3_attention_competition_layers
+    )
+    config.pgot_e3_attention_competition_temperature = float(
+        model_args.pgot_e3_attention_competition_temperature
+    )
+    config.pgot_e3_attention_competition_bg_weight = float(
+        model_args.pgot_e3_attention_competition_bg_weight
+    )
+    config.pgot_register_hard_gt_mask = bool(model_args.pgot_register_hard_gt_mask)
+    config.pgot_register_hard_gt_mask_eval = bool(
+        model_args.pgot_register_hard_gt_mask_eval
+    )
+    config.pgot_register_hard_gt_mask_threshold = float(
+        model_args.pgot_register_hard_gt_mask_threshold
+    )
+    config.pgot_register_attends_caption = bool(model_args.pgot_register_attends_caption)
+    config.pgot_ovt_caption_init = bool(model_args.pgot_ovt_caption_init)
+    config.pgot_ovt_caption_init_scale = float(model_args.pgot_ovt_caption_init_scale)
     config.pgot_v12_enable = bool(model_args.pgot_v12_enable)
     config.pgot_v12_layers = str(model_args.pgot_v12_layers)
     v12_ovt_temp = float(
@@ -311,6 +350,44 @@ def train():
     model.config.pgot_mask_llm_image_use_margin = float(
         model_args.pgot_mask_llm_image_use_margin
     )
+    model.config.pgot_core_outside_weight = float(model_args.pgot_core_outside_weight)
+    model.config.pgot_core_outside_layers = str(model_args.pgot_core_outside_layers)
+    model.config.pgot_core_outside_temperature = float(model_args.pgot_core_outside_temperature)
+    model.config.pgot_core_void_weight = float(model_args.pgot_core_void_weight)
+    model.config.pgot_core_tail_weight = float(model_args.pgot_core_tail_weight)
+    model.config.pgot_core_tail_fraction = float(model_args.pgot_core_tail_fraction)
+    model.config.pgot_core_register_outside_weight = float(
+        model_args.pgot_core_register_outside_weight
+    )
+    model.config.pgot_e3_attention_competition_weight = float(
+        model_args.pgot_e3_attention_competition_weight
+    )
+    model.config.pgot_e3_attention_competition_layers = str(
+        model_args.pgot_e3_attention_competition_layers
+    )
+    model.config.pgot_e3_attention_competition_temperature = float(
+        model_args.pgot_e3_attention_competition_temperature
+    )
+    model.config.pgot_e3_attention_competition_bg_weight = float(
+        model_args.pgot_e3_attention_competition_bg_weight
+    )
+    model.config.pgot_register_hard_gt_mask = bool(
+        model_args.pgot_register_hard_gt_mask
+    )
+    model.config.pgot_register_hard_gt_mask_eval = bool(
+        model_args.pgot_register_hard_gt_mask_eval
+    )
+    model.config.pgot_register_hard_gt_mask_threshold = float(
+        model_args.pgot_register_hard_gt_mask_threshold
+    )
+    model.config.pgot_register_attends_caption = bool(
+        model_args.pgot_register_attends_caption
+    )
+    model.config.pgot_ovt_caption_init = bool(model_args.pgot_ovt_caption_init)
+    model.config.pgot_ovt_caption_init_scale = float(
+        model_args.pgot_ovt_caption_init_scale
+    )
+    model.config.pgot_dataset_format = str(data_args.dataset_format)
     model.config.pgot_v12_enable = bool(model_args.pgot_v12_enable)
     model.config.pgot_v12_layers = str(model_args.pgot_v12_layers)
     model.config.pgot_v12_ovt_temperature = v12_ovt_temp
@@ -387,6 +464,20 @@ def train():
         f"void_w={model.config.pgot_mask_llm_patch_void_weight}, "
         f"image_use_w={model.config.pgot_mask_llm_image_use_weight}, "
         f"image_use_margin={model.config.pgot_mask_llm_image_use_margin}) "
+        f"core_out={model.config.pgot_core_outside_weight} "
+        f"(layers={model.config.pgot_core_outside_layers}, "
+        f"temp={model.config.pgot_core_outside_temperature}, "
+        f"void_w={model.config.pgot_core_void_weight}, "
+        f"register_w={model.config.pgot_core_register_outside_weight}, "
+        f"register_hard_gt={model.config.pgot_register_hard_gt_mask}, "
+        f"register_hard_gt_eval={model.config.pgot_register_hard_gt_mask_eval}, "
+        f"register_hard_threshold={model.config.pgot_register_hard_gt_mask_threshold}, "
+        f"tail_w={model.config.pgot_core_tail_weight}, "
+        f"tail_frac={model.config.pgot_core_tail_fraction}) "
+        f"e3_comp=(w={model.config.pgot_e3_attention_competition_weight}, "
+        f"layers={model.config.pgot_e3_attention_competition_layers}, "
+        f"temp={model.config.pgot_e3_attention_competition_temperature}, "
+        f"bg_w={model.config.pgot_e3_attention_competition_bg_weight}) "
         f"v12={bool(getattr(model.config, 'pgot_v12_enable', False))} "
         f"(layers={getattr(model.config, 'pgot_v12_layers', '12,16,20,24')}, "
         f"ovt_temp={getattr(model.config, 'pgot_v12_ovt_temperature', getattr(model.config, 'pgot_v12_slot_temperature', 1.0))}, "
@@ -450,7 +541,7 @@ def train():
         logger.info(f"[PGOT] vocab resized {old_vocab} -> {new_vocab} ({num_added} new specials)")
 
     _register_ovt_token_ids(model, tokenizer)
-    _register_template_token_ids(model, tokenizer)
+    _register_template_token_ids(model, tokenizer, data_args.dataset_format)
 
     # ---- Initialize vision tower + diffusion head
     if parsed_towers is not None:

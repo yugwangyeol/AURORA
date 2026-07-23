@@ -1,0 +1,63 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_pix2cap_thing_e3/checkpoint-10000",
+  "readout": "llm_attention",
+  "num_samples": 2088,
+  "fARI": 0.44303531636587495,
+  "mBO": 0.43456538038067805,
+  "mIoU": 0.5080863307319382,
+  "active_count_mean": 3.2729885057471266,
+  "by_object_count": {
+    "1-3": {
+      "n": 1453,
+      "fARI": 0.3972475255057772,
+      "mBO": 0.48722587422264585,
+      "mIoU": 0.5748247741699136
+    },
+    "7-10": {
+      "n": 165,
+      "fARI": 0.511356195271241,
+      "mBO": 0.2740031881765886,
+      "mIoU": 0.3013021445184043
+    },
+    "11+": {
+      "n": 60,
+      "fARI": 0.47159644863956296,
+      "mBO": 0.25680716820061206,
+      "mIoU": 0.2658061560243368
+    },
+    "4-6": {
+      "n": 410,
+      "fARI": 0.5736281143266441,
+      "mBO": 0.33857161670287206,
+      "mIoU": 0.3902454597375742
+    }
+  },
+  "gt_source": "coco_instance",
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "metric_resolution": 512,
+  "image_patch_grid": 32,
+  "image_patch_tokens": 1024,
+  "teacher_forced_caption": true,
+  "register_hard_gt_mask_training": false,
+  "register_hard_gt_mask_used_in_eval": false,
+  "recon_source": "diffusion",
+  "dit_ovt_cross_attn_disabled": false,
+  "coda_overlap_excluded": true,
+  "attention_source": "exact_llm_post_rope_image_patch_softmax",
+  "attention_layers": "all",
+  "attention_temperature": 1.0,
+  "image_use_weight": 0.0,
+  "image_use_margin": 0.05,
+  "core_void_weight": 0.0,
+  "background_attention_source": "register_mean",
+  "register_tokens": 4,
+  "register_attends_caption": false,
+  "eval_merge": "mean",
+  "void_tokens": 0,
+  "rFID": 43.1796760559082,
+  "recon_psnr": 9.950290004983259,
+  "recon_ssim": 0.20382830507739294,
+  "recon_mse": 0.1091058970338904,
+  "recon_mae": 0.2604511896972598
+}

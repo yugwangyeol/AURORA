@@ -1,0 +1,158 @@
+{
+  "policy": "COCO instances are canonical; Pix2Cap matches by image/category/bbox IoU and RefCOCO-family captions match by ann_id.",
+  "min_bbox_iou": 0.5,
+  "splits": [
+    {
+      "split": "train",
+      "crop_size": 512,
+      "coco": {
+        "images": 118287,
+        "crop_visible_instances": 753685
+      },
+      "current_strict_pix2cap_manifest": {
+        "path": "/home/jovyan/PGOT/data/pgot_pix2cap_thing_train.jsonl",
+        "images": 16477,
+        "objects": 69363
+      },
+      "pix2cap_source": {
+        "source_images_in_coco_split": 18212,
+        "matched_visible_instances": 76877,
+        "valid_caption_instances": 75018,
+        "visible_instance_coverage": 0.09953495160445014,
+        "bbox_match_iou_mean": 0.9743890155244499,
+        "bbox_match_iou_min": 0.5001122629625251,
+        "match_stats": {
+          "matched_invalid_pix2cap_caption": 1859,
+          "matched_pix2cap_segments": 76877,
+          "unmatched_pix2cap_segments": 45
+        },
+        "crop_visible_nonempty_images": 117072,
+        "images_with_any_captioned_object": 17882,
+        "images_with_all_visible_objects_captioned": 14609
+      },
+      "refcoco_family": {
+        "selected_ref_splits": [
+          "train"
+        ],
+        "split_histograms": {
+          "refcoco": {
+            "testA": 1975,
+            "testB": 1810,
+            "train": 42404,
+            "val": 3811
+          },
+          "refcoco+": {
+            "testA": 1975,
+            "testB": 1798,
+            "train": 42278,
+            "val": 3805
+          },
+          "refcocog": {
+            "test": 5023,
+            "train": 42226,
+            "val": 2573
+          }
+        },
+        "visible_unique_instances_by_dataset": {
+          "refcoco": 41719,
+          "refcoco+": 41593,
+          "refcocog": 41567
+        },
+        "visible_unique_instances_union": 63399,
+        "visible_instance_coverage": 0.08411869680304106,
+        "images": 28054,
+        "expressions": 316312,
+        "crop_visible_nonempty_images": 117072,
+        "images_with_any_captioned_object": 28054,
+        "images_with_all_visible_objects_captioned": 2817
+      },
+      "pix2cap_refcoco_union": {
+        "visible_unique_instances": 129690,
+        "visible_instance_coverage": 0.17207454042471323,
+        "overlap_instances": 8727,
+        "added_by_refcoco_over_pix2cap": 54672,
+        "added_by_pix2cap_over_refcoco": 66291,
+        "images": 41864,
+        "strict_manifest_plus_refcoco_image_union": 40810,
+        "crop_visible_nonempty_images": 117072,
+        "images_with_any_captioned_object": 41864,
+        "images_with_all_visible_objects_captioned": 17184
+      }
+    },
+    {
+      "split": "val",
+      "crop_size": 512,
+      "coco": {
+        "images": 5000,
+        "crop_visible_instances": 32125
+      },
+      "current_strict_pix2cap_manifest": {
+        "path": "/home/jovyan/PGOT/data/pgot_pix2cap_thing_val.jsonl",
+        "images": 2088,
+        "objects": 6834
+      },
+      "pix2cap_source": {
+        "source_images_in_coco_split": 2338,
+        "matched_visible_instances": 7445,
+        "valid_caption_instances": 7248,
+        "visible_instance_coverage": 0.22561867704280156,
+        "bbox_match_iou_mean": 0.9785476162272314,
+        "bbox_match_iou_min": 0.59475218658892,
+        "match_stats": {
+          "matched_invalid_pix2cap_caption": 197,
+          "matched_pix2cap_segments": 7445,
+          "unmatched_pix2cap_segments": 2
+        },
+        "crop_visible_nonempty_images": 4946,
+        "images_with_any_captioned_object": 2214,
+        "images_with_all_visible_objects_captioned": 1195
+      },
+      "refcoco_family": {
+        "selected_ref_splits": "all",
+        "split_histograms": {
+          "refcoco": {
+            "testA": 1975,
+            "testB": 1810,
+            "train": 42404,
+            "val": 3811
+          },
+          "refcoco+": {
+            "testA": 1975,
+            "testB": 1798,
+            "train": 42278,
+            "val": 3805
+          },
+          "refcocog": {
+            "test": 5023,
+            "train": 42226,
+            "val": 2573
+          }
+        },
+        "visible_unique_instances_by_dataset": {
+          "refcoco": 0,
+          "refcoco+": 0,
+          "refcocog": 0
+        },
+        "visible_unique_instances_union": 0,
+        "visible_instance_coverage": 0.0,
+        "images": 0,
+        "expressions": 0,
+        "crop_visible_nonempty_images": 4946,
+        "images_with_any_captioned_object": 0,
+        "images_with_all_visible_objects_captioned": 0
+      },
+      "pix2cap_refcoco_union": {
+        "visible_unique_instances": 7248,
+        "visible_instance_coverage": 0.22561867704280156,
+        "overlap_instances": 0,
+        "added_by_refcoco_over_pix2cap": 0,
+        "added_by_pix2cap_over_refcoco": 7248,
+        "images": 2214,
+        "strict_manifest_plus_refcoco_image_union": 2088,
+        "crop_visible_nonempty_images": 4946,
+        "images_with_any_captioned_object": 2214,
+        "images_with_all_visible_objects_captioned": 1195
+      }
+    }
+  ]
+}

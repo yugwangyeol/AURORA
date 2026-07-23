@@ -12,6 +12,7 @@ current checkpoints once and records:
 import argparse
 import gc
 import json
+import math
 import os
 from collections import defaultdict
 from types import SimpleNamespace
@@ -46,6 +47,7 @@ from pgot.eval.visualize_ovt_overlays import (
     _add_title,
     _color_mask_overlay,
     _concat_grid,
+    _heat_overlay,
     _large_mask_overlay,
     _load_model,
     _palette,
@@ -57,7 +59,11 @@ from pgot.model.pgot_utils import (
     build_pred_mask_llm_attention_eval,
     build_pred_mask_null_bg_eval,
 )
-from pgot.train.pgot_dataset import PGOTDataCollator, Pix2CapPGOTDataset
+from pgot.train.pgot_dataset import (
+    PGOTDataCollator,
+    Pix2CapPGOTDataset,
+    _coda_center_crop_image,
+)
 
 
 def _parse_model_spec(spec: str):
@@ -197,9 +203,12 @@ def _build_pred(args, spec, out, batch, samples_iter, batch_idx, thing_categorie
     if readout == "llm_attention":
         if out.get("llm_attention_maps") is None:
             raise ValueError(f"{spec['label']} requested llm_attention but no maps were returned")
+        bg_maps = out.get("llm_attention_void_maps")
+        if bg_maps is None or bg_maps.numel() == 0:
+            bg_maps = out.get("llm_attention_register_maps")
         return build_pred_mask_llm_attention_eval(
             out["llm_attention_maps"],
-            out["llm_attention_void_maps"],
+            bg_maps,
             valid,
             ovt_is_thing,
             target_size=args.eval_size,
@@ -235,10 +244,12 @@ def _object_maps(args, spec, out):
         K = M // n
         maps = maps[:, : K * n].reshape(B, K, n, P)
         obj = maps.amax(dim=2) if spec["merge"] == "max" else maps.mean(dim=2)
-        void = out.get("llm_attention_void_maps")
-        if void is not None and void.numel() > 0:
-            void = void.float().mean(dim=1)
-        return obj, void, "llm_attention"
+        bg = out.get("llm_attention_void_maps")
+        if bg is None or bg.numel() == 0:
+            bg = out.get("llm_attention_register_maps")
+        if bg is not None and bg.numel() > 0:
+            bg = bg.float().mean(dim=1)
+        return obj, bg, "llm_attention"
 
     logits = out["ovt_logits"].float()
     B, M, P = logits.shape
@@ -524,6 +535,127 @@ def _winner_region_mask(args, obj_maps, obj_valid, source_size):
     return (up.argmax(dim=1) + 1).to(torch.int64)
 
 
+def _probability_heat_overlay(source, probability, title):
+    """Overlay a true [0,1] owner probability without per-map min/max scaling."""
+    src = np.asarray(source.convert("RGB")).astype(np.float32)
+    prob = probability.detach().cpu().float().clamp(0.0, 1.0)
+    prob_np = prob.numpy()
+    color = np.zeros_like(src)
+    color[..., 0] = 255.0
+    color[..., 1] = 40.0
+    color[..., 2] = 40.0
+    strength = 0.68 * np.sqrt(prob_np)[..., None]
+    out = src * (1.0 - strength) + color * strength
+    stats = (
+        f"{title} | p min={float(prob.min()):.3f} "
+        f"mean={float(prob.mean()):.3f} max={float(prob.max()):.3f}"
+    )
+    return _add_title(
+        Image.fromarray(out.clip(0, 255).astype(np.uint8)),
+        stats,
+    )
+
+
+def _competition_visuals(args, out, obj_valid, source, labels):
+    object_probs = out.get("e3_competition_object_probs")
+    background_probs = out.get("e3_competition_background_probs")
+    if (
+        object_probs is None
+        or background_probs is None
+        or object_probs.numel() == 0
+        or background_probs.numel() == 0
+    ):
+        return None, None
+
+    object_probs = object_probs.float()
+    background_probs = background_probs.float()
+    B, K, P = object_probs.shape
+    side = int(round(float(P) ** 0.5))
+    all_probs = torch.cat([object_probs, background_probs], dim=1)
+    valid_full = torch.cat(
+        [
+            obj_valid[:, :K],
+            torch.ones(B, 1, device=obj_valid.device, dtype=torch.bool),
+        ],
+        dim=1,
+    )
+    all_probs = all_probs.masked_fill(
+        ~valid_full.unsqueeze(-1),
+        0.0,
+    )
+    up = F.interpolate(
+        all_probs.reshape(B, K + 1, side, side),
+        size=(args.eval_size, args.eval_size),
+        mode="bilinear",
+        align_corners=False,
+    )
+    up = up / up.sum(dim=1, keepdim=True).clamp_min(1e-8)
+
+    tiles = [_add_title(source, "E3 Competition CE owner probabilities")]
+    for k in obj_valid[0, :K].nonzero(as_tuple=False).flatten().tolist()[:8]:
+        label = labels[k] if k < len(labels) else f"object {k + 1}"
+        tiles.append(
+            _probability_heat_overlay(
+                source,
+                up[0, k],
+                f"owner: {label}",
+            )
+        )
+    tiles.append(
+        _probability_heat_overlay(
+            source,
+            up[0, K],
+            "owner: register background",
+        )
+    )
+
+    entropy = -(
+        up[0].clamp_min(1e-8) * up[0].clamp_min(1e-8).log()
+    ).sum(dim=0)
+    entropy = entropy / max(math.log(max(K + 1, 2)), 1e-8)
+    tiles.append(
+        _probability_heat_overlay(
+            source,
+            entropy,
+            "normalized owner entropy (red = ambiguous)",
+        )
+    )
+
+    assign = up.argmax(dim=1)
+    winner = torch.zeros(
+        (B, args.eval_size, args.eval_size),
+        dtype=torch.int64,
+        device=up.device,
+    )
+    for b in range(B):
+        rank = 0
+        for k in range(K):
+            if not bool(obj_valid[b, k]):
+                continue
+            rank += 1
+            winner[b][assign[b] == k] = rank
+    winner_overlay = _large_mask_overlay(
+        source,
+        winner[0].detach().cpu(),
+        "E3 Competition CE owner winner (register = background)",
+        labels,
+        size=args.large_overlay_size,
+        alpha=args.large_overlay_alpha,
+    )
+    return _concat_grid(tiles, cols=min(4, len(tiles))), winner_overlay
+
+
+def _caption_object_labels(batch, fallback_segments):
+    texts = batch.get("caption_texts") or []
+    text = texts[0] if texts else ""
+    labels = []
+    for chunk in str(text).split("<thing>")[1:]:
+        label = chunk.split("<ovt>", 1)[0].strip().rstrip(".")
+        if label:
+            labels.append(label)
+    return labels or _segment_labels(fallback_segments)
+
+
 def _make_sample_images(
     args,
     spec,
@@ -538,10 +670,10 @@ def _make_sample_images(
     thing_categories,
 ):
     os.makedirs(samples_dir, exist_ok=True)
-    source = Image.open(raw["image_path"]).convert("RGB").resize((args.eval_size, args.eval_size), Image.BILINEAR)
+    source = _load_source_image(args, raw)
     safe = _safe_name(spec["label"])
 
-    labels_all = _segment_labels(raw["segments"])
+    labels_all = _caption_object_labels(batch, raw["segments"])
     pred_overlay = _large_mask_overlay(
         source,
         pred.cpu(),
@@ -553,7 +685,7 @@ def _make_sample_images(
     pred_path = os.path.join(samples_dir, f"{safe}_pred_overlay.png")
     pred_overlay.save(pred_path)
 
-    obj_maps, _bg_map, _map_kind = _object_maps(args, spec, out)
+    obj_maps, bg_map, map_kind = _object_maps(args, spec, out)
     obj_valid, _obj_thing = _object_valid_and_thing(
         batch,
         [raw],
@@ -574,6 +706,51 @@ def _make_sample_images(
     winner_path = os.path.join(samples_dir, f"{safe}_all_region_winner.png")
     winner_overlay.save(winner_path)
 
+    heat_tiles = [_add_title(source, f"{spec['label']} source ({map_kind})")]
+    labels = labels_all
+    for k in obj_valid[0].nonzero(as_tuple=False).flatten().tolist()[:8]:
+        patch_side = int(round(float(obj_maps.shape[-1]) ** 0.5))
+        heat = F.interpolate(
+            obj_maps[0, k].reshape(1, 1, patch_side, patch_side),
+            size=(args.eval_size, args.eval_size),
+            mode="bilinear",
+            align_corners=False,
+        )[0, 0]
+        label = labels[k] if k < len(labels) else f"object {k + 1}"
+        heat_tiles.append(_heat_overlay(source, heat, label))
+    if bg_map is not None and bg_map.numel() > 0:
+        patch_side = int(round(float(bg_map.shape[-1]) ** 0.5))
+        heat = F.interpolate(
+            bg_map[0].reshape(1, 1, patch_side, patch_side),
+            size=(args.eval_size, args.eval_size),
+            mode="bilinear",
+            align_corners=False,
+        )[0, 0]
+        heat_tiles.append(_heat_overlay(source, heat, "register mean (background)"))
+    attention_path = os.path.join(samples_dir, f"{safe}_attention_heatmaps.png")
+    _concat_grid(heat_tiles, cols=min(5, len(heat_tiles))).save(attention_path)
+
+    competition_heatmaps, competition_winner = _competition_visuals(
+        args,
+        out,
+        obj_valid,
+        source,
+        labels_all,
+    )
+    competition_heatmaps_path = None
+    competition_winner_path = None
+    if competition_heatmaps is not None and competition_winner is not None:
+        competition_heatmaps_path = os.path.join(
+            samples_dir,
+            f"{safe}_competition_probability_heatmaps.png",
+        )
+        competition_winner_path = os.path.join(
+            samples_dir,
+            f"{safe}_competition_owner_winner.png",
+        )
+        competition_heatmaps.save(competition_heatmaps_path)
+        competition_winner.save(competition_winner_path)
+
     gt_eval, pred_eval = gt.cpu(), pred.cpu()
     if overlap is not None:
         gt_eval, pred_eval = preproc_masks_overlap(gt_eval, pred_eval, overlap.cpu())
@@ -587,9 +764,19 @@ def _make_sample_images(
     return {
         "pred_overlay": pred_path,
         "all_region_winner": winner_path,
+        "attention_heatmaps": attention_path,
+        "competition_probability_heatmaps": competition_heatmaps_path,
+        "competition_owner_winner": competition_winner_path,
         "fari_error_overlay": error_path,
         "contingency_matrix": matrix_path,
     }
+
+
+def _load_source_image(args, raw):
+    source = Image.open(raw["image_path"]).convert("RGB")
+    if args.image_preprocess_mode == "coda_center_crop":
+        source = _coda_center_crop_image(source, args.coda_crop_size)
+    return source.resize((args.eval_size, args.eval_size), Image.BILINEAR)
 
 
 def _write_csv(path, records):
@@ -616,6 +803,8 @@ def main():
     parser.add_argument("--output_dir", default="/home/jovyan/PGOT/outputs/outside_failure_diagnostics")
     parser.add_argument("--gt_source", choices=["coco_instance", "pix2cap_panoptic"], default="coco_instance")
     parser.add_argument("--coco_mask_cache", default="/home/jovyan/PGOT/data/coco_inst_mask_cache_coda256")
+    parser.add_argument("--image_preprocess_mode", choices=["default", "coda_center_crop"], default="coda_center_crop")
+    parser.add_argument("--coda_crop_size", type=int, default=512)
     parser.add_argument("--max_samples", type=int, default=512)
     parser.add_argument("--sample_indices", default="0,1020,1407")
     parser.add_argument("--batch_size", type=int, default=2)
@@ -651,7 +840,10 @@ def main():
         thing_categories = load_thing_categories("/home/jovyan/data/coco/annotations/panoptic_val2017.json")
 
     run_indices = list(range(len(raw_samples)))
-    if args.max_samples is not None and args.max_samples > 0:
+    if args.max_samples == 0:
+        # Visualization-only mode: evaluate just --sample_indices.
+        run_indices = []
+    elif args.max_samples is not None and args.max_samples > 0:
         run_indices = run_indices[: min(args.max_samples, len(run_indices))]
     sample_indices = sorted({i for i in requested_samples if 0 <= i < len(raw_samples)})
     dataset_indices = sorted(set(run_indices) | set(sample_indices))
@@ -681,6 +873,8 @@ def main():
             n_ovt_per_object=args.n_ovt_per_object,
             max_objects=args.max_objects,
             panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_val2017.json",
+            image_preprocess_mode=args.image_preprocess_mode,
+            coda_crop_size=args.coda_crop_size,
         )
         subset = torch.utils.data.Subset(dataset, dataset_indices)
         collator = PGOTDataCollator(pad_token_id=tokenizer.pad_token_id)
@@ -763,7 +957,7 @@ def main():
                 if global_idx in sample_indices:
                     sample_dir = os.path.join(args.output_dir, f"sample_{global_idx:04d}")
                     if "source" not in sample_image_registry[global_idx]:
-                        source = Image.open(raw["image_path"]).convert("RGB").resize((args.eval_size, args.eval_size), Image.BILINEAR)
+                        source = _load_source_image(args, raw)
                         source_path = os.path.join(sample_dir, "source.png")
                         gt_path = os.path.join(sample_dir, "gt_overlay.png")
                         os.makedirs(sample_dir, exist_ok=True)
@@ -778,11 +972,21 @@ def main():
                         ).save(gt_path)
                         sample_image_registry[global_idx]["source"] = source_path
                         sample_image_registry[global_idx]["gt_overlay"] = gt_path
+                    sample_batch = {
+                        k: (
+                            v[local_b:local_b + 1]
+                            if torch.is_tensor(v) and v.shape[0] == len(global_indices)
+                            else [v[local_b]]
+                            if isinstance(v, list) and len(v) == len(global_indices)
+                            else v
+                        )
+                        for k, v in batch.items()
+                    }
                     image_paths = _make_sample_images(
                         args,
                         spec,
                         raw,
-                        {k: (v[local_b:local_b + 1] if torch.is_tensor(v) and v.shape[0] == len(global_indices) else v) for k, v in batch.items()},
+                        sample_batch,
                         {k: (v[local_b:local_b + 1] if torch.is_tensor(v) and v.shape[0] == len(global_indices) else v) for k, v in out.items()},
                         pred,
                         gt,

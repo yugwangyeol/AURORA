@@ -90,6 +90,69 @@ def _resolve_layer_spec(spec: str, n_layers: int) -> List[int]:
     return deduped
 
 
+def apply_register_hard_gt_mask(
+    attention_bias: torch.Tensor,
+    *,
+    positions: Dict[str, int],
+    gt_masks_per_ovt: torch.Tensor,
+    ovt_valid_mask: torch.Tensor,
+    threshold: float = 0.0,
+) -> Dict[str, torch.Tensor]:
+    """Hard-block register queries from every annotated foreground patch.
+
+    ``attention_bias`` is shared by all transformer layers and has a singleton
+    head axis, so writing ``-inf`` here applies to every layer and every head.
+    Only register-query/image-key edges change; OVT and RAE-query paths are
+    untouched.  Fractional 32x32 GT masks are unioned over valid OVTs and a
+    patch is blocked whenever its coverage is greater than ``threshold``.
+    """
+    if attention_bias.ndim != 4 or attention_bias.shape[1] != 1:
+        raise ValueError(
+            "PGOT attention bias must have shape [B,1,L,L], got "
+            f"{tuple(attention_bias.shape)}"
+        )
+    if not 0.0 <= float(threshold) <= 1.0:
+        raise ValueError(f"register hard-mask threshold must be in [0,1], got {threshold}")
+
+    reg_s, reg_e = int(positions["reg_s"]), int(positions["reg_e"])
+    img_s, img_e = int(positions["img_s"]), int(positions["img_e"])
+    n_register = max(reg_e - reg_s, 0)
+    n_patches = max(img_e - img_s, 0)
+    zero = gt_masks_per_ovt.new_zeros((), dtype=torch.float32)
+    if n_register == 0 or n_patches == 0:
+        return {
+            "attention_bias": attention_bias,
+            "blocked_patch_fraction": zero,
+            "blocked_patch_count": zero,
+        }
+
+    masks = gt_masks_per_ovt.to(device=attention_bias.device, dtype=torch.float32)
+    valid = ovt_valid_mask.to(device=attention_bias.device, dtype=torch.bool)
+    if masks.ndim != 3 or valid.ndim != 2 or masks.shape[:2] != valid.shape:
+        raise ValueError(
+            "GT masks/valid flags must be [B,M,P]/[B,M], got "
+            f"{tuple(masks.shape)}/{tuple(valid.shape)}"
+        )
+    if masks.shape[0] != attention_bias.shape[0]:
+        raise ValueError("GT mask batch does not match attention bias batch")
+    if masks.shape[-1] != n_patches:
+        raise ValueError(
+            f"GT mask has {masks.shape[-1]} patches but image sequence has {n_patches}"
+        )
+
+    foreground = (
+        masks.clamp(0.0, 1.0) * valid.unsqueeze(-1).to(masks.dtype)
+    ).amax(dim=1)
+    blocked = foreground > float(threshold)
+    register_to_image = attention_bias[:, :, reg_s:reg_e, img_s:img_e]
+    register_to_image.masked_fill_(blocked[:, None, None, :], float("-inf"))
+    return {
+        "attention_bias": attention_bias,
+        "blocked_patch_fraction": blocked.float().mean().detach(),
+        "blocked_patch_count": blocked.float().sum(dim=-1).mean().detach(),
+    }
+
+
 class PGOTOVTOwnerHead(nn.Module):
     """OVT-owner logits over image patches."""
 
@@ -473,6 +536,17 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 torch.randn(self.pgot_n_null_bg, D) * embed_std
             )
 
+        self.pgot_ovt_caption_init_enabled = bool(
+            getattr(self.config, "pgot_ovt_caption_init", False)
+        )
+        if self.pgot_ovt_caption_init_enabled:
+            self.pgot_ovt_caption_norm = nn.LayerNorm(D)
+            self.pgot_ovt_caption_projector = nn.Linear(D, D, bias=False)
+            nn.init.eye_(self.pgot_ovt_caption_projector.weight)
+        else:
+            self.pgot_ovt_caption_norm = None
+            self.pgot_ovt_caption_projector = None
+
         self.pgot_v12_enable = bool(getattr(self.config, "pgot_v12_enable", False))
         self.pgot_v14_enable = bool(getattr(self.config, "pgot_v14_enable", False))
         self.pgot_v21_enable = bool(getattr(self.config, "pgot_v21_enable", False))
@@ -563,6 +637,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         # Will be set after tokenizer registration
         self.pgot_ovt_token_id = None
         self.pgot_scene_end_token_id = None
+        self.pgot_thing_token_id = None
+        self.pgot_stuff_token_id = None
 
         # Frozen-template token id sequences (set by trainer setup hook)
         self.pgot_system_prefix_ids: List[int] = []
@@ -684,6 +760,61 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         )
         return embeds.to(device=device, dtype=dtype)
 
+    def _pgot_apply_caption_conditioned_ovt_init(
+        self,
+        caption_embeds: torch.Tensor,
+        caption_input_ids: torch.LongTensor,
+        ovt_positions_in_caption: Optional[torch.Tensor],
+        ovt_valid_mask: Optional[torch.Tensor],
+    ) -> torch.Tensor:
+        """Add each object's own caption representation to its layer-0 OVT.
+
+        For every valid OVT, the span starts after the most recent ``<thing>``
+        (or ``<stuff>`` for legacy manifests) marker and ends immediately before
+        the OVT.  No mask or extra image feature enters this path: at inference
+        it uses the caption tokens already generated autoregressively.
+        """
+        if (
+            not self.pgot_ovt_caption_init_enabled
+            or self.pgot_ovt_caption_projector is None
+            or ovt_positions_in_caption is None
+            or ovt_valid_mask is None
+        ):
+            return caption_embeds
+
+        ids = caption_input_ids.to(caption_embeds.device)
+        positions = ovt_positions_in_caption.to(caption_embeds.device)
+        valid = ovt_valid_mask.to(caption_embeds.device, dtype=torch.bool)
+        out = caption_embeds.clone()
+        marker_ids = {
+            int(x)
+            for x in (self.pgot_thing_token_id, self.pgot_stuff_token_id)
+            if x is not None and int(x) >= 0
+        }
+        scale = float(getattr(self.config, "pgot_ovt_caption_init_scale", 1.0))
+        for b in range(out.shape[0]):
+            for slot_idx in valid[b].nonzero(as_tuple=False).flatten().tolist():
+                end = int(positions[b, slot_idx].item())
+                if end <= 0 or end >= out.shape[1]:
+                    continue
+                start = 0
+                if marker_ids:
+                    prefix = ids[b, :end]
+                    marker_mask = torch.zeros_like(prefix, dtype=torch.bool)
+                    for marker_id in marker_ids:
+                        marker_mask |= prefix == marker_id
+                    marker_pos = marker_mask.nonzero(as_tuple=False).flatten()
+                    if marker_pos.numel() > 0:
+                        start = int(marker_pos[-1].item()) + 1
+                if start >= end:
+                    continue
+                pooled = caption_embeds[b, start:end].float().mean(dim=0)
+                conditioned = self.pgot_ovt_caption_projector(
+                    self.pgot_ovt_caption_norm(pooled.to(caption_embeds.dtype))
+                )
+                out[b, end] = out[b, end] + scale * conditioned.to(out.dtype)
+        return out
+
     def _pgot_embed_null_bg(
         self,
         batch_size: int,
@@ -750,6 +881,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             self.pgot_assistant_suffix_ids, B, model_device, dtype
         )
         caption_embeds = self._pgot_embed_caption(caption_input_ids, model_device, dtype)
+        caption_embeds = self._pgot_apply_caption_conditioned_ovt_init(
+            caption_embeds, caption_input_ids, ovt_positions_in_caption, ovt_valid_mask
+        )
         null_bg_embeds = self._pgot_embed_null_bg(B, model_device, dtype)
         register_embeds = self.pgot_register_embeddings.unsqueeze(0).expand(B, -1, -1).to(
             device=model_device, dtype=dtype
@@ -805,6 +939,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             rae_attends_caption=bool(getattr(self.config, "pgot_rae_attends_caption", False)),
             ovt_absolute_positions=ovt_abs_positions,
             ovt_valid_mask=ovt_valid_mask,
+            register_attends_caption=bool(
+                getattr(self.config, "pgot_register_attends_caption", True)
+            ),
         )
         return {
             "device": model_device,
@@ -1740,6 +1877,499 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         )
         return object_full, void_full
 
+    def _compute_core_all_layer_outside_loss(
+        self,
+        *,
+        hidden_states: Tuple[torch.Tensor, ...],
+        attention_bias: torch.Tensor,
+        positions: Dict[str, int],
+        ovt_abs_positions: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        gt_masks_per_ovt: torch.Tensor,
+        layers_spec: str = "all",
+        temperature: float = 1.0,
+        void_weight: float = 1.0,
+        tail_fraction: float = 0.1,
+    ) -> Dict[str, torch.Tensor]:
+        """Core PGOT loss for object OVTs and the optional residual VOID.
+
+        Attention is the layer's exact post-LN, post-RoPE, GQA-expanded Q/K
+        attention, re-normalized over image patches only.  We retain every head
+        separately, then average uniformly over valid (layer, head, OVT)
+        tuples.  No positive/inside distribution target is imposed: lowering
+        outside mass is sufficient, and reconstruction is free to decide which
+        patches inside the object are useful.  When present, VOID uses the
+        complement of the union of valid OVT masks as its allowed region.
+        """
+        zero = gt_masks_per_ovt.new_zeros((), dtype=torch.float32)
+        empty = {
+            "loss": zero,
+            "tail_loss": zero,
+            "inside_mass": zero,
+            "outside_mass": zero,
+            "full_image_mass": zero,
+            "worst_head_outside_mass": zero,
+            "void_loss": zero,
+            "void_inside_mass": zero,
+            "void_outside_mass": zero,
+            "void_full_image_mass": zero,
+            "void_worst_head_outside_mass": zero,
+            "void_valid_fraction": zero,
+            "valid_ovt_count": zero,
+            "num_layers": zero,
+            "layer_metrics": {},
+        }
+        if hidden_states is None:
+            return empty
+
+        layers = self._resolve_llm_qk_outside_layers(layers_spec)
+        masks = gt_masks_per_ovt.float().clamp(0.0, 1.0)
+        valid = ovt_valid_mask.to(device=masks.device, dtype=torch.bool)
+        if not layers or not bool(valid.any()):
+            return empty
+
+        layer_losses = []
+        layer_inside = []
+        layer_full_image = []
+        layer_worst_heads = []
+        layer_void_losses = []
+        layer_void_inside = []
+        layer_void_full_image = []
+        layer_void_worst_heads = []
+        all_valid_outside = []
+        layer_metrics = {}
+        annotated_union = (masks * valid.unsqueeze(-1).float()).amax(
+            dim=1, keepdim=True
+        ).clamp(0.0, 1.0)
+        void_target = (1.0 - annotated_union).clamp(0.0, 1.0)
+        void_sample_valid = void_target.sum(dim=-1).squeeze(1) > 1e-6
+        for layer_idx in layers:
+            if layer_idx >= len(hidden_states) - 1:
+                continue
+            object_full, void_full, object_patch, void_patch = (
+                self._compute_exact_llm_attention_components_for_layer(
+                    layer_input=hidden_states[layer_idx],
+                    layer_idx=layer_idx,
+                    attention_bias=attention_bias,
+                    positions=positions,
+                    ovt_abs_positions=ovt_abs_positions,
+                    ovt_valid_mask=ovt_valid_mask,
+                    patch_temperature=temperature,
+                )
+            )
+            # [B,H,M]. Fractional boundary patches are weighted by their GT
+            # overlap, rather than being forced to a hard binary decision.
+            outside = (object_patch * (1.0 - masks)[:, None]).sum(dim=-1)
+            inside = (object_patch * masks[:, None]).sum(dim=-1)
+            full_image = object_full.sum(dim=-1)
+            valid_bhm = valid[:, None].expand(-1, object_patch.shape[1], -1)
+            outside_valid = outside[valid_bhm]
+            inside_valid = inside[valid_bhm]
+            full_valid = full_image[valid_bhm]
+            if outside_valid.numel() == 0:
+                continue
+
+            layer_loss = outside_valid.mean()
+            layer_in = inside_valid.mean()
+            layer_full = full_valid.mean()
+            per_head_denom = valid.float().sum().clamp_min(1.0)
+            per_head = (
+                outside * valid[:, None].float()
+            ).sum(dim=(0, 2)) / per_head_denom
+            layer_worst = per_head.max()
+
+            layer_losses.append(layer_loss)
+            layer_inside.append(layer_in)
+            layer_full_image.append(layer_full)
+            layer_worst_heads.append(layer_worst)
+            all_valid_outside.append(outside_valid)
+            layer_metrics[f"core_outside_layer_{layer_idx:02d}"] = layer_loss.detach()
+            layer_metrics[f"core_inside_layer_{layer_idx:02d}"] = layer_in.detach()
+
+            if void_patch.shape[2] > 0 and bool(void_sample_valid.any()):
+                void_outside = (void_patch * annotated_union[:, None]).sum(dim=-1)
+                void_inside = (void_patch * void_target[:, None]).sum(dim=-1)
+                void_full_mass = void_full.sum(dim=-1)
+                valid_bhv = void_sample_valid[:, None, None].expand(
+                    -1, void_patch.shape[1], void_patch.shape[2]
+                )
+                void_outside_valid = void_outside[valid_bhv]
+                void_inside_valid = void_inside[valid_bhv]
+                void_full_valid = void_full_mass[valid_bhv]
+                void_layer_loss = void_outside_valid.mean()
+                void_layer_inside = void_inside_valid.mean()
+                void_layer_full = void_full_valid.mean()
+                void_per_head_denom = (
+                    void_sample_valid.float().sum() * void_patch.shape[2]
+                ).clamp_min(1.0)
+                void_per_head = (
+                    void_outside * void_sample_valid[:, None, None].float()
+                ).sum(dim=(0, 2)) / void_per_head_denom
+                layer_void_losses.append(void_layer_loss)
+                layer_void_inside.append(void_layer_inside)
+                layer_void_full_image.append(void_layer_full)
+                layer_void_worst_heads.append(void_per_head.max())
+                all_valid_outside.append(void_outside_valid)
+                layer_metrics[f"core_void_outside_layer_{layer_idx:02d}"] = (
+                    void_layer_loss.detach()
+                )
+                layer_metrics[f"core_void_inside_layer_{layer_idx:02d}"] = (
+                    void_layer_inside.detach()
+                )
+
+        if not layer_losses:
+            return empty
+
+        object_raw_loss = torch.stack(layer_losses).mean()
+        void_raw_loss = (
+            torch.stack(layer_void_losses).mean() if layer_void_losses else zero
+        )
+        raw_loss = object_raw_loss + float(void_weight) * void_raw_loss
+        outside_values = torch.cat(all_valid_outside)
+        fraction = min(max(float(tail_fraction), 0.0), 1.0)
+        if fraction > 0.0:
+            k = max(1, int(math.ceil(outside_values.numel() * fraction)))
+            tail_loss = torch.topk(outside_values, k=k, largest=True).values.mean()
+        else:
+            tail_loss = zero
+        return {
+            "loss": raw_loss,
+            "tail_loss": tail_loss,
+            "inside_mass": torch.stack(layer_inside).mean().detach(),
+            "outside_mass": object_raw_loss.detach(),
+            "full_image_mass": torch.stack(layer_full_image).mean().detach(),
+            "worst_head_outside_mass": torch.stack(layer_worst_heads).mean().detach(),
+            "void_loss": void_raw_loss,
+            "void_inside_mass": (
+                torch.stack(layer_void_inside).mean().detach()
+                if layer_void_inside else zero
+            ),
+            "void_outside_mass": void_raw_loss.detach(),
+            "void_full_image_mass": (
+                torch.stack(layer_void_full_image).mean().detach()
+                if layer_void_full_image else zero
+            ),
+            "void_worst_head_outside_mass": (
+                torch.stack(layer_void_worst_heads).mean().detach()
+                if layer_void_worst_heads else zero
+            ),
+            "void_valid_fraction": void_sample_valid.float().mean().detach(),
+            "valid_ovt_count": valid.float().sum(dim=1).mean().detach(),
+            "num_layers": raw_loss.new_tensor(float(len(layer_losses))).detach(),
+            "layer_metrics": layer_metrics,
+        }
+
+    def _compute_core_register_foreground_loss(
+        self,
+        *,
+        hidden_states: Tuple[torch.Tensor, ...],
+        attention_bias: torch.Tensor,
+        positions: Dict[str, int],
+        gt_masks_per_ovt: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        layers_spec: str = "all",
+        temperature: float = 1.0,
+    ) -> Dict[str, torch.Tensor]:
+        """Keep every background register off the union of object instances.
+
+        This reconstructs each selected layer/head's exact post-RoPE register
+        query -> image-patch attention and renormalizes over image patches.  It
+        is therefore the register analogue of the core OVT outside-mass loss.
+        """
+        zero = gt_masks_per_ovt.new_zeros((), dtype=torch.float32)
+        empty = {
+            "loss": zero,
+            "foreground_mass": zero,
+            "background_mass": zero,
+            "full_image_mass": zero,
+            "worst_head_foreground_mass": zero,
+            "num_layers": zero,
+            "layer_metrics": {},
+        }
+        reg_s, reg_e = int(positions["reg_s"]), int(positions["reg_e"])
+        n_register = max(reg_e - reg_s, 0)
+        if hidden_states is None or n_register <= 0:
+            return empty
+        layers = self._resolve_llm_qk_outside_layers(layers_spec)
+        if not layers:
+            return empty
+
+        B = gt_masks_per_ovt.shape[0]
+        register_positions = torch.arange(
+            reg_s, reg_e, device=gt_masks_per_ovt.device, dtype=torch.long
+        ).view(1, n_register).expand(B, -1)
+        register_valid = torch.ones(
+            B, n_register, device=gt_masks_per_ovt.device, dtype=torch.bool
+        )
+        masks = gt_masks_per_ovt.float().clamp(0.0, 1.0)
+        valid = ovt_valid_mask.to(masks.device, dtype=torch.bool)
+        foreground = (masks * valid.unsqueeze(-1).float()).amax(
+            dim=1, keepdim=True
+        ).clamp(0.0, 1.0)
+        background = (1.0 - foreground).clamp(0.0, 1.0)
+
+        fg_values, bg_values, full_values, worst_values = [], [], [], []
+        layer_metrics = {}
+        for layer_idx in layers:
+            if layer_idx >= len(hidden_states) - 1:
+                continue
+            register_full, _, register_patch, _ = (
+                self._compute_exact_llm_attention_components_for_layer(
+                    layer_input=hidden_states[layer_idx],
+                    layer_idx=layer_idx,
+                    attention_bias=attention_bias,
+                    positions=positions,
+                    ovt_abs_positions=register_positions,
+                    ovt_valid_mask=register_valid,
+                    patch_temperature=temperature,
+                )
+            )
+            fg_mass = (register_patch * foreground[:, None]).sum(dim=-1)
+            bg_mass = (register_patch * background[:, None]).sum(dim=-1)
+            full_mass = register_full.sum(dim=-1)
+            layer_fg = fg_mass.mean()
+            layer_bg = bg_mass.mean()
+            layer_full = full_mass.mean()
+            layer_worst = fg_mass.mean(dim=(0, 2)).max()
+            fg_values.append(layer_fg)
+            bg_values.append(layer_bg)
+            full_values.append(layer_full)
+            worst_values.append(layer_worst)
+            layer_metrics[f"core_register_fg_layer_{layer_idx:02d}"] = layer_fg.detach()
+            layer_metrics[f"core_register_bg_layer_{layer_idx:02d}"] = layer_bg.detach()
+
+        if not fg_values:
+            return empty
+        loss = torch.stack(fg_values).mean()
+        return {
+            "loss": loss,
+            "foreground_mass": loss.detach(),
+            "background_mass": torch.stack(bg_values).mean().detach(),
+            "full_image_mass": torch.stack(full_values).mean().detach(),
+            "worst_head_foreground_mass": torch.stack(worst_values).mean().detach(),
+            "num_layers": loss.new_tensor(float(len(fg_values))).detach(),
+            "layer_metrics": layer_metrics,
+        }
+
+    def _compute_e3_joint_attention_losses(
+        self,
+        *,
+        hidden_states: Tuple[torch.Tensor, ...],
+        attention_bias: torch.Tensor,
+        positions: Dict[str, int],
+        ovt_abs_positions: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        gt_masks_per_ovt: torch.Tensor,
+        layers_spec: str = "all",
+        temperature: float = 1.0,
+        bg_weight: float = 0.25,
+        eps: float = 1e-6,
+    ) -> Dict[str, torch.Tensor]:
+        """E3's joint all-layer OVT/register supervision.
+
+        One exact post-LN/post-RoPE Q/K reconstruction per layer yields both
+        OVT and register image-patch maps.  We retain the core outside-only
+        objectives for every head/query, then add a head-averaged patch-owner
+        CE over K object groups plus one residual-background register class.
+        No target distribution is imposed *within* an object mask.
+        """
+        zero = gt_masks_per_ovt.new_zeros((), dtype=torch.float32)
+        empty = {
+            "object_loss": zero,
+            "object_inside_mass": zero,
+            "object_outside_mass": zero,
+            "object_full_image_mass": zero,
+            "object_worst_head_outside_mass": zero,
+            "register_loss": zero,
+            "register_foreground_mass": zero,
+            "register_background_mass": zero,
+            "register_full_image_mass": zero,
+            "register_worst_head_foreground_mass": zero,
+            "competition_loss": zero,
+            "competition_fg_loss": zero,
+            "competition_bg_loss": zero,
+            "competition_fg_acc": zero,
+            "competition_bg_acc": zero,
+            "competition_entropy": zero,
+            "competition_register_prob_on_fg": zero,
+            "competition_object_prob_on_bg": zero,
+            "competition_fg_fraction": zero,
+            "valid_ovt_count": zero,
+            "num_layers": zero,
+            "layer_metrics": {},
+        }
+        if hidden_states is None:
+            return empty
+
+        B, M_total, P = gt_masks_per_ovt.shape
+        n = max(int(self.pgot_n_ovt_per_object), 1)
+        K = M_total // n
+        reg_s, reg_e = int(positions["reg_s"]), int(positions["reg_e"])
+        R = max(reg_e - reg_s, 0)
+        layers = self._resolve_llm_qk_outside_layers(layers_spec)
+        if K <= 0 or R <= 0 or not layers:
+            return empty
+
+        M = K * n
+        masks = gt_masks_per_ovt[:, :M].float().clamp(0.0, 1.0)
+        valid = ovt_valid_mask[:, :M].to(device=masks.device, dtype=torch.bool)
+        object_valid = valid.reshape(B, K, n).any(dim=2)
+        if not bool(object_valid.any()):
+            return empty
+
+        grouped_masks = masks.reshape(B, K, n, P).amax(dim=2)
+        grouped_masks = grouped_masks * object_valid.unsqueeze(-1).float()
+        # Panoptic instances are disjoint in pixels, but bilinear patch
+        # resampling can yield fractional contributions from adjacent objects.
+        # Sum-and-clamp is therefore the true soft union; max would leave such
+        # foreground boundary mass available to the background register.
+        foreground = grouped_masks.sum(dim=1, keepdim=True).clamp(0.0, 1.0)
+        background = (1.0 - foreground).clamp(0.0, 1.0)
+        target_mass = grouped_masks.sum(dim=1)
+        fg_patch = target_mass > eps
+        bg_patch = ~fg_patch
+        target_fg = grouped_masks / target_mass[:, None, :].clamp_min(eps)
+        target_class = target_fg.argmax(dim=1)
+
+        register_positions = torch.arange(
+            reg_s, reg_e, device=masks.device, dtype=torch.long
+        ).view(1, R).expand(B, -1)
+        register_valid = torch.ones(B, R, device=masks.device, dtype=torch.bool)
+        joint_positions = torch.cat([ovt_abs_positions[:, :M], register_positions], dim=1)
+        joint_valid = torch.cat([valid, register_valid], dim=1)
+
+        object_losses, object_inside_values, object_full_values = [], [], []
+        object_worst_values, register_fg_values, register_bg_values = [], [], []
+        register_full_values, register_worst_values = [], []
+        competition_values, comp_fg_values, comp_bg_values = [], [], []
+        fg_acc_values, bg_acc_values, entropy_values = [], [], []
+        register_on_fg_values, object_on_bg_values = [], []
+        layer_metrics: Dict[str, torch.Tensor] = {}
+        bg_w = max(float(bg_weight), 0.0)
+
+        for layer_idx in layers:
+            if layer_idx >= len(hidden_states) - 1:
+                continue
+            joint_full, _, joint_patch, _ = (
+                self._compute_exact_llm_attention_components_for_layer(
+                    layer_input=hidden_states[layer_idx],
+                    layer_idx=layer_idx,
+                    attention_bias=attention_bias,
+                    positions=positions,
+                    ovt_abs_positions=joint_positions,
+                    ovt_valid_mask=joint_valid,
+                    patch_temperature=temperature,
+                )
+            )
+            object_full, register_full = joint_full[:, :, :M], joint_full[:, :, M:M + R]
+            object_patch, register_patch = joint_patch[:, :, :M], joint_patch[:, :, M:M + R]
+            H = object_patch.shape[1]
+
+            # Original core outside-only loss: every layer/head/OVT counts.
+            object_outside = (object_patch * (1.0 - masks)[:, None]).sum(dim=-1)
+            object_inside = (object_patch * masks[:, None]).sum(dim=-1)
+            object_full_mass = object_full.sum(dim=-1)
+            valid_bhm = valid[:, None].expand(-1, H, -1)
+            outside_valid = object_outside[valid_bhm]
+            inside_valid = object_inside[valid_bhm]
+            full_valid = object_full_mass[valid_bhm]
+            if outside_valid.numel() == 0:
+                continue
+            layer_object_loss = outside_valid.mean()
+            object_losses.append(layer_object_loss)
+            object_inside_values.append(inside_valid.mean())
+            object_full_values.append(full_valid.mean())
+            per_head_denom = valid.float().sum().clamp_min(1.0)
+            object_worst_values.append(
+                (object_outside * valid[:, None].float()).sum(dim=(0, 2)).div(per_head_denom).max()
+            )
+
+            # Register analogue: every layer/head/register avoids object union.
+            register_fg = (register_patch * foreground[:, None]).sum(dim=-1)
+            register_bg = (register_patch * background[:, None]).sum(dim=-1)
+            register_full_mass = register_full.sum(dim=-1)
+            layer_register_loss = register_fg.mean()
+            register_fg_values.append(layer_register_loss)
+            register_bg_values.append(register_bg.mean())
+            register_full_values.append(register_full_mass.mean())
+            register_worst_values.append(register_fg.mean(dim=(0, 2)).max())
+
+            # Patch ownership uses head-mean maps; heads remain individually
+            # supervised by the two outside objectives above.
+            object_maps = object_patch.reshape(B, H, K, n, P).mean(dim=3).mean(dim=1)
+            register_map = register_patch.mean(dim=(1, 2))
+            object_scores = object_maps.clamp_min(eps).log()
+            object_scores = object_scores.masked_fill(~object_valid.unsqueeze(-1), -1e4)
+            owner_scores = torch.cat([object_scores, register_map.clamp_min(eps).log().unsqueeze(1)], dim=1)
+            owner_probs = F.softmax(owner_scores.transpose(1, 2), dim=-1)
+            object_probs = owner_probs[..., :K]
+            register_probs = owner_probs[..., K]
+
+            fg_loss = zero
+            bg_loss = zero
+            if bool(fg_patch.any()):
+                fg_ce = -(target_fg.transpose(1, 2) * object_probs.clamp_min(eps).log()).sum(dim=-1)
+                fg_loss = fg_ce[fg_patch].mean()
+                fg_acc_values.append(
+                    (object_probs.argmax(dim=-1)[fg_patch] == target_class[fg_patch]).float().mean()
+                )
+                register_on_fg_values.append(register_probs[fg_patch].mean())
+                entropy_values.append(
+                    (-(owner_probs.clamp_min(eps) * owner_probs.clamp_min(eps).log()).sum(dim=-1))[fg_patch].mean()
+                )
+            if bool(bg_patch.any()):
+                bg_loss = -register_probs[bg_patch].clamp_min(eps).log().mean()
+                bg_acc_values.append((owner_probs.argmax(dim=-1)[bg_patch] == K).float().mean())
+                object_on_bg_values.append(object_probs.sum(dim=-1)[bg_patch].mean())
+            if bool(fg_patch.any()) and bool(bg_patch.any()):
+                comp_loss = (fg_loss + bg_w * bg_loss) / (1.0 + bg_w)
+            elif bool(fg_patch.any()):
+                comp_loss = fg_loss
+            else:
+                comp_loss = bg_loss
+            competition_values.append(comp_loss)
+            comp_fg_values.append(fg_loss)
+            comp_bg_values.append(bg_loss)
+
+            layer_metrics[f"core_outside_layer_{layer_idx:02d}"] = layer_object_loss.detach()
+            layer_metrics[f"core_inside_layer_{layer_idx:02d}"] = object_inside_values[-1].detach()
+            layer_metrics[f"core_register_fg_layer_{layer_idx:02d}"] = layer_register_loss.detach()
+            layer_metrics[f"core_register_bg_layer_{layer_idx:02d}"] = register_bg_values[-1].detach()
+            layer_metrics[f"e3_competition_layer_{layer_idx:02d}"] = comp_loss.detach()
+
+        if not object_losses:
+            return empty
+
+        def mean_or_zero(values):
+            return torch.stack(values).mean() if values else zero
+
+        object_loss = mean_or_zero(object_losses)
+        register_loss = mean_or_zero(register_fg_values)
+        return {
+            "object_loss": object_loss,
+            "object_inside_mass": mean_or_zero(object_inside_values).detach(),
+            "object_outside_mass": object_loss.detach(),
+            "object_full_image_mass": mean_or_zero(object_full_values).detach(),
+            "object_worst_head_outside_mass": mean_or_zero(object_worst_values).detach(),
+            "register_loss": register_loss,
+            "register_foreground_mass": register_loss.detach(),
+            "register_background_mass": mean_or_zero(register_bg_values).detach(),
+            "register_full_image_mass": mean_or_zero(register_full_values).detach(),
+            "register_worst_head_foreground_mass": mean_or_zero(register_worst_values).detach(),
+            "competition_loss": mean_or_zero(competition_values),
+            "competition_fg_loss": mean_or_zero(comp_fg_values).detach(),
+            "competition_bg_loss": mean_or_zero(comp_bg_values).detach(),
+            "competition_fg_acc": mean_or_zero(fg_acc_values).detach(),
+            "competition_bg_acc": mean_or_zero(bg_acc_values).detach(),
+            "competition_entropy": mean_or_zero(entropy_values).detach(),
+            "competition_register_prob_on_fg": mean_or_zero(register_on_fg_values).detach(),
+            "competition_object_prob_on_bg": mean_or_zero(object_on_bg_values).detach(),
+            "competition_fg_fraction": fg_patch.float().mean().detach(),
+            "valid_ovt_count": valid.float().sum(dim=1).mean().detach(),
+            "num_layers": object_loss.new_tensor(float(len(object_losses))).detach(),
+            "layer_metrics": layer_metrics,
+        }
+
     def _compute_exact_rae_to_ovtvoid_attention_for_layer(
         self,
         *,
@@ -2406,6 +3036,13 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             )
             object_map = object_patch.mean(dim=1)
             void_map = void_patch.mean(dim=1)
+            # Eval/viz must never hand NaN/Inf to PIL or W&B. The training loss
+            # remains unsanitized and therefore still exposes numerical faults.
+            object_map = torch.nan_to_num(object_map, nan=0.0, posinf=0.0, neginf=0.0)
+            object_map = object_map / object_map.sum(dim=-1, keepdim=True).clamp_min(1e-8)
+            if void_map.numel() > 0:
+                void_map = torch.nan_to_num(void_map, nan=0.0, posinf=0.0, neginf=0.0)
+                void_map = void_map / void_map.sum(dim=-1, keepdim=True).clamp_min(1e-8)
             object_acc = object_map if object_acc is None else object_acc + object_map
             void_acc = void_map if void_acc is None else void_acc + void_map
             count += 1
@@ -2414,6 +3051,160 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         return (
             (object_acc / float(count)).detach(),
             (void_acc / float(count)).detach() if void_acc is not None else None,
+        )
+
+    def _compute_llm_register_patch_attention_maps(
+        self,
+        *,
+        hidden_states: Tuple[torch.Tensor, ...],
+        attention_bias: torch.Tensor,
+        positions: Dict[str, int],
+        layers_spec: str,
+        temperature: float = 1.0,
+    ) -> Optional[torch.Tensor]:
+        """Return layer/head-mean register -> image maps for E1 background."""
+        reg_s, reg_e = int(positions["reg_s"]), int(positions["reg_e"])
+        R = max(reg_e - reg_s, 0)
+        if hidden_states is None or R <= 0:
+            return None
+        B = hidden_states[0].shape[0]
+        query_positions = torch.arange(
+            reg_s, reg_e, device=hidden_states[0].device, dtype=torch.long
+        ).view(1, R).expand(B, -1)
+        query_valid = torch.ones(B, R, device=query_positions.device, dtype=torch.bool)
+        acc = None
+        count = 0
+        for layer_idx in self._resolve_llm_qk_outside_layers(layers_spec):
+            if layer_idx >= len(hidden_states) - 1:
+                continue
+            _, _, register_patch, _ = (
+                self._compute_exact_llm_attention_components_for_layer(
+                    layer_input=hidden_states[layer_idx],
+                    layer_idx=layer_idx,
+                    attention_bias=attention_bias,
+                    positions=positions,
+                    ovt_abs_positions=query_positions,
+                    ovt_valid_mask=query_valid,
+                    patch_temperature=temperature,
+                )
+            )
+            register_map = register_patch.mean(dim=1)
+            register_map = torch.nan_to_num(
+                register_map, nan=0.0, posinf=0.0, neginf=0.0
+            )
+            denom = register_map.sum(dim=-1, keepdim=True)
+            uniform = torch.full_like(register_map, 1.0 / max(register_map.shape[-1], 1))
+            register_map = torch.where(
+                denom > 1e-8,
+                register_map / denom.clamp_min(1e-8),
+                uniform,
+            )
+            acc = register_map if acc is None else acc + register_map
+            count += 1
+        return (acc / float(count)).detach() if count > 0 and acc is not None else None
+
+    def _compute_e3_competition_owner_maps(
+        self,
+        *,
+        hidden_states: Tuple[torch.Tensor, ...],
+        attention_bias: torch.Tensor,
+        positions: Dict[str, int],
+        ovt_abs_positions: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        layers_spec: str = "all",
+        temperature: float = 1.0,
+        eps: float = 1e-6,
+    ) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+        """Return E3's exact per-patch owner probabilities for evaluation.
+
+        This mirrors the probability path used by
+        ``_compute_e3_joint_attention_losses``:
+          1. reconstruct exact post-LN/post-RoPE image-patch attention;
+          2. average heads (and OVTs belonging to the same object);
+          3. average registers into one residual-background class;
+          4. softmax across ``K objects + background`` for every patch.
+
+        The returned maps average those per-layer owner probabilities.  Unlike
+        the independent patch-axis attention maps, classes sum to one at every
+        image patch and therefore directly visualize the Competition CE
+        decision used during E3 training.
+        """
+        if hidden_states is None:
+            return None, None
+        reg_s, reg_e = int(positions["reg_s"]), int(positions["reg_e"])
+        R = max(reg_e - reg_s, 0)
+        n = max(int(self.pgot_n_ovt_per_object), 1)
+        B, M_total = ovt_abs_positions.shape
+        K = M_total // n
+        M = K * n
+        layers = self._resolve_llm_qk_outside_layers(layers_spec)
+        if K <= 0 or R <= 0 or not layers:
+            return None, None
+
+        object_positions = ovt_abs_positions[:, :M]
+        object_valid_tokens = ovt_valid_mask[:, :M].to(dtype=torch.bool)
+        object_valid = object_valid_tokens.reshape(B, K, n).any(dim=2)
+        register_positions = torch.arange(
+            reg_s,
+            reg_e,
+            device=object_positions.device,
+            dtype=torch.long,
+        ).view(1, R).expand(B, -1)
+        register_valid = torch.ones(
+            B,
+            R,
+            device=object_positions.device,
+            dtype=torch.bool,
+        )
+        joint_positions = torch.cat([object_positions, register_positions], dim=1)
+        joint_valid = torch.cat([object_valid_tokens, register_valid], dim=1)
+
+        object_acc = None
+        background_acc = None
+        count = 0
+        for layer_idx in layers:
+            if layer_idx >= len(hidden_states) - 1:
+                continue
+            _, _, joint_patch, _ = self._compute_exact_llm_attention_components_for_layer(
+                layer_input=hidden_states[layer_idx],
+                layer_idx=layer_idx,
+                attention_bias=attention_bias,
+                positions=positions,
+                ovt_abs_positions=joint_positions,
+                ovt_valid_mask=joint_valid,
+                patch_temperature=temperature,
+            )
+            H, P = joint_patch.shape[1], joint_patch.shape[-1]
+            object_patch = joint_patch[:, :, :M]
+            register_patch = joint_patch[:, :, M:M + R]
+            object_maps = object_patch.reshape(B, H, K, n, P).mean(dim=3).mean(dim=1)
+            background_map = register_patch.mean(dim=(1, 2))
+
+            object_scores = object_maps.clamp_min(eps).log()
+            object_scores = object_scores.masked_fill(
+                ~object_valid.unsqueeze(-1),
+                -1e4,
+            )
+            owner_scores = torch.cat(
+                [object_scores, background_map.clamp_min(eps).log().unsqueeze(1)],
+                dim=1,
+            )
+            owner_probs = F.softmax(owner_scores, dim=1, dtype=torch.float32)
+            object_probs = owner_probs[:, :K]
+            background_probs = owner_probs[:, K:K + 1]
+            object_acc = object_probs if object_acc is None else object_acc + object_probs
+            background_acc = (
+                background_probs
+                if background_acc is None
+                else background_acc + background_probs
+            )
+            count += 1
+
+        if count <= 0 or object_acc is None or background_acc is None:
+            return None, None
+        return (
+            (object_acc / float(count)).detach(),
+            (background_acc / float(count)).detach(),
         )
 
     def _compute_exact_llm_attention_maps(
@@ -2528,6 +3319,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         asst_p = self._pgot_embed_frozen_tokens(self.pgot_assistant_prefix_ids, B, model_device, dtype)
         asst_s = self._pgot_embed_frozen_tokens(self.pgot_assistant_suffix_ids, B, model_device, dtype)
         caption_embeds = self._pgot_embed_caption(caption_input_ids, model_device, dtype)
+        caption_embeds = self._pgot_apply_caption_conditioned_ovt_init(
+            caption_embeds, caption_input_ids, ovt_positions_in_caption, ovt_valid_mask
+        )
         null_bg_embeds = self._pgot_embed_null_bg(B, model_device, dtype)
         register_embeds = self.pgot_register_embeddings.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
         n_rae = self.get_model().latent_queries.shape[0]
@@ -2576,6 +3370,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             rae_attends_caption=bool(getattr(self.config, "pgot_rae_attends_caption", False)),
             ovt_absolute_positions=ovt_abs_positions,
             ovt_valid_mask=ovt_valid_mask,
+            register_attends_caption=bool(
+                getattr(self.config, "pgot_register_attends_caption", True)
+            ),
         )
         out = self.model(
             inputs_embeds=inputs_embeds,
@@ -3118,6 +3915,14 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         target_images: torch.Tensor,
         pgot_contrastive_weight: Optional[float] = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        if bool(getattr(self.config, "pgot_register_hard_gt_mask", False)) and (
+            bool(getattr(self.config, "pgot_v14_enable", False))
+            or bool(getattr(self.config, "pgot_v12_enable", False))
+        ):
+            raise ValueError(
+                "pgot_register_hard_gt_mask currently supports the core PGOT path only "
+                "(pgot_v12_enable=False, pgot_v14_enable=False)."
+            )
         if bool(getattr(self.config, "pgot_v14_enable", False)):
             return self._forward_pgot_v14(
                 images=images,
@@ -3175,6 +3980,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         asst_p = self._pgot_embed_frozen_tokens(self.pgot_assistant_prefix_ids, B, model_device, dtype)
         asst_s = self._pgot_embed_frozen_tokens(self.pgot_assistant_suffix_ids, B, model_device, dtype)
         caption_embeds = self._pgot_embed_caption(caption_input_ids, model_device, dtype)
+        caption_embeds = self._pgot_apply_caption_conditioned_ovt_init(
+            caption_embeds, caption_input_ids, ovt_positions_in_caption, ovt_valid_mask
+        )
         null_bg_embeds = self._pgot_embed_null_bg(B, model_device, dtype)
         register_embeds = self.pgot_register_embeddings.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
         n_rae = self.get_model().latent_queries.shape[0]
@@ -3224,7 +4032,38 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             rae_attends_caption=bool(getattr(self.config, "pgot_rae_attends_caption", False)),
             ovt_absolute_positions=ovt_abs_positions,
             ovt_valid_mask=ovt_valid_mask,
+            register_attends_caption=bool(
+                getattr(self.config, "pgot_register_attends_caption", True)
+            ),
         )
+
+        # E2: the train-time GT union is an oracle routing constraint for
+        # residual registers.  It modifies only register-query/image-key edges
+        # in the shared bias, hence all heads in all layers receive the same
+        # structural prohibition.  Standard validation/inference remains
+        # GT-free unless the explicitly oracle-only eval flag is requested.
+        register_hard_configured = bool(
+            getattr(self.config, "pgot_register_hard_gt_mask", False)
+        )
+        register_hard_active = register_hard_configured and (
+            self.training
+            or bool(getattr(self.config, "pgot_register_hard_gt_mask_eval", False))
+        )
+        register_hard_blocked_fraction = gt_masks_per_ovt.new_zeros(())
+        register_hard_blocked_count = gt_masks_per_ovt.new_zeros(())
+        if register_hard_active:
+            hard_stats = apply_register_hard_gt_mask(
+                attn_bias,
+                positions=positions,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+                threshold=float(
+                    getattr(self.config, "pgot_register_hard_gt_mask_threshold", 0.0)
+                ),
+            )
+            attn_bias = hard_stats["attention_bias"]
+            register_hard_blocked_fraction = hard_stats["blocked_patch_fraction"]
+            register_hard_blocked_count = hard_stats["blocked_patch_count"]
 
         # 6) LLM forward
         mask_llm_qk_outside_w = float(getattr(self.config, "pgot_mask_llm_qk_outside_weight", 0.0))
@@ -3237,6 +4076,16 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         mask_llm_image_use_w = float(
             getattr(self.config, "pgot_mask_llm_image_use_weight", 0.0)
         )
+        core_outside_w = float(
+            getattr(self.config, "pgot_core_outside_weight", 0.0)
+        )
+        core_tail_w = float(getattr(self.config, "pgot_core_tail_weight", 0.0))
+        core_register_w = float(
+            getattr(self.config, "pgot_core_register_outside_weight", 0.0)
+        )
+        e3_competition_w = float(
+            getattr(self.config, "pgot_e3_attention_competition_weight", 0.0)
+        )
         out = self.model(
             inputs_embeds=inputs_embeds,
             attention_bias=attn_bias,
@@ -3246,6 +4095,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 or mask_llm_attention_outside_w > 0.0
                 or mask_llm_patch_outside_w > 0.0
                 or mask_llm_image_use_w > 0.0
+                or core_outside_w > 0.0
+                or core_tail_w > 0.0
+                or core_register_w > 0.0
+                or e3_competition_w > 0.0
             ),
             return_dict=True,
         )
@@ -3616,6 +4469,153 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 "void_valid_fraction"
             ]
 
+        loss_core_outside = zero
+        loss_core_tail = zero
+        core_inside_mass = zero
+        core_outside_mass = zero
+        core_full_image_mass = zero
+        core_worst_head_outside_mass = zero
+        core_void_loss = zero
+        core_void_inside_mass = zero
+        core_void_outside_mass = zero
+        core_void_full_image_mass = zero
+        core_void_worst_head_outside_mass = zero
+        core_void_valid_fraction = zero
+        core_valid_ovt_count = zero
+        core_num_layers = zero
+        core_layer_metrics = {}
+        if (core_outside_w > 0.0 or core_tail_w > 0.0) and e3_competition_w <= 0.0:
+            core_losses = self._compute_core_all_layer_outside_loss(
+                hidden_states=out.hidden_states,
+                attention_bias=attn_bias,
+                positions=positions,
+                ovt_abs_positions=ovt_abs_positions,
+                ovt_valid_mask=ovt_valid_mask,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                layers_spec=str(getattr(self.config, "pgot_core_outside_layers", "all")),
+                temperature=float(
+                    getattr(self.config, "pgot_core_outside_temperature", 1.0)
+                ),
+                void_weight=float(
+                    getattr(self.config, "pgot_core_void_weight", 1.0)
+                ),
+                tail_fraction=float(
+                    getattr(self.config, "pgot_core_tail_fraction", 0.1)
+                ),
+            )
+            loss_core_outside = core_losses["loss"]
+            loss_core_tail = core_losses["tail_loss"]
+            core_inside_mass = core_losses["inside_mass"]
+            core_outside_mass = core_losses["outside_mass"]
+            core_full_image_mass = core_losses["full_image_mass"]
+            core_worst_head_outside_mass = core_losses[
+                "worst_head_outside_mass"
+            ]
+            core_void_loss = core_losses["void_loss"]
+            core_void_inside_mass = core_losses["void_inside_mass"]
+            core_void_outside_mass = core_losses["void_outside_mass"]
+            core_void_full_image_mass = core_losses["void_full_image_mass"]
+            core_void_worst_head_outside_mass = core_losses[
+                "void_worst_head_outside_mass"
+            ]
+            core_void_valid_fraction = core_losses["void_valid_fraction"]
+            core_valid_ovt_count = core_losses["valid_ovt_count"]
+            core_num_layers = core_losses["num_layers"]
+            core_layer_metrics = core_losses["layer_metrics"]
+
+        loss_core_register = zero
+        core_register_fg_mass = zero
+        core_register_bg_mass = zero
+        core_register_full_image_mass = zero
+        core_register_worst_head_fg_mass = zero
+        core_register_num_layers = zero
+        core_register_layer_metrics = {}
+        loss_e3_competition = zero
+        e3_competition_fg_loss = zero
+        e3_competition_bg_loss = zero
+        e3_competition_fg_acc = zero
+        e3_competition_bg_acc = zero
+        e3_competition_entropy = zero
+        e3_register_prob_on_fg = zero
+        e3_object_prob_on_bg = zero
+        e3_competition_fg_fraction = zero
+        e3_layer_metrics = {}
+
+        # E3 computes OVT outside, register outside, and ownership competition
+        # jointly, avoiding four separate all-layer Q/K reconstructions.
+        if e3_competition_w > 0.0:
+            if register_hidden.shape[1] <= 0:
+                raise ValueError(
+                    "pgot_e3_attention_competition_weight > 0 requires pgot_n_register > 0."
+                )
+            e3_stats = self._compute_e3_joint_attention_losses(
+                hidden_states=out.hidden_states,
+                attention_bias=attn_bias,
+                positions=positions,
+                ovt_abs_positions=ovt_abs_positions,
+                ovt_valid_mask=ovt_valid_mask,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                layers_spec=str(
+                    getattr(self.config, "pgot_e3_attention_competition_layers", "all")
+                ),
+                temperature=float(
+                    getattr(self.config, "pgot_e3_attention_competition_temperature", 1.0)
+                ),
+                bg_weight=float(
+                    getattr(self.config, "pgot_e3_attention_competition_bg_weight", 0.25)
+                ),
+            )
+            loss_core_outside = e3_stats["object_loss"]
+            core_inside_mass = e3_stats["object_inside_mass"]
+            core_outside_mass = e3_stats["object_outside_mass"]
+            core_full_image_mass = e3_stats["object_full_image_mass"]
+            core_worst_head_outside_mass = e3_stats["object_worst_head_outside_mass"]
+            core_valid_ovt_count = e3_stats["valid_ovt_count"]
+            core_num_layers = e3_stats["num_layers"]
+            loss_core_register = e3_stats["register_loss"]
+            core_register_fg_mass = e3_stats["register_foreground_mass"]
+            core_register_bg_mass = e3_stats["register_background_mass"]
+            core_register_full_image_mass = e3_stats["register_full_image_mass"]
+            core_register_worst_head_fg_mass = e3_stats[
+                "register_worst_head_foreground_mass"
+            ]
+            core_register_num_layers = e3_stats["num_layers"]
+            loss_e3_competition = e3_stats["competition_loss"]
+            e3_competition_fg_loss = e3_stats["competition_fg_loss"]
+            e3_competition_bg_loss = e3_stats["competition_bg_loss"]
+            e3_competition_fg_acc = e3_stats["competition_fg_acc"]
+            e3_competition_bg_acc = e3_stats["competition_bg_acc"]
+            e3_competition_entropy = e3_stats["competition_entropy"]
+            e3_register_prob_on_fg = e3_stats["competition_register_prob_on_fg"]
+            e3_object_prob_on_bg = e3_stats["competition_object_prob_on_bg"]
+            e3_competition_fg_fraction = e3_stats["competition_fg_fraction"]
+            e3_layer_metrics = e3_stats["layer_metrics"]
+        elif core_register_w > 0.0:
+            if register_hidden.shape[1] <= 0:
+                raise ValueError(
+                    "pgot_core_register_outside_weight > 0 requires pgot_n_register > 0."
+                )
+            register_stats = self._compute_core_register_foreground_loss(
+                hidden_states=out.hidden_states,
+                attention_bias=attn_bias,
+                positions=positions,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+                layers_spec=str(getattr(self.config, "pgot_core_outside_layers", "all")),
+                temperature=float(
+                    getattr(self.config, "pgot_core_outside_temperature", 1.0)
+                ),
+            )
+            loss_core_register = register_stats["loss"]
+            core_register_fg_mass = register_stats["foreground_mass"]
+            core_register_bg_mass = register_stats["background_mass"]
+            core_register_full_image_mass = register_stats["full_image_mass"]
+            core_register_worst_head_fg_mass = register_stats[
+                "worst_head_foreground_mass"
+            ]
+            core_register_num_layers = register_stats["num_layers"]
+            core_register_layer_metrics = register_stats["layer_metrics"]
+
         loss_mask_tversky = zero
         if mask_tversky_w > 0.0:
             tversky_alpha = float(getattr(self.config, "pgot_mask_tversky_alpha", 0.5))
@@ -3679,6 +4679,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             + mask_llm_attention_outside_w * loss_mask_llm_attention_outside
             + mask_llm_patch_outside_w * loss_mask_llm_patch_outside
             + mask_llm_image_use_w * loss_mask_llm_image_use
+            + core_outside_w * loss_core_outside
+            + core_tail_w * loss_core_tail
+            + core_register_w * loss_core_register
+            + e3_competition_w * loss_e3_competition
         )
         total_loss = (
             lm_w * loss_lm
@@ -3699,6 +4703,16 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             self.pgot_n_ovt_per_object, 1
         )
         details = {}
+        if register_hard_configured:
+            details["register_hard_mask_active"] = gt_masks_per_ovt.new_tensor(
+                float(register_hard_active)
+            )
+            details["register_hard_mask_blocked_patch_fraction"] = (
+                register_hard_blocked_fraction.detach()
+            )
+            details["register_hard_mask_blocked_patch_count"] = (
+                register_hard_blocked_count.detach()
+            )
         if mask_ce_w > 0.0:
             details["loss_mask_ce"] = loss_mask_ce.detach()
         if mask_fg_w > 0.0:
@@ -3807,6 +4821,53 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             details["llm_patch_void_valid_fraction"] = (
                 llm_patch_void_valid_fraction.detach()
             )
+        if core_outside_w > 0.0 or core_tail_w > 0.0:
+            details["loss_core_outside"] = loss_core_outside.detach()
+            details["loss_core_tail"] = loss_core_tail.detach()
+            details["core_inside_mass"] = core_inside_mass.detach()
+            details["core_outside_mass"] = core_outside_mass.detach()
+            details["core_full_image_mass"] = core_full_image_mass.detach()
+            details["core_worst_head_outside_mass"] = (
+                core_worst_head_outside_mass.detach()
+            )
+            details["core_void_loss"] = core_void_loss.detach()
+            details["core_void_inside_mass"] = core_void_inside_mass.detach()
+            details["core_void_outside_mass"] = core_void_outside_mass.detach()
+            details["core_void_full_image_mass"] = (
+                core_void_full_image_mass.detach()
+            )
+            details["core_void_worst_head_outside_mass"] = (
+                core_void_worst_head_outside_mass.detach()
+            )
+            details["core_void_valid_fraction"] = (
+                core_void_valid_fraction.detach()
+            )
+            details["core_valid_ovt_count"] = core_valid_ovt_count.detach()
+            details["core_num_layers"] = core_num_layers.detach()
+            details.update(core_layer_metrics)
+        if core_register_w > 0.0:
+            details["loss_core_register"] = loss_core_register.detach()
+            details["core_register_fg_mass"] = core_register_fg_mass.detach()
+            details["core_register_bg_mass"] = core_register_bg_mass.detach()
+            details["core_register_full_image_mass"] = (
+                core_register_full_image_mass.detach()
+            )
+            details["core_register_worst_head_fg_mass"] = (
+                core_register_worst_head_fg_mass.detach()
+            )
+            details["core_register_num_layers"] = core_register_num_layers.detach()
+            details.update(core_register_layer_metrics)
+        if e3_competition_w > 0.0:
+            details["loss_e3_attention_competition"] = loss_e3_competition.detach()
+            details["e3_competition_fg_loss"] = e3_competition_fg_loss.detach()
+            details["e3_competition_bg_loss"] = e3_competition_bg_loss.detach()
+            details["e3_competition_fg_acc"] = e3_competition_fg_acc.detach()
+            details["e3_competition_bg_acc"] = e3_competition_bg_acc.detach()
+            details["e3_competition_entropy"] = e3_competition_entropy.detach()
+            details["e3_register_prob_on_fg"] = e3_register_prob_on_fg.detach()
+            details["e3_object_prob_on_bg"] = e3_object_prob_on_bg.detach()
+            details["e3_competition_fg_fraction"] = e3_competition_fg_fraction.detach()
+            details.update(e3_layer_metrics)
         if use_null_bg and need_owner_loss:
             details["null_bg_prob_on_fg"] = null_bg_prob_on_fg.detach()
             details["thing_prob_on_bg"] = thing_prob_on_bg.detach()

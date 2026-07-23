@@ -21,7 +21,7 @@ import json
 import os
 import random
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence, Set
+from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 import numpy as np
 import torch
@@ -73,7 +73,13 @@ def _coda_center_crop_image(
 
 
 class Pix2CapPGOTDataset(Dataset):
-    """Loads the JSONL written by preprocess/prepare_pgot_data.py."""
+    """Loads either a Pix2Cap-panoptic or COCO-instance PGOT JSONL.
+
+    COCO-instance manifests are produced by
+    ``preprocess/prepare_coco_instance_pgot.py`` and are detected through the
+    per-record ``dataset_type`` field. Keeping both formats in one class keeps
+    old checkpoints and scripts operational while giving E1 a thing-only path.
+    """
 
     def __init__(
         self,
@@ -87,6 +93,8 @@ class Pix2CapPGOTDataset(Dataset):
         max_objects: int = 50,
         ovt_token: str = "<ovt>",
         scene_end_token: str = "<scene_end>",
+        thing_token: str = "<thing>",
+        stuff_token: str = "<stuff>",
         rebuild_caption: bool = True,
         panoptic_categories_json: Optional[str] = None,
         image_preprocess_mode: str = "default",
@@ -103,6 +111,8 @@ class Pix2CapPGOTDataset(Dataset):
         self.max_objects = max_objects
         self.ovt_token = ovt_token
         self.scene_end_token = scene_end_token
+        self.thing_token = thing_token
+        self.stuff_token = stuff_token
         self.rebuild_caption = rebuild_caption
         self.thing_category_ids = self._load_thing_category_ids(panoptic_categories_json)
         self.image_preprocess_mode = str(image_preprocess_mode)
@@ -112,8 +122,12 @@ class Pix2CapPGOTDataset(Dataset):
 
         self.ovt_token_id = tokenizer.convert_tokens_to_ids(ovt_token)
         self.scene_end_token_id = tokenizer.convert_tokens_to_ids(scene_end_token)
+        self.thing_token_id = tokenizer.convert_tokens_to_ids(thing_token)
+        self.stuff_token_id = tokenizer.convert_tokens_to_ids(stuff_token)
         assert self.ovt_token_id != tokenizer.unk_token_id, f"{ovt_token} not in tokenizer"
         assert self.scene_end_token_id != tokenizer.unk_token_id, f"{scene_end_token} not in tokenizer"
+        assert self.thing_token_id != tokenizer.unk_token_id, f"{thing_token} not in tokenizer"
+        assert self.stuff_token_id != tokenizer.unk_token_id, f"{stuff_token} not in tokenizer"
 
         self.samples = []
         with open(jsonl_path) as f:
@@ -159,23 +173,106 @@ class Pix2CapPGOTDataset(Dataset):
         mask = torch.from_numpy(seg_id_map == segment_id)
         return mask  # bool (H, W)
 
-    def _build_caption_with_ovt(self, segments: List[dict]) -> str:
-        """Re-build caption from segments — mirrors preprocess/prepare_pgot_data.py."""
+    def _decode_coco_mask(self, sample: dict, segment: dict) -> torch.Tensor:
+        """Decode an official COCO polygon/RLE and apply the exact CODA crop."""
+        try:
+            from pycocotools import mask as mask_utils
+        except ImportError as exc:
+            raise ImportError(
+                "COCO-instance PGOT data requires pycocotools in the training environment."
+            ) from exc
+
+        height, width = int(sample["height"]), int(sample["width"])
+        segmentation = segment["segmentation"]
+        if isinstance(segmentation, list):
+            rle = mask_utils.merge(mask_utils.frPyObjects(segmentation, height, width))
+        elif isinstance(segmentation, dict) and isinstance(segmentation.get("counts"), list):
+            rle = mask_utils.frPyObjects(segmentation, height, width)
+        else:
+            rle = segmentation
+        decoded = mask_utils.decode(rle)
+        if decoded.ndim == 3:
+            decoded = decoded.any(axis=2)
+        mask_img = Image.fromarray(decoded.astype(np.uint8) * 255, mode="L")
+        if self.image_preprocess_mode == "coda_center_crop":
+            mask_img = _coda_center_crop_image(
+                mask_img,
+                self.coda_crop_size,
+                resample=_pil_resample("NEAREST"),
+            )
+        return torch.from_numpy(np.asarray(mask_img, dtype=np.uint8) > 0)
+
+    def _prepare_coco_instance_segments(self, sample: dict):
+        """Decode, remove crop-invisible instances, and order by visible area."""
+        prepared = []
+        for segment in sample["segments"]:
+            mask = self._decode_coco_mask(sample, segment)
+            visible_area = int(mask.sum().item())
+            if visible_area <= 0:
+                continue
+            ys, xs = mask.nonzero(as_tuple=True)
+            enriched = dict(segment)
+            enriched["is_thing"] = True
+            enriched["visible_area"] = visible_area
+            enriched["crop_x"] = int(xs.min().item())
+            enriched["crop_y"] = int(ys.min().item())
+            prepared.append((enriched, mask))
+        prepared.sort(
+            key=lambda item: (
+                -int(item[0]["visible_area"]),
+                int(item[0]["crop_x"]),
+                int(item[0]["crop_y"]),
+                int(item[0].get("ann_id", 0)),
+            )
+        )
+        if len(prepared) > self.max_objects:
+            raise RuntimeError(
+                f"image_id={sample.get('image_id')} has {len(prepared)} visible instances "
+                f"after crop, exceeding max_objects={self.max_objects}; regenerate the "
+                "manifest rather than leaking overflow objects into registers."
+            )
+        return [x[0] for x in prepared], [x[1] for x in prepared]
+
+    def _build_caption_with_ovt(self, segments: List[dict]) -> Tuple[str, int]:
+        """Build complete object chunks and never truncate through an object.
+
+        The returned text always ends in ``<scene_end>``.  If the token budget
+        is exhausted, the last *whole* ``marker + caption + OVT`` chunk is
+        removed, keeping OVT positions and GT masks exactly aligned.
+        """
         from collections import defaultdict
         cat_counter = defaultdict(int)
         parts = []
         ovt_str = self.ovt_token * self.n_ovt_per_object
-        for seg in segments:
+        scene_end_ids = self.tokenizer.encode(
+            f" {self.scene_end_token}", add_special_tokens=False
+        )
+        used = 0
+        for seg in segments[: self.max_objects]:
             cat = seg["category"]
             cat_counter[cat] += 1
             cat_label = f"{cat.capitalize()} {cat_counter[cat]}"
             desc = seg["description"].rstrip(".").rstrip()
-            parts.append(f"{cat_label}: {desc}. {ovt_str}.")
-        return " ".join(parts) + f" {self.scene_end_token}"
+            marker = (
+                self.thing_token
+                if bool(seg.get("is_thing", False))
+                or int(seg.get("category_id", -1)) in self.thing_category_ids
+                else self.stuff_token
+            )
+            chunk = f"{marker} {cat_label}: {desc}. {ovt_str}."
+            candidate = " ".join(parts + [chunk])
+            candidate_ids = self.tokenizer.encode(candidate, add_special_tokens=False)
+            if len(candidate_ids) + len(scene_end_ids) > self.max_caption_tokens:
+                break
+            parts.append(chunk)
+            used += 1
+        text = " ".join(parts) + f" {self.scene_end_token}"
+        return text, used
 
     # --------------------------------------------------------------
     def __getitem__(self, idx: int) -> Dict:
         sample = self.samples[idx]
+        is_coco_instance = str(sample.get("dataset_type", "")).lower() == "coco_instance"
 
         # 1) Image
         image = Image.open(sample["image_path"]).convert("RGB")
@@ -184,16 +281,28 @@ class Pix2CapPGOTDataset(Dataset):
         image_tensor = self.image_processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
         target_image_tensor = self.target_image_processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
 
+        # Decode/sort instance masks before caption construction so caption,
+        # OVT positions, and GT masks share exactly the same visible-area order.
+        coco_masks = None
+        if is_coco_instance:
+            source_segments, coco_masks = self._prepare_coco_instance_segments(sample)
+        else:
+            source_segments = sample["segments"]
+
         # 2) Caption
         if self.rebuild_caption:
-            caption_text = self._build_caption_with_ovt(sample["segments"])
+            caption_text, n_segments_in_caption = self._build_caption_with_ovt(
+                source_segments
+            )
         else:
             caption_text = sample["caption"]
+            n_segments_in_caption = min(len(source_segments), self.max_objects)
         # Tokenize WITHOUT special tokens — we don't want BOS/EOS inserted here
         token_ids = self.tokenizer.encode(caption_text, add_special_tokens=False)
 
-        # 3) Cap caption length and truncate trailing objects if it overflows
-        segments = sample["segments"][: self.max_objects]
+        # 3) Rebuilt captions are packed by whole object chunks above.  The
+        # legacy non-rebuilt path retains a hard cap for backward compatibility.
+        segments = source_segments[:n_segments_in_caption]
         if len(token_ids) > self.max_caption_tokens:
             token_ids = token_ids[: self.max_caption_tokens]
 
@@ -208,15 +317,22 @@ class Pix2CapPGOTDataset(Dataset):
         ovt_positions = ovt_positions[:n_keep]
 
         # 5) Per-OVT patch masks (same mask for both OVTs of the same object)
-        seg_id_map = self._load_panoptic_id_map(sample["panoptic_mask_path"])
+        seg_id_map = None
+        if not is_coco_instance:
+            seg_id_map = self._load_panoptic_id_map(sample["panoptic_mask_path"])
         gt_masks_per_ovt = torch.zeros((n_ovt_max, self.grid_size * self.grid_size), dtype=torch.float32)
         ovt_is_thing = torch.zeros(n_ovt_max, dtype=torch.bool)
         n_obj_actual = n_keep // self.n_ovt_per_object
         for obj_idx in range(n_obj_actual):
             seg_info = segments[obj_idx]
-            mask_hw = self._segment_mask(seg_id_map, int(seg_info["segment_id"])).float()
+            if is_coco_instance:
+                mask_hw = coco_masks[obj_idx].float()
+            else:
+                mask_hw = self._segment_mask(seg_id_map, int(seg_info["segment_id"])).float()
             patch_mask = _mask_to_patch_mask(mask_hw, self.grid_size)
-            is_thing = int(seg_info.get("category_id", -1)) in self.thing_category_ids
+            is_thing = bool(seg_info.get("is_thing", False)) or (
+                int(seg_info.get("category_id", -1)) in self.thing_category_ids
+            )
             for j in range(self.n_ovt_per_object):
                 ovt_idx = obj_idx * self.n_ovt_per_object + j
                 gt_masks_per_ovt[ovt_idx] = patch_mask

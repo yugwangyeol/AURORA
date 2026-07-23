@@ -24,7 +24,7 @@ import torch.nn.functional as F
 from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, "/home/jovyan/PGOT")
-from pgot.constants import NEW_SPECIAL_TOKENS, OVT_TOKEN, SCENE_END_TOKEN
+from pgot.constants import NEW_SPECIAL_TOKENS, OVT_TOKEN, SCENE_END_TOKEN, get_pgot_prompts
 from pgot.eval.pgot_inference import pgot_forward_eval
 from pgot.eval.pgot_metrics import (
     build_pred_mask_spatial_readout,
@@ -35,6 +35,7 @@ from pgot.eval.run_eval import CocoInstanceMaskCache, load_gt_panoptic_mask, loa
 from pgot.model.pgot_qwen2 import PGOTQwen2ForCausalLM
 from pgot.model.pgot_utils import (
     build_pred_mask_competition_eval,
+    build_pred_mask_llm_attention_eval,
     build_pred_mask_null_bg_eval,
     build_pred_mask_ovt_owner_eval,
 )
@@ -149,11 +150,14 @@ def _load_model(model_path: str, dtype: torch.dtype, device: str):
 
     model.pgot_ovt_token_id = tokenizer.convert_tokens_to_ids(OVT_TOKEN)
     model.pgot_scene_end_token_id = tokenizer.convert_tokens_to_ids(SCENE_END_TOKEN)
+    system_prompt, user_instruction = get_pgot_prompts(
+        getattr(config, "pgot_dataset_format", "pix2cap")
+    )
     blocks = {
-        "pgot_system_prefix_ids": "<|im_start|>system\nYou are a vision assistant that describes scenes with grounded objects.",
+        "pgot_system_prefix_ids": f"<|im_start|>system\n{system_prompt}",
         "pgot_system_suffix_ids": "<|im_end|>\n",
         "pgot_user_prefix_ids": "<|im_start|>user\n",
-        "pgot_user_suffix_ids": "\nDescribe all objects and regions in this scene with grounded tokens.<|im_end|>\n",
+        "pgot_user_suffix_ids": f"{user_instruction}<|im_end|>\n",
         "pgot_assistant_prefix_ids": "<|im_start|>assistant\n",
         "pgot_assistant_suffix_ids": "<|im_end|>",
     }
@@ -405,6 +409,21 @@ def _build_pred(args, spec, out, batch, samples_iter, thing_categories):
             patch_grid=args.grid_size,
             map_stuff_to_bg=(args.gt_source == "coco_instance"),
         )
+    if readout == "llm_attention":
+        bg_maps = out.get("llm_attention_void_maps")
+        if bg_maps is None or bg_maps.numel() == 0:
+            bg_maps = out.get("llm_attention_register_maps")
+        return build_pred_mask_llm_attention_eval(
+            out["llm_attention_maps"],
+            bg_maps,
+            valid,
+            ovt_is_thing,
+            target_size=args.eval_size,
+            n_ovt_per_object=args.n_ovt_per_object,
+            patch_grid=args.grid_size,
+            merge=spec["merge"],
+            map_stuff_to_bg=(args.gt_source == "coco_instance"),
+        )
     return build_pred_mask_competition_eval(
         out["ovt_logits"],
         out["reg_logits"],
@@ -418,6 +437,21 @@ def _build_pred(args, spec, out, batch, samples_iter, thing_categories):
 
 
 def _object_maps(args, spec, out):
+    if spec["readout"] == "llm_attention":
+        maps = out["llm_attention_maps"].float()
+        B, M, P = maps.shape
+        n = args.n_ovt_per_object
+        K = M // n
+        maps = maps[:, : K * n].reshape(B, K, n, P)
+        obj = maps.amax(dim=2) if spec["merge"] == "max" else maps.mean(dim=2)
+        side = int(round(float(P) ** 0.5))
+        up = F.interpolate(
+            obj.reshape(B, K, side, side),
+            size=(args.eval_size, args.eval_size),
+            mode="bilinear",
+            align_corners=False,
+        )
+        return up[0]
     if spec["readout"] == "ovt_owner":
         obj = out["ovt_object_probs"].float()
         B, K, P = obj.shape
@@ -593,6 +627,7 @@ def main():
                 ovt_positions_in_caption=batch["ovt_positions_in_caption"],
                 ovt_valid_mask=batch["ovt_valid_mask"],
                 return_llm_qk_maps=True,
+                return_llm_attention_maps=(spec["readout"] == "llm_attention"),
             )
             pred = _build_pred(args, spec, out, batch, raw_samples, thing_categories)[0].detach().cpu()
             obj_maps = _object_maps(args, spec, out).detach().cpu()

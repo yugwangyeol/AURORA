@@ -112,6 +112,7 @@ def build_pgot_attention_mask(
     rae_attends_caption: bool = False,
     ovt_absolute_positions: Optional[torch.Tensor] = None,
     ovt_valid_mask: Optional[torch.Tensor] = None,
+    register_attends_caption: bool = True,
 ) -> torch.Tensor:
     """Build additive attention bias for PGOT.
 
@@ -119,7 +120,7 @@ def build_pgot_attention_mask(
       - image: bidirectional within image + sees sys prefix
       - caption tokens (incl. ovt): causal up to self + attends image bidirectionally
       - assistant_suffix: causal
-      - register: attends image + valid caption + self
+      - register: attends image + self; legacy mode may also attend caption
       - rae_query: attends OVT(if rae_attends_caption=False, via OVT_only_positions
                    passed by model) + register + self  (IMAGE + CAPTION BOTH BLOCKED).
                    `rae_attends_caption=True` restores the legacy mode (caption visible).
@@ -192,12 +193,14 @@ def build_pgot_attention_mask(
                 bias[b_idx, row_idx, valid_cap_positions] = 0.0
             allow_cols(b_idx, row_idx, null_bg_s, null_bg_e)
 
-        # Register rows: image + caption + self (DOES NOT see rae_query)
+        # Register rows: image + register self (DOES NOT see rae_query). E1
+        # blocks caption/OVT value access to prevent a second object shortcut.
         for row_idx in range(reg_s, reg_e):
             allow_cols(b_idx, row_idx, img_s, img_e)
-            if valid_cap_positions.numel() > 0:
+            if register_attends_caption and valid_cap_positions.numel() > 0:
                 bias[b_idx, row_idx, valid_cap_positions] = 0.0
-            allow_cols(b_idx, row_idx, null_bg_s, null_bg_e)
+            if register_attends_caption:
+                allow_cols(b_idx, row_idx, null_bg_s, null_bg_e)
             allow_cols(b_idx, row_idx, reg_s, reg_e)
 
         # rae_query rows: OVT (positions inside caption) + register + self
@@ -816,21 +819,27 @@ def build_pred_mask_llm_attention_eval(
     obj_valid = ovt_valid_mask[:, : K * n].reshape(B, K, n).any(dim=2)
     obj_thing = ovt_is_thing[:, : K * n].reshape(B, K, n).any(dim=2)
 
-    if void_attention_maps is None or void_attention_maps.shape[1] <= 0:
-        raise ValueError("LLM-attention readout requires an always-present void map.")
-    void_map = void_attention_maps.float().mean(dim=1, keepdim=True)
-
-    all_maps = torch.cat([obj_maps, void_map], dim=1)
-    valid_full = torch.cat(
-        [obj_valid, torch.ones(B, 1, device=obj_valid.device, dtype=torch.bool)],
-        dim=1,
-    )
-    all_2d = all_maps.reshape(B, K + 1, patch_grid, patch_grid)
+    has_void = void_attention_maps is not None and void_attention_maps.shape[1] > 0
+    if has_void:
+        void_map = void_attention_maps.float().mean(dim=1, keepdim=True)
+        all_maps = torch.cat([obj_maps, void_map], dim=1)
+        valid_full = torch.cat(
+            [obj_valid, torch.ones(B, 1, device=obj_valid.device, dtype=torch.bool)],
+            dim=1,
+        )
+    else:
+        # Clean core experiment deliberately has no void/register token. Stuff
+        # segments provide the background competitors on coverage-complete
+        # Pix2Cap samples.
+        all_maps = obj_maps
+        valid_full = obj_valid
+    n_classes = all_maps.shape[1]
+    all_2d = all_maps.reshape(B, n_classes, patch_grid, patch_grid)
     up = F.interpolate(
         all_2d, size=(target_size, target_size), mode="bilinear", align_corners=False
     )
     up = up.masked_fill(
-        ~valid_full.view(B, K + 1, 1, 1), torch.finfo(up.dtype).min
+        ~valid_full.view(B, n_classes, 1, 1), torch.finfo(up.dtype).min
     )
     assign = up.argmax(dim=1)
 

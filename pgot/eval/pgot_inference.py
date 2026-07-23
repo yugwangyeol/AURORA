@@ -199,6 +199,9 @@ def pgot_forward_eval(
     asst_p = model._pgot_embed_frozen_tokens(model.pgot_assistant_prefix_ids, B, device, dtype)
     asst_s = model._pgot_embed_frozen_tokens(model.pgot_assistant_suffix_ids, B, device, dtype)
     caption_embeds = model._pgot_embed_caption(caption_input_ids, device, dtype)
+    caption_embeds = model._pgot_apply_caption_conditioned_ovt_init(
+        caption_embeds, caption_input_ids, ovt_positions_in_caption, ovt_valid_mask
+    )
     null_bg_embeds = model._pgot_embed_null_bg(B, device, dtype)
     register_embeds = model.pgot_register_embeddings.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
     n_rae = model.get_model().latent_queries.shape[0]
@@ -254,6 +257,9 @@ def pgot_forward_eval(
         rae_attends_caption=bool(getattr(model.config, "pgot_rae_attends_caption", False)),
         ovt_absolute_positions=ovt_abs_positions,
         ovt_valid_mask=ovt_valid_mask,
+        register_attends_caption=bool(
+            getattr(model.config, "pgot_register_attends_caption", True)
+        ),
     )
     rae_access_mode = str(rae_access_mode).lower()
     if rae_access_mode not in {"baseline", "ovt_only", "register_only", "self_only"}:
@@ -284,6 +290,9 @@ def pgot_forward_eval(
     llm_patch_attention_enabled = (
         float(getattr(model.config, "pgot_mask_llm_patch_outside_weight", 0.0)) > 0.0
         or float(getattr(model.config, "pgot_mask_llm_image_use_weight", 0.0)) > 0.0
+        or float(getattr(model.config, "pgot_core_outside_weight", 0.0)) > 0.0
+        or float(getattr(model.config, "pgot_core_tail_weight", 0.0)) > 0.0
+        or float(getattr(model.config, "pgot_core_register_outside_weight", 0.0)) > 0.0
     )
     need_llm_attention_maps = bool(return_llm_attention_maps) and (
         float(getattr(model.config, "pgot_mask_llm_attention_outside_weight", 0.0)) > 0.0
@@ -344,7 +353,10 @@ def pgot_forward_eval(
 
     llm_attention_maps = None
     llm_attention_void_maps = None
+    llm_attention_register_maps = None
     llm_attention_source = None
+    e3_competition_object_probs = None
+    e3_competition_background_probs = None
     if (
         need_llm_attention_maps
         and llm_patch_attention_enabled
@@ -358,22 +370,76 @@ def pgot_forward_eval(
                 ovt_abs_positions=ovt_abs_positions,
                 ovt_valid_mask=ovt_valid_mask,
                 layers_spec=str(
-                    getattr(
-                        model.config,
-                        "pgot_mask_llm_patch_outside_layers",
-                        "last4",
+                    getattr(model.config, "pgot_core_outside_layers", "all")
+                    if float(getattr(model.config, "pgot_core_outside_weight", 0.0)) > 0.0
+                    or float(getattr(model.config, "pgot_core_tail_weight", 0.0)) > 0.0
+                    else getattr(
+                        model.config, "pgot_mask_llm_patch_outside_layers", "last4"
                     )
                 ),
                 temperature=float(
-                    getattr(
-                        model.config,
-                        "pgot_mask_llm_patch_outside_temperature",
-                        1.0,
+                    getattr(model.config, "pgot_core_outside_temperature", 1.0)
+                    if float(getattr(model.config, "pgot_core_outside_weight", 0.0)) > 0.0
+                    or float(getattr(model.config, "pgot_core_tail_weight", 0.0)) > 0.0
+                    else getattr(
+                        model.config, "pgot_mask_llm_patch_outside_temperature", 1.0
                     )
                 ),
             )
         )
         llm_attention_source = "post_rope_image_patch_softmax"
+        # Register maps are an eval readout, not a training-loss diagnostic.
+        # E2 uses a hard train-time register route and intentionally sets the
+        # soft register-loss weight to zero, so gating this map on that weight
+        # silently removed the background class at evaluation time.
+        if (
+            int(positions.get("reg_e", 0)) > int(positions.get("reg_s", 0))
+            and hasattr(model, "_compute_llm_register_patch_attention_maps")
+        ):
+            llm_attention_register_maps = model._compute_llm_register_patch_attention_maps(
+                hidden_states=out.hidden_states,
+                attention_bias=attn_bias,
+                positions=positions,
+                layers_spec=str(getattr(model.config, "pgot_core_outside_layers", "all")),
+                temperature=float(
+                    getattr(model.config, "pgot_core_outside_temperature", 1.0)
+                ),
+            )
+        if (
+            float(
+                getattr(
+                    model.config,
+                    "pgot_e3_attention_competition_weight",
+                    0.0,
+                )
+            )
+            > 0.0
+            and hasattr(model, "_compute_e3_competition_owner_maps")
+        ):
+            (
+                e3_competition_object_probs,
+                e3_competition_background_probs,
+            ) = model._compute_e3_competition_owner_maps(
+                hidden_states=out.hidden_states,
+                attention_bias=attn_bias,
+                positions=positions,
+                ovt_abs_positions=ovt_abs_positions,
+                ovt_valid_mask=ovt_valid_mask,
+                layers_spec=str(
+                    getattr(
+                        model.config,
+                        "pgot_e3_attention_competition_layers",
+                        "all",
+                    )
+                ),
+                temperature=float(
+                    getattr(
+                        model.config,
+                        "pgot_e3_attention_competition_temperature",
+                        1.0,
+                    )
+                ),
+            )
     elif need_llm_attention_maps and hasattr(model, "_compute_exact_llm_attention_maps"):
         llm_attention_maps, llm_attention_void_maps = model._compute_exact_llm_attention_maps(
             hidden_states=out.hidden_states,
@@ -394,7 +460,10 @@ def pgot_forward_eval(
         "llm_qk_attn_maps": llm_qk_attn_maps,
         "llm_attention_maps": llm_attention_maps,
         "llm_attention_void_maps": llm_attention_void_maps,
+        "llm_attention_register_maps": llm_attention_register_maps,
         "llm_attention_source": llm_attention_source,
+        "e3_competition_object_probs": e3_competition_object_probs,
+        "e3_competition_background_probs": e3_competition_background_probs,
         "ovt_valid_mask": ovt_valid_mask,
         "rae_hidden": rae_hidden,
         "img_hidden": img_hidden,

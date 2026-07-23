@@ -94,6 +94,43 @@ class PGOTModelArguments:
     pgot_mask_llm_patch_void_weight: float = field(default=1.0)
     pgot_mask_llm_image_use_weight: float = field(default=0.0)
     pgot_mask_llm_image_use_margin: float = field(default=0.05)
+    # Core experiment: exact post-RoPE OVT->image attention, normalized only
+    # across the 1024 image patches. Penalize raw probability outside each GT
+    # segment at every selected layer and every head. Tail is an ablation and
+    # defaults to zero weight.
+    pgot_core_outside_weight: float = field(default=0.0)
+    pgot_core_outside_layers: str = field(default="all")
+    pgot_core_outside_temperature: float = field(default=1.0)
+    pgot_core_void_weight: float = field(default=1.0)
+    pgot_core_tail_weight: float = field(default=0.0)
+    pgot_core_tail_fraction: float = field(default=0.1)
+    # E1 background registers use the same exact post-RoPE, image-patch-only
+    # attention as OVT supervision, but their forbidden target is the union of
+    # every visible COCO instance mask.
+    pgot_core_register_outside_weight: float = field(default=0.0)
+    # E3: patch ownership competition inside the MLLM.  At every selected
+    # layer, the head-averaged OVT maps and the four registers compete over
+    # {object_1, ..., object_K, residual-background}.  The implementation
+    # jointly computes this CE and the two core outside losses so Q/K/RoPE are
+    # reconstructed only once per layer.
+    pgot_e3_attention_competition_weight: float = field(default=0.0)
+    pgot_e3_attention_competition_layers: str = field(default="all")
+    pgot_e3_attention_competition_temperature: float = field(default=1.0)
+    pgot_e3_attention_competition_bg_weight: float = field(default=0.25)
+    # E2 diagnostic: during training, make every register -> foreground image
+    # patch edge structurally impossible in the shared attention bias.  The
+    # bias is broadcast to every head and reused by every LLM layer.  Eval is
+    # GT-free by default; the explicit eval switch is oracle-only.
+    pgot_register_hard_gt_mask: bool = field(default=False)
+    pgot_register_hard_gt_mask_eval: bool = field(default=False)
+    pgot_register_hard_gt_mask_threshold: float = field(default=0.0)
+    # False for E1: registers read image patches and other registers, never
+    # caption/OVT values. Legacy checkpoints default to True.
+    pgot_register_attends_caption: bool = field(default=True)
+    # Make layer-0 OVT queries object-specific using their own preceding caption
+    # span. The projection is initialized to identity and trained with PGOT.
+    pgot_ovt_caption_init: bool = field(default=False)
+    pgot_ovt_caption_init_scale: float = field(default=1.0)
 
     # V12: OVT-style owner competition injected between selected LLM layers.
     pgot_v12_enable: bool = field(default=False)
@@ -219,6 +256,7 @@ class PGOTDataArguments:
     eval_num_images: int = field(default=128)
     image_preprocess_mode: str = field(default="default")
     coda_crop_size: int = field(default=512)
+    dataset_format: str = field(default="pix2cap")
     is_multimodal: bool = field(default=True)
     # image_processor_aux_list / vision_tower_aux_token_len_list are populated
     # at runtime by train.py (they are not CLI args).
@@ -322,6 +360,16 @@ def freeze_for_pgot(
         model.pgot_null_bg_embeddings.requires_grad_(True)
         n_trainable += model.pgot_null_bg_embeddings.numel()
 
+    # E1 layer-0 caption-conditioned OVT initialization.
+    if (
+        hasattr(model, "pgot_ovt_caption_projector")
+        and model.pgot_ovt_caption_projector is not None
+    ):
+        for module in (model.pgot_ovt_caption_norm, model.pgot_ovt_caption_projector):
+            for p in module.parameters():
+                p.requires_grad_(True)
+                n_trainable += p.numel()
+
     # V12 OVT-update / owner heads
     if hasattr(model, "pgot_v12_slot_update_blocks"):
         for p in model.pgot_v12_slot_update_blocks.parameters():
@@ -417,6 +465,10 @@ def freeze_for_pgot(
         new_tokens.append(model.pgot_ovt_token_id)
     if hasattr(model, "pgot_scene_end_token_id") and model.pgot_scene_end_token_id is not None:
         new_tokens.append(model.pgot_scene_end_token_id)
+    if hasattr(model, "pgot_thing_token_id") and model.pgot_thing_token_id is not None:
+        new_tokens.append(model.pgot_thing_token_id)
+    if hasattr(model, "pgot_stuff_token_id") and model.pgot_stuff_token_id is not None:
+        new_tokens.append(model.pgot_stuff_token_id)
     if new_tokens:
         # Mark the full embed_tokens AND lm_head trainable; we will mask out
         # gradients of non-new rows in a hook below.
@@ -855,6 +907,9 @@ class PGOTTrainer(Trainer):
             or float(
                 getattr(inner.config, "pgot_mask_llm_image_use_weight", 0.0)
             ) > 0.0
+            or float(getattr(inner.config, "pgot_core_outside_weight", 0.0)) > 0.0
+            or float(getattr(inner.config, "pgot_core_tail_weight", 0.0)) > 0.0
+            or float(getattr(inner.config, "pgot_core_register_outside_weight", 0.0)) > 0.0
         )
         patch_internal_attention_enabled = (
             float(
@@ -865,6 +920,9 @@ class PGOTTrainer(Trainer):
             or float(
                 getattr(inner.config, "pgot_mask_llm_image_use_weight", 0.0)
             ) > 0.0
+            or float(getattr(inner.config, "pgot_core_outside_weight", 0.0)) > 0.0
+            or float(getattr(inner.config, "pgot_core_tail_weight", 0.0)) > 0.0
+            or float(getattr(inner.config, "pgot_core_register_outside_weight", 0.0)) > 0.0
         )
         out = pgot_forward_eval(
             inner,
@@ -940,9 +998,18 @@ class PGOTTrainer(Trainer):
                 .reshape(B, K, n_per_obj, P)
                 .mean(dim=2)
             )
-            if out.get("llm_attention_void_maps") is not None:
+            if (
+                out.get("llm_attention_void_maps") is not None
+                and out["llm_attention_void_maps"].numel() > 0
+            ):
                 void_maps_by_mode[internal_mode] = (
                     out["llm_attention_void_maps"].float().mean(dim=1)
+                )
+            elif out.get("llm_attention_register_maps") is not None:
+                # E1 has no semantic void. Multiple residual registers are
+                # averaged into one background diagnostic tile.
+                void_maps_by_mode[internal_mode] = (
+                    out["llm_attention_register_maps"].float().mean(dim=1)
                 )
 
         chunk_labels = self._decode_chunk_labels(
@@ -957,6 +1024,26 @@ class PGOTTrainer(Trainer):
         H, W = source_pixels.shape[-2:]
         images_by_mode = {mode: {} for mode in map_modes}
         labels_by_sample = []
+        map_stats_by_sample = [[] for _ in range(min(B, n_images))]
+
+        def _normalize_attention_for_viz(raw: torch.Tensor) -> torch.Tensor:
+            """Contrast-normalize a probability map without turning it black.
+
+            Internal attention values are normally O(1/1024), so direct image
+            casting is nearly black.  Percentile normalization exposes spatial
+            structure while a uniform-map fallback uses mid gray/red rather
+            than falsely looking like an all-zero map.
+            """
+            x = torch.nan_to_num(raw.detach().float().cpu(), nan=0.0, posinf=0.0, neginf=0.0)
+            flat = x.flatten()
+            lo = torch.quantile(flat, 0.02)
+            hi = torch.quantile(flat, 0.98)
+            if float((hi - lo).abs()) < 1e-10:
+                if float(x.abs().max()) < 1e-12:
+                    return torch.zeros_like(x)
+                return torch.full_like(x, 0.5)
+            return ((x - lo) / (hi - lo)).clamp(0.0, 1.0)
+
         for b in range(min(B, n_images)):
             valid_obj_idx = per_obj_valid[b].nonzero(as_tuple=False).flatten().tolist()
             for mode, per_obj in map_modes.items():
@@ -971,10 +1058,13 @@ class PGOTTrainer(Trainer):
                     if mode in {
                         "spatial", "llm_attention", "llm_patch_attention", "ovt_owner"
                     }:
-                        # Spatial-softmax probabilities are O(1/P). Normalize
-                        # each map only for visibility; the underlying loss and
-                        # standalone eval still use the unscaled probabilities.
-                        m = m / m.amax().clamp_min(1e-6)
+                        raw_min, raw_max = float(m.min()), float(m.max())
+                        map_stats_by_sample[b].append(
+                            f"{mode}[{k}]={raw_min:.2e}..{raw_max:.2e}"
+                        )
+                        # Visualization-only contrast. Loss/eval still consume
+                        # the untouched probabilities above.
+                        m = _normalize_attention_for_viz(m)
                     m = m.clamp(0.0, 1.0)
                     color = torch.tensor([1.0, 0.15, 0.15]).view(3, 1, 1)
                     overlay = source_pixels[b] * (1 - 0.6 * m) + color * 0.6 * m
@@ -986,7 +1076,11 @@ class PGOTTrainer(Trainer):
                         m.unsqueeze(0).unsqueeze(0), size=(H, W),
                         mode="bilinear", align_corners=False,
                     )[0, 0].cpu()
-                    m = m / m.amax().clamp_min(1e-6)
+                    raw_min, raw_max = float(m.min()), float(m.max())
+                    map_stats_by_sample[b].append(
+                        f"{mode}[register]={raw_min:.2e}..{raw_max:.2e}"
+                    )
+                    m = _normalize_attention_for_viz(m)
                     color = torch.tensor([0.1, 0.35, 1.0]).view(3, 1, 1)
                     overlay = source_pixels[b] * (1 - 0.6 * m) + color * 0.6 * m
                     tiles.append(overlay.clamp(0.0, 1.0))
@@ -994,7 +1088,10 @@ class PGOTTrainer(Trainer):
                 images_by_mode[mode][b] = panel.permute(1, 2, 0).numpy()
             captions = " | ".join(chunk_labels[b][:8]) if b < len(chunk_labels) else ""
             if void_maps_by_mode:
-                captions = f"{captions} | void" if captions else "void"
+                bg_label = "void" if int(getattr(inner, "pgot_n_null_bg", 0)) > 0 else "register-bg"
+                captions = f"{captions} | {bg_label}" if captions else bg_label
+            if map_stats_by_sample[b]:
+                captions = f"{captions} || " + "; ".join(map_stats_by_sample[b][:10])
             labels_by_sample.append(captions)
         return {"images_by_mode": images_by_mode, "labels_by_sample": labels_by_sample}
 
