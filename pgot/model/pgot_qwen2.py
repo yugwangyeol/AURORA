@@ -684,6 +684,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         ovt_valid_mask: Optional[torch.Tensor] = None,
         ovt_is_thing: Optional[torch.Tensor] = None,
         gt_masks_per_ovt: Optional[torch.Tensor] = None,
+        gt_rae_masks_per_ovt: Optional[torch.Tensor] = None,
         target_images: Optional[torch.Tensor] = None,
         pgot_contrastive_weight: Optional[float] = None,
         **kwargs,
@@ -704,6 +705,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 ovt_valid_mask=ovt_valid_mask,
                 ovt_is_thing=ovt_is_thing,
                 gt_masks_per_ovt=gt_masks_per_ovt,
+                gt_rae_masks_per_ovt=gt_rae_masks_per_ovt,
                 target_images=target_images,
                 pgot_contrastive_weight=pgot_contrastive_weight,
             )
@@ -936,6 +938,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             device=model_device,
             dtype=inputs_embeds.dtype,
             rae_bidirectional=bool(getattr(self.config, "pgot_rae_bidirectional", False)),
+            rae_isolated=bool(getattr(self.config, "pgot_e4_rae_isolated", False)),
             rae_attends_caption=bool(getattr(self.config, "pgot_rae_attends_caption", False)),
             ovt_absolute_positions=ovt_abs_positions,
             ovt_valid_mask=ovt_valid_mask,
@@ -2163,6 +2166,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         layers_spec: str = "all",
         temperature: float = 1.0,
         bg_weight: float = 0.25,
+        full_inside_target: float = 0.0,
         eps: float = 1e-6,
     ) -> Dict[str, torch.Tensor]:
         """E3's joint all-layer OVT/register supervision.
@@ -2179,6 +2183,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "object_inside_mass": zero,
             "object_outside_mass": zero,
             "object_full_image_mass": zero,
+            "object_full_inside_floor_loss": zero,
+            "object_full_inside_mass": zero,
+            "object_full_outside_mass": zero,
+            "object_full_inside_satisfied_fraction": zero,
             "object_worst_head_outside_mass": zero,
             "register_loss": zero,
             "register_foreground_mass": zero,
@@ -2239,6 +2247,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         joint_valid = torch.cat([valid, register_valid], dim=1)
 
         object_losses, object_inside_values, object_full_values = [], [], []
+        full_inside_floor_values, full_inside_values = [], []
+        full_outside_values, full_inside_satisfied_values = [], []
         object_worst_values, register_fg_values, register_bg_values = [], [], []
         register_full_values, register_worst_values = [], []
         competition_values, comp_fg_values, comp_bg_values = [], [], []
@@ -2269,6 +2279,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             object_outside = (object_patch * (1.0 - masks)[:, None]).sum(dim=-1)
             object_inside = (object_patch * masks[:, None]).sum(dim=-1)
             object_full_mass = object_full.sum(dim=-1)
+            object_full_inside = (object_full * masks[:, None]).sum(dim=-1)
+            object_full_outside = (
+                object_full * (1.0 - masks)[:, None].clamp(0.0, 1.0)
+            ).sum(dim=-1)
             valid_bhm = valid[:, None].expand(-1, H, -1)
             outside_valid = object_outside[valid_bhm]
             inside_valid = object_inside[valid_bhm]
@@ -2279,6 +2293,20 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             object_losses.append(layer_object_loss)
             object_inside_values.append(inside_valid.mean())
             object_full_values.append(full_valid.mean())
+            full_inside_valid = object_full_inside[valid_bhm]
+            full_outside_valid = object_full_outside[valid_bhm]
+            full_inside_values.append(full_inside_valid.mean())
+            full_outside_values.append(full_outside_valid.mean())
+            if float(full_inside_target) > 0.0:
+                target_log = math.log(max(float(full_inside_target), eps))
+                floor = F.relu(
+                    object_full_inside.clamp_min(eps).log().new_tensor(target_log)
+                    - object_full_inside.clamp_min(eps).log()
+                )
+                full_inside_floor_values.append(floor[valid_bhm].mean())
+                full_inside_satisfied_values.append(
+                    (full_inside_valid >= float(full_inside_target)).float().mean()
+                )
             per_head_denom = valid.float().sum().clamp_min(1.0)
             object_worst_values.append(
                 (object_outside * valid[:, None].float()).sum(dim=(0, 2)).div(per_head_denom).max()
@@ -2350,6 +2378,14 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "object_inside_mass": mean_or_zero(object_inside_values).detach(),
             "object_outside_mass": object_loss.detach(),
             "object_full_image_mass": mean_or_zero(object_full_values).detach(),
+            "object_full_inside_floor_loss": mean_or_zero(
+                full_inside_floor_values
+            ),
+            "object_full_inside_mass": mean_or_zero(full_inside_values).detach(),
+            "object_full_outside_mass": mean_or_zero(full_outside_values).detach(),
+            "object_full_inside_satisfied_fraction": mean_or_zero(
+                full_inside_satisfied_values
+            ).detach(),
             "object_worst_head_outside_mass": mean_or_zero(object_worst_values).detach(),
             "register_loss": register_loss,
             "register_foreground_mass": register_loss.detach(),
@@ -2367,6 +2403,268 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "competition_fg_fraction": fg_patch.float().mean().detach(),
             "valid_ovt_count": valid.float().sum(dim=1).mean().detach(),
             "num_layers": object_loss.new_tensor(float(len(object_losses))).detach(),
+            "layer_metrics": layer_metrics,
+        }
+
+    def _compute_exact_e4_rae_owner_attention_for_layer(
+        self,
+        *,
+        layer_input: torch.Tensor,
+        layer_idx: int,
+        attention_bias: torch.Tensor,
+        positions: Dict[str, int],
+        ovt_abs_positions: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+    ) -> Dict[str, torch.Tensor]:
+        """Reconstruct E4 RAE-query attention without owner renormalization.
+
+        Probabilities come from the selected transformer layer's actual
+        post-LN/post-RoPE full-key softmax. OVT/register probabilities therefore
+        remain small when a query escapes through its own state or another RAE
+        query; this is essential for detecting and penalizing the shortcut.
+        """
+        block = self.model.layers[layer_idx]
+        attn = block.self_attn
+        attn_input = block.input_layernorm(layer_input)
+        B, L, _ = attn_input.shape
+        rae_s, rae_e = int(positions["rae_s"]), int(positions["rae_e"])
+        reg_s, reg_e = int(positions["reg_s"]), int(positions["reg_e"])
+        Q = max(rae_e - rae_s, 0)
+        M = int(ovt_abs_positions.shape[1])
+        R = max(reg_e - reg_s, 0)
+
+        q_proj = attn.q_proj(attn_input[:, rae_s:rae_e])
+        k_proj = attn.k_proj(attn_input)
+        num_heads = int(getattr(attn, "num_heads", self.config.num_attention_heads))
+        num_kv_heads = int(
+            getattr(attn, "num_key_value_heads", self.config.num_key_value_heads)
+        )
+        head_dim = int(getattr(attn, "head_dim", q_proj.shape[-1] // num_heads))
+        q = q_proj.view(B, Q, num_heads, head_dim).transpose(1, 2)
+        k = k_proj.view(B, L, num_kv_heads, head_dim).transpose(1, 2)
+
+        cos, sin = attn.rotary_emb(k, seq_len=L)
+        cos = cos.to(device=q.device, dtype=q.dtype)
+        sin = sin.to(device=q.device, dtype=q.dtype)
+        all_positions = torch.arange(L, device=q.device, dtype=torch.long)
+        query_positions = torch.arange(rae_s, rae_e, device=q.device, dtype=torch.long)
+        k_cos = cos[all_positions].view(1, 1, L, head_dim)
+        k_sin = sin[all_positions].view(1, 1, L, head_dim)
+        q_cos = cos[query_positions].view(1, 1, Q, head_dim)
+        q_sin = sin[query_positions].view(1, 1, Q, head_dim)
+        q = (q * q_cos) + (self._pgot_rotate_half(q) * q_sin)
+        k = (k * k_cos) + (self._pgot_rotate_half(k) * k_sin)
+        if num_kv_heads != num_heads:
+            groups = int(
+                getattr(attn, "num_key_value_groups", num_heads // num_kv_heads)
+            )
+            k = k.repeat_interleave(groups, dim=1)
+
+        scores = torch.matmul(q.float(), k.float().transpose(2, 3))
+        scores = scores / math.sqrt(float(head_dim))
+        scores = scores + attention_bias[:, :, rae_s:rae_e, :].float()
+        probs = F.softmax(scores, dim=-1, dtype=torch.float32)
+
+        safe_ovt = ovt_abs_positions.clamp(min=0, max=L - 1)
+        object_probs = probs.gather(
+            dim=-1,
+            index=safe_ovt[:, None, None, :].expand(B, num_heads, Q, M),
+        )
+        object_probs = object_probs * ovt_valid_mask[:, None, None, :].float()
+        register_probs = probs[..., reg_s:reg_e]
+        rae_probs = probs[..., rae_s:rae_e]
+        self_probs = torch.diagonal(rae_probs, dim1=-2, dim2=-1)
+        other_rae_probs = (rae_probs.sum(dim=-1) - self_probs).clamp_min(0.0)
+        return {
+            "object_probs": object_probs,
+            "register_probs": register_probs,
+            "self_probs": self_probs,
+            "other_rae_probs": other_rae_probs,
+        }
+
+    def _compute_e4_rae_binding_loss(
+        self,
+        *,
+        hidden_states: Optional[Tuple[torch.Tensor, ...]],
+        attention_bias: torch.Tensor,
+        positions: Dict[str, int],
+        ovt_abs_positions: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        gt_masks_per_ovt: torch.Tensor,
+        layers_spec: str = "last8",
+        eps: float = 1e-6,
+    ) -> Dict[str, torch.Tensor]:
+        """Bind each 16x16 RAE query to its GT object OVT or registers.
+
+        The loss uses actual full-key probabilities. It never converts a
+        predicted 32x32 ownership map into a DiT condition and never
+        renormalizes away RAE-self attention.
+        """
+        z = gt_masks_per_ovt.new_zeros((), dtype=torch.float32)
+        empty = {
+            "loss": z,
+            "correct_owner_mass": z,
+            "owner_total_mass": z,
+            "object_mass_on_fg": z,
+            "register_mass_on_fg": z,
+            "register_mass_on_bg": z,
+            "self_mass": z,
+            "other_rae_mass": z,
+            "fg_acc": z,
+            "bg_acc": z,
+            "entropy": z,
+            "fg_fraction": z,
+            "num_layers": z,
+            "layer_metrics": {},
+        }
+        if hidden_states is None:
+            return empty
+
+        B, M_total, P = gt_masks_per_ovt.shape
+        n = max(int(self.pgot_n_ovt_per_object), 1)
+        K = M_total // n
+        M = K * n
+        Q = int(positions["rae_e"] - positions["rae_s"])
+        R = int(positions["reg_e"] - positions["reg_s"])
+        if K <= 0 or Q <= 0 or R <= 0:
+            return empty
+
+        masks = gt_masks_per_ovt[:, :M].float().clamp(0.0, 1.0)
+        if P != Q:
+            src_side = int(math.isqrt(P))
+            dst_side = int(math.isqrt(Q))
+            if src_side * src_side != P or dst_side * dst_side != Q:
+                raise ValueError(
+                    "E4 RAE binding expects square mask/query grids, got "
+                    f"P={P}, Q={Q}"
+                )
+            masks = F.interpolate(
+                masks.reshape(B * M, 1, src_side, src_side),
+                size=(dst_side, dst_side),
+                mode="area",
+            ).reshape(B, M, Q)
+
+        token_valid = ovt_valid_mask[:, :M].to(dtype=torch.bool)
+        object_valid = token_valid.reshape(B, K, n).any(dim=2)
+        object_target = masks.reshape(B, K, n, Q).amax(dim=2)
+        object_target = object_target * object_valid.unsqueeze(-1).float()
+        foreground = object_target.sum(dim=1).clamp(0.0, 1.0)
+        background = (1.0 - foreground).clamp(0.0, 1.0)
+        target = torch.cat([object_target, background.unsqueeze(1)], dim=1)
+        target = target / target.sum(dim=1, keepdim=True).clamp_min(eps)
+        target_q = target.transpose(1, 2)
+        hard_target = target_q.argmax(dim=-1)
+        fg_weight = foreground
+        bg_weight = background
+
+        losses: List[torch.Tensor] = []
+        correct_values, owner_values = [], []
+        object_fg_values, register_fg_values, register_bg_values = [], [], []
+        self_values, other_rae_values = [], []
+        fg_acc_values, bg_acc_values, entropy_values = [], [], []
+        layer_metrics: Dict[str, torch.Tensor] = {}
+        layers = _resolve_layer_spec(
+            layers_spec,
+            int(getattr(self.config, "num_hidden_layers", 0)),
+        )
+
+        for layer_idx in layers:
+            if layer_idx < 0 or layer_idx >= len(hidden_states) - 1:
+                continue
+            attn = self._compute_exact_e4_rae_owner_attention_for_layer(
+                layer_input=hidden_states[layer_idx],
+                layer_idx=layer_idx,
+                attention_bias=attention_bias,
+                positions=positions,
+                ovt_abs_positions=ovt_abs_positions[:, :M],
+                ovt_valid_mask=token_valid,
+            )
+            object_probs = (
+                attn["object_probs"]
+                .reshape(B, -1, Q, K, n)
+                .sum(dim=-1)
+                .mean(dim=1)
+            )
+            register_probs = attn["register_probs"].sum(dim=-1).mean(dim=1)
+            owner_probs = torch.cat(
+                [object_probs, register_probs.unsqueeze(-1)],
+                dim=-1,
+            )
+            per_query_loss = -(
+                target_q * owner_probs.clamp_min(eps).log()
+            ).sum(dim=-1)
+            losses.append(per_query_loss.mean())
+
+            correct = (target_q * owner_probs).sum(dim=-1)
+            owner_total = owner_probs.sum(dim=-1)
+            object_mass = object_probs.sum(dim=-1)
+            self_mass = attn["self_probs"].mean(dim=1)
+            other_rae_mass = attn["other_rae_probs"].mean(dim=1)
+            fg_denom = fg_weight.sum().clamp_min(1.0)
+            bg_denom = bg_weight.sum().clamp_min(1.0)
+            correct_values.append(correct.mean())
+            owner_values.append(owner_total.mean())
+            object_fg_values.append((object_mass * fg_weight).sum() / fg_denom)
+            register_fg_values.append(
+                (register_probs * fg_weight).sum() / fg_denom
+            )
+            register_bg_values.append(
+                (register_probs * bg_weight).sum() / bg_denom
+            )
+            self_values.append(self_mass.mean())
+            other_rae_values.append(other_rae_mass.mean())
+
+            prediction = owner_probs.argmax(dim=-1)
+            fg_cells = foreground > 0.5
+            bg_cells = ~fg_cells
+            if bool(fg_cells.any()):
+                fg_acc_values.append(
+                    (prediction[fg_cells] == hard_target[fg_cells]).float().mean()
+                )
+            if bool(bg_cells.any()):
+                bg_acc_values.append(
+                    (prediction[bg_cells] == K).float().mean()
+                )
+            owner_norm = owner_probs / owner_total.unsqueeze(-1).clamp_min(eps)
+            entropy_values.append(
+                -(
+                    owner_norm.clamp_min(eps)
+                    * owner_norm.clamp_min(eps).log()
+                ).sum(dim=-1).mean()
+            )
+            layer_metrics[f"e4_rae_bind_layer_{layer_idx:02d}"] = (
+                per_query_loss.mean().detach()
+            )
+            layer_metrics[f"e4_rae_ovt_mass_layer_{layer_idx:02d}"] = (
+                object_mass.mean().detach()
+            )
+            layer_metrics[f"e4_rae_register_mass_layer_{layer_idx:02d}"] = (
+                register_probs.mean().detach()
+            )
+            layer_metrics[f"e4_rae_self_mass_layer_{layer_idx:02d}"] = (
+                self_mass.mean().detach()
+            )
+
+        if not losses:
+            return empty
+
+        def mean_or_zero(values):
+            return torch.stack(values).mean() if values else z
+
+        return {
+            "loss": mean_or_zero(losses),
+            "correct_owner_mass": mean_or_zero(correct_values).detach(),
+            "owner_total_mass": mean_or_zero(owner_values).detach(),
+            "object_mass_on_fg": mean_or_zero(object_fg_values).detach(),
+            "register_mass_on_fg": mean_or_zero(register_fg_values).detach(),
+            "register_mass_on_bg": mean_or_zero(register_bg_values).detach(),
+            "self_mass": mean_or_zero(self_values).detach(),
+            "other_rae_mass": mean_or_zero(other_rae_values).detach(),
+            "fg_acc": mean_or_zero(fg_acc_values).detach(),
+            "bg_acc": mean_or_zero(bg_acc_values).detach(),
+            "entropy": mean_or_zero(entropy_values).detach(),
+            "fg_fraction": foreground.mean().detach(),
+            "num_layers": z.new_tensor(float(len(losses))).detach(),
             "layer_metrics": layer_metrics,
         }
 
@@ -3367,6 +3665,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             device=model_device,
             dtype=inputs_embeds.dtype,
             rae_bidirectional=bool(getattr(self.config, "pgot_rae_bidirectional", False)),
+            rae_isolated=bool(getattr(self.config, "pgot_e4_rae_isolated", False)),
             rae_attends_caption=bool(getattr(self.config, "pgot_rae_attends_caption", False)),
             ovt_absolute_positions=ovt_abs_positions,
             ovt_valid_mask=ovt_valid_mask,
@@ -3912,6 +4211,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         ovt_valid_mask: torch.Tensor,
         ovt_is_thing: Optional[torch.Tensor],
         gt_masks_per_ovt: torch.Tensor,
+        gt_rae_masks_per_ovt: Optional[torch.Tensor],
         target_images: torch.Tensor,
         pgot_contrastive_weight: Optional[float] = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
@@ -3961,6 +4261,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         else:
             ovt_is_thing = ovt_is_thing.to(model_device, dtype=torch.bool)
         gt_masks_per_ovt = gt_masks_per_ovt.to(model_device).float()
+        if gt_rae_masks_per_ovt is not None:
+            gt_rae_masks_per_ovt = gt_rae_masks_per_ovt.to(model_device).float()
         if caption_labels is not None:
             caption_labels = caption_labels.to(model_device, dtype=torch.long)
 
@@ -4029,6 +4331,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             device=model_device,
             dtype=inputs_embeds.dtype,
             rae_bidirectional=bool(getattr(self.config, "pgot_rae_bidirectional", False)),
+            rae_isolated=bool(getattr(self.config, "pgot_e4_rae_isolated", False)),
             rae_attends_caption=bool(getattr(self.config, "pgot_rae_attends_caption", False)),
             ovt_absolute_positions=ovt_abs_positions,
             ovt_valid_mask=ovt_valid_mask,
@@ -4086,6 +4389,25 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         e3_competition_w = float(
             getattr(self.config, "pgot_e3_attention_competition_weight", 0.0)
         )
+        e4_full_inside_w = float(
+            getattr(
+                self.config,
+                "pgot_e4_full_inside_weight_effective",
+                getattr(self.config, "pgot_e4_full_inside_weight", 0.0),
+            )
+        )
+        e4_rae_bind_w = float(
+            getattr(
+                self.config,
+                "pgot_e4_rae_bind_weight_effective",
+                getattr(self.config, "pgot_e4_rae_bind_weight", 0.0),
+            )
+        )
+        if e4_full_inside_w > 0.0 and e3_competition_w <= 0.0:
+            raise ValueError(
+                "E4 full-inside floor reuses E3's exact all-layer attention "
+                "pass and requires pgot_e3_attention_competition_weight > 0."
+            )
         out = self.model(
             inputs_embeds=inputs_embeds,
             attention_bias=attn_bias,
@@ -4099,6 +4421,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 or core_tail_w > 0.0
                 or core_register_w > 0.0
                 or e3_competition_w > 0.0
+                or e4_full_inside_w > 0.0
+                or e4_rae_bind_w > 0.0
             ),
             return_dict=True,
         )
@@ -4540,6 +4864,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         e3_object_prob_on_bg = zero
         e3_competition_fg_fraction = zero
         e3_layer_metrics = {}
+        loss_e4_full_inside = zero
+        e4_full_inside_mass = zero
+        e4_full_outside_mass = zero
+        e4_full_inside_satisfied_fraction = zero
 
         # E3 computes OVT outside, register outside, and ownership competition
         # jointly, avoiding four separate all-layer Q/K reconstructions.
@@ -4564,6 +4892,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 bg_weight=float(
                     getattr(self.config, "pgot_e3_attention_competition_bg_weight", 0.25)
                 ),
+                full_inside_target=float(
+                    getattr(self.config, "pgot_e4_full_inside_target", 0.30)
+                )
+                if e4_full_inside_w > 0.0
+                else 0.0,
             )
             loss_core_outside = e3_stats["object_loss"]
             core_inside_mass = e3_stats["object_inside_mass"]
@@ -4590,6 +4923,12 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             e3_object_prob_on_bg = e3_stats["competition_object_prob_on_bg"]
             e3_competition_fg_fraction = e3_stats["competition_fg_fraction"]
             e3_layer_metrics = e3_stats["layer_metrics"]
+            loss_e4_full_inside = e3_stats["object_full_inside_floor_loss"]
+            e4_full_inside_mass = e3_stats["object_full_inside_mass"]
+            e4_full_outside_mass = e3_stats["object_full_outside_mass"]
+            e4_full_inside_satisfied_fraction = e3_stats[
+                "object_full_inside_satisfied_fraction"
+            ]
         elif core_register_w > 0.0:
             if register_hidden.shape[1] <= 0:
                 raise ValueError(
@@ -4615,6 +4954,32 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             ]
             core_register_num_layers = register_stats["num_layers"]
             core_register_layer_metrics = register_stats["layer_metrics"]
+
+        e4_rae_stats = None
+        loss_e4_rae_bind = zero
+        if e4_rae_bind_w > 0.0:
+            if not bool(getattr(self.config, "pgot_e4_rae_isolated", False)):
+                raise ValueError(
+                    "E4 RAE binding requires pgot_e4_rae_isolated=True so "
+                    "cross-query propagation cannot bypass the object bottleneck."
+                )
+            binding_masks = (
+                gt_rae_masks_per_ovt
+                if gt_rae_masks_per_ovt is not None
+                else gt_masks_per_ovt
+            )
+            e4_rae_stats = self._compute_e4_rae_binding_loss(
+                hidden_states=out.hidden_states,
+                attention_bias=attn_bias,
+                positions=positions,
+                ovt_abs_positions=ovt_abs_positions,
+                ovt_valid_mask=ovt_valid_mask,
+                gt_masks_per_ovt=binding_masks,
+                layers_spec=str(
+                    getattr(self.config, "pgot_e4_rae_bind_layers", "last8")
+                ),
+            )
+            loss_e4_rae_bind = e4_rae_stats["loss"]
 
         loss_mask_tversky = zero
         if mask_tversky_w > 0.0:
@@ -4683,6 +5048,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             + core_tail_w * loss_core_tail
             + core_register_w * loss_core_register
             + e3_competition_w * loss_e3_competition
+            + e4_full_inside_w * loss_e4_full_inside
+            + e4_rae_bind_w * loss_e4_rae_bind
         )
         total_loss = (
             lm_w * loss_lm
@@ -4868,6 +5235,42 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             details["e3_object_prob_on_bg"] = e3_object_prob_on_bg.detach()
             details["e3_competition_fg_fraction"] = e3_competition_fg_fraction.detach()
             details.update(e3_layer_metrics)
+        if e4_full_inside_w > 0.0:
+            details["loss_e4_full_inside"] = loss_e4_full_inside.detach()
+            details["e4_full_inside_weight_effective"] = zero.new_tensor(
+                e4_full_inside_w
+            )
+            details["e4_full_inside_mass"] = e4_full_inside_mass.detach()
+            details["e4_full_outside_mass"] = e4_full_outside_mass.detach()
+            details["e4_full_inside_satisfied_fraction"] = (
+                e4_full_inside_satisfied_fraction.detach()
+            )
+        if e4_rae_bind_w > 0.0 and e4_rae_stats is not None:
+            details["loss_e4_rae_bind"] = loss_e4_rae_bind.detach()
+            details["e4_rae_bind_weight_effective"] = zero.new_tensor(
+                e4_rae_bind_w
+            )
+            details["e4_rae_correct_owner_mass"] = e4_rae_stats[
+                "correct_owner_mass"
+            ]
+            details["e4_rae_owner_total_mass"] = e4_rae_stats["owner_total_mass"]
+            details["e4_rae_object_mass_on_fg"] = e4_rae_stats[
+                "object_mass_on_fg"
+            ]
+            details["e4_rae_register_mass_on_fg"] = e4_rae_stats[
+                "register_mass_on_fg"
+            ]
+            details["e4_rae_register_mass_on_bg"] = e4_rae_stats[
+                "register_mass_on_bg"
+            ]
+            details["e4_rae_self_mass"] = e4_rae_stats["self_mass"]
+            details["e4_rae_other_query_mass"] = e4_rae_stats["other_rae_mass"]
+            details["e4_rae_fg_acc"] = e4_rae_stats["fg_acc"]
+            details["e4_rae_bg_acc"] = e4_rae_stats["bg_acc"]
+            details["e4_rae_entropy"] = e4_rae_stats["entropy"]
+            details["e4_rae_fg_fraction"] = e4_rae_stats["fg_fraction"]
+            details["e4_rae_num_layers"] = e4_rae_stats["num_layers"]
+            details.update(e4_rae_stats["layer_metrics"])
         if use_null_bg and need_owner_loss:
             details["null_bg_prob_on_fg"] = null_bg_prob_on_fg.detach()
             details["thing_prob_on_bg"] = thing_prob_on_bg.detach()

@@ -109,6 +109,7 @@ def build_pgot_attention_mask(
     device: torch.device,
     dtype: torch.dtype = torch.float32,
     rae_bidirectional: bool = False,
+    rae_isolated: bool = False,
     rae_attends_caption: bool = False,
     ovt_absolute_positions: Optional[torch.Tensor] = None,
     ovt_valid_mask: Optional[torch.Tensor] = None,
@@ -123,6 +124,8 @@ def build_pgot_attention_mask(
       - register: attends image + self; legacy mode may also attend caption
       - rae_query: attends OVT(if rae_attends_caption=False, via OVT_only_positions
                    passed by model) + register + self  (IMAGE + CAPTION BOTH BLOCKED).
+                   `rae_isolated=True` keeps only the diagonal RAE-query edge,
+                   blocking propagation through other spatial queries.
                    `rae_attends_caption=True` restores the legacy mode (caption visible).
     """
     batch_size = int(caption_padding_mask.shape[0])
@@ -203,7 +206,9 @@ def build_pgot_attention_mask(
                 allow_cols(b_idx, row_idx, null_bg_s, null_bg_e)
             allow_cols(b_idx, row_idx, reg_s, reg_e)
 
-        # rae_query rows: OVT (positions inside caption) + register + self
+        # rae_query rows: OVT (positions inside caption) + register + self.
+        # E4 isolation blocks cross-query propagation so each of the 256
+        # spatial conditions must be composed independently.
         # IMAGE and full caption text are BLOCKED — only the OVT positions inside
         # the caption are visible. This forces OVT to be the unique bottleneck
         # for image reconstruction so that swapping an OVT directly steers DiT.
@@ -223,7 +228,9 @@ def build_pgot_attention_mask(
                 bias[b_idx, row_idx, cap_target_positions] = 0.0
             allow_cols(b_idx, row_idx, null_bg_s, null_bg_e)
             allow_cols(b_idx, row_idx, reg_s, reg_e)
-            if rae_bidirectional:
+            if rae_isolated:
+                allow_cols(b_idx, row_idx, row_idx, row_idx + 1)
+            elif rae_bidirectional:
                 allow_cols(b_idx, row_idx, rae_s, rae_e)
             else:
                 allow_cols(b_idx, row_idx, rae_s, row_idx + 1)

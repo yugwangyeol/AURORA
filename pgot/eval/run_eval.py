@@ -181,6 +181,72 @@ class CocoInstanceMaskCache:
         return torch.from_numpy(np.asarray(self.overlap_masks[idx], dtype=np.uint8))
 
 
+def build_oracle_register_block_mask(
+    gt_masks_per_ovt: torch.Tensor,
+    ovt_valid_mask: torch.Tensor,
+    *,
+    threshold: float = 0.0,
+) -> torch.Tensor:
+    """Training-matched GT union used only by the R1 oracle diagnostic."""
+    masks = gt_masks_per_ovt.float().clamp(0.0, 1.0)
+    valid = ovt_valid_mask.to(dtype=torch.bool)
+    if masks.ndim != 3 or valid.ndim != 2 or masks.shape[:2] != valid.shape:
+        raise ValueError(
+            "GT masks/valid flags must be [B,M,P]/[B,M], got "
+            f"{tuple(masks.shape)}/{tuple(valid.shape)}"
+        )
+    foreground = (masks * valid.unsqueeze(-1).float()).amax(dim=1)
+    return foreground > float(threshold)
+
+
+def build_predicted_register_block_mask(
+    ovt_attention_maps: torch.Tensor,
+    register_attention_maps: torch.Tensor,
+    ovt_valid_mask: torch.Tensor,
+    *,
+    n_ovt_per_object: int,
+    patch_grid: int,
+    merge: str = "mean",
+    dilation: int = 0,
+) -> torch.Tensor:
+    """R2 foreground ownership at the native patch grid.
+
+    Each patch competes over valid OVT objects and one residual-register
+    background class.  Only patches won by an object are hard-blocked from
+    register queries in the second forward.  Keeping this at 32x32 avoids
+    interpolation leakage between discovery and the register attention bias.
+    """
+    if ovt_attention_maps is None or register_attention_maps is None:
+        raise ValueError(
+            "R2 predicted routing requires both OVT and register LLM-attention maps"
+        )
+    B, M, P = ovt_attention_maps.shape
+    if P != int(patch_grid) ** 2:
+        raise ValueError(f"Expected {patch_grid ** 2} patches, got {P}")
+    n = max(int(n_ovt_per_object), 1)
+    K = M // n
+    maps = ovt_attention_maps[:, : K * n].reshape(B, K, n, P).float()
+    object_maps = maps.amax(dim=2) if merge == "max" else maps.mean(dim=2)
+    object_valid = (
+        ovt_valid_mask[:, : K * n].reshape(B, K, n).any(dim=2)
+    )
+    object_maps = object_maps.masked_fill(
+        ~object_valid.unsqueeze(-1), torch.finfo(object_maps.dtype).min
+    )
+    background_map = register_attention_maps.float().mean(dim=1, keepdim=True)
+    owner = torch.cat([object_maps, background_map], dim=1).argmax(dim=1)
+    blocked = owner < K
+    if int(dilation) > 0:
+        radius = int(dilation)
+        blocked = F.max_pool2d(
+            blocked.float().reshape(B, 1, patch_grid, patch_grid),
+            kernel_size=2 * radius + 1,
+            stride=1,
+            padding=radius,
+        ).reshape(B, P) > 0.0
+    return blocked
+
+
 # ----------------------------------------------------------------------
 # Main eval loop
 # ----------------------------------------------------------------------
@@ -252,9 +318,42 @@ def main():
         action="store_true",
         help="Ablation: keep the checkpoint architecture but do not pass OVT/void slot context to DiT during rFID.",
     )
+    p.add_argument(
+        "--register_eval_route",
+        choices=["unrestricted", "oracle_gt", "predicted_ovt"],
+        default="unrestricted",
+        help=(
+            "Register routing used only for reconstruction: unrestricted=R0; "
+            "oracle_gt=R1 training-matched GT union; predicted_ovt=R2 two-pass "
+            "OVT-vs-register ownership mask. Segmentation always uses the "
+            "unrestricted discovery forward to avoid GT leakage."
+        ),
+    )
+    p.add_argument(
+        "--register_eval_gt_threshold",
+        type=float,
+        default=0.0,
+        help="R1 GT patch-coverage threshold; 0.0 exactly matches E2 training.",
+    )
+    p.add_argument(
+        "--register_eval_pred_merge",
+        choices=["mean", "max"],
+        default="mean",
+        help="How R2 merges multiple OVTs belonging to one object.",
+    )
+    p.add_argument(
+        "--register_eval_pred_dilation",
+        type=int,
+        default=0,
+        help="Optional R2 foreground dilation radius in native 32x32 patches.",
+    )
     args = p.parse_args()
     if args.readout == "slot_owner":
         args.readout = "ovt_owner"
+    if not 0.0 <= float(args.register_eval_gt_threshold) <= 1.0:
+        p.error("--register_eval_gt_threshold must be in [0,1]")
+    if int(args.register_eval_pred_dilation) < 0:
+        p.error("--register_eval_pred_dilation must be >= 0")
 
     os.makedirs(args.output_dir, exist_ok=True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -418,6 +517,11 @@ def main():
     image_ids = []
     n_objects_list = []
     background_attention_source_used = None
+    register_route_blocked_patches = 0.0
+    register_route_total_patches = 0.0
+    register_route_tp = 0.0
+    register_route_fp = 0.0
+    register_route_fn = 0.0
 
     # CODA-style GT cache (optional)
     coco_cache = None
@@ -467,6 +571,9 @@ def main():
     # ---- Loop
     samples_iter = val_dataset.dataset.samples if isinstance(val_dataset, torch.utils.data.Subset) else val_dataset.samples
     for batch_idx, batch in enumerate(tqdm(loader, desc="Eval")):
+        # Discovery is always GT-free and register-unrestricted.  Its OVT maps
+        # are used for segmentation in every R0/R1/R2 variant, preventing the
+        # R1 oracle mask from leaking GT into fARI/mBO/mIoU.
         out = pgot_forward_eval(
             model,
             images=batch["images"],
@@ -475,8 +582,52 @@ def main():
             caption_attention_mask=batch["caption_attention_mask"],
             ovt_positions_in_caption=batch["ovt_positions_in_caption"],
             ovt_valid_mask=batch["ovt_valid_mask"],
-            return_llm_attention_maps=(args.readout == "llm_attention"),
+            return_llm_attention_maps=(
+                args.readout == "llm_attention"
+                or args.register_eval_route == "predicted_ovt"
+            ),
         )
+        recon_out = out
+        if args.register_eval_route != "unrestricted":
+            gt_block_mask = build_oracle_register_block_mask(
+                batch["gt_masks_per_ovt"],
+                batch["ovt_valid_mask"],
+                threshold=float(args.register_eval_gt_threshold),
+            )
+            if args.register_eval_route == "oracle_gt":
+                register_block_mask = gt_block_mask
+            else:
+                register_block_mask = build_predicted_register_block_mask(
+                    out.get("llm_attention_maps"),
+                    out.get("llm_attention_register_maps"),
+                    out["ovt_valid_mask"],
+                    n_ovt_per_object=args.n_ovt_per_object,
+                    patch_grid=args.grid_size,
+                    merge=args.register_eval_pred_merge,
+                    dilation=args.register_eval_pred_dilation,
+                )
+
+            pred_mask_bool = register_block_mask.detach().to(dtype=torch.bool).cpu()
+            gt_mask_bool = gt_block_mask.detach().to(dtype=torch.bool).cpu()
+            register_route_blocked_patches += float(pred_mask_bool.sum().item())
+            register_route_total_patches += float(pred_mask_bool.numel())
+            register_route_tp += float((pred_mask_bool & gt_mask_bool).sum().item())
+            register_route_fp += float((pred_mask_bool & ~gt_mask_bool).sum().item())
+            register_route_fn += float((~pred_mask_bool & gt_mask_bool).sum().item())
+
+            # The second forward changes only register->image edges.  DiT/rFID
+            # uses this routed RAE state; segmentation continues to use `out`.
+            recon_out = pgot_forward_eval(
+                model,
+                images=batch["images"],
+                target_images=batch["target_images"],
+                caption_input_ids=batch["caption_input_ids"],
+                caption_attention_mask=batch["caption_attention_mask"],
+                ovt_positions_in_caption=batch["ovt_positions_in_caption"],
+                ovt_valid_mask=batch["ovt_valid_mask"],
+                return_llm_attention_maps=False,
+                register_image_block_mask=register_block_mask,
+            )
 
         # ── Readout: either v5/v6 competition (thing+stuff+register-bg argmax)
         # or v3-style threshold (stuff OVTs filtered out, sigmoid+bg_threshold
@@ -687,16 +838,16 @@ def main():
         if fid_acc is not None and rae_decoder is not None:
             try:
                 if args.recon_source == "direct_latent":
-                    generated_latent = out.get("direct_latent")
+                    generated_latent = recon_out.get("direct_latent")
                     if generated_latent is None:
                         raise ValueError("direct_latent recon requested but checkpoint has no V18 latent head output")
                 else:
                     generated_latent = generate_siglip_latent(
                         model,
-                        out["rae_hidden"],
+                        recon_out["rae_hidden"],
                         guidance_level=float(args.guidance_scale),
-                        slot_context=out.get("slot_context"),
-                        slot_mask=out.get("slot_mask"),
+                        slot_context=recon_out.get("slot_context"),
+                        slot_mask=recon_out.get("slot_mask"),
                     )
                 recon_images = decode_to_image(rae_decoder, generated_latent, device)
                 # Real image: denormalize target_images (which was SigLIP-preprocessed)
@@ -748,9 +899,46 @@ def main():
     summary["register_hard_gt_mask_training"] = bool(
         getattr(model.config, "pgot_register_hard_gt_mask", False)
     )
-    # Standalone evaluation never passes GT masks into the MLLM forward path.
-    # This is the deployable, non-oracle setting even for hard-route checkpoints.
-    summary["register_hard_gt_mask_used_in_eval"] = False
+    summary["register_eval_route"] = str(args.register_eval_route)
+    summary["register_hard_mask_used_in_eval"] = (
+        args.register_eval_route != "unrestricted"
+    )
+    summary["register_hard_gt_mask_used_in_eval"] = (
+        args.register_eval_route == "oracle_gt"
+    )
+    summary["segmentation_forward"] = "unrestricted_discovery"
+    summary["reconstruction_forward"] = str(args.register_eval_route)
+    if args.register_eval_route != "unrestricted":
+        eps_route = 1e-12
+        summary["register_blocked_patch_fraction"] = (
+            register_route_blocked_patches
+            / max(register_route_total_patches, eps_route)
+        )
+        summary["register_block_mask_precision_vs_gt"] = (
+            register_route_tp
+            / max(register_route_tp + register_route_fp, eps_route)
+        )
+        summary["register_block_mask_recall_vs_gt"] = (
+            register_route_tp
+            / max(register_route_tp + register_route_fn, eps_route)
+        )
+        summary["register_block_mask_iou_vs_gt"] = (
+            register_route_tp
+            / max(
+                register_route_tp + register_route_fp + register_route_fn,
+                eps_route,
+            )
+        )
+        summary["register_eval_gt_threshold"] = float(
+            args.register_eval_gt_threshold
+        )
+        if args.register_eval_route == "predicted_ovt":
+            summary["register_eval_pred_merge"] = str(
+                args.register_eval_pred_merge
+            )
+            summary["register_eval_pred_dilation"] = int(
+                args.register_eval_pred_dilation
+            )
     summary["recon_source"] = args.recon_source
     summary["dit_ovt_cross_attn_disabled"] = bool(args.disable_dit_ovt_cross_attn)
     summary["coda_overlap_excluded"] = bool(
@@ -856,12 +1044,13 @@ def main():
     if fid_acc is not None:
         try:
             summary["rFID"] = fid_acc.compute()
+        except Exception as e:
+            summary["rFID_error"] = str(e)
+        if recon_mse_list:
             summary["recon_psnr"] = _mean(recon_psnr_list)
             summary["recon_ssim"] = _mean(recon_ssim_list)
             summary["recon_mse"] = _mean(recon_mse_list)
             summary["recon_mae"] = _mean(recon_mae_list)
-        except Exception as e:
-            summary["rFID_error"] = str(e)
     summary_path = os.path.join(args.output_dir, "summary.json")
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)
@@ -883,6 +1072,15 @@ def main():
         log.info(f"  rFID:           {summary['rFID']:.4f}")
         log.info(f"  PSNR/SSIM:      {summary['recon_psnr']:.3f} / {summary['recon_ssim']:.4f}")
         log.info(f"  MSE/MAE:        {summary['recon_mse']:.4f} / {summary['recon_mae']:.4f}")
+    log.info(f"  Register route: {summary['register_eval_route']}")
+    if "register_blocked_patch_fraction" in summary:
+        log.info(
+            "  Block mask:      area=%.4f precision=%.4f recall=%.4f IoU=%.4f",
+            summary["register_blocked_patch_fraction"],
+            summary["register_block_mask_precision_vs_gt"],
+            summary["register_block_mask_recall_vs_gt"],
+            summary["register_block_mask_iou_vs_gt"],
+        )
     log.info(f"  GT source:      {summary['gt_source']}")
     log.info(f"  Written to: {summary_path}")
     log.info("=" * 60)

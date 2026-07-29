@@ -30,7 +30,11 @@ from PIL import Image
 from torch.utils.data import Dataset
 
 
-def _mask_to_patch_mask(mask: torch.Tensor, grid_size: int) -> torch.Tensor:
+def _mask_to_patch_mask(
+    mask: torch.Tensor,
+    grid_size: int,
+    mode: str = "bilinear",
+) -> torch.Tensor:
     """Resample binary mask (H, W) -> (grid_size*grid_size,) float fraction.
 
     Uses bilinear interpolation so that a partial patch overlap contributes
@@ -40,12 +44,10 @@ def _mask_to_patch_mask(mask: torch.Tensor, grid_size: int) -> torch.Tensor:
         mask = mask.unsqueeze(0).unsqueeze(0).float()
     else:
         mask = mask.float()
-    patches = F.interpolate(
-        mask,
-        size=(grid_size, grid_size),
-        mode="bilinear",
-        align_corners=False,
-    )
+    kwargs = {"size": (grid_size, grid_size), "mode": mode}
+    if mode in {"bilinear", "bicubic"}:
+        kwargs["align_corners"] = False
+    patches = F.interpolate(mask, **kwargs)
     return patches.flatten(start_dim=1).squeeze(0)  # (grid_size**2,)
 
 
@@ -88,6 +90,7 @@ class Pix2CapPGOTDataset(Dataset):
         image_processor,
         target_image_processor=None,
         grid_size: int = 16,
+        rae_grid_size: int = 16,
         max_caption_tokens: int = 2048,
         n_ovt_per_object: int = 2,
         max_objects: int = 50,
@@ -106,6 +109,7 @@ class Pix2CapPGOTDataset(Dataset):
         self.image_processor = image_processor
         self.target_image_processor = target_image_processor or image_processor
         self.grid_size = grid_size
+        self.rae_grid_size = rae_grid_size
         self.max_caption_tokens = max_caption_tokens
         self.n_ovt_per_object = n_ovt_per_object
         self.max_objects = max_objects
@@ -321,6 +325,10 @@ class Pix2CapPGOTDataset(Dataset):
         if not is_coco_instance:
             seg_id_map = self._load_panoptic_id_map(sample["panoptic_mask_path"])
         gt_masks_per_ovt = torch.zeros((n_ovt_max, self.grid_size * self.grid_size), dtype=torch.float32)
+        gt_rae_masks_per_ovt = torch.zeros(
+            (n_ovt_max, self.rae_grid_size * self.rae_grid_size),
+            dtype=torch.float32,
+        )
         ovt_is_thing = torch.zeros(n_ovt_max, dtype=torch.bool)
         n_obj_actual = n_keep // self.n_ovt_per_object
         for obj_idx in range(n_obj_actual):
@@ -330,12 +338,22 @@ class Pix2CapPGOTDataset(Dataset):
             else:
                 mask_hw = self._segment_mask(seg_id_map, int(seg_info["segment_id"])).float()
             patch_mask = _mask_to_patch_mask(mask_hw, self.grid_size)
+            # E4 binding targets are built directly from the cropped binary
+            # mask at the DiT/RAE 16x16 grid. Area resampling preserves the
+            # fractional ownership of boundary cells and does not route a
+            # predicted 32x32 attention map back into reconstruction.
+            rae_patch_mask = _mask_to_patch_mask(
+                mask_hw,
+                self.rae_grid_size,
+                mode="area",
+            )
             is_thing = bool(seg_info.get("is_thing", False)) or (
                 int(seg_info.get("category_id", -1)) in self.thing_category_ids
             )
             for j in range(self.n_ovt_per_object):
                 ovt_idx = obj_idx * self.n_ovt_per_object + j
                 gt_masks_per_ovt[ovt_idx] = patch_mask
+                gt_rae_masks_per_ovt[ovt_idx] = rae_patch_mask
                 ovt_is_thing[ovt_idx] = is_thing
 
         # 6) Pad ovt positions
@@ -353,6 +371,7 @@ class Pix2CapPGOTDataset(Dataset):
             "ovt_valid_mask": ovt_valid,
             "ovt_is_thing": ovt_is_thing,
             "gt_masks_per_ovt": gt_masks_per_ovt,
+            "gt_rae_masks_per_ovt": gt_rae_masks_per_ovt,
             "image_id": int(sample["image_id"]),
             "n_objects": n_obj_actual,
             "caption_text": caption_text,
@@ -387,6 +406,9 @@ class PGOTDataCollator:
             "ovt_valid_mask": torch.stack([inst["ovt_valid_mask"] for inst in instances]),
             "ovt_is_thing": torch.stack([inst["ovt_is_thing"] for inst in instances]),
             "gt_masks_per_ovt": torch.stack([inst["gt_masks_per_ovt"] for inst in instances]),
+            "gt_rae_masks_per_ovt": torch.stack(
+                [inst["gt_rae_masks_per_ovt"] for inst in instances]
+            ),
             "image_ids": [inst["image_id"] for inst in instances],
             "n_objects_list": [inst["n_objects"] for inst in instances],
             "caption_texts": [inst["caption_text"] for inst in instances],

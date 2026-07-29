@@ -1,0 +1,108 @@
+{
+  "sample_index": 1020,
+  "image_id": 248616,
+  "n_objects": 7,
+  "recon_loss": {
+    "baseline": 0.9929271340370178,
+    "ovt_only_access": 2.1312663555145264,
+    "register_only_access": 1.0166847705841064,
+    "self_only_access": 22.167346954345703,
+    "zero_ovt_inputs": 1.0273175239562988,
+    "zero_register_inputs": 1.030648946762085,
+    "zero_ovt_and_register_inputs": 1.049883484840393
+  },
+  "rae_hidden_shift": {
+    "baseline": {
+      "cosine_to_baseline": 1.0,
+      "relative_l2_to_baseline": 0.0,
+      "delta_recon_loss": 0.0
+    },
+    "ovt_only_access": {
+      "cosine_to_baseline": 0.7912164330482483,
+      "relative_l2_to_baseline": 0.9489884376525879,
+      "delta_recon_loss": 1.1383392214775085
+    },
+    "register_only_access": {
+      "cosine_to_baseline": 0.92726731300354,
+      "relative_l2_to_baseline": 0.38310506939888,
+      "delta_recon_loss": 0.023757636547088623
+    },
+    "self_only_access": {
+      "cosine_to_baseline": 0.05681823194026947,
+      "relative_l2_to_baseline": 3.585552453994751,
+      "delta_recon_loss": 21.174419820308685
+    },
+    "zero_ovt_inputs": {
+      "cosine_to_baseline": 0.9272118806838989,
+      "relative_l2_to_baseline": 0.39684149622917175,
+      "delta_recon_loss": 0.034390389919281006
+    },
+    "zero_register_inputs": {
+      "cosine_to_baseline": 0.9338198900222778,
+      "relative_l2_to_baseline": 0.4445432424545288,
+      "delta_recon_loss": 0.03772181272506714
+    },
+    "zero_ovt_and_register_inputs": {
+      "cosine_to_baseline": 0.8643122315406799,
+      "relative_l2_to_baseline": 0.6504059433937073,
+      "delta_recon_loss": 0.056956350803375244
+    }
+  },
+  "rae_qk_source_mass_with_bias": [
+    {
+      "layer": 24,
+      "image_mass": 0.0,
+      "ovt_mass": 0.29004913568496704,
+      "register_mass": 0.7096268534660339,
+      "rae_self_mass": 0.00032404932426288724,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.007321537472307682
+    },
+    {
+      "layer": 25,
+      "image_mass": 0.0,
+      "ovt_mass": 0.3363409638404846,
+      "register_mass": 0.663223147392273,
+      "rae_self_mass": 0.00043593821465037763,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.007321537472307682
+    },
+    {
+      "layer": 26,
+      "image_mass": 0.0,
+      "ovt_mass": 0.293353408575058,
+      "register_mass": 0.7062270045280457,
+      "rae_self_mass": 0.0004196079389657825,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.007321537472307682
+    },
+    {
+      "layer": 27,
+      "image_mass": 0.0,
+      "ovt_mass": 0.2774472236633301,
+      "register_mass": 0.7222291827201843,
+      "rae_self_mass": 0.00032362109050154686,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.007321537472307682
+    }
+  ],
+  "recon_grid": "/home/jovyan/PGOT/outputs/analysis_e4_5k_causal_paths/E4/sample1020_causal_recon_grid.png",
+  "recon_grid_order": [
+    "source",
+    "baseline",
+    "ovt_only_access",
+    "register_only_access",
+    "self_only_access",
+    "zero_ovt_inputs",
+    "zero_register_inputs",
+    "zero_ovt_and_register_inputs"
+  ]
+}

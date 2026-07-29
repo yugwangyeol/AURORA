@@ -117,6 +117,14 @@ class PGOTModelArguments:
     pgot_e3_attention_competition_layers: str = field(default="all")
     pgot_e3_attention_competition_temperature: float = field(default=1.0)
     pgot_e3_attention_competition_bg_weight: float = field(default=0.25)
+    # E4: keep the E3 object-centric MLLM supervision, but require actual
+    # full-softmax attention mass on the matching image region and bind each
+    # 16x16 Scale-RAE spatial query to its matching OVT/register owner.
+    pgot_e4_rae_isolated: bool = field(default=False)
+    pgot_e4_full_inside_weight: float = field(default=0.0)
+    pgot_e4_full_inside_target: float = field(default=0.30)
+    pgot_e4_rae_bind_weight: float = field(default=0.0)
+    pgot_e4_rae_bind_layers: str = field(default="last8")
     # E2 diagnostic: during training, make every register -> foreground image
     # patch edge structurally impossible in the shared attention bias.  The
     # bias is broadcast to every head and reused by every LLM layer.  Eval is
@@ -283,6 +291,7 @@ class PGOTTrainingArguments(transformers.TrainingArguments):
     # Contrastive (mirrored here so compute_loss can read from self.args)
     pgot_contrastive_loss_target_weight: float = field(default=0.0)
     pgot_contrastive_warmup_steps: int = field(default=0)
+    pgot_e4_loss_warmup_steps: int = field(default=0)
 
     # LoRA
     pgot_lora_enable: bool = field(default=True)
@@ -721,6 +730,27 @@ class PGOTTrainer(Trainer):
                 eff_w = start_w
             inner_model.config.pgot_v21_ground_weight_effective = float(eff_w)
 
+        e4_warmup = int(getattr(self.args, "pgot_e4_loss_warmup_steps", 0) or 0)
+        if e4_warmup > 0:
+            e4_scale = min(
+                max(float(global_step + 1) / float(e4_warmup), 0.0),
+                1.0,
+            )
+        else:
+            e4_scale = 1.0
+        e4_full_target_w = float(
+            getattr(inner_model.config, "pgot_e4_full_inside_weight", 0.0)
+        )
+        e4_bind_target_w = float(
+            getattr(inner_model.config, "pgot_e4_rae_bind_weight", 0.0)
+        )
+        inner_model.config.pgot_e4_full_inside_weight_effective = (
+            e4_full_target_w * e4_scale
+        )
+        inner_model.config.pgot_e4_rae_bind_weight_effective = (
+            e4_bind_target_w * e4_scale
+        )
+
         images = inputs.pop("images")
         target_images = inputs.pop("target_images")
         outputs = model(
@@ -733,6 +763,7 @@ class PGOTTrainer(Trainer):
             ovt_valid_mask=inputs["ovt_valid_mask"],
             ovt_is_thing=inputs.get("ovt_is_thing"),
             gt_masks_per_ovt=inputs["gt_masks_per_ovt"],
+            gt_rae_masks_per_ovt=inputs.get("gt_rae_masks_per_ovt"),
             pgot_contrastive_weight=contrastive_w,
         )
         loss = outputs.loss
@@ -754,6 +785,8 @@ class PGOTTrainer(Trainer):
                 self._custom_loss_buffer[key] = float(val.detach().cpu().item())
         if target_w > 0.0 or contrastive_w > 0.0:
             self._custom_loss_buffer["contrastive_w"] = contrastive_w
+        if e4_full_target_w > 0.0 or e4_bind_target_w > 0.0:
+            self._custom_loss_buffer["e4_loss_warmup_scale"] = e4_scale
         self._loss_count_buffer += 1
 
         return (loss, outputs) if return_outputs else loss

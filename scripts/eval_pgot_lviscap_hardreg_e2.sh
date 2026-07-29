@@ -20,6 +20,10 @@ export LD_LIBRARY_PATH="${CONDA_LIB}:${LD_LIBRARY_PATH:-}"
 EXTRA_ARGS=()
 if [[ -n "${MAX_SAMPLES:-}" ]]; then EXTRA_ARGS+=(--max_samples "${MAX_SAMPLES}"); fi
 if [[ "${COMPUTE_RFID:-False}" == True ]]; then EXTRA_ARGS+=(--compute_rfid); fi
+EXTRA_ARGS+=(--register_eval_route "${REGISTER_EVAL_ROUTE:-unrestricted}")
+EXTRA_ARGS+=(--register_eval_gt_threshold "${REGISTER_EVAL_GT_THRESHOLD:-0.0}")
+EXTRA_ARGS+=(--register_eval_pred_merge "${REGISTER_EVAL_PRED_MERGE:-mean}")
+EXTRA_ARGS+=(--register_eval_pred_dilation "${REGISTER_EVAL_PRED_DILATION:-0}")
 
 "${PYTHON}" -m pgot.eval.run_eval \
     --model_path "${MODEL_PATH}" --val_jsonl "${VAL_JSONL}" --output_dir "${OUTPUT_DIR}" \

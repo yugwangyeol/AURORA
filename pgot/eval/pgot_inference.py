@@ -7,7 +7,7 @@ metric evaluation:
     gt_siglip    : (B, P, C)       diffusion target features (for rFID later)
 """
 
-from typing import Dict
+from typing import Dict, Optional
 import torch
 
 from pgot.model.pgot_utils import (
@@ -36,6 +36,7 @@ def pgot_forward_eval(
     rae_block_ovt_indices: tuple[int, ...] = (),
     zero_ovt_inputs: bool = False,
     zero_register_inputs: bool = False,
+    register_image_block_mask: Optional[torch.Tensor] = None,
 ) -> Dict[str, torch.Tensor]:
     model.eval()
 
@@ -254,6 +255,7 @@ def pgot_forward_eval(
         device=device,
         dtype=inputs_embeds.dtype,
         rae_bidirectional=bool(getattr(model.config, "pgot_rae_bidirectional", False)),
+        rae_isolated=bool(getattr(model.config, "pgot_e4_rae_isolated", False)),
         rae_attends_caption=bool(getattr(model.config, "pgot_rae_attends_caption", False)),
         ovt_absolute_positions=ovt_abs_positions,
         ovt_valid_mask=ovt_valid_mask,
@@ -261,6 +263,27 @@ def pgot_forward_eval(
             getattr(model.config, "pgot_register_attends_caption", True)
         ),
     )
+    register_blocked_patch_fraction = inputs_embeds.new_zeros((), dtype=torch.float32)
+    register_blocked_patch_count = inputs_embeds.new_zeros((), dtype=torch.float32)
+    if register_image_block_mask is not None:
+        blocked = register_image_block_mask.to(device=device, dtype=torch.bool)
+        n_patches = int(positions["img_e"] - positions["img_s"])
+        if blocked.ndim != 2 or blocked.shape != (B, n_patches):
+            raise ValueError(
+                "register_image_block_mask must have shape [B,P]="
+                f"[{B},{n_patches}], got {tuple(blocked.shape)}"
+            )
+        if positions["reg_e"] > positions["reg_s"]:
+            attn_bias = attn_bias.clone()
+            register_to_image = attn_bias[
+                :, :, positions["reg_s"]:positions["reg_e"],
+                positions["img_s"]:positions["img_e"],
+            ]
+            register_to_image.masked_fill_(
+                blocked[:, None, None, :], float("-inf")
+            )
+        register_blocked_patch_fraction = blocked.float().mean().detach()
+        register_blocked_patch_count = blocked.float().sum(dim=-1).mean().detach()
     rae_access_mode = str(rae_access_mode).lower()
     if rae_access_mode not in {"baseline", "ovt_only", "register_only", "self_only"}:
         raise ValueError(f"Unknown rae_access_mode={rae_access_mode}")
@@ -469,6 +492,13 @@ def pgot_forward_eval(
         "img_hidden": img_hidden,
         "gt_siglip": gt_siglip,
         "rae_access_mode": rae_access_mode,
+        "register_image_block_mask": (
+            register_image_block_mask.detach()
+            if register_image_block_mask is not None
+            else None
+        ),
+        "register_blocked_patch_fraction": register_blocked_patch_fraction,
+        "register_blocked_patch_count": register_blocked_patch_count,
     }
     # Expose internals needed for ovt-swap editing
     result["hidden"] = hidden

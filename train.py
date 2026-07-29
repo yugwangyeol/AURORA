@@ -210,6 +210,15 @@ def train():
     config.pgot_e3_attention_competition_bg_weight = float(
         model_args.pgot_e3_attention_competition_bg_weight
     )
+    config.pgot_e4_rae_isolated = bool(model_args.pgot_e4_rae_isolated)
+    config.pgot_e4_full_inside_weight = float(
+        model_args.pgot_e4_full_inside_weight
+    )
+    config.pgot_e4_full_inside_target = float(
+        model_args.pgot_e4_full_inside_target
+    )
+    config.pgot_e4_rae_bind_weight = float(model_args.pgot_e4_rae_bind_weight)
+    config.pgot_e4_rae_bind_layers = str(model_args.pgot_e4_rae_bind_layers)
     config.pgot_register_hard_gt_mask = bool(model_args.pgot_register_hard_gt_mask)
     config.pgot_register_hard_gt_mask_eval = bool(
         model_args.pgot_register_hard_gt_mask_eval
@@ -371,6 +380,19 @@ def train():
     model.config.pgot_e3_attention_competition_bg_weight = float(
         model_args.pgot_e3_attention_competition_bg_weight
     )
+    model.config.pgot_e4_rae_isolated = bool(model_args.pgot_e4_rae_isolated)
+    model.config.pgot_e4_full_inside_weight = float(
+        model_args.pgot_e4_full_inside_weight
+    )
+    model.config.pgot_e4_full_inside_target = float(
+        model_args.pgot_e4_full_inside_target
+    )
+    model.config.pgot_e4_rae_bind_weight = float(
+        model_args.pgot_e4_rae_bind_weight
+    )
+    model.config.pgot_e4_rae_bind_layers = str(
+        model_args.pgot_e4_rae_bind_layers
+    )
     model.config.pgot_register_hard_gt_mask = bool(
         model_args.pgot_register_hard_gt_mask
     )
@@ -478,6 +500,11 @@ def train():
         f"layers={model.config.pgot_e3_attention_competition_layers}, "
         f"temp={model.config.pgot_e3_attention_competition_temperature}, "
         f"bg_w={model.config.pgot_e3_attention_competition_bg_weight}) "
+        f"e4=(rae_isolated={model.config.pgot_e4_rae_isolated}, "
+        f"full_inside_w={model.config.pgot_e4_full_inside_weight}, "
+        f"full_inside_target={model.config.pgot_e4_full_inside_target}, "
+        f"rae_bind_w={model.config.pgot_e4_rae_bind_weight}, "
+        f"rae_bind_layers={model.config.pgot_e4_rae_bind_layers}) "
         f"v12={bool(getattr(model.config, 'pgot_v12_enable', False))} "
         f"(layers={getattr(model.config, 'pgot_v12_layers', '12,16,20,24')}, "
         f"ovt_temp={getattr(model.config, 'pgot_v12_ovt_temperature', getattr(model.config, 'pgot_v12_slot_temperature', 1.0))}, "
@@ -629,6 +656,13 @@ def train():
     model.initialize_vision_tokenizer(model_args, tokenizer=tokenizer)
 
     # ---- Datasets
+    rae_token_len = int(getattr(model.config, "diffusion_target_token_len", 256))
+    rae_grid_size = int(round(rae_token_len ** 0.5))
+    if rae_grid_size * rae_grid_size != rae_token_len:
+        raise ValueError(
+            "E4 RAE ownership requires a square diffusion target grid, got "
+            f"diffusion_target_token_len={rae_token_len}"
+        )
     train_dataset = Pix2CapPGOTDataset(
         jsonl_path=data_args.train_jsonl,
         tokenizer=tokenizer,
@@ -639,6 +673,7 @@ def train():
             else data_args.image_processor_aux_list[0]
         ),
         grid_size=data_args.grid_size,
+        rae_grid_size=rae_grid_size,
         max_caption_tokens=data_args.max_caption_tokens,
         n_ovt_per_object=model_args.pgot_n_ovt_per_object,
         max_objects=model_args.pgot_max_objects,
@@ -656,6 +691,7 @@ def train():
             else data_args.image_processor_aux_list[0]
         ),
         grid_size=data_args.grid_size,
+        rae_grid_size=rae_grid_size,
         max_caption_tokens=data_args.max_caption_tokens,
         n_ovt_per_object=model_args.pgot_n_ovt_per_object,
         max_objects=model_args.pgot_max_objects,
@@ -696,6 +732,7 @@ def train():
                     ovt_valid_mask=batch["ovt_valid_mask"].to(device),
                     ovt_is_thing=batch["ovt_is_thing"].to(device),
                     gt_masks_per_ovt=batch["gt_masks_per_ovt"].to(device),
+                    gt_rae_masks_per_ovt=batch["gt_rae_masks_per_ovt"].to(device),
                     pgot_contrastive_weight=0.0,
                 )
                 outputs.loss.backward()
