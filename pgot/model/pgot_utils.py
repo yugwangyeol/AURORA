@@ -115,16 +115,18 @@ def build_pgot_attention_mask(
     ovt_valid_mask: Optional[torch.Tensor] = None,
     register_attends_caption: bool = True,
     ovt_isolated: bool = False,
+    ovt_attends_own_caption: bool = False,
 ) -> torch.Tensor:
     """Build additive attention bias for PGOT.
 
     Rules:
       - image: bidirectional within image + sees sys prefix
       - ordinary caption tokens: causal up to self + attends image bidirectionally
-      - ovt: legacy caption behavior, or (when ``ovt_isolated``) attends only
-        the full image-patch block and itself.  In isolated mode it cannot read
-        system/user/assistant text, its own caption tokens, another OVT, a
-        register, or an RAE query inside any transformer layer.
+      - ovt: legacy caption behavior, or (when ``ovt_isolated``) attends the
+        full image-patch block and itself.  ``ovt_attends_own_caption`` also
+        exposes only the caption span since the preceding OVT (or caption
+        start for the first object), while previous object captions/OVTs,
+        system/user text, registers, and RAE queries remain blocked.
       - assistant_suffix: causal
       - register: attends image + self; legacy mode may also attend caption
       - rae_query: attends OVT(if rae_attends_caption=False, via OVT_only_positions
@@ -171,14 +173,22 @@ def build_pgot_attention_mask(
         valid_cap_idx = caption_padding_mask[b_idx].nonzero(as_tuple=False).flatten()
         valid_cap_positions = cap_s + valid_cap_idx
         isolated_ovt_rows = set()
+        own_caption_starts = {}
         if ovt_isolated and ovt_absolute_positions is not None and ovt_valid_mask is not None:
             keep = ovt_valid_mask[b_idx].nonzero(as_tuple=False).flatten()
             if keep.numel() > 0:
-                isolated_ovt_rows = {
+                valid_ovt_positions = sorted(
                     int(pos)
                     for pos in ovt_absolute_positions[b_idx, keep].tolist()
                     if cap_s <= int(pos) < cap_e
-                }
+                )
+                isolated_ovt_rows = set(valid_ovt_positions)
+                previous_ovt = None
+                for ovt_pos in valid_ovt_positions:
+                    own_caption_starts[ovt_pos] = (
+                        cap_s if previous_ovt is None else previous_ovt + 1
+                    )
+                    previous_ovt = ovt_pos
 
         # Image rows: see sys + image bidirectional
         for row_idx in range(img_s, img_e):
@@ -194,6 +204,13 @@ def build_pgot_attention_mask(
                 continue
             if row_idx in isolated_ovt_rows:
                 allow_cols(b_idx, row_idx, img_s, img_e)
+                if ovt_attends_own_caption:
+                    allow_cols(
+                        b_idx,
+                        row_idx,
+                        own_caption_starts[row_idx],
+                        row_idx + 1,
+                    )
                 continue
             # Sees sys + user_prefix + image + user_suffix + assistant_prefix
             allow_cols(b_idx, row_idx, sys_s, assistant_prefix_e)
@@ -255,6 +272,50 @@ def build_pgot_attention_mask(
                 allow_cols(b_idx, row_idx, rae_s, row_idx + 1)
 
     return bias.unsqueeze(1)  # (B, 1, L, L)
+
+
+def apply_e5_rae_ovt_forcing_mask(
+    attention_bias: torch.Tensor,
+    *,
+    positions: Dict[str, int],
+    forcing_sample_mask: torch.Tensor,
+) -> torch.Tensor:
+    """Make selected samples' RAE attention updates OVT-only.
+
+    E5 retains each query's residual state, but removes all register and RAE
+    keys (including the query's own key) from the RAE attention rows. The
+    ordinary PGOT mask already blocks raw image/caption keys and exposes only
+    valid OVT positions, so OVTs become the sole sample-specific value source.
+    Non-forced samples remain unchanged.
+    """
+    if attention_bias.ndim != 4 or attention_bias.shape[1] != 1:
+        raise ValueError(
+            "PGOT attention bias must have shape [B,1,L,L], got "
+            f"{tuple(attention_bias.shape)}"
+        )
+    forcing = forcing_sample_mask.to(
+        device=attention_bias.device,
+        dtype=torch.bool,
+    )
+    if forcing.ndim != 1 or forcing.shape[0] != attention_bias.shape[0]:
+        raise ValueError(
+            "forcing_sample_mask must be [B], got "
+            f"{tuple(forcing.shape)} for B={attention_bias.shape[0]}"
+        )
+    if not bool(forcing.any()):
+        return attention_bias
+
+    rae_s, rae_e = int(positions["rae_s"]), int(positions["rae_e"])
+    reg_s, reg_e = int(positions["reg_s"]), int(positions["reg_e"])
+    if rae_e <= rae_s:
+        return attention_bias
+
+    bias = attention_bias.clone()
+    selected = forcing.nonzero(as_tuple=False).flatten()
+    if reg_e > reg_s:
+        bias[selected, :, rae_s:rae_e, reg_s:reg_e] = float("-inf")
+    bias[selected, :, rae_s:rae_e, rae_s:rae_e] = float("-inf")
+    return bias
 
 
 # ---------------------------------------------------------------------------

@@ -568,6 +568,7 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
         x_t: torch.Tensor = None,
         slot_context: Optional[torch.Tensor] = None,
         slot_mask: Optional[torch.Tensor] = None,
+        loss_mask: Optional[torch.Tensor] = None,
         return_diagnostics: bool = False,
     ) -> torch.Tensor:
         """
@@ -628,14 +629,38 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
         if slot_mask is not None:
             model_kwargs["slot_mask"] = slot_mask
 
+        spatial_loss_mask = None
+        if loss_mask is not None:
+            spatial_loss_mask = loss_mask.to(device=x.device, dtype=x.dtype)
+            if spatial_loss_mask.ndim == 2:
+                if spatial_loss_mask.shape != (x.shape[0], H * W):
+                    raise ValueError(
+                        "Full-sequence loss_mask must be [B,L], got "
+                        f"{tuple(spatial_loss_mask.shape)} for L={H * W}"
+                    )
+                spatial_loss_mask = spatial_loss_mask.view(x.shape[0], 1, H, W)
+            elif spatial_loss_mask.ndim == 3:
+                spatial_loss_mask = spatial_loss_mask.unsqueeze(1)
+
         if x_t is not None:
             # AR-DDT mode: use external x_t
             terms = self.train_flow.training_losses(
-                self.model, x, t, model_kwargs=model_kwargs, x_t=x_t)
+                self.model,
+                x,
+                t,
+                model_kwargs=model_kwargs,
+                x_t=x_t,
+                loss_mask=spatial_loss_mask,
+            )
         else:
             # Regular mode: let training_losses generate x_t internally
             terms = self.train_flow.training_losses(
-                self.model, x, t, model_kwargs=model_kwargs)
+                self.model,
+                x,
+                t,
+                model_kwargs=model_kwargs,
+                loss_mask=spatial_loss_mask,
+            )
 
         if return_diagnostics:
             # Return per-sample loss and sampled t for timestep-bucketed logging.

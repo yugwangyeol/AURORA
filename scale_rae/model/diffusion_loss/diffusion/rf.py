@@ -131,7 +131,16 @@ class RectifiedFlow(GaussianDiffusion):
         # rf formulation: x_t = sigma_t * x_1 (noise) + (1 - sigma_t) * x_0
         return 1 - t
 
-    def training_losses(self, model: nn.Module, x_start: torch.Tensor, t: Optional[torch.Tensor] = None, model_kwargs=None, x_end=None, x_t: Optional[torch.Tensor] = None):
+    def training_losses(
+        self,
+        model: nn.Module,
+        x_start: torch.Tensor,
+        t: Optional[torch.Tensor] = None,
+        model_kwargs=None,
+        x_end=None,
+        x_t: Optional[torch.Tensor] = None,
+        loss_mask: Optional[torch.Tensor] = None,
+    ):
         if x_end is None:
             x_end = self.get_x_end(x_start.shape, x_start.device)
         if t is None:
@@ -171,7 +180,27 @@ class RectifiedFlow(GaussianDiffusion):
 
         #loss = mean_flat(weight * mse_target)
         
-        loss = mean_flat(mse_target) # use mse loss for now, can be changed to weighted mse later
+        if loss_mask is None:
+            loss = mean_flat(mse_target)
+        else:
+            mask = loss_mask.to(device=mse_target.device, dtype=mse_target.dtype)
+            if mask.ndim == 3:
+                mask = mask.unsqueeze(1)
+            if mask.ndim != 4 or mask.shape[0] != mse_target.shape[0]:
+                raise ValueError(
+                    "Rectified-flow loss_mask must be [B,1,H,W] or [B,H,W], got "
+                    f"{tuple(mask.shape)}"
+                )
+            if mask.shape[-2:] != mse_target.shape[-2:]:
+                raise ValueError(
+                    "Rectified-flow loss_mask spatial shape does not match target: "
+                    f"{tuple(mask.shape[-2:])} vs {tuple(mse_target.shape[-2:])}"
+                )
+            weighted = mse_target * mask
+            denom = (
+                mask.sum(dim=(1, 2, 3)) * mse_target.shape[1]
+            ).clamp_min(1.0)
+            loss = weighted.sum(dim=(1, 2, 3)) / denom
         
         terms = {
             'mse': mean_flat(mse_target),
@@ -247,4 +276,3 @@ class RectifiedFlow(GaussianDiffusion):
         else:
             x_pred = x_t
         return x_pred
-        

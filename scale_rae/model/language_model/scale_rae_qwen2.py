@@ -2120,6 +2120,7 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         target_features: torch.Tensor,
         slot_context: Optional[torch.Tensor] = None,
         slot_mask: Optional[torch.Tensor] = None,
+        loss_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         cond = self._captionslot_prepare_diffusion_condition(hidden)
         self.diff_head = self.diff_head.to(cond.device)
@@ -2132,12 +2133,18 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         if not getattr(self.diff_head, "normalize_data", False):
             target_input = F.layer_norm(target_input, (target_input.shape[-1],))
 
-        per_sample_loss = self.diff_head.training_loss(
-            z=cond_input,
-            x=target_input,
-            slot_context=slot_context_input,
-            slot_mask=slot_mask_input,
-        )
+        diffusion_kwargs = {
+            "z": cond_input,
+            "x": target_input,
+            "slot_context": slot_context_input,
+            "slot_mask": slot_mask_input,
+        }
+        if loss_mask is not None:
+            diffusion_kwargs["loss_mask"] = loss_mask.to(
+                device=cond.device,
+                dtype=torch.float32,
+            )
+        per_sample_loss = self.diff_head.training_loss(**diffusion_kwargs)
         if not torch.isfinite(per_sample_loss).all():
             self._aurora_check_finite(per_sample_loss, "captionslot_diffusion_loss")
             per_sample_loss = torch.nan_to_num(per_sample_loss, nan=1e4, posinf=1e4, neginf=1e4)

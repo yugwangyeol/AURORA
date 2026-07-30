@@ -26,6 +26,7 @@ from scale_rae.model.language_model.scale_rae_qwen2 import (
 from pgot.model.pgot_utils import (
     pgot_positions,
     build_pgot_attention_mask,
+    apply_e5_rae_ovt_forcing_mask,
     gather_ovt_hidden_states,
     compute_per_ovt_mask_logits,
     compute_mask_bce_loss,
@@ -947,6 +948,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             ),
             ovt_isolated=bool(
                 getattr(self.config, "pgot_ovt_isolated_attention", False)
+            ),
+            ovt_attends_own_caption=bool(
+                getattr(self.config, "pgot_ovt_attends_own_caption", False)
             ),
         )
         return {
@@ -1896,6 +1900,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         temperature: float = 1.0,
         void_weight: float = 1.0,
         tail_fraction: float = 0.1,
+        full_inside_target: float = 0.0,
+        eps: float = 1e-6,
     ) -> Dict[str, torch.Tensor]:
         """Core PGOT loss for object OVTs and the optional residual VOID.
 
@@ -1914,6 +1920,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "inside_mass": zero,
             "outside_mass": zero,
             "full_image_mass": zero,
+            "full_inside_floor_loss": zero,
+            "full_inside_mass": zero,
+            "full_outside_mass": zero,
+            "full_inside_satisfied_fraction": zero,
             "worst_head_outside_mass": zero,
             "void_loss": zero,
             "void_inside_mass": zero,
@@ -1937,6 +1947,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         layer_losses = []
         layer_inside = []
         layer_full_image = []
+        layer_full_inside = []
+        layer_full_outside = []
+        layer_full_inside_floor = []
+        layer_full_inside_satisfied = []
         layer_worst_heads = []
         layer_void_losses = []
         layer_void_inside = []
@@ -1968,10 +1982,14 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             outside = (object_patch * (1.0 - masks)[:, None]).sum(dim=-1)
             inside = (object_patch * masks[:, None]).sum(dim=-1)
             full_image = object_full.sum(dim=-1)
+            full_inside = (object_full * masks[:, None]).sum(dim=-1)
+            full_outside = (object_full * (1.0 - masks)[:, None]).sum(dim=-1)
             valid_bhm = valid[:, None].expand(-1, object_patch.shape[1], -1)
             outside_valid = outside[valid_bhm]
             inside_valid = inside[valid_bhm]
             full_valid = full_image[valid_bhm]
+            full_inside_valid = full_inside[valid_bhm]
+            full_outside_valid = full_outside[valid_bhm]
             if outside_valid.numel() == 0:
                 continue
 
@@ -1987,6 +2005,18 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             layer_losses.append(layer_loss)
             layer_inside.append(layer_in)
             layer_full_image.append(layer_full)
+            layer_full_inside.append(full_inside_valid.mean())
+            layer_full_outside.append(full_outside_valid.mean())
+            if float(full_inside_target) > 0.0:
+                target_log = math.log(max(float(full_inside_target), eps))
+                floor = (
+                    full_inside.clamp_min(eps).new_tensor(target_log)
+                    - full_inside.clamp_min(eps).log()
+                ).clamp_min(0.0)
+                layer_full_inside_floor.append(floor[valid_bhm].mean())
+                layer_full_inside_satisfied.append(
+                    (full_inside_valid >= float(full_inside_target)).float().mean()
+                )
             layer_worst_heads.append(layer_worst)
             all_valid_outside.append(outside_valid)
             layer_metrics[f"core_outside_layer_{layer_idx:02d}"] = layer_loss.detach()
@@ -2044,6 +2074,16 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "inside_mass": torch.stack(layer_inside).mean().detach(),
             "outside_mass": object_raw_loss.detach(),
             "full_image_mass": torch.stack(layer_full_image).mean().detach(),
+            "full_inside_floor_loss": (
+                torch.stack(layer_full_inside_floor).mean()
+                if layer_full_inside_floor else zero
+            ),
+            "full_inside_mass": torch.stack(layer_full_inside).mean().detach(),
+            "full_outside_mass": torch.stack(layer_full_outside).mean().detach(),
+            "full_inside_satisfied_fraction": (
+                torch.stack(layer_full_inside_satisfied).mean().detach()
+                if layer_full_inside_satisfied else zero
+            ),
             "worst_head_outside_mass": torch.stack(layer_worst_heads).mean().detach(),
             "void_loss": void_raw_loss,
             "void_inside_mass": (
@@ -3678,6 +3718,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             ovt_isolated=bool(
                 getattr(self.config, "pgot_ovt_isolated_attention", False)
             ),
+            ovt_attends_own_caption=bool(
+                getattr(self.config, "pgot_ovt_attends_own_caption", False)
+            ),
         )
         out = self.model(
             inputs_embeds=inputs_embeds,
@@ -4347,6 +4390,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             ovt_isolated=bool(
                 getattr(self.config, "pgot_ovt_isolated_attention", False)
             ),
+            ovt_attends_own_caption=bool(
+                getattr(self.config, "pgot_ovt_attends_own_caption", False)
+            ),
         )
 
         # E2: the train-time GT union is an oracle routing constraint for
@@ -4376,6 +4422,61 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             attn_bias = hard_stats["attention_bias"]
             register_hard_blocked_fraction = hard_stats["blocked_patch_fraction"]
             register_hard_blocked_count = hard_stats["blocked_patch_count"]
+
+        # E5 mixed reconstruction: on a random subset of training samples,
+        # RAE attention updates may read OVT values only.  The matching
+        # foreground mask is also reused below to zero background conditions
+        # and to normalize the diffusion loss over foreground target tokens.
+        e5_forcing_probability = float(
+            getattr(self.config, "pgot_e5_forcing_probability", 0.0)
+        )
+        if not 0.0 <= e5_forcing_probability <= 1.0:
+            raise ValueError(
+                "pgot_e5_forcing_probability must be in [0,1], got "
+                f"{e5_forcing_probability}"
+            )
+        e5_source_masks = (
+            gt_rae_masks_per_ovt
+            if gt_rae_masks_per_ovt is not None
+            else gt_masks_per_ovt
+        ).float().clamp(0.0, 1.0)
+        if e5_source_masks.shape[-1] != n_rae:
+            src_side = int(math.isqrt(e5_source_masks.shape[-1]))
+            dst_side = int(math.isqrt(n_rae))
+            if (
+                src_side * src_side != e5_source_masks.shape[-1]
+                or dst_side * dst_side != n_rae
+            ):
+                raise ValueError(
+                    "E5 mixed reconstruction expects square mask/query grids, got "
+                    f"P={e5_source_masks.shape[-1]}, Q={n_rae}"
+                )
+            e5_source_masks = F.interpolate(
+                e5_source_masks.reshape(
+                    B * e5_source_masks.shape[1], 1, src_side, src_side
+                ),
+                size=(dst_side, dst_side),
+                mode="area",
+            ).reshape(B, e5_source_masks.shape[1], n_rae)
+        e5_foreground_mask = (
+            e5_source_masks
+            * ovt_valid_mask.unsqueeze(-1).to(e5_source_masks.dtype)
+        ).amax(dim=1).clamp(0.0, 1.0)
+        e5_eligible = (
+            (e5_foreground_mask.sum(dim=-1) > 1e-6)
+            & ovt_valid_mask.any(dim=-1)
+        )
+        if self.training and e5_forcing_probability > 0.0:
+            e5_forcing_mask = (
+                torch.rand(B, device=model_device) < e5_forcing_probability
+            ) & e5_eligible
+            attn_bias = apply_e5_rae_ovt_forcing_mask(
+                attn_bias,
+                positions=positions,
+                forcing_sample_mask=e5_forcing_mask,
+            )
+        else:
+            e5_forcing_mask = torch.zeros(B, device=model_device, dtype=torch.bool)
 
         # 6) LLM forward
         mask_llm_qk_outside_w = float(getattr(self.config, "pgot_mask_llm_qk_outside_weight", 0.0))
@@ -4412,11 +4513,6 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 getattr(self.config, "pgot_e4_rae_bind_weight", 0.0),
             )
         )
-        if e4_full_inside_w > 0.0 and e3_competition_w <= 0.0:
-            raise ValueError(
-                "E4 full-inside floor reuses E3's exact all-layer attention "
-                "pass and requires pgot_e3_attention_competition_weight > 0."
-            )
         out = self.model(
             inputs_embeds=inputs_embeds,
             attention_bias=attn_bias,
@@ -4817,7 +4913,15 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         core_valid_ovt_count = zero
         core_num_layers = zero
         core_layer_metrics = {}
-        if (core_outside_w > 0.0 or core_tail_w > 0.0) and e3_competition_w <= 0.0:
+        loss_e4_full_inside = zero
+        e4_full_inside_mass = zero
+        e4_full_outside_mass = zero
+        e4_full_inside_satisfied_fraction = zero
+        if (
+            core_outside_w > 0.0
+            or core_tail_w > 0.0
+            or e4_full_inside_w > 0.0
+        ) and e3_competition_w <= 0.0:
             core_losses = self._compute_core_all_layer_outside_loss(
                 hidden_states=out.hidden_states,
                 attention_bias=attn_bias,
@@ -4834,6 +4938,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 ),
                 tail_fraction=float(
                     getattr(self.config, "pgot_core_tail_fraction", 0.1)
+                ),
+                full_inside_target=(
+                    float(getattr(self.config, "pgot_e4_full_inside_target", 0.30))
+                    if e4_full_inside_w > 0.0
+                    else 0.0
                 ),
             )
             loss_core_outside = core_losses["loss"]
@@ -4855,6 +4964,12 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             core_valid_ovt_count = core_losses["valid_ovt_count"]
             core_num_layers = core_losses["num_layers"]
             core_layer_metrics = core_losses["layer_metrics"]
+            loss_e4_full_inside = core_losses["full_inside_floor_loss"]
+            e4_full_inside_mass = core_losses["full_inside_mass"]
+            e4_full_outside_mass = core_losses["full_outside_mass"]
+            e4_full_inside_satisfied_fraction = core_losses[
+                "full_inside_satisfied_fraction"
+            ]
 
         loss_core_register = zero
         core_register_fg_mass = zero
@@ -4873,11 +4988,6 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         e3_object_prob_on_bg = zero
         e3_competition_fg_fraction = zero
         e3_layer_metrics = {}
-        loss_e4_full_inside = zero
-        e4_full_inside_mass = zero
-        e4_full_outside_mass = zero
-        e4_full_inside_satisfied_fraction = zero
-
         # E3 computes OVT outside, register outside, and ownership competition
         # jointly, avoiding four separate all-layer Q/K reconstructions.
         if e3_competition_w > 0.0:
@@ -5004,17 +5114,36 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
 
         # 10) L3: rectified-flow reconstruction (rae_hidden -> diff_head) with CFG dropping
         cfg_drop_rate = float(getattr(self.config, "pgot_cfg_drop_rate", 0.0))
-        rae_hidden_for_diff = rae_hidden
+        e5_condition_keep = torch.where(
+            e5_forcing_mask[:, None],
+            e5_foreground_mask,
+            torch.ones_like(e5_foreground_mask),
+        )
+        rae_hidden_for_diff = rae_hidden * e5_condition_keep.unsqueeze(-1).to(
+            rae_hidden.dtype
+        )
         if self.training and cfg_drop_rate > 0.0:
             # Per-sample independent Bernoulli drop. When dropped, rae_hidden -> zeros
             # so the diffusion head learns an unconditional path (used for CFG at inference).
-            drop_mask = (torch.rand(B, device=rae_hidden.device) < cfg_drop_rate).view(B, 1, 1)
+            drop_mask = (
+                (torch.rand(B, device=rae_hidden.device) < cfg_drop_rate)
+                & ~e5_forcing_mask
+            ).view(B, 1, 1)
             rae_hidden_for_diff = rae_hidden * (~drop_mask).to(rae_hidden.dtype)
+            rae_hidden_for_diff = rae_hidden_for_diff * e5_condition_keep.unsqueeze(-1).to(
+                rae_hidden.dtype
+            )
+        e5_recon_loss_mask = torch.where(
+            e5_forcing_mask[:, None],
+            e5_foreground_mask,
+            torch.ones_like(e5_foreground_mask),
+        )
         loss_recon = self._captionslot_compute_diffusion_loss(
             hidden=rae_hidden_for_diff,
             target_features=gt_siglip,
             slot_context=None,
             slot_mask=None,
+            loss_mask=e5_recon_loss_mask,
         )
 
         # 11) L4: OVT-swap contrastive (CODA-style, last-layer re-run for editing alignment)
@@ -5079,6 +5208,17 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             self.pgot_n_ovt_per_object, 1
         )
         details = {}
+        if e5_forcing_probability > 0.0:
+            details["e5_forcing_probability"] = zero.new_tensor(
+                e5_forcing_probability
+            )
+            details["e5_forcing_fraction"] = e5_forcing_mask.float().mean().detach()
+            details["e5_foreground_token_fraction"] = (
+                e5_foreground_mask.mean().detach()
+            )
+            details["e5_recon_mask_fraction"] = (
+                e5_recon_loss_mask.mean().detach()
+            )
         if register_hard_configured:
             details["register_hard_mask_active"] = gt_masks_per_ovt.new_tensor(
                 float(register_hard_active)

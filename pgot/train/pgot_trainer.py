@@ -143,6 +143,13 @@ class PGOTModelArguments:
     # OVT query row to image patches + itself in every LLM layer. This prevents
     # later caption, previous-OVT, register, and RAE value shortcuts.
     pgot_ovt_isolated_attention: bool = field(default=False)
+    # E5 restores only the current object's caption span for an otherwise
+    # isolated OVT row. Previous object captions and OVTs remain blocked.
+    pgot_ovt_attends_own_caption: bool = field(default=False)
+    # Fraction of training samples whose RAE attention update is forced to use
+    # OVT values only; their diffusion loss is normalized over foreground
+    # target tokens. Evaluation always uses the ordinary full condition.
+    pgot_e5_forcing_probability: float = field(default=0.0)
 
     # V12: OVT-style owner competition injected between selected LLM layers.
     pgot_v12_enable: bool = field(default=False)
