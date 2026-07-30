@@ -262,6 +262,9 @@ def pgot_forward_eval(
         register_attends_caption=bool(
             getattr(model.config, "pgot_register_attends_caption", True)
         ),
+        ovt_isolated=bool(
+            getattr(model.config, "pgot_ovt_isolated_attention", False)
+        ),
     )
     register_blocked_patch_fraction = inputs_embeds.new_zeros((), dtype=torch.float32)
     register_blocked_patch_count = inputs_embeds.new_zeros((), dtype=torch.float32)

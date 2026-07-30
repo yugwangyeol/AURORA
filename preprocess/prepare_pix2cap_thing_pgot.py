@@ -50,7 +50,10 @@ def build_manifest(args):
     output_path = Path(args.output)
     stats_path = Path(args.stats_output or f"{args.output}.stats.json")
     image_root = Path(args.coco_root) / f"{args.split}2017"
-    panoptic_root = Path(args.coco_root) / "annotations" / f"panoptic_{args.split}2017"
+    panoptic_root = Path(
+        args.panoptic_root
+        or Path(args.coco_root) / "annotations" / f"panoptic_{args.split}2017"
+    )
 
     print(f"Loading {source_path} ...", flush=True)
     with source_path.open() as handle:
@@ -191,6 +194,11 @@ def main():
     parser.add_argument("--input", default=None)
     parser.add_argument("--output", required=True)
     parser.add_argument("--stats_output", default=None)
+    parser.add_argument(
+        "--panoptic_root",
+        default=None,
+        help="Optional mask root for model-generated panoptic PNGs.",
+    )
     parser.add_argument(
         "--tokenizer_path", default="/home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B"
     )

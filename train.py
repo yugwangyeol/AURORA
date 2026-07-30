@@ -229,6 +229,9 @@ def train():
     config.pgot_register_attends_caption = bool(model_args.pgot_register_attends_caption)
     config.pgot_ovt_caption_init = bool(model_args.pgot_ovt_caption_init)
     config.pgot_ovt_caption_init_scale = float(model_args.pgot_ovt_caption_init_scale)
+    config.pgot_ovt_isolated_attention = bool(
+        model_args.pgot_ovt_isolated_attention
+    )
     config.pgot_v12_enable = bool(model_args.pgot_v12_enable)
     config.pgot_v12_layers = str(model_args.pgot_v12_layers)
     v12_ovt_temp = float(
@@ -409,6 +412,9 @@ def train():
     model.config.pgot_ovt_caption_init_scale = float(
         model_args.pgot_ovt_caption_init_scale
     )
+    model.config.pgot_ovt_isolated_attention = bool(
+        model_args.pgot_ovt_isolated_attention
+    )
     model.config.pgot_dataset_format = str(data_args.dataset_format)
     model.config.pgot_v12_enable = bool(model_args.pgot_v12_enable)
     model.config.pgot_v12_layers = str(model_args.pgot_v12_layers)
@@ -496,6 +502,8 @@ def train():
         f"register_hard_threshold={model.config.pgot_register_hard_gt_mask_threshold}, "
         f"tail_w={model.config.pgot_core_tail_weight}, "
         f"tail_frac={model.config.pgot_core_tail_fraction}) "
+        f"ovt=(caption_init={model.config.pgot_ovt_caption_init}, "
+        f"isolated_attention={model.config.pgot_ovt_isolated_attention}) "
         f"e3_comp=(w={model.config.pgot_e3_attention_competition_weight}, "
         f"layers={model.config.pgot_e3_attention_competition_layers}, "
         f"temp={model.config.pgot_e3_attention_competition_temperature}, "

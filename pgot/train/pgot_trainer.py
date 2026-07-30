@@ -139,6 +139,10 @@ class PGOTModelArguments:
     # span. The projection is initialized to identity and trained with PGOT.
     pgot_ovt_caption_init: bool = field(default=False)
     pgot_ovt_caption_init_scale: float = field(default=1.0)
+    # After the own-caption-conditioned layer-0 initialization, restrict every
+    # OVT query row to image patches + itself in every LLM layer. This prevents
+    # later caption, previous-OVT, register, and RAE value shortcuts.
+    pgot_ovt_isolated_attention: bool = field(default=False)
 
     # V12: OVT-style owner competition injected between selected LLM layers.
     pgot_v12_enable: bool = field(default=False)

@@ -114,12 +114,17 @@ def build_pgot_attention_mask(
     ovt_absolute_positions: Optional[torch.Tensor] = None,
     ovt_valid_mask: Optional[torch.Tensor] = None,
     register_attends_caption: bool = True,
+    ovt_isolated: bool = False,
 ) -> torch.Tensor:
     """Build additive attention bias for PGOT.
 
     Rules:
       - image: bidirectional within image + sees sys prefix
-      - caption tokens (incl. ovt): causal up to self + attends image bidirectionally
+      - ordinary caption tokens: causal up to self + attends image bidirectionally
+      - ovt: legacy caption behavior, or (when ``ovt_isolated``) attends only
+        the full image-patch block and itself.  In isolated mode it cannot read
+        system/user/assistant text, its own caption tokens, another OVT, a
+        register, or an RAE query inside any transformer layer.
       - assistant_suffix: causal
       - register: attends image + self; legacy mode may also attend caption
       - rae_query: attends OVT(if rae_attends_caption=False, via OVT_only_positions
@@ -165,16 +170,30 @@ def build_pgot_attention_mask(
     for b_idx in range(batch_size):
         valid_cap_idx = caption_padding_mask[b_idx].nonzero(as_tuple=False).flatten()
         valid_cap_positions = cap_s + valid_cap_idx
+        isolated_ovt_rows = set()
+        if ovt_isolated and ovt_absolute_positions is not None and ovt_valid_mask is not None:
+            keep = ovt_valid_mask[b_idx].nonzero(as_tuple=False).flatten()
+            if keep.numel() > 0:
+                isolated_ovt_rows = {
+                    int(pos)
+                    for pos in ovt_absolute_positions[b_idx, keep].tolist()
+                    if cap_s <= int(pos) < cap_e
+                }
 
         # Image rows: see sys + image bidirectional
         for row_idx in range(img_s, img_e):
             allow_cols(b_idx, row_idx, sys_s, user_prefix_e)
             allow_cols(b_idx, row_idx, img_s, img_e)
 
-        # Caption rows (including <ovt>): causal up to self + see full image
+        # Ordinary caption rows remain causal. In the OVT-isolated experiment,
+        # an OVT row sees image patches + its own diagonal only. The diagonal
+        # was initialized above, so only the image block is added here.
         for local_idx in range(cap_e - cap_s):
             row_idx = cap_s + local_idx
             if not bool(caption_padding_mask[b_idx, local_idx]):
+                continue
+            if row_idx in isolated_ovt_rows:
+                allow_cols(b_idx, row_idx, img_s, img_e)
                 continue
             # Sees sys + user_prefix + image + user_suffix + assistant_prefix
             allow_cols(b_idx, row_idx, sys_s, assistant_prefix_e)

@@ -945,6 +945,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             register_attends_caption=bool(
                 getattr(self.config, "pgot_register_attends_caption", True)
             ),
+            ovt_isolated=bool(
+                getattr(self.config, "pgot_ovt_isolated_attention", False)
+            ),
         )
         return {
             "device": model_device,
@@ -3672,6 +3675,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             register_attends_caption=bool(
                 getattr(self.config, "pgot_register_attends_caption", True)
             ),
+            ovt_isolated=bool(
+                getattr(self.config, "pgot_ovt_isolated_attention", False)
+            ),
         )
         out = self.model(
             inputs_embeds=inputs_embeds,
@@ -4337,6 +4343,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             ovt_valid_mask=ovt_valid_mask,
             register_attends_caption=bool(
                 getattr(self.config, "pgot_register_attends_caption", True)
+            ),
+            ovt_isolated=bool(
+                getattr(self.config, "pgot_ovt_isolated_attention", False)
             ),
         )
 

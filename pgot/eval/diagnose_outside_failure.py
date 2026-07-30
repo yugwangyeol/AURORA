@@ -975,7 +975,11 @@ def main():
                     sample_batch = {
                         k: (
                             v[local_b:local_b + 1]
-                            if torch.is_tensor(v) and v.shape[0] == len(global_indices)
+                            if (
+                                torch.is_tensor(v)
+                                and v.ndim > 0
+                                and v.shape[0] == len(global_indices)
+                            )
                             else [v[local_b]]
                             if isinstance(v, list) and len(v) == len(global_indices)
                             else v
@@ -987,7 +991,18 @@ def main():
                         spec,
                         raw,
                         sample_batch,
-                        {k: (v[local_b:local_b + 1] if torch.is_tensor(v) and v.shape[0] == len(global_indices) else v) for k, v in out.items()},
+                        {
+                            k: (
+                                v[local_b:local_b + 1]
+                                if (
+                                    torch.is_tensor(v)
+                                    and v.ndim > 0
+                                    and v.shape[0] == len(global_indices)
+                                )
+                                else v
+                            )
+                            for k, v in out.items()
+                        },
                         pred,
                         gt,
                         overlap,
