@@ -30,6 +30,7 @@ def pgot_forward_eval(
     ovt_valid_mask: torch.Tensor,
     return_llm_qk_maps: bool = False,
     return_llm_attention_maps: bool = False,
+    llm_attention_readout: str = "auto",
     rae_access_mode: str = "baseline",
     return_hidden_states: bool = False,
     return_v12_block_maps: bool = False,
@@ -39,6 +40,12 @@ def pgot_forward_eval(
     register_image_block_mask: Optional[torch.Tensor] = None,
 ) -> Dict[str, torch.Tensor]:
     model.eval()
+
+    if llm_attention_readout not in {"auto", "fvw", "core"}:
+        raise ValueError(
+            "llm_attention_readout must be one of auto/fvw/core, got "
+            f"{llm_attention_readout}"
+        )
 
     device = model._pgot_model_device() if hasattr(model, "_pgot_model_device") else model.pgot_register_embeddings.device
     images = images.to(device)
@@ -330,14 +337,35 @@ def pgot_forward_eval(
     need_hidden_states = (
         need_llm_qk_maps or need_llm_attention_maps or bool(return_hidden_states)
     )
-    out = model.model(
-        inputs_embeds=inputs_embeds,
-        attention_bias=attn_bias,
-        use_cache=False,
-        output_hidden_states=need_hidden_states,
-        return_dict=True,
-    )
+    if bool(getattr(model.config, "pgot_fvw_enable", False)):
+        out, fvw_records = model._pgot_forward_with_fvw(
+            inputs_embeds=inputs_embeds,
+            attention_bias=attn_bias,
+            positions=positions,
+            ovt_abs_positions=ovt_abs_positions,
+            ovt_valid_mask=ovt_valid_mask,
+            output_hidden_states=need_hidden_states,
+        )
+    else:
+        out = model.model(
+            inputs_embeds=inputs_embeds,
+            attention_bias=attn_bias,
+            use_cache=False,
+            output_hidden_states=need_hidden_states,
+            return_dict=True,
+        )
+        fvw_records = []
     hidden = out.last_hidden_state
+
+    fvw_attention_maps = None
+    fvw_last_attention_maps = None
+    if fvw_records:
+        fvw_per_write = [record["weights"].float().mean(dim=1) for record in fvw_records]
+        fvw_attention_maps = torch.stack(fvw_per_write, dim=0).mean(dim=0)
+        fvw_last_attention_maps = fvw_per_write[-1]
+        valid_float = ovt_valid_mask.unsqueeze(-1).to(fvw_attention_maps.dtype)
+        fvw_attention_maps = fvw_attention_maps * valid_float
+        fvw_last_attention_maps = fvw_last_attention_maps * valid_float
 
     img_hidden = hidden[:, positions["img_s"]:positions["img_e"], :]
     rae_hidden = hidden[:, positions["rae_s"]:positions["rae_e"], :]
@@ -391,32 +419,47 @@ def pgot_forward_eval(
         and llm_patch_attention_enabled
         and hasattr(model, "_compute_llm_patch_attention_maps")
     ):
-        llm_attention_maps, llm_attention_void_maps = (
-            model._compute_llm_patch_attention_maps(
-                hidden_states=out.hidden_states,
-                attention_bias=attn_bias,
-                positions=positions,
-                ovt_abs_positions=ovt_abs_positions,
-                ovt_valid_mask=ovt_valid_mask,
-                layers_spec=str(
-                    getattr(model.config, "pgot_core_outside_layers", "all")
-                    if float(getattr(model.config, "pgot_core_outside_weight", 0.0)) > 0.0
-                    or float(getattr(model.config, "pgot_core_tail_weight", 0.0)) > 0.0
-                    else getattr(
-                        model.config, "pgot_mask_llm_patch_outside_layers", "last4"
-                    )
-                ),
-                temperature=float(
-                    getattr(model.config, "pgot_core_outside_temperature", 1.0)
-                    if float(getattr(model.config, "pgot_core_outside_weight", 0.0)) > 0.0
-                    or float(getattr(model.config, "pgot_core_tail_weight", 0.0)) > 0.0
-                    else getattr(
-                        model.config, "pgot_mask_llm_patch_outside_temperature", 1.0
-                    )
-                ),
-            )
+        use_fvw_attention = (
+            fvw_attention_maps is not None
+            and llm_attention_readout in {"auto", "fvw"}
         )
-        llm_attention_source = "post_rope_image_patch_softmax"
+        if llm_attention_readout == "fvw" and fvw_attention_maps is None:
+            raise ValueError(
+                "llm_attention_readout='fvw' requested but the checkpoint did not "
+                "produce FVW maps"
+            )
+        if use_fvw_attention:
+            # FVW's map is the attention that actually writes the exported OVT
+            # value, so it is the primary segmentation/routing readout.
+            llm_attention_maps = fvw_attention_maps
+            llm_attention_source = "fvw_image_only_write_softmax"
+        else:
+            llm_attention_maps, llm_attention_void_maps = (
+                model._compute_llm_patch_attention_maps(
+                    hidden_states=out.hidden_states,
+                    attention_bias=attn_bias,
+                    positions=positions,
+                    ovt_abs_positions=ovt_abs_positions,
+                    ovt_valid_mask=ovt_valid_mask,
+                    layers_spec=str(
+                        getattr(model.config, "pgot_core_outside_layers", "all")
+                        if float(getattr(model.config, "pgot_core_outside_weight", 0.0)) > 0.0
+                        or float(getattr(model.config, "pgot_core_tail_weight", 0.0)) > 0.0
+                        else getattr(
+                            model.config, "pgot_mask_llm_patch_outside_layers", "last4"
+                        )
+                    ),
+                    temperature=float(
+                        getattr(model.config, "pgot_core_outside_temperature", 1.0)
+                        if float(getattr(model.config, "pgot_core_outside_weight", 0.0)) > 0.0
+                        or float(getattr(model.config, "pgot_core_tail_weight", 0.0)) > 0.0
+                        else getattr(
+                            model.config, "pgot_mask_llm_patch_outside_temperature", 1.0
+                        )
+                    ),
+                )
+            )
+            llm_attention_source = "post_rope_image_patch_softmax"
         # Register maps are an eval readout, not a training-loss diagnostic.
         # E2 uses a hard train-time register route and intentionally sets the
         # soft register-loss weight to zero, so gating this map on that weight
@@ -491,6 +534,9 @@ def pgot_forward_eval(
         "llm_attention_void_maps": llm_attention_void_maps,
         "llm_attention_register_maps": llm_attention_register_maps,
         "llm_attention_source": llm_attention_source,
+        "fvw_attention_maps": fvw_attention_maps,
+        "fvw_last_attention_maps": fvw_last_attention_maps,
+        "fvw_write_layers": [int(record["layer"]) for record in fvw_records],
         "e3_competition_object_probs": e3_competition_object_probs,
         "e3_competition_background_probs": e3_competition_background_probs,
         "ovt_valid_mask": ovt_valid_mask,
@@ -581,6 +627,119 @@ def ovt_swap_inference(
 
     rae_hidden_mixed = updated[:, positions_A["rae_s"]:positions_A["rae_e"], :]
     return rae_hidden_mixed, updated
+
+
+@torch.no_grad()
+def ovt_swap_all_layers_inference(
+    model,
+    out_A: Dict,
+    out_B: Dict,
+    swap_pairs: list,
+    n_ovt_per_object: int = 2,
+):
+    """Causally replace selected OVT states throughout the LLM stack.
+
+    ``ovt_swap_inference`` is the legacy last-layer approximation.  This
+    variant uses the cached layer-input trajectory from image B and overwrites
+    the selected OVT positions in image A before *every* transformer layer.
+    Consequently A's RAE queries read the donor OVT at every depth while A's
+    image, other OVTs, registers, attention mask, and spatial queries remain
+    unchanged.
+
+    Both inputs must come from ``pgot_forward_eval(...,
+    return_hidden_states=True)``.
+    """
+    hidden_states_A = out_A.get("hidden_states")
+    hidden_states_B = out_B.get("hidden_states")
+    if hidden_states_A is None or hidden_states_B is None:
+        raise ValueError(
+            "all-layer OVT swap requires return_hidden_states=True for A and B"
+        )
+
+    layers = model.model.layers
+    if len(hidden_states_A) < len(layers) + 1:
+        raise ValueError(
+            "unexpected hidden-state trajectory length for A: "
+            f"{len(hidden_states_A)} for {len(layers)} layers"
+        )
+    if len(hidden_states_B) < len(layers) + 1:
+        raise ValueError(
+            "unexpected hidden-state trajectory length for B: "
+            f"{len(hidden_states_B)} for {len(layers)} layers"
+        )
+
+    hidden_mixed = hidden_states_A[0].clone()
+    ovt_abs_A = out_A["ovt_abs_positions"]
+    ovt_abs_B = out_B["ovt_abs_positions"]
+    positions_A = out_A["positions"]
+    attn_bias_A = out_A["attn_bias"]
+    seq_len = hidden_mixed.shape[1]
+    position_ids = torch.arange(
+        seq_len,
+        device=hidden_mixed.device,
+        dtype=torch.long,
+    ).unsqueeze(0)
+
+    for layer_idx, layer in enumerate(layers):
+        donor_layer_input = hidden_states_B[layer_idx]
+        for idx_A, idx_B in swap_pairs:
+            a_start = int(idx_A) * int(n_ovt_per_object)
+            b_start = int(idx_B) * int(n_ovt_per_object)
+            for offset in range(int(n_ovt_per_object)):
+                pos_a = int(ovt_abs_A[0, a_start + offset].item())
+                pos_b = int(ovt_abs_B[0, b_start + offset].item())
+                hidden_mixed[:, pos_a, :] = donor_layer_input[:, pos_b, :]
+
+        try:
+            layer_out = layer(
+                hidden_mixed,
+                attention_mask=attn_bias_A,
+                position_ids=position_ids,
+                use_cache=False,
+            )
+            hidden_mixed = (
+                layer_out[0] if isinstance(layer_out, tuple) else layer_out
+            )
+        except TypeError:
+            hidden_mixed = layer(
+                hidden_mixed,
+                attention_mask=attn_bias_A,
+            )[0]
+
+        # Match the normal E2-Pix-FVW forward exactly.  Without this step an
+        # all-layer swap silently skips the hard visual overwrite and compares
+        # a non-FVW intervention against an FVW baseline.
+        if (
+            bool(getattr(model.config, "pgot_fvw_enable", False))
+            and getattr(model, "pgot_fvw_block", None) is not None
+            and int(layer_idx) in set(int(x) for x in model.pgot_fvw_layers)
+        ):
+            current_ovts = gather_ovt_hidden_states(
+                hidden_mixed,
+                ovt_abs_A,
+                out_A["ovt_valid_mask"],
+            )
+            image_states = hidden_mixed[
+                :, positions_A["img_s"]:positions_A["img_e"], :
+            ]
+            visual_ovts, _ = model.pgot_fvw_block(
+                ovt_states=current_ovts,
+                image_states=image_states,
+                ovt_valid_mask=out_A["ovt_valid_mask"],
+            )
+            hidden_mixed = model._pgot_fvw_scatter_overwrite(
+                hidden_states=hidden_mixed,
+                ovt_abs_positions=ovt_abs_A,
+                ovt_valid_mask=out_A["ovt_valid_mask"],
+                visual_ovts=visual_ovts,
+            )
+
+    if hasattr(model.model, "norm"):
+        hidden_mixed = model.model.norm(hidden_mixed)
+    rae_hidden_mixed = hidden_mixed[
+        :, positions_A["rae_s"]:positions_A["rae_e"], :
+    ]
+    return rae_hidden_mixed, hidden_mixed
 
 
 @torch.no_grad()

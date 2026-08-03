@@ -27,6 +27,7 @@ from pgot.model.pgot_utils import (
     pgot_positions,
     build_pgot_attention_mask,
     apply_e5_rae_ovt_forcing_mask,
+    apply_fvw_rae_role_masks,
     gather_ovt_hidden_states,
     compute_per_ovt_mask_logits,
     compute_mask_bce_loss,
@@ -248,6 +249,77 @@ class PGOTOVTUpdateBlock(nn.Module):
             ovt_states,
         )
         return updated, owner_logits, owner_probs
+
+
+class PGOTForcedVisualWriteBlock(nn.Module):
+    """Overwrite OVT states using image-patch values only.
+
+    Unlike an ordinary decoder self-attention row, the softmax domain contains
+    exactly the image patches: there is no caption, register, RAE-query, or OVT
+    self value.  The semantic OVT state is used only as the query that selects
+    visual evidence.  A shared block is reused at every configured write layer
+    so parameter cost does not grow with the number of writes.
+    """
+
+    def __init__(self, dim: int, num_heads: int = 8, temperature: float = 1.0):
+        super().__init__()
+        if dim % int(num_heads) != 0:
+            raise ValueError(
+                f"FVW hidden dim {dim} must be divisible by num_heads={num_heads}"
+            )
+        self.dim = int(dim)
+        self.num_heads = int(num_heads)
+        self.head_dim = self.dim // self.num_heads
+        self.temperature = float(temperature)
+
+        self.query_norm = nn.LayerNorm(self.dim)
+        self.image_norm = nn.LayerNorm(self.dim)
+        self.query = nn.Linear(self.dim, self.dim, bias=False)
+        self.key = nn.Linear(self.dim, self.dim, bias=False)
+        self.value = nn.Linear(self.dim, self.dim, bias=False)
+        self.output = nn.Linear(self.dim, self.dim, bias=False)
+        self.output_norm = nn.LayerNorm(self.dim)
+
+        # An old checkpoint has no FVW parameters.  Identity projections make
+        # its first write a genuine object-conditioned aggregation of the
+        # existing image stream instead of an arbitrary random replacement.
+        nn.init.eye_(self.query.weight)
+        nn.init.eye_(self.key.weight)
+        nn.init.eye_(self.value.weight)
+        nn.init.eye_(self.output.weight)
+
+    def forward(
+        self,
+        ovt_states: torch.Tensor,
+        image_states: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        B, M, D = ovt_states.shape
+        if D != self.dim or image_states.shape[0] != B or image_states.shape[-1] != D:
+            raise ValueError(
+                "FVW state shape mismatch: "
+                f"ovt={tuple(ovt_states.shape)}, image={tuple(image_states.shape)}, "
+                f"expected D={self.dim}"
+            )
+        P = image_states.shape[1]
+        H, Dh = self.num_heads, self.head_dim
+
+        query = self.query(self.query_norm(ovt_states)).reshape(B, M, H, Dh)
+        key = self.key(self.image_norm(image_states)).reshape(B, P, H, Dh)
+        logits = torch.einsum("bmhd,bphd->bhmp", query.float(), key.float())
+        logits = logits / math.sqrt(float(Dh))
+        logits = logits / max(float(self.temperature), 1e-6)
+        weights = F.softmax(logits, dim=-1)
+
+        value = self.value(self.image_norm(image_states)).reshape(B, P, H, Dh)
+        context = torch.einsum(
+            "bhmp,bphd->bmhd", weights.to(value.dtype), value
+        ).reshape(B, M, D)
+        visual_states = self.output_norm(self.output(context))
+        visual_states = torch.where(
+            ovt_valid_mask.unsqueeze(-1), visual_states, ovt_states
+        )
+        return visual_states, weights
 
 
 class PGOTOVTBottleneckRouterRefineBlock(nn.Module):
@@ -548,6 +620,20 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             self.pgot_ovt_caption_norm = None
             self.pgot_ovt_caption_projector = None
 
+        self.pgot_fvw_enable = bool(getattr(self.config, "pgot_fvw_enable", False))
+        self.pgot_fvw_layers = _resolve_layer_spec(
+            str(getattr(self.config, "pgot_fvw_layers", "0,8,16,24,27")),
+            int(getattr(self.config, "num_hidden_layers", 0)),
+        )
+        if self.pgot_fvw_enable:
+            self.pgot_fvw_block = PGOTForcedVisualWriteBlock(
+                dim=D,
+                num_heads=int(getattr(self.config, "pgot_fvw_num_heads", 8)),
+                temperature=float(getattr(self.config, "pgot_fvw_temperature", 1.0)),
+            )
+        else:
+            self.pgot_fvw_block = None
+
         self.pgot_v12_enable = bool(getattr(self.config, "pgot_v12_enable", False))
         self.pgot_v14_enable = bool(getattr(self.config, "pgot_v14_enable", False))
         self.pgot_v21_enable = bool(getattr(self.config, "pgot_v21_enable", False))
@@ -653,6 +739,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             f"[PGOT] Initialised — D={D}, N_register={self.pgot_n_register}, "
             f"n_ovt_per_object={self.pgot_n_ovt_per_object}, "
             f"N_null_bg={self.pgot_n_null_bg}, "
+            f"fvw={self.pgot_fvw_enable}, fvw_layers={self.pgot_fvw_layers}, "
             f"v12={self.pgot_v12_enable}, v12_layers={self.pgot_v12_layers}, "
             f"v14={self.pgot_v14_enable}, "
             f"v14_router_depth={getattr(self.config, 'pgot_v14_router_depth', 1)}, "
@@ -1005,6 +1092,185 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         pad = total_ovt_tokens - repeated.shape[1]
         zeros = repeated.new_zeros(B, pad, D)
         return torch.cat([repeated, zeros], dim=1)
+
+    def _pgot_fvw_scatter_overwrite(
+        self,
+        hidden_states: torch.Tensor,
+        ovt_abs_positions: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        visual_ovts: torch.Tensor,
+    ) -> torch.Tensor:
+        """Overwrite valid OVT rows out-of-place while preserving autograd."""
+        B, L, D = hidden_states.shape
+        current = gather_ovt_hidden_states(
+            hidden_states, ovt_abs_positions, ovt_valid_mask
+        )
+        delta = (visual_ovts - current) * ovt_valid_mask.unsqueeze(-1).to(
+            visual_ovts.dtype
+        )
+        safe_pos = ovt_abs_positions.clamp(min=0, max=L - 1)
+        index = safe_pos.unsqueeze(-1).expand(B, safe_pos.shape[1], D)
+        delta_full = torch.zeros_like(hidden_states).scatter(1, index, delta)
+        return hidden_states + delta_full
+
+    def _pgot_forward_with_fvw(
+        self,
+        *,
+        inputs_embeds: torch.Tensor,
+        attention_bias: torch.Tensor,
+        positions: Dict[str, int],
+        ovt_abs_positions: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        output_hidden_states: bool,
+    ) -> Tuple[object, List[Dict[str, torch.Tensor]]]:
+        """Run Qwen while forcing image-only writes after selected layers."""
+        if not self.pgot_fvw_enable or self.pgot_fvw_block is None:
+            out = self.model(
+                inputs_embeds=inputs_embeds,
+                attention_bias=attention_bias,
+                use_cache=False,
+                output_hidden_states=output_hidden_states,
+                return_dict=True,
+            )
+            return out, []
+
+        write_layers = set(int(x) for x in self.pgot_fvw_layers)
+        records: List[Dict[str, torch.Tensor]] = []
+
+        def hidden_state_postprocess_fn(
+            hidden_states: torch.Tensor, layer_idx: int
+        ) -> torch.Tensor:
+            if int(layer_idx) not in write_layers:
+                return hidden_states
+            old_ovts = gather_ovt_hidden_states(
+                hidden_states, ovt_abs_positions, ovt_valid_mask
+            )
+            image_states = hidden_states[
+                :, positions["img_s"]:positions["img_e"], :
+            ]
+            visual_ovts, weights = self.pgot_fvw_block(
+                ovt_states=old_ovts,
+                image_states=image_states,
+                ovt_valid_mask=ovt_valid_mask,
+            )
+            old_norm = old_ovts.float().norm(dim=-1).clamp_min(1e-6)
+            relative_delta = (
+                (visual_ovts.float() - old_ovts.float()).norm(dim=-1) / old_norm
+            )
+            records.append(
+                {
+                    "layer": int(layer_idx),
+                    "weights": weights,
+                    "relative_delta": relative_delta,
+                }
+            )
+            return self._pgot_fvw_scatter_overwrite(
+                hidden_states=hidden_states,
+                ovt_abs_positions=ovt_abs_positions,
+                ovt_valid_mask=ovt_valid_mask,
+                visual_ovts=visual_ovts,
+            )
+
+        out = self.model(
+            inputs_embeds=inputs_embeds,
+            attention_bias=attention_bias,
+            use_cache=False,
+            output_hidden_states=output_hidden_states,
+            return_dict=True,
+            hidden_state_postprocess_fn=hidden_state_postprocess_fn,
+        )
+        return out, records
+
+    def _pgot_compute_fvw_stats(
+        self,
+        *,
+        records: List[Dict[str, torch.Tensor]],
+        gt_masks_per_ovt: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+    ) -> Dict[str, torch.Tensor]:
+        zero = gt_masks_per_ovt.new_zeros(())
+        if not records:
+            return {
+                "loss": zero,
+                "inside_mass": zero,
+                "outside_mass": zero,
+                "entropy": zero,
+                "relative_delta": zero,
+                "num_writes": zero,
+                "attention_maps": None,
+                "last_attention_maps": None,
+                "layer_metrics": {},
+            }
+
+        masks = gt_masks_per_ovt.float().clamp(0.0, 1.0)
+        valid = ovt_valid_mask.to(dtype=torch.bool)
+        outside_values, inside_values, entropy_values, delta_values = [], [], [], []
+        mean_maps = []
+        layer_metrics: Dict[str, torch.Tensor] = {}
+        eps = 1e-8
+        for record in records:
+            weights = record["weights"].float()  # [B,H,M,P], patch-softmaxed
+            if (
+                weights.shape[0] != masks.shape[0]
+                or weights.shape[2] != masks.shape[1]
+                or weights.shape[3] != masks.shape[2]
+            ):
+                raise ValueError(
+                    "FVW weights/GT mismatch: "
+                    f"weights={tuple(weights.shape)}, masks={tuple(masks.shape)}"
+                )
+            valid_bhm = valid[:, None, :].expand(
+                weights.shape[0], weights.shape[1], weights.shape[2]
+            )
+            inside = (weights * masks[:, None]).sum(dim=-1)
+            outside = (weights * (1.0 - masks[:, None])).sum(dim=-1)
+            entropy = -(weights * weights.clamp_min(eps).log()).sum(dim=-1)
+            entropy = entropy / max(math.log(max(weights.shape[-1], 2)), eps)
+            delta = record["relative_delta"].float()
+
+            outside_valid = outside[valid_bhm]
+            inside_valid = inside[valid_bhm]
+            entropy_valid = entropy[valid_bhm]
+            delta_valid = delta[valid]
+            if outside_valid.numel() > 0:
+                outside_values.append(outside_valid.mean())
+                inside_values.append(inside_valid.mean())
+                entropy_values.append(entropy_valid.mean())
+            if delta_valid.numel() > 0:
+                delta_values.append(delta_valid.mean())
+            mean_maps.append(weights.mean(dim=1))
+            layer = int(record["layer"])
+            layer_metrics[f"fvw_layer_{layer:02d}_inside_mass"] = (
+                inside_valid.mean().detach() if inside_valid.numel() else zero
+            )
+            layer_metrics[f"fvw_layer_{layer:02d}_outside_mass"] = (
+                outside_valid.mean().detach() if outside_valid.numel() else zero
+            )
+            layer_metrics[f"fvw_layer_{layer:02d}_entropy"] = (
+                entropy_valid.mean().detach() if entropy_valid.numel() else zero
+            )
+
+        def mean_or_zero(values: List[torch.Tensor]) -> torch.Tensor:
+            return torch.stack(values).mean() if values else zero
+
+        attention_maps = torch.stack(mean_maps, dim=0).mean(dim=0)
+        last_attention_maps = mean_maps[-1]
+        attention_maps = attention_maps * valid.unsqueeze(-1).to(attention_maps.dtype)
+        last_attention_maps = last_attention_maps * valid.unsqueeze(-1).to(
+            last_attention_maps.dtype
+        )
+        outside_mean = mean_or_zero(outside_values)
+        return {
+            "loss": outside_mean,
+            "inside_mass": mean_or_zero(inside_values).detach(),
+            "outside_mass": outside_mean.detach(),
+            "entropy": mean_or_zero(entropy_values).detach(),
+            "relative_delta": mean_or_zero(delta_values).detach(),
+            "num_writes": zero.new_tensor(float(len(records))),
+            "attention_maps": attention_maps,
+            "last_attention_maps": last_attention_maps,
+            "layer_metrics": layer_metrics,
+        }
 
     def _pgot_v12_build_ovt_states(
         self,
@@ -4478,6 +4744,55 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         else:
             e5_forcing_mask = torch.zeros(B, device=model_device, dtype=torch.bool)
 
+        # E2-Pix-FVW role allocation.  Each training sample takes exactly one
+        # route while validation remains the ordinary full route.  This is
+        # mutually exclusive with the older E5 two-way forcing experiment.
+        fvw_full_probability = float(
+            getattr(self.config, "pgot_fvw_full_probability", 0.50)
+        )
+        fvw_ovt_probability = float(
+            getattr(self.config, "pgot_fvw_ovt_only_probability", 0.25)
+        )
+        if (
+            fvw_full_probability < 0.0
+            or fvw_ovt_probability < 0.0
+            or fvw_full_probability + fvw_ovt_probability > 1.0
+        ):
+            raise ValueError(
+                "FVW mode probabilities must be non-negative and full+ovt<=1, got "
+                f"full={fvw_full_probability}, ovt={fvw_ovt_probability}"
+            )
+        if self.pgot_fvw_enable and e5_forcing_probability > 0.0:
+            raise ValueError("FVW role routing and pgot_e5_forcing_probability are mutually exclusive")
+
+        fvw_full_mask = torch.ones(B, device=model_device, dtype=torch.bool)
+        fvw_ovt_only_mask = torch.zeros(B, device=model_device, dtype=torch.bool)
+        fvw_register_only_mask = torch.zeros(B, device=model_device, dtype=torch.bool)
+        if self.training and self.pgot_fvw_enable:
+            route_draw = torch.rand(B, device=model_device)
+            fvw_full_mask = route_draw < fvw_full_probability
+            fvw_ovt_only_mask = (
+                (route_draw >= fvw_full_probability)
+                & (route_draw < fvw_full_probability + fvw_ovt_probability)
+                & e5_eligible
+            )
+            # Empty-foreground samples cannot provide an object-only target;
+            # turn those draws back into full samples rather than a zero loss.
+            fvw_full_mask = fvw_full_mask | (
+                (route_draw >= fvw_full_probability)
+                & (route_draw < fvw_full_probability + fvw_ovt_probability)
+                & ~e5_eligible
+            )
+            fvw_register_only_mask = ~(fvw_full_mask | fvw_ovt_only_mask)
+            attn_bias = apply_fvw_rae_role_masks(
+                attn_bias,
+                positions=positions,
+                ovt_absolute_positions=ovt_abs_positions,
+                ovt_valid_mask=ovt_valid_mask,
+                ovt_only_sample_mask=fvw_ovt_only_mask,
+                register_only_sample_mask=fvw_register_only_mask,
+            )
+
         # 6) LLM forward
         mask_llm_qk_outside_w = float(getattr(self.config, "pgot_mask_llm_qk_outside_weight", 0.0))
         mask_llm_attention_outside_w = float(
@@ -4513,11 +4828,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 getattr(self.config, "pgot_e4_rae_bind_weight", 0.0),
             )
         )
-        out = self.model(
-            inputs_embeds=inputs_embeds,
-            attention_bias=attn_bias,
-            use_cache=False,
-            output_hidden_states=(
+        need_hidden_states = (
                 mask_llm_qk_outside_w > 0.0
                 or mask_llm_attention_outside_w > 0.0
                 or mask_llm_patch_outside_w > 0.0
@@ -4528,8 +4839,14 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 or e3_competition_w > 0.0
                 or e4_full_inside_w > 0.0
                 or e4_rae_bind_w > 0.0
-            ),
-            return_dict=True,
+        )
+        out, fvw_records = self._pgot_forward_with_fvw(
+            inputs_embeds=inputs_embeds,
+            attention_bias=attn_bias,
+            positions=positions,
+            ovt_abs_positions=ovt_abs_positions,
+            ovt_valid_mask=ovt_valid_mask,
+            output_hidden_states=need_hidden_states,
         )
         hidden = out.last_hidden_state  # (B, L, D)
 
@@ -4537,6 +4854,16 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         img_hidden = hidden[:, positions["img_s"]:positions["img_e"], :]
         rae_hidden = hidden[:, positions["rae_s"]:positions["rae_e"], :]
         ovt_hidden = gather_ovt_hidden_states(hidden, ovt_abs_positions, ovt_valid_mask)
+
+        fvw_write_outside_w = float(
+            getattr(self.config, "pgot_fvw_write_outside_weight", 0.0)
+        )
+        fvw_stats = self._pgot_compute_fvw_stats(
+            records=fvw_records,
+            gt_masks_per_ovt=gt_masks_per_ovt,
+            ovt_valid_mask=ovt_valid_mask,
+        )
+        loss_fvw_write_outside = fvw_stats["loss"]
 
         # 8) L1: LM next-token CE on the caption span
         loss_lm = self._compute_lm_loss(
@@ -5114,12 +5441,19 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
 
         # 10) L3: rectified-flow reconstruction (rae_hidden -> diff_head) with CFG dropping
         cfg_drop_rate = float(getattr(self.config, "pgot_cfg_drop_rate", 0.0))
-        e5_condition_keep = torch.where(
-            e5_forcing_mask[:, None],
+        causal_route_mask = e5_forcing_mask | fvw_ovt_only_mask | fvw_register_only_mask
+        role_condition_keep = torch.ones_like(e5_foreground_mask)
+        role_condition_keep = torch.where(
+            (e5_forcing_mask | fvw_ovt_only_mask)[:, None],
             e5_foreground_mask,
-            torch.ones_like(e5_foreground_mask),
+            role_condition_keep,
         )
-        rae_hidden_for_diff = rae_hidden * e5_condition_keep.unsqueeze(-1).to(
+        role_condition_keep = torch.where(
+            fvw_register_only_mask[:, None],
+            1.0 - e5_foreground_mask,
+            role_condition_keep,
+        )
+        rae_hidden_for_diff = rae_hidden * role_condition_keep.unsqueeze(-1).to(
             rae_hidden.dtype
         )
         if self.training and cfg_drop_rate > 0.0:
@@ -5127,23 +5461,19 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             # so the diffusion head learns an unconditional path (used for CFG at inference).
             drop_mask = (
                 (torch.rand(B, device=rae_hidden.device) < cfg_drop_rate)
-                & ~e5_forcing_mask
+                & ~causal_route_mask
             ).view(B, 1, 1)
             rae_hidden_for_diff = rae_hidden * (~drop_mask).to(rae_hidden.dtype)
-            rae_hidden_for_diff = rae_hidden_for_diff * e5_condition_keep.unsqueeze(-1).to(
+            rae_hidden_for_diff = rae_hidden_for_diff * role_condition_keep.unsqueeze(-1).to(
                 rae_hidden.dtype
             )
-        e5_recon_loss_mask = torch.where(
-            e5_forcing_mask[:, None],
-            e5_foreground_mask,
-            torch.ones_like(e5_foreground_mask),
-        )
+        role_recon_loss_mask = role_condition_keep
         loss_recon = self._captionslot_compute_diffusion_loss(
             hidden=rae_hidden_for_diff,
             target_features=gt_siglip,
             slot_context=None,
             slot_mask=None,
-            loss_mask=e5_recon_loss_mask,
+            loss_mask=role_recon_loss_mask,
         )
 
         # 11) L4: OVT-swap contrastive (CODA-style, last-layer re-run for editing alignment)
@@ -5188,6 +5518,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             + e3_competition_w * loss_e3_competition
             + e4_full_inside_w * loss_e4_full_inside
             + e4_rae_bind_w * loss_e4_rae_bind
+            + fvw_write_outside_w * loss_fvw_write_outside
         )
         total_loss = (
             lm_w * loss_lm
@@ -5217,8 +5548,32 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 e5_foreground_mask.mean().detach()
             )
             details["e5_recon_mask_fraction"] = (
-                e5_recon_loss_mask.mean().detach()
+                role_recon_loss_mask.mean().detach()
             )
+        if self.pgot_fvw_enable:
+            details["loss_fvw_write_outside"] = loss_fvw_write_outside.detach()
+            details["fvw_write_outside_weight"] = zero.new_tensor(
+                fvw_write_outside_w
+            )
+            details["fvw_inside_mass"] = fvw_stats["inside_mass"]
+            details["fvw_outside_mass"] = fvw_stats["outside_mass"]
+            details["fvw_attention_entropy"] = fvw_stats["entropy"]
+            details["fvw_relative_write_delta"] = fvw_stats["relative_delta"]
+            details["fvw_num_writes"] = fvw_stats["num_writes"]
+            details["fvw_mode_full_fraction"] = fvw_full_mask.float().mean().detach()
+            details["fvw_mode_ovt_only_fraction"] = (
+                fvw_ovt_only_mask.float().mean().detach()
+            )
+            details["fvw_mode_register_only_fraction"] = (
+                fvw_register_only_mask.float().mean().detach()
+            )
+            details["fvw_foreground_token_fraction"] = (
+                e5_foreground_mask.mean().detach()
+            )
+            details["fvw_recon_mask_fraction"] = (
+                role_recon_loss_mask.mean().detach()
+            )
+            details.update(fvw_stats["layer_metrics"])
         if register_hard_configured:
             details["register_hard_mask_active"] = gt_masks_per_ovt.new_tensor(
                 float(register_hard_active)

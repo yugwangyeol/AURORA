@@ -238,6 +238,19 @@ def train():
     config.pgot_e5_forcing_probability = float(
         model_args.pgot_e5_forcing_probability
     )
+    config.pgot_fvw_enable = bool(model_args.pgot_fvw_enable)
+    config.pgot_fvw_layers = str(model_args.pgot_fvw_layers)
+    config.pgot_fvw_num_heads = int(model_args.pgot_fvw_num_heads)
+    config.pgot_fvw_temperature = float(model_args.pgot_fvw_temperature)
+    config.pgot_fvw_write_outside_weight = float(
+        model_args.pgot_fvw_write_outside_weight
+    )
+    config.pgot_fvw_full_probability = float(
+        model_args.pgot_fvw_full_probability
+    )
+    config.pgot_fvw_ovt_only_probability = float(
+        model_args.pgot_fvw_ovt_only_probability
+    )
     config.pgot_v12_enable = bool(model_args.pgot_v12_enable)
     config.pgot_v12_layers = str(model_args.pgot_v12_layers)
     v12_ovt_temp = float(
@@ -427,6 +440,19 @@ def train():
     model.config.pgot_e5_forcing_probability = float(
         model_args.pgot_e5_forcing_probability
     )
+    model.config.pgot_fvw_enable = bool(model_args.pgot_fvw_enable)
+    model.config.pgot_fvw_layers = str(model_args.pgot_fvw_layers)
+    model.config.pgot_fvw_num_heads = int(model_args.pgot_fvw_num_heads)
+    model.config.pgot_fvw_temperature = float(model_args.pgot_fvw_temperature)
+    model.config.pgot_fvw_write_outside_weight = float(
+        model_args.pgot_fvw_write_outside_weight
+    )
+    model.config.pgot_fvw_full_probability = float(
+        model_args.pgot_fvw_full_probability
+    )
+    model.config.pgot_fvw_ovt_only_probability = float(
+        model_args.pgot_fvw_ovt_only_probability
+    )
     model.config.pgot_dataset_format = str(data_args.dataset_format)
     model.config.pgot_v12_enable = bool(model_args.pgot_v12_enable)
     model.config.pgot_v12_layers = str(model_args.pgot_v12_layers)
@@ -518,6 +544,13 @@ def train():
         f"isolated_attention={model.config.pgot_ovt_isolated_attention}, "
         f"own_caption={model.config.pgot_ovt_attends_own_caption}) "
         f"e5=(forcing_p={model.config.pgot_e5_forcing_probability}) "
+        f"fvw=(enable={getattr(model.config, 'pgot_fvw_enable', False)}, "
+        f"layers={getattr(model.config, 'pgot_fvw_layers', '0,8,16,24,27')}, "
+        f"heads={getattr(model.config, 'pgot_fvw_num_heads', 8)}, "
+        f"temp={getattr(model.config, 'pgot_fvw_temperature', 1.0)}, "
+        f"write_out_w={getattr(model.config, 'pgot_fvw_write_outside_weight', 0.0)}, "
+        f"full_p={getattr(model.config, 'pgot_fvw_full_probability', 0.5)}, "
+        f"ovt_p={getattr(model.config, 'pgot_fvw_ovt_only_probability', 0.25)}) "
         f"e3_comp=(w={model.config.pgot_e3_attention_competition_weight}, "
         f"layers={model.config.pgot_e3_attention_competition_layers}, "
         f"temp={model.config.pgot_e3_attention_competition_temperature}, "

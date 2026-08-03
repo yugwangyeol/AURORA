@@ -26,7 +26,12 @@ from pgot.eval.pgot_inference import (
     ovt_swap_inference,
     pgot_forward_eval,
 )
-from pgot.eval.run_eval import decode_to_image, denormalize_images, load_rae_decoder
+from pgot.eval.run_eval import (
+    build_oracle_register_block_mask,
+    decode_to_image,
+    denormalize_images,
+    load_rae_decoder,
+)
 from pgot.eval.visualize_ovt_overlays import _load_model
 from pgot.model.pgot_utils import (
     compute_mask_bce_loss,
@@ -324,6 +329,15 @@ def main():
         help='Mask loss used for selected-mask gradient comparison.',
     )
     parser.add_argument('--decode_recon', action='store_true')
+    parser.add_argument(
+        '--oracle_register_variants',
+        action='store_true',
+        help=(
+            'Use a focused R0/R1 causal set. R1 blocks every GT-foreground '
+            'image patch from register rows, then separately restricts RAE '
+            'queries to OVT or register keys.'
+        ),
+    )
     parser.add_argument('--diffusion_inference_steps', type=int, default=15)
     parser.add_argument('--guidance_scale', type=float, default=1.0)
     parser.add_argument('--seed', type=int, default=123)
@@ -387,24 +401,59 @@ def main():
                 ovt_positions_in_caption=batch['ovt_positions_in_caption'],
                 ovt_valid_mask=batch['ovt_valid_mask'],
             )
-            variant_specs = {
-                'baseline': {},
-                'ovt_only_access': {'rae_access_mode': 'ovt_only'},
-                'register_only_access': {'rae_access_mode': 'register_only'},
-                'self_only_access': {'rae_access_mode': 'self_only'},
-                'zero_ovt_inputs': {'zero_ovt_inputs': True},
-                'zero_register_inputs': {'zero_register_inputs': True},
-                'zero_ovt_and_register_inputs': {'zero_ovt_inputs': True, 'zero_register_inputs': True},
-            }
+            oracle_block_mask = None
+            if args.oracle_register_variants:
+                oracle_block_mask = build_oracle_register_block_mask(
+                    batch['gt_masks_per_ovt'],
+                    batch['ovt_valid_mask'],
+                    threshold=0.0,
+                )
+                variant_specs = {
+                    'R0_unrestricted': {},
+                    'R1_oracle_mask': {
+                        'register_image_block_mask': oracle_block_mask,
+                    },
+                    'R1_OVT_only': {
+                        'register_image_block_mask': oracle_block_mask,
+                        'rae_access_mode': 'ovt_only',
+                    },
+                    'R1_register_only': {
+                        'register_image_block_mask': oracle_block_mask,
+                        'rae_access_mode': 'register_only',
+                    },
+                    'R1_zero_OVT_init': {
+                        'register_image_block_mask': oracle_block_mask,
+                        'zero_ovt_inputs': True,
+                    },
+                    'R1_zero_register_init': {
+                        'register_image_block_mask': oracle_block_mask,
+                        'zero_register_inputs': True,
+                    },
+                }
+            else:
+                variant_specs = {
+                    'baseline': {},
+                    'ovt_only_access': {'rae_access_mode': 'ovt_only'},
+                    'register_only_access': {'rae_access_mode': 'register_only'},
+                    'self_only_access': {'rae_access_mode': 'self_only'},
+                    'zero_ovt_inputs': {'zero_ovt_inputs': True},
+                    'zero_register_inputs': {'zero_register_inputs': True},
+                    'zero_ovt_and_register_inputs': {'zero_ovt_inputs': True, 'zero_register_inputs': True},
+                }
+            baseline_key = (
+                'R0_unrestricted'
+                if args.oracle_register_variants
+                else 'baseline'
+            )
             variants = {}
             for name, extra in variant_specs.items():
                 variants[name] = pgot_forward_eval(
                     model,
                     **kwargs,
-                    return_hidden_states=(name == 'baseline'),
+                    return_hidden_states=(name == baseline_key),
                     **extra,
                 )
-            base = variants['baseline']
+            base = variants[baseline_key]
             losses = {}
             shifts = {}
             for name, out in variants.items():
@@ -418,13 +467,22 @@ def main():
                         (out['rae_hidden'].float() - base['rae_hidden'].float()).norm()
                         / base['rae_hidden'].float().norm().clamp_min(1e-8)
                     ),
-                    'delta_recon_loss': losses[name] - losses['baseline'] if 'baseline' in losses else 0.0,
+                    'delta_recon_loss': (
+                        losses[name] - losses[baseline_key]
+                        if baseline_key in losses
+                        else 0.0
+                    ),
                 }
 
             record = {
                 'sample_index': sample_idx,
                 'image_id': raw_samples[sample_idx]['image_id'],
                 'n_objects': int(batch['ovt_valid_mask'][0].sum().item() // args.n_ovt_per_object),
+                'oracle_register_blocked_patch_fraction': (
+                    float(oracle_block_mask.float().mean().item())
+                    if oracle_block_mask is not None
+                    else None
+                ),
                 'recon_loss': losses,
                 'rae_hidden_shift': shifts,
                 'rae_qk_source_mass_with_bias': rae_qk_source_mass(
@@ -466,7 +524,7 @@ def main():
                         'target_object_index': int(args.swap_target_object),
                         'source_object_index': int(args.swap_source_object),
                         'recon_loss': float(fixed_recon_loss(model, swapped_rae, base['gt_siglip'], args.seed)),
-                        'delta_recon_loss': float(fixed_recon_loss(model, swapped_rae, base['gt_siglip'], args.seed)) - losses['baseline'],
+                        'delta_recon_loss': float(fixed_recon_loss(model, swapped_rae, base['gt_siglip'], args.seed)) - losses[baseline_key],
                         'relative_l2_to_baseline': float(
                             (swapped_rae.float() - base['rae_hidden'].float()).norm()
                             / base['rae_hidden'].float().norm().clamp_min(1e-8)

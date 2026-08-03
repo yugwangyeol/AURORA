@@ -286,6 +286,16 @@ def main():
                         "slot_owner is accepted as a legacy alias.")
     p.add_argument("--spatial_temperature", type=float, default=1.0,
                    help="Patch-axis softmax temperature for --readout spatial.")
+    p.add_argument(
+        "--llm_attention_readout",
+        choices=["auto", "fvw", "core"],
+        default="auto",
+        help=(
+            "For --readout llm_attention: auto uses FVW maps when available; "
+            "fvw requires the actual forced-write map; core uses the ordinary "
+            "Qwen all-layer OVT-to-image attention as a controlled ablation."
+        ),
+    )
     p.add_argument("--compute_rfid", action="store_true", help="Decode + FID (slow)")
     p.add_argument("--dtype", choices=["fp32", "bf16"], default="fp32")
     p.add_argument("--gt_source", choices=["pix2cap_panoptic", "coco_instance"], default="pix2cap_panoptic")
@@ -517,6 +527,8 @@ def main():
     image_ids = []
     n_objects_list = []
     background_attention_source_used = None
+    llm_attention_source_used = None
+    fvw_write_layers_used = None
     register_route_blocked_patches = 0.0
     register_route_total_patches = 0.0
     register_route_tp = 0.0
@@ -586,6 +598,7 @@ def main():
                 args.readout == "llm_attention"
                 or args.register_eval_route == "predicted_ovt"
             ),
+            llm_attention_readout=args.llm_attention_readout,
         )
         recon_out = out
         if args.register_eval_route != "unrestricted":
@@ -626,6 +639,7 @@ def main():
                 ovt_positions_in_caption=batch["ovt_positions_in_caption"],
                 ovt_valid_mask=batch["ovt_valid_mask"],
                 return_llm_attention_maps=False,
+                llm_attention_readout=args.llm_attention_readout,
                 register_image_block_mask=register_block_mask,
             )
 
@@ -711,6 +725,24 @@ def main():
                     "--readout llm_attention requires a V8.4/V8.5 checkpoint "
                     "with internal LLM-attention supervision enabled."
                 )
+            batch_attention_source = out.get("llm_attention_source")
+            if llm_attention_source_used is None:
+                llm_attention_source_used = batch_attention_source
+            elif llm_attention_source_used != batch_attention_source:
+                raise RuntimeError(
+                    "Object attention source changed across evaluation batches: "
+                    f"{llm_attention_source_used} -> {batch_attention_source}"
+                )
+            batch_fvw_layers = out.get("fvw_write_layers")
+            if batch_fvw_layers:
+                batch_fvw_layers = tuple(int(x) for x in batch_fvw_layers)
+                if fvw_write_layers_used is None:
+                    fvw_write_layers_used = batch_fvw_layers
+                elif fvw_write_layers_used != batch_fvw_layers:
+                    raise RuntimeError(
+                        "FVW write layers changed across evaluation batches: "
+                        f"{fvw_write_layers_used} -> {batch_fvw_layers}"
+                    )
             bg_attention_maps = out.get("llm_attention_void_maps")
             batch_background_source = "void_mean"
             if bg_attention_maps is None or bg_attention_maps.numel() == 0:
@@ -896,6 +928,7 @@ def main():
     summary["image_patch_grid"] = int(args.grid_size)
     summary["image_patch_tokens"] = int(args.grid_size) ** 2
     summary["teacher_forced_caption"] = True
+    summary["llm_attention_readout_requested"] = args.llm_attention_readout
     summary["register_hard_gt_mask_training"] = bool(
         getattr(model.config, "pgot_register_hard_gt_mask", False)
     )
@@ -955,6 +988,7 @@ def main():
         )
         summary["eval_merge"] = "mean"
     if args.readout == "llm_attention":
+        fvw_attention = llm_attention_source_used == "fvw_image_only_write_softmax"
         core_attention = (
             float(getattr(model.config, "pgot_core_outside_weight", 0.0)) > 0.0
             or float(getattr(model.config, "pgot_core_tail_weight", 0.0)) > 0.0
@@ -971,7 +1005,29 @@ def main():
             ) > 0.0
             or core_attention
         )
-        if patch_attention:
+        if fvw_attention:
+            summary["attention_source"] = llm_attention_source_used
+            summary["attention_layers"] = ",".join(
+                str(x) for x in (fvw_write_layers_used or ())
+            )
+            summary["attention_temperature"] = float(
+                getattr(model.config, "pgot_fvw_temperature", 1.0)
+            )
+            summary["softmax_axis"] = "patch"
+            summary["fvw_num_heads"] = int(
+                getattr(model.config, "pgot_fvw_num_heads", 0)
+            )
+            summary["fvw_write_outside_weight"] = float(
+                getattr(model.config, "pgot_fvw_write_outside_weight", 0.0)
+            )
+            summary["background_attention_source"] = (
+                background_attention_source_used or "none"
+            )
+            summary["register_tokens"] = int(getattr(model, "pgot_n_register", 0))
+            summary["register_attends_caption"] = bool(
+                getattr(model.config, "pgot_register_attends_caption", True)
+            )
+        elif patch_attention:
             summary["attention_source"] = (
                 "exact_llm_post_rope_image_patch_softmax"
             )

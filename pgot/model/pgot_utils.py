@@ -318,6 +318,79 @@ def apply_e5_rae_ovt_forcing_mask(
     return bias
 
 
+def apply_fvw_rae_role_masks(
+    attention_bias: torch.Tensor,
+    *,
+    positions: Dict[str, int],
+    ovt_absolute_positions: torch.Tensor,
+    ovt_valid_mask: torch.Tensor,
+    ovt_only_sample_mask: torch.Tensor,
+    register_only_sample_mask: torch.Tensor,
+) -> torch.Tensor:
+    """Apply FVW's per-sample causal reconstruction routes.
+
+    Full samples are unchanged.  OVT-only samples expose valid OVT values as
+    the sole sample-specific source for every RAE row.  Register-only samples
+    expose only residual registers.  In both causal modes all RAE keys,
+    including the query's own key, are removed so the learned query residual
+    cannot relay image-dependent content accumulated by earlier queries.
+
+    This function changes RAE-query rows only.  It never changes OVT->image or
+    register->image edges.
+    """
+    if attention_bias.ndim != 4 or attention_bias.shape[1] != 1:
+        raise ValueError(
+            "PGOT attention bias must have shape [B,1,L,L], got "
+            f"{tuple(attention_bias.shape)}"
+        )
+    B = attention_bias.shape[0]
+    ovt_only = ovt_only_sample_mask.to(
+        device=attention_bias.device, dtype=torch.bool
+    )
+    register_only = register_only_sample_mask.to(
+        device=attention_bias.device, dtype=torch.bool
+    )
+    if ovt_only.shape != (B,) or register_only.shape != (B,):
+        raise ValueError(
+            "FVW route masks must both be [B], got "
+            f"{tuple(ovt_only.shape)}/{tuple(register_only.shape)} for B={B}"
+        )
+    if bool((ovt_only & register_only).any()):
+        raise ValueError("A sample cannot be both FVW OVT-only and register-only")
+    if not bool((ovt_only | register_only).any()):
+        return attention_bias
+
+    bias = attention_bias.clone()
+    rae_s, rae_e = int(positions["rae_s"]), int(positions["rae_e"])
+    null_s = int(positions.get("null_bg_s", positions["reg_s"]))
+    reg_s, reg_e = int(positions["reg_s"]), int(positions["reg_e"])
+
+    # Both causal routes remove the complete RAE value path.  The learned
+    # query vector still exists as the residual stream input, but it is fixed
+    # across images and cannot be selected as an attention value.
+    selected = (ovt_only | register_only).nonzero(as_tuple=False).flatten()
+    bias[selected, :, rae_s:rae_e, rae_s:rae_e] = float("-inf")
+
+    # Object route: no null/background/register values.
+    obj_selected = ovt_only.nonzero(as_tuple=False).flatten()
+    if obj_selected.numel() > 0 and reg_e > null_s:
+        bias[obj_selected, :, rae_s:rae_e, null_s:reg_e] = float("-inf")
+
+    # Background route: no valid OVT values.  Invalid/padded OVT positions are
+    # already blocked by build_pgot_attention_mask.
+    bg_selected = register_only.nonzero(as_tuple=False).flatten()
+    if bg_selected.numel() > 0:
+        for b_idx in bg_selected.tolist():
+            valid_pos = ovt_absolute_positions[b_idx][ovt_valid_mask[b_idx]]
+            if valid_pos.numel() > 0:
+                bias[b_idx, :, rae_s:rae_e, valid_pos.long()] = float("-inf")
+
+    # A register-only route needs at least one register value source.
+    if bg_selected.numel() > 0 and reg_e <= reg_s:
+        raise ValueError("FVW register-only routing requires pgot_n_register > 0")
+    return bias
+
+
 # ---------------------------------------------------------------------------
 # Extracting OVT hidden states
 # ---------------------------------------------------------------------------

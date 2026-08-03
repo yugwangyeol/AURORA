@@ -151,6 +151,19 @@ class PGOTModelArguments:
     # target tokens. Evaluation always uses the ordinary full condition.
     pgot_e5_forcing_probability: float = field(default=0.0)
 
+    # E2-Pix-FVW: overwrite valid OVTs after selected Qwen layers with a
+    # multi-head aggregation whose key/value domain is image patches only.
+    # One shared write block is reused at every configured layer.
+    pgot_fvw_enable: bool = field(default=False)
+    pgot_fvw_layers: str = field(default="0,8,16,24,27")
+    pgot_fvw_num_heads: int = field(default=8)
+    pgot_fvw_temperature: float = field(default=1.0)
+    pgot_fvw_write_outside_weight: float = field(default=0.0)
+    # Training-only single-forward role allocation. Register-only probability
+    # is 1 - full - ovt_only. Validation always uses the full route.
+    pgot_fvw_full_probability: float = field(default=0.50)
+    pgot_fvw_ovt_only_probability: float = field(default=0.25)
+
     # V12: OVT-style owner competition injected between selected LLM layers.
     pgot_v12_enable: bool = field(default=False)
     pgot_v12_layers: str = field(default="12,16,20,24")
@@ -389,6 +402,12 @@ def freeze_for_pgot(
             for p in module.parameters():
                 p.requires_grad_(True)
                 n_trainable += p.numel()
+
+    # E2-Pix-FVW shared forced visual-write block.
+    if hasattr(model, "pgot_fvw_block") and model.pgot_fvw_block is not None:
+        for p in model.pgot_fvw_block.parameters():
+            p.requires_grad_(True)
+            n_trainable += p.numel()
 
     # V12 OVT-update / owner heads
     if hasattr(model, "pgot_v12_slot_update_blocks"):

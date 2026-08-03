@@ -23,13 +23,18 @@ from typing import List
 import numpy as np
 import torch
 import torch.nn.functional as F
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, "/home/jovyan/PGOT")
 from pgot.constants import OVT_TOKEN, SCENE_END_TOKEN, NEW_SPECIAL_TOKENS
 from pgot.model.pgot_qwen2 import PGOTQwen2ForCausalLM
 from pgot.train.pgot_dataset import Pix2CapPGOTDataset, PGOTDataCollator
-from pgot.eval.pgot_inference import pgot_forward_eval, generate_siglip_latent, ovt_swap_inference
+from pgot.eval.pgot_inference import (
+    generate_siglip_latent,
+    ovt_swap_all_layers_inference,
+    pgot_forward_eval,
+)
+from pgot.eval.visualize_ovt_overlays import _load_model
 
 from transformers import AutoTokenizer, AutoConfig
 
@@ -87,6 +92,28 @@ def denormalize(images, mean, std):
     return (images * std + mean).clamp(0.0, 1.0)
 
 
+def _labeled_tile(image_chw: torch.Tensor, label: str) -> Image.Image:
+    array = (
+        image_chw.detach()
+        .float()
+        .cpu()
+        .clamp(0, 1)
+        .permute(1, 2, 0)
+        .numpy()
+        * 255
+    ).astype(np.uint8)
+    tile = Image.fromarray(array)
+    canvas = Image.new("RGB", (tile.width, tile.height + 30), "white")
+    canvas.paste(tile, (0, 30))
+    draw = ImageDraw.Draw(canvas)
+    try:
+        font = ImageFont.truetype("DejaVuSans.ttf", 14)
+    except Exception:
+        font = None
+    draw.text((6, 6), label, fill=(0, 0, 0), font=font)
+    return canvas
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model_path", required=True)
@@ -97,6 +124,12 @@ def main():
     p.add_argument("--max_objects", type=int, default=50)
     p.add_argument("--max_caption_tokens", type=int, default=2048)
     p.add_argument("--grid_size", type=int, default=32)
+    p.add_argument(
+        "--image_preprocess_mode",
+        choices=["default", "coda_center_crop"],
+        default="default",
+    )
+    p.add_argument("--coda_crop_size", type=int, default=512)
     p.add_argument("--diffusion_inference_steps", type=int, default=25)
     p.add_argument("--guidance_scale", type=float, default=1.0)
     p.add_argument("--seed", type=int, default=42)
@@ -117,83 +150,16 @@ def main():
 
     random.seed(args.seed)
     np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
     os.makedirs(args.output_dir, exist_ok=True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dtype = torch.float32 if args.dtype == "fp32" else torch.bfloat16
 
     # ---- Load model
     log.info(f"Loading model: {args.model_path}")
-    config = AutoConfig.from_pretrained(args.model_path)
-    model = PGOTQwen2ForCausalLM.from_pretrained(
-        args.model_path, config=config, torch_dtype=dtype, ignore_mismatched_sizes=True,
-    )
-    model.config.use_cache = False
-
-    tokenizer = AutoTokenizer.from_pretrained(args.model_path, use_fast=False, padding_side="right")
-    if tokenizer.pad_token_id is None:
-        tokenizer.pad_token = "<|endoftext|>"
-        tokenizer.pad_token_id = 151643
-
-    # LoRA reload from saved checkpoint
-    import glob, safetensors.torch as safe_torch
-    has_lora = False
-    for shard in sorted(glob.glob(os.path.join(args.model_path, "*.safetensors"))):
-        with safe_torch.safe_open(shard, framework="pt", device="cpu") as f:
-            for k in f.keys():
-                if "lora_" in k:
-                    has_lora = True
-                    break
-        if has_lora:
-            break
-    if has_lora:
-        from peft import LoraConfig, inject_adapter_in_model
-        lora_cfg = LoraConfig(r=16, lora_alpha=32, lora_dropout=0.0, bias="none",
-                              target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-                              task_type="CAUSAL_LM")
-        inject_adapter_in_model(lora_cfg, model, adapter_name="default")
-        sd = {}
-        for shard in sorted(glob.glob(os.path.join(args.model_path, "*.safetensors"))):
-            with safe_torch.safe_open(shard, framework="pt", device="cpu") as f:
-                for k in f.keys():
-                    sd[k] = f.get_tensor(k)
-        model.load_state_dict(sd, strict=False)
-        log.info("LoRA re-loaded.")
-
-    # Vision tower init
-    parsed_towers = getattr(config, "mm_vision_tower_aux_list", None) or json.loads(
-        getattr(config, "vision_tower_aux_list", '["google/siglip2-so400m-patch14-224"]')
-    )
-    parsed_token_lens = getattr(config, "mm_vision_tower_aux_token_len_list", None) or [256]
-    from types import SimpleNamespace
-    vt_args = SimpleNamespace(
-        vision_tower_aux_list=parsed_towers,
-        vision_tower_aux_token_len_list=parsed_token_lens,
-        mm_vision_select_layer=-1, mm_vision_select_feature="patch",
-        mm_projector_type="mlp2x_gelu", mm_use_im_start_end=True, mm_use_im_patch_token=False,
-        unfreeze_mm_vision_tower=False, vision_hidden_size=1024, connector_only=True,
-        pretrain_mm_mlp_adapter=None, pretrain_adapter_and_vision_head=None,
-        diffusion_norm_stats_path=getattr(config, "diffusion_norm_stats_path", None),
-    )
-    model.get_model().initialize_vision_modules(model_args=vt_args, fsdp=None)
-    model.load_vision_head(model_args=vt_args)
-    for vt in model.get_vision_tower_aux_list():
-        vt.to(dtype=dtype, device=device)
-
-    model.pgot_ovt_token_id = tokenizer.convert_tokens_to_ids(OVT_TOKEN)
-    model.pgot_scene_end_token_id = tokenizer.convert_tokens_to_ids(SCENE_END_TOKEN)
-    blocks = {
-        "pgot_system_prefix_ids": "<|im_start|>system\nYou are a vision assistant that describes scenes with grounded objects.",
-        "pgot_system_suffix_ids": "<|im_end|>\n",
-        "pgot_user_prefix_ids":   "<|im_start|>user\n",
-        "pgot_user_suffix_ids":   "\nDescribe all objects and regions in this scene with grounded tokens.<|im_end|>\n",
-        "pgot_assistant_prefix_ids": "<|im_start|>assistant\n",
-        "pgot_assistant_suffix_ids": "<|im_end|>",
-    }
-    for attr, txt in blocks.items():
-        setattr(model, attr, tokenizer.encode(txt, add_special_tokens=False))
-
-    model.to(device=device, dtype=dtype)
-    model.eval()
+    model, tokenizer = _load_model(args.model_path, dtype=dtype, device=device)
     log.info("Model loaded.")
 
     # ---- Decoder
@@ -227,6 +193,9 @@ def main():
         max_caption_tokens=args.max_caption_tokens,
         n_ovt_per_object=args.n_ovt_per_object,
         max_objects=args.max_objects,
+        panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_val2017.json",
+        image_preprocess_mode=args.image_preprocess_mode,
+        coda_crop_size=args.coda_crop_size,
     )
     log.info(f"Dataset: {len(dataset)} samples")
 
@@ -272,16 +241,21 @@ def main():
                  f"idx_B={i_b} (image_id={dataset.samples[i_b]['image_id']})")
         # Validate that both have enough objects
         for label, idx, obj_idx in [("A", i_a, args.obj_a_idx), ("B", i_b, args.obj_b_idx)]:
-            if dataset.samples[idx]["n_objects"] <= obj_idx:
+            n_objects = len(dataset.samples[idx].get("segments", []))
+            if n_objects <= obj_idx:
                 log.error(f"{label} (image_id={dataset.samples[idx]['image_id']}) "
-                          f"has only {dataset.samples[idx]['n_objects']} object(s); "
+                          f"has only {n_objects} object(s); "
                           f"requested obj_{label.lower()}_idx={obj_idx}.")
                 return
         pair_indices = [(i_a, i_b)]
         n_pairs = 1
     elif pair_overrides is None:
         min_objs = max(args.obj_a_idx, args.obj_b_idx) + 1
-        eligible = [i for i in range(len(dataset)) if dataset.samples[i].get("n_objects", 0) >= min_objs]
+        eligible = [
+            i
+            for i in range(len(dataset))
+            if len(dataset.samples[i].get("segments", [])) >= min_objs
+        ]
         log.info(f"Eligible samples (>= {min_objs} objects): {len(eligible)}")
         if len(eligible) < 2:
             log.error("Not enough eligible samples.")
@@ -317,6 +291,7 @@ def main():
             caption_attention_mask=batch_a["caption_attention_mask"].to(device),
             ovt_positions_in_caption=batch_a["ovt_positions_in_caption"].to(device),
             ovt_valid_mask=batch_a["ovt_valid_mask"].to(device),
+            return_hidden_states=True,
         )
         out_b = pgot_forward_eval(
             model,
@@ -326,19 +301,22 @@ def main():
             caption_attention_mask=batch_b["caption_attention_mask"].to(device),
             ovt_positions_in_caption=batch_b["ovt_positions_in_caption"].to(device),
             ovt_valid_mask=batch_b["ovt_valid_mask"].to(device),
+            return_hidden_states=True,
         )
 
         # 1) A self-recon (no swap, baseline)
         rae_A = out_a["rae_hidden"]
+        torch.manual_seed(args.seed)
         gen_A_self = generate_siglip_latent(model, rae_A, guidance_level=args.guidance_scale)
         img_A_self = decode_to_image(decoder, gen_A_self, device)  # (1, 3, H, W)
 
         # 2) A with OVT_obj_a <- OVT_obj_b (from B)
-        rae_mixed, _ = ovt_swap_inference(
+        rae_mixed, _ = ovt_swap_all_layers_inference(
             model, out_A=out_a, out_B=out_b,
             swap_pairs=[(_oa, _ob)],
             n_ovt_per_object=args.n_ovt_per_object,
         )
+        torch.manual_seed(args.seed)
         gen_mixed = generate_siglip_latent(model, rae_mixed, guidance_level=args.guidance_scale)
         img_mixed = decode_to_image(decoder, gen_mixed, device)
 
@@ -359,11 +337,30 @@ def main():
         src_b = _match(src_b)
         gt_dec_A = _match(gt_dec_A)
 
-        # Build a 5-up horizontal grid: [src_A | GT_dec_A | A_self_recon | A_with_OVT_B | src_B]
-        grid = torch.cat([src_a[0], gt_dec_A[0], img_A_self[0], img_mixed[0], src_b[0]], dim=2)  # (3, H, 5W)
-        grid_np = (grid.permute(1, 2, 0).cpu().clamp(0, 1).numpy() * 255).astype(np.uint8)
+        # Build a labeled 5-up horizontal grid with fixed-noise reconstructions.
+        category_a = dataset.samples[i_a]["segments"][_oa]["category"]
+        category_b = dataset.samples[i_b]["segments"][_ob]["category"]
+        tiles = [
+            _labeled_tile(src_a[0], f"Source A (replace {category_a})"),
+            _labeled_tile(gt_dec_A[0], "GT SigLIP decoder"),
+            _labeled_tile(img_A_self[0], "A self-reconstruction"),
+            _labeled_tile(
+                img_mixed[0],
+                f"Swap: {category_a} OVT <- {category_b} OVT",
+            ),
+            _labeled_tile(src_b[0], f"Source B (donor {category_b})"),
+        ]
+        grid = Image.new(
+            "RGB",
+            (sum(tile.width for tile in tiles), max(tile.height for tile in tiles)),
+            "white",
+        )
+        left = 0
+        for tile in tiles:
+            grid.paste(tile, (left, 0))
+            left += tile.width
         out_png = os.path.join(args.output_dir, f"pair_{pair_i:03d}_A{sample_a['image_id']}_B{sample_b['image_id']}_swapA{_oa}fromB{_ob}.png")
-        Image.fromarray(grid_np).save(out_png)
+        grid.save(out_png)
 
         # Caption decoding for metadata
         def first_chunk_label(samp, idx):
@@ -381,6 +378,7 @@ def main():
             "swap": {"obj_A_idx": _oa, "obj_B_idx": _ob,
                      "obj_A": first_chunk_label(dataset.samples[i_a], _oa),
                      "obj_B": first_chunk_label(dataset.samples[i_b], _ob)},
+            "swap_mode": "all_layers",
             "guidance": args.guidance_scale,
             "image": out_png,
         }

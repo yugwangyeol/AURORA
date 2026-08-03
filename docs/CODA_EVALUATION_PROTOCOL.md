@@ -1,6 +1,6 @@
 # PGOT COCO/CODA Evaluation Protocol
 
-Protocol version: 1.2 (2026-07-22)
+Protocol version: 1.3 (2026-08-03)
 
 This document is the fixed reference for PGOT segmentation evaluation. Any
 result table must name the protocol version, evaluation set, checkpoint, and
@@ -148,7 +148,7 @@ CODA's published COCO instance results are:
 
 | Model | FG-ARI | mBO^i | mIoU^i | rFID |
 |---|---:|---:|---:|---:|
-| CODA | 0.4754 | 0.3661 | 0.3641 | 10.65 |
+| CODA | 0.4750 | 0.3630 | 0.3641 | 10.65 |
 
 Segmentation and reconstruction comparisons must still state their respective
 evaluation set and image-resolution protocol; sharing a table does not by
