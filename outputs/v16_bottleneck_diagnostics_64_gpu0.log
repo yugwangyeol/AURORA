@@ -1,0 +1,38 @@
+Traceback (most recent call last):
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/home/jovyan/PGOT/pgot/eval/diagnose_v14_bottleneck.py", line 26, in <module>
+    from pgot.eval.run_eval import decode_to_image, denormalize_images, load_rae_decoder
+  File "/home/jovyan/PGOT/pgot/eval/run_eval.py", line 34, in <module>
+    from pgot.model.pgot_qwen2 import PGOTQwen2ForCausalLM
+  File "/home/jovyan/PGOT/pgot/model/pgot_qwen2.py", line 22, in <module>
+    from scale_rae.model.language_model.scale_rae_qwen2 import (
+  File "/home/jovyan/PGOT/scale_rae/__init__.py", line 1, in <module>
+    from .model.language_model.scale_rae_qwen2 import ScaleRAEQwenForCausalLM, ScaleRAEQwenConfig
+  File "/home/jovyan/PGOT/scale_rae/model/__init__.py", line 1, in <module>
+    from .language_model.scale_rae_qwen2 import ScaleRAEQwenForCausalLM, ScaleRAEQwenConfig
+  File "/home/jovyan/PGOT/scale_rae/model/language_model/scale_rae_qwen2.py", line 35, in <module>
+    from ..scale_rae_arch import (
+  File "/home/jovyan/PGOT/scale_rae/model/scale_rae_arch.py", line 23, in <module>
+    from ezcolorlog import root_logger as logger
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/ezcolorlog/__init__.py", line 54, in <module>
+    setup_logging(root_logger)
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/ezcolorlog/__init__.py", line 34, in setup_logging
+    if isnotebook() or log_fmt == "notebook":
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/ezcolorlog/notebook.py", line 11, in isnotebook
+    from IPython import get_ipython
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/IPython/__init__.py", line 55, in <module>
+    from .terminal.embed import embed
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/IPython/terminal/embed.py", line 15, in <module>
+    from IPython.core.interactiveshell import DummyMod, InteractiveShell
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/IPython/core/interactiveshell.py", line 110, in <module>
+    from IPython.core.history import HistoryManager
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/IPython/core/history.py", line 10, in <module>
+    import sqlite3
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/sqlite3/__init__.py", line 57, in <module>
+    from sqlite3.dbapi2 import *
+  File "/home/jovyan/.conda/envs/scale_rae/lib/python3.10/sqlite3/dbapi2.py", line 27, in <module>
+    from _sqlite3 import *
+ImportError: /usr/lib/x86_64-linux-gnu/libstdc++.so.6: version `CXXABI_1.3.15' not found (required by /home/jovyan/.conda/envs/scale_rae/lib/python3.10/lib-dynload/../.././libicui18n.so.78)

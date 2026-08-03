@@ -1,0 +1,52 @@
+{
+  "image_id": 92839,
+  "dataset_idx": 760,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.560546875,
+  "caption": "<thing> Bear 1: is a large polar bear with thick, white fur. it appears to be resting peacefully on a rock. its eyes are closed, and its mouth is slightly open, revealing its teeth and tongue. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.08837068825960159,
+      "background_mse": 0.1813509613275528,
+      "foreground_psnr": 10.536917686462402,
+      "background_psnr": 7.414801597595215
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.0807548463344574,
+      "background_mse": 0.11141163110733032,
+      "foreground_psnr": 10.928315162658691,
+      "background_psnr": 9.530694961547852
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.08662568777799606,
+      "background_mse": 0.11026687920093536,
+      "foreground_psnr": 10.623533248901367,
+      "background_psnr": 9.575549125671387
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.10291945934295654,
+      "background_mse": 0.1109960526227951,
+      "foreground_psnr": 9.875024795532227,
+      "background_psnr": 9.546924591064453,
+      "mean_abs_delta_vs_post_register_fg": 0.17746660113334656,
+      "mean_abs_delta_vs_post_register_bg": 0.15308043360710144
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.11336517333984375,
+      "background_mse": 0.03740501403808594,
+      "foreground_psnr": 9.45520305633545,
+      "background_psnr": 14.27070140838623,
+      "mean_abs_delta_vs_post_register_fg": 0.27539318799972534,
+      "mean_abs_delta_vs_post_register_bg": 0.18810205161571503
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.07187921553850174,
+      "background_mse": 0.1091039776802063,
+      "foreground_psnr": 11.433967590332031,
+      "background_psnr": 9.621593475341797,
+      "mean_abs_delta_vs_post_register_fg": 0.17272335290908813,
+      "mean_abs_delta_vs_post_register_bg": 0.1324663609266281
+    }
+  }
+}

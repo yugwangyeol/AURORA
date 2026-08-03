@@ -1,0 +1,52 @@
+{
+  "image_id": 27932,
+  "dataset_idx": 254,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.0546875,
+  "caption": "<thing> Baseball glove 1: the glove is brown leather, well-worn but in good condition, and appears to be an adult size as it's worn on the child's left hand. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.0718812420964241,
+      "background_mse": 0.12809859216213226,
+      "foreground_psnr": 11.433844566345215,
+      "background_psnr": 8.924556732177734
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.07063205540180206,
+      "background_mse": 0.12768961489200592,
+      "foreground_psnr": 11.509981155395508,
+      "background_psnr": 8.938445091247559
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.07727646827697754,
+      "background_mse": 0.11880407482385635,
+      "foreground_psnr": 11.119526863098145,
+      "background_psnr": 9.251687049865723
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.08280359208583832,
+      "background_mse": 0.1257283091545105,
+      "foreground_psnr": 10.819509506225586,
+      "background_psnr": 9.005669593811035,
+      "mean_abs_delta_vs_post_register_fg": 0.16062791645526886,
+      "mean_abs_delta_vs_post_register_bg": 0.16289199888706207
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.0636497363448143,
+      "background_mse": 0.08980920165777206,
+      "foreground_psnr": 11.962034225463867,
+      "background_psnr": 10.466791152954102,
+      "mean_abs_delta_vs_post_register_fg": 0.2557908296585083,
+      "mean_abs_delta_vs_post_register_bg": 0.23552079498767853
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.07804424315690994,
+      "background_mse": 0.1343797743320465,
+      "foreground_psnr": 11.076591491699219,
+      "background_psnr": 8.716660499572754,
+      "mean_abs_delta_vs_post_register_fg": 0.2547665238380432,
+      "mean_abs_delta_vs_post_register_bg": 0.16673196852207184
+    }
+  }
+}

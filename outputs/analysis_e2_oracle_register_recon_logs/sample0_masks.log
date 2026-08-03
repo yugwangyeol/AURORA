@@ -1,0 +1,26 @@
+2026-07-31 07:48:02 PID=179855 __init__.py:49 setup_logging() INFO → 'standard' logger initialized.
+2026-07-31 07:48:14 PID=179855 run_eval.py:151 __init__() INFO → CocoInstanceMaskCache: (5000, 512, 512), size=512, mode=coda
+2026-07-31 07:48:14 PID=179855 run_eval.py:163 __init__() INFO → Loaded CODA overlap masks: (5000, 512, 512)
+/home/jovyan/PGOT/pgot/eval/run_eval.py:181: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+  return torch.from_numpy(np.asarray(self.overlap_masks[idx], dtype=np.uint8))
+2026-07-31 07:48:20 PID=179855 visualize_ovt_overlays.py:590 main() INFO → Loading E2 from /home/jovyan/PGOT/checkpoints/pgot_lviscap_hardreg_e2/checkpoint-10000
+2026-07-31 07:48:20 PID=179855 visualize_ovt_overlays.py:87 _load_model() INFO → [LoRA] adapter checkpoint detected; bootstrap model from base path: /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B
+2026-07-31 07:48:56 PID=179855 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch16-512-interp1024
+2026-07-31 07:48:56 PID=179855 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch14-224-interp256
+[AURORA-INIT] diffusion_norm_stats_path = /home/jovyan/data/siglip2_bn_stats.pt
+[DEBUG] data_std: torch.Size([1152]), data_mean: torch.Size([1152])
+[AURORA-INIT] diff_head.normalize_data = True
+[PGOT] Initialised — D=1536, N_register=4, n_ovt_per_object=1, N_null_bg=0, v12=False, v12_layers=[12, 16, 20, 24], v14=False, v14_router_depth=1, v21=False, latent_distill=False
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [01:27<01:27, 87.90s/it]Loading checkpoint shards: 100%|██████████| 2/2 [02:08<00:00, 60.03s/it]Loading checkpoint shards: 100%|██████████| 2/2 [02:08<00:00, 64.21s/it]
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B and are newly initialized: ['diff_head.data_mean', 'diff_head.data_std', 'pgot_ovt_caption_norm.bias', 'pgot_ovt_caption_norm.weight', 'pgot_ovt_caption_projector.weight', 'pgot_register_embeddings']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B and are newly initialized because the shapes did not match:
+- model.embed_tokens.weight: found shape torch.Size([151667, 1536]) in the checkpoint and torch.Size([151671, 1536]) in the model instantiated
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/huggingface_hub/file_download.py:1142: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+2026-07-31 07:58:06 PID=179855 visualize_ovt_overlays.py:149 _load_model() INFO → [LoRA] re-loaded ckpt after adapter injection | unexpected=0
+2026-07-31 07:58:15 PID=179855 visualize_ovt_overlays.py:686 main() INFO → Wrote /home/jovyan/PGOT/outputs/analysis_e2_10k_oracle_register_recon_examples/E2/sample0_masks/comparison_segmentation.png
+2026-07-31 07:58:15 PID=179855 visualize_ovt_overlays.py:687 main() INFO → Wrote /home/jovyan/PGOT/outputs/analysis_e2_10k_oracle_register_recon_examples/E2/sample0_masks/large_pred_overlays/comparison_large_pred_overlays.png
+pretrain_adapter_and_vision_head is: None

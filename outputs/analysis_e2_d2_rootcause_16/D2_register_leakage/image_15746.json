@@ -1,0 +1,52 @@
+{
+  "image_id": 15746,
+  "dataset_idx": 151,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.263671875,
+  "caption": "<thing> Fire hydrant 1: a traditional red fire hydrant stands prominently in the foreground, its paint slightly chipped revealing its age. it has a white cap and a red cap. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.0962628424167633,
+      "background_mse": 0.08646546304225922,
+      "foreground_psnr": 10.165413856506348,
+      "background_psnr": 10.631572723388672
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.1089508980512619,
+      "background_mse": 0.09027907252311707,
+      "foreground_psnr": 9.627691268920898,
+      "background_psnr": 10.444128036499023
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.11297641694545746,
+      "background_mse": 0.08765970170497894,
+      "foreground_psnr": 9.470121383666992,
+      "background_psnr": 10.572000503540039
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.07497504353523254,
+      "background_mse": 0.08651363849639893,
+      "foreground_psnr": 11.250833511352539,
+      "background_psnr": 10.629154205322266,
+      "mean_abs_delta_vs_post_register_fg": 0.2223733514547348,
+      "mean_abs_delta_vs_post_register_bg": 0.17446371912956238
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.05927540734410286,
+      "background_mse": 0.09826093912124634,
+      "foreground_psnr": 12.271255493164062,
+      "background_psnr": 10.076190948486328,
+      "mean_abs_delta_vs_post_register_fg": 0.22362422943115234,
+      "mean_abs_delta_vs_post_register_bg": 0.25121423602104187
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.06654372811317444,
+      "background_mse": 0.08327982574701309,
+      "foreground_psnr": 11.768930435180664,
+      "background_psnr": 10.794602394104004,
+      "mean_abs_delta_vs_post_register_fg": 0.18490484356880188,
+      "mean_abs_delta_vs_post_register_bg": 0.15579742193222046
+    }
+  }
+}

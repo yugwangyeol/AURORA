@@ -1,0 +1,52 @@
+{
+  "image_id": 14380,
+  "dataset_idx": 135,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.0810546875,
+  "caption": "<thing> Train 1: a modern passenger train with a sleek design and grey color is moving along the tracks, its motion indicated by its position on the tracks. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.18340492248535156,
+      "background_mse": 0.060540828853845596,
+      "foreground_psnr": 7.365890026092529,
+      "background_psnr": 12.17951774597168
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.18274156749248505,
+      "background_mse": 0.05932558327913284,
+      "foreground_psnr": 7.381627082824707,
+      "background_psnr": 12.267580032348633
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.15905380249023438,
+      "background_mse": 0.05696060508489609,
+      "foreground_psnr": 7.984559535980225,
+      "background_psnr": 12.444253921508789
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.11645038425922394,
+      "background_mse": 0.05342107638716698,
+      "foreground_psnr": 9.338590621948242,
+      "background_psnr": 12.72287368774414,
+      "mean_abs_delta_vs_post_register_fg": 0.1066887304186821,
+      "mean_abs_delta_vs_post_register_bg": 0.10238078981637955
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.030739331617951393,
+      "background_mse": 0.1492384523153305,
+      "foreground_psnr": 15.123056411743164,
+      "background_psnr": 8.261192321777344,
+      "mean_abs_delta_vs_post_register_fg": 0.296490877866745,
+      "mean_abs_delta_vs_post_register_bg": 0.3237912654876709
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.1309269368648529,
+      "background_mse": 0.054952021688222885,
+      "foreground_psnr": 8.829710006713867,
+      "background_psnr": 12.600163459777832,
+      "mean_abs_delta_vs_post_register_fg": 0.0978047326207161,
+      "mean_abs_delta_vs_post_register_bg": 0.10288505256175995
+    }
+  }
+}

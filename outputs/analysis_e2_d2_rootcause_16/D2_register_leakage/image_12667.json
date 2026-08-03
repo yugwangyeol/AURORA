@@ -1,0 +1,52 @@
+{
+  "image_id": 12667,
+  "dataset_idx": 119,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.0615234375,
+  "caption": "<thing> Banana 1: banana with a bright yellow peel marked by small brown spots lies on the table. its curved shape contrasts with the straight lines of the table and the smooth surface of the table. the banana is. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.07324479520320892,
+      "background_mse": 0.09268318116664886,
+      "foreground_psnr": 11.352232933044434,
+      "background_psnr": 10.32999038696289
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.09731829166412354,
+      "background_mse": 0.0818096473813057,
+      "foreground_psnr": 10.11805534362793,
+      "background_psnr": 10.871954917907715
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.13784414529800415,
+      "background_mse": 0.09287597239017487,
+      "foreground_psnr": 8.606117248535156,
+      "background_psnr": 10.320966720581055
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.10502029210329056,
+      "background_mse": 0.124167300760746,
+      "foreground_psnr": 9.78726863861084,
+      "background_psnr": 9.059926986694336,
+      "mean_abs_delta_vs_post_register_fg": 0.17257344722747803,
+      "mean_abs_delta_vs_post_register_bg": 0.15672865509986877
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.0722692534327507,
+      "background_mse": 0.14779692888259888,
+      "foreground_psnr": 11.410465240478516,
+      "background_psnr": 8.303345680236816,
+      "mean_abs_delta_vs_post_register_fg": 0.41080471873283386,
+      "mean_abs_delta_vs_post_register_bg": 0.3580460548400879
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.07584045082330704,
+      "background_mse": 0.09868431836366653,
+      "foreground_psnr": 11.2009916305542,
+      "background_psnr": 10.057518005371094,
+      "mean_abs_delta_vs_post_register_fg": 0.23686836659908295,
+      "mean_abs_delta_vs_post_register_bg": 0.18784397840499878
+    }
+  }
+}

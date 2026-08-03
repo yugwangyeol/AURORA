@@ -1,0 +1,52 @@
+{
+  "image_id": 22192,
+  "dataset_idx": 204,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.0947265625,
+  "caption": "<thing> Dog 1: a black dog with a shiny coat and wearing a collar is sitting upright on the bed, its head turned towards the camera. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.05269288271665573,
+      "background_mse": 0.07529396563768387,
+      "foreground_psnr": 12.782480239868164,
+      "background_psnr": 11.232398986816406
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.06128203123807907,
+      "background_mse": 0.07740263640880585,
+      "foreground_psnr": 12.126668930053711,
+      "background_psnr": 11.112442970275879
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.08046922087669373,
+      "background_mse": 0.08198937028646469,
+      "foreground_psnr": 10.943702697753906,
+      "background_psnr": 10.862424850463867
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.10493483394384384,
+      "background_mse": 0.07299827039241791,
+      "foreground_psnr": 9.790802955627441,
+      "background_psnr": 11.366874694824219,
+      "mean_abs_delta_vs_post_register_fg": 0.10294025391340256,
+      "mean_abs_delta_vs_post_register_bg": 0.10343942791223526
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.03563989698886871,
+      "background_mse": 0.14992906153202057,
+      "foreground_psnr": 14.480636596679688,
+      "background_psnr": 8.241142272949219,
+      "mean_abs_delta_vs_post_register_fg": 0.21711736917495728,
+      "mean_abs_delta_vs_post_register_bg": 0.2990190088748932
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.08708614110946655,
+      "background_mse": 0.07208529859781265,
+      "foreground_psnr": 10.600509643554688,
+      "background_psnr": 11.421533584594727,
+      "mean_abs_delta_vs_post_register_fg": 0.08839689940214157,
+      "mean_abs_delta_vs_post_register_bg": 0.0994136705994606
+    }
+  }
+}

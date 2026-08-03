@@ -1,0 +1,52 @@
+{
+  "image_id": 22192,
+  "dataset_idx": 204,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.0947265625,
+  "caption": "<thing> Dog 1: a black dog with a shiny coat and wearing a collar is sitting upright on the bed, its head turned towards the camera. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.12119383364915848,
+      "background_mse": 0.09864978492259979,
+      "foreground_psnr": 9.16519546508789,
+      "background_psnr": 10.059040069580078
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.020181462168693542,
+      "background_mse": 0.08883332461118698,
+      "foreground_psnr": 16.95047378540039,
+      "background_psnr": 10.514240264892578
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.02168142795562744,
+      "background_mse": 0.09155582636594772,
+      "foreground_psnr": 16.639122009277344,
+      "background_psnr": 10.383140563964844
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.026474004611372948,
+      "background_mse": 0.09359860420227051,
+      "foreground_psnr": 15.771803855895996,
+      "background_psnr": 10.28730583190918,
+      "mean_abs_delta_vs_post_register_fg": 0.0927925556898117,
+      "mean_abs_delta_vs_post_register_bg": 0.15896102786064148
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.19217383861541748,
+      "background_mse": 0.08186256885528564,
+      "foreground_psnr": 7.163057804107666,
+      "background_psnr": 10.869146347045898,
+      "mean_abs_delta_vs_post_register_fg": 0.3696904182434082,
+      "mean_abs_delta_vs_post_register_bg": 0.24716916680335999
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.05890669301152229,
+      "background_mse": 0.10786594450473785,
+      "foreground_psnr": 12.298354148864746,
+      "background_psnr": 9.67115592956543,
+      "mean_abs_delta_vs_post_register_fg": 0.14253900945186615,
+      "mean_abs_delta_vs_post_register_bg": 0.16682468354701996
+    }
+  }
+}

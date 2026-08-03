@@ -1,0 +1,18 @@
+[
+  {
+    "pair": 0,
+    "image_id_A": 300913,
+    "image_id_B": 389933,
+    "n_objects_A": 2,
+    "n_objects_B": 2,
+    "swap": {
+      "obj_A_idx": 1,
+      "obj_B_idx": 1,
+      "obj_A": "Cat 2",
+      "obj_B": "Dog 2"
+    },
+    "swap_mode": "all_layers",
+    "guidance": 2.5,
+    "image": "/home/jovyan/PGOT/outputs/e2_swap_clear_cat_to_dog/pair_000_A300913_B389933_swapA1fromB1.png"
+  }
+]

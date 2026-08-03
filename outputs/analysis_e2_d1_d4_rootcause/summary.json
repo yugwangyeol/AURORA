@@ -1,0 +1,61 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_lviscap_hardreg_e2/checkpoint-10000",
+  "val_jsonl": "/home/jovyan/PGOT/data/pgot_pix2cap_generated_val5k.jsonl",
+  "D1": {
+    "patch_embedding_far_relative_l2": 0.0,
+    "final_far_relative_l2": 0.33335070800967515,
+    "final_inside_relative_l2": 1.1749926880002022,
+    "final_far_cosine_distance": 0.09693278695340268
+  },
+  "D2": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.08803475648164749,
+      "background_mse": 0.10554907346765201,
+      "foreground_psnr": 10.80630366007487,
+      "background_psnr": 10.288507779439291
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.08982513596614201,
+      "background_mse": 0.07848018407821655,
+      "foreground_psnr": 10.667325337727865,
+      "background_psnr": 11.318943659464518
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.10056000699599583,
+      "background_mse": 0.08193198218941689,
+      "foreground_psnr": 10.092422167460123,
+      "background_psnr": 11.050405184427897
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.10137079159418742,
+      "background_mse": 0.07709968462586403,
+      "foreground_psnr": 10.67650572458903,
+      "background_psnr": 12.026925086975098
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.09371206661065419,
+      "background_mse": 0.07435339440902074,
+      "foreground_psnr": 10.388267199198404,
+      "background_psnr": 11.608001708984375
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.11090503633022308,
+      "background_mse": 0.075405552983284,
+      "foreground_psnr": 9.56718889872233,
+      "background_psnr": 11.552792231241861
+    }
+  },
+  "D3": {
+    "mean_recon_delta_inside": 0.08381565287709236,
+    "mean_recon_delta_outside": 0.08204596675932407,
+    "mean_locality_ratio": 1.2065358306991352
+  },
+  "D4": {
+    "inside_mean": 0.046575386077165604,
+    "outside_mean": 0.058267827378585935,
+    "inside_outside_ratio": 3.210146576166153,
+    "auroc": 0.6777267158031464,
+    "top_gt_area_precision": 0.46990740299224854,
+    "center_of_mass_distance_normalized": 0.203405499458313
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "num_pairs": 6,
+  "pairs": [
+    {
+      "pair": 0,
+      "image_id_A": 285,
+      "image_id_B": 92839,
+      "object_A": {
+        "category": "bear",
+        "description": "is a large mammal with a thick, dense coat of fur that is a mix of light brown and dark brown colors. its eyes are closed, and it has a calm expression on its face"
+      },
+      "object_B": {
+        "category": "bear",
+        "description": "is a large polar bear with thick, white fur. it appears to be resting peacefully on a rock. its eyes are closed, and its mouth is slightly open, revealing its teeth and tongue"
+      },
+      "same_category": true,
+      "swap_mode": "all_layers",
+      "fixed_noise_seed": 123,
+      "mean_abs_recon_delta_inside_A": 0.055388934910297394,
+      "mean_abs_recon_delta_outside_A": 0.036049503833055496,
+      "recon_delta_inside_outside_ratio": 1.5364687172062728,
+      "implementation_max_abs_difference": 0.0
+    },
+    {
+      "pair": 1,
+      "image_id_A": 22192,
+      "image_id_B": 131273,
+      "object_A": {
+        "category": "dog",
+        "description": "a black dog with a shiny coat and wearing a collar is sitting upright on the bed, its head turned towards the camera."
+      },
+      "object_B": {
+        "category": "dog",
+        "description": "and white dog with a focused gaze, its fur is short and sleek, with a mix of white and light brown patches. its eyes are dark and expressive, ears are perked up,"
+      },
+      "same_category": true,
+      "swap_mode": "all_layers",
+      "fixed_noise_seed": 123,
+      "mean_abs_recon_delta_inside_A": 0.11224237084388733,
+      "mean_abs_recon_delta_outside_A": 0.12804242968559265,
+      "recon_delta_inside_outside_ratio": 0.8766029441919975,
+      "implementation_max_abs_difference": 0.0
+    },
+    {
+      "pair": 2,
+      "image_id_A": 14888,
+      "image_id_B": 52565,
+      "object_A": {
+        "category": "cow",
+        "description": "is black and appears to be standing still. it has a shiny, well-groomed coat and is adorned with a few small, round spots. the cow's head is lowered as"
+      },
+      "object_B": {
+        "category": "cow",
+        "description": "cow with a white face and brown spots stands prominently in the middle of the image. its fur is a mix of dark and light brown, with distinct patches and patterns on its body. the"
+      },
+      "same_category": true,
+      "swap_mode": "all_layers",
+      "fixed_noise_seed": 123,
+      "mean_abs_recon_delta_inside_A": 0.09436073154211044,
+      "mean_abs_recon_delta_outside_A": 0.08042018860578537,
+      "recon_delta_inside_outside_ratio": 1.1733463099006236,
+      "implementation_max_abs_difference": 0.0
+    },
+    {
+      "pair": 3,
+      "image_id_A": 63552,
+      "image_id_B": 554291,
+      "object_A": {
+        "category": "cat",
+        "description": "has a ginger coat with short, dense fur. its eyes are large and green, showing a focused gaze. the ears are upright and it appears to be in a relaxed state, laying down"
+      },
+      "object_B": {
+        "category": "cat",
+        "description": "a grey cat with stripes is lying comfortably on the person's lap, looking directly at the camera with its eyes wide open."
+      },
+      "same_category": true,
+      "swap_mode": "all_layers",
+      "fixed_noise_seed": 123,
+      "mean_abs_recon_delta_inside_A": 0.07550598680973053,
+      "mean_abs_recon_delta_outside_A": 0.0718792974948883,
+      "recon_delta_inside_outside_ratio": 1.0504552693367675,
+      "implementation_max_abs_difference": 0.0
+    },
+    {
+      "pair": 4,
+      "image_id_A": 348243,
+      "image_id_B": 252216,
+      "object_A": {
+        "category": "horse",
+        "description": "a black horse in the foreground, standing still with its body facing towards the left side of the image. its coat is shiny and well-groomed, reflecting the sunlight."
+      },
+      "object_B": {
+        "category": "horse",
+        "description": "this horse has a white coat with large, irregularly shaped brown spots surrounded by white lines, it stands majestically facing left."
+      },
+      "same_category": true,
+      "swap_mode": "all_layers",
+      "fixed_noise_seed": 123,
+      "mean_abs_recon_delta_inside_A": 0.03319764882326126,
+      "mean_abs_recon_delta_outside_A": 0.0434812568128109,
+      "recon_delta_inside_outside_ratio": 0.763493313134413,
+      "implementation_max_abs_difference": 0.0
+    },
+    {
+      "pair": 5,
+      "image_id_A": 421834,
+      "image_id_B": 523811,
+      "object_A": {
+        "category": "bird",
+        "description": "with vibrant red feathers is perched on one of the branches of the tree. its body is sleek and streamlined, and it appears alert, with its head turned slightly to the side. the bird"
+      },
+      "object_B": {
+        "category": "bird",
+        "description": "a small bird with bright blue feathers on its body and wings, and an orange-yellowish head is perched on the edge of a wooden post."
+      },
+      "same_category": true,
+      "swap_mode": "all_layers",
+      "fixed_noise_seed": 123,
+      "mean_abs_recon_delta_inside_A": 0.04186895117163658,
+      "mean_abs_recon_delta_outside_A": 0.017717229202389717,
+      "recon_delta_inside_outside_ratio": 2.363177147699216,
+      "implementation_max_abs_difference": 0.0
+    }
+  ],
+  "aggregate": {
+    "mean_recon_delta_inside": 0.06876077068348725,
+    "mean_recon_delta_outside": 0.06293165093908708,
+    "mean_locality_ratio": 1.2939239502448816
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "image_id": 285,
+  "dataset_idx": 1,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.7734375,
+  "caption": "<thing> Bear 1: is a large mammal with a thick, dense coat of fur that is a mix of light brown and dark brown colors. its eyes are closed, and it has a calm expression on its face. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.14005431532859802,
+      "background_mse": 0.06718628108501434,
+      "foreground_psnr": 8.53703498840332,
+      "background_psnr": 11.727193832397461
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.1330612599849701,
+      "background_mse": 0.06632104516029358,
+      "foreground_psnr": 8.759483337402344,
+      "background_psnr": 11.783486366271973
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.12181656062602997,
+      "background_mse": 0.07419652491807938,
+      "foreground_psnr": 9.142936706542969,
+      "background_psnr": 11.296165466308594
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.12554369866847992,
+      "background_mse": 0.045256342738866806,
+      "foreground_psnr": 9.012051582336426,
+      "background_psnr": 13.443206787109375,
+      "mean_abs_delta_vs_post_register_fg": 0.26251912117004395,
+      "mean_abs_delta_vs_post_register_bg": 0.13652421534061432
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.14858749508857727,
+      "background_mse": 0.11383730173110962,
+      "foreground_psnr": 8.28017807006836,
+      "background_psnr": 9.437154769897461,
+      "mean_abs_delta_vs_post_register_fg": 0.32533568143844604,
+      "mean_abs_delta_vs_post_register_bg": 0.19389253854751587
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.12569420039653778,
+      "background_mse": 0.048456739634275436,
+      "foreground_psnr": 9.006847381591797,
+      "background_psnr": 13.146458625793457,
+      "mean_abs_delta_vs_post_register_fg": 0.2659449279308319,
+      "mean_abs_delta_vs_post_register_bg": 0.1328565627336502
+    }
+  }
+}

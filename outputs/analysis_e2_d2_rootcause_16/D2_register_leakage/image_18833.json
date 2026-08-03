@@ -1,0 +1,52 @@
+{
+  "image_id": 18833,
+  "dataset_idx": 181,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.2138671875,
+  "caption": "<thing> Cat 1: cat with a mix of white, brown, and black fur is lying comfortably on the person's lap. its eyes are closed, and it appears to be relaxed or sleepy. the cat. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.10032173246145248,
+      "background_mse": 0.06992336362600327,
+      "foreground_psnr": 9.98604965209961,
+      "background_psnr": 11.553777694702148
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.09517350792884827,
+      "background_mse": 0.09517902135848999,
+      "foreground_psnr": 10.214838981628418,
+      "background_psnr": 10.214587211608887
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.11046037822961807,
+      "background_mse": 0.0858243927359581,
+      "foreground_psnr": 9.567934036254883,
+      "background_psnr": 10.66389274597168
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.11238967627286911,
+      "background_mse": 0.08669610321521759,
+      "foreground_psnr": 9.492735862731934,
+      "background_psnr": 10.620003700256348,
+      "mean_abs_delta_vs_post_register_fg": 0.20745910704135895,
+      "mean_abs_delta_vs_post_register_bg": 0.1556539535522461
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.10891694575548172,
+      "background_mse": 0.13960468769073486,
+      "foreground_psnr": 9.629046440124512,
+      "background_psnr": 8.551000595092773,
+      "mean_abs_delta_vs_post_register_fg": 0.36576810479164124,
+      "mean_abs_delta_vs_post_register_bg": 0.3316623270511627
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.0893239676952362,
+      "background_mse": 0.09124341607093811,
+      "foreground_psnr": 10.490320205688477,
+      "background_psnr": 10.397985458374023,
+      "mean_abs_delta_vs_post_register_fg": 0.2524188458919525,
+      "mean_abs_delta_vs_post_register_bg": 0.15802347660064697
+    }
+  }
+}

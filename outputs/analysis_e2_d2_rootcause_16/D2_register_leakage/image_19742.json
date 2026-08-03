@@ -1,0 +1,52 @@
+{
+  "image_id": 19742,
+  "dataset_idx": 188,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.25,
+  "caption": "<thing> Vase 1: is made of clear glass with a wide, elongated, elegant shape. it has a smooth texture and a round base that narrows towards the top before flaring out slightly at the top. the. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.08945140242576599,
+      "background_mse": 0.0954090878367424,
+      "foreground_psnr": 10.484128952026367,
+      "background_psnr": 10.204103469848633
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.08244816213846207,
+      "background_mse": 0.06960491836071014,
+      "foreground_psnr": 10.838190078735352,
+      "background_psnr": 11.573600769042969
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.08738590031862259,
+      "background_mse": 0.07546832412481308,
+      "foreground_psnr": 10.585586547851562,
+      "background_psnr": 11.222352981567383
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.11609545350074768,
+      "background_mse": 0.08072163164615631,
+      "foreground_psnr": 9.351847648620605,
+      "background_psnr": 10.930100440979004,
+      "mean_abs_delta_vs_post_register_fg": 0.1899610310792923,
+      "mean_abs_delta_vs_post_register_bg": 0.1468656063079834
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.03417127579450607,
+      "background_mse": 0.10041382163763046,
+      "foreground_psnr": 14.663389205932617,
+      "background_psnr": 9.982065200805664,
+      "mean_abs_delta_vs_post_register_fg": 0.2453259378671646,
+      "mean_abs_delta_vs_post_register_bg": 0.39899182319641113
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.09851914644241333,
+      "background_mse": 0.07126213610172272,
+      "foreground_psnr": 10.064793586730957,
+      "background_psnr": 11.471412658691406,
+      "mean_abs_delta_vs_post_register_fg": 0.15958191454410553,
+      "mean_abs_delta_vs_post_register_bg": 0.1362699419260025
+    }
+  }
+}

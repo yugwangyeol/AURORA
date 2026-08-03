@@ -1,0 +1,52 @@
+{
+  "image_id": 50165,
+  "dataset_idx": 424,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.11328125,
+  "caption": "<thing> Train 1: a long freight train with multiple cars colored in yellow and blue is moving parallel to the road. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.09109469503164291,
+      "background_mse": 0.04721144214272499,
+      "foreground_psnr": 10.405069351196289,
+      "background_psnr": 13.259527206420898
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.09022631496191025,
+      "background_mse": 0.0492146760225296,
+      "foreground_psnr": 10.446667671203613,
+      "background_psnr": 13.079052925109863
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.09463275223970413,
+      "background_mse": 0.048079319298267365,
+      "foreground_psnr": 10.239585876464844,
+      "background_psnr": 13.18041706085205
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.10902592539787292,
+      "background_mse": 0.028843529522418976,
+      "foreground_psnr": 9.624702453613281,
+      "background_psnr": 15.399517059326172,
+      "mean_abs_delta_vs_post_register_fg": 0.25460296869277954,
+      "mean_abs_delta_vs_post_register_bg": 0.15998555719852448
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.08700103312730789,
+      "background_mse": 0.09863618016242981,
+      "foreground_psnr": 10.604757308959961,
+      "background_psnr": 10.059638023376465,
+      "mean_abs_delta_vs_post_register_fg": 0.21161828935146332,
+      "mean_abs_delta_vs_post_register_bg": 0.3676922917366028
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.11047262698411942,
+      "background_mse": 0.03568023070693016,
+      "foreground_psnr": 9.567453384399414,
+      "background_psnr": 14.475723266601562,
+      "mean_abs_delta_vs_post_register_fg": 0.24353422224521637,
+      "mean_abs_delta_vs_post_register_bg": 0.15970683097839355
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "image_id": 31749,
+  "dataset_idx": 283,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.1083984375,
+  "caption": "<thing> Clock 1: is a wristwatch with a metallic band and white dial resting on the table. it has black numerals and hands, indicating a time. the watch is black and has a silver face. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.162471204996109,
+      "background_mse": 0.22353419661521912,
+      "foreground_psnr": 7.892236232757568,
+      "background_psnr": 6.506560325622559
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.15475545823574066,
+      "background_mse": 0.22212371230125427,
+      "foreground_psnr": 8.103540420532227,
+      "background_psnr": 6.534050941467285
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.1292058676481247,
+      "background_mse": 0.20398563146591187,
+      "foreground_psnr": 8.887178421020508,
+      "background_psnr": 6.904004096984863
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.17446939647197723,
+      "background_mse": 0.2211826592683792,
+      "foreground_psnr": 7.582807540893555,
+      "background_psnr": 6.552489280700684,
+      "mean_abs_delta_vs_post_register_fg": 0.14470873773097992,
+      "mean_abs_delta_vs_post_register_bg": 0.1130131334066391
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.1835455447435379,
+      "background_mse": 0.2252301424741745,
+      "foreground_psnr": 7.3625617027282715,
+      "background_psnr": 6.4737348556518555,
+      "mean_abs_delta_vs_post_register_fg": 0.21930888295173645,
+      "mean_abs_delta_vs_post_register_bg": 0.24389824271202087
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.1399007886648178,
+      "background_mse": 0.20502743124961853,
+      "foreground_psnr": 8.54179859161377,
+      "background_psnr": 6.881880760192871,
+      "mean_abs_delta_vs_post_register_fg": 0.14930325746536255,
+      "mean_abs_delta_vs_post_register_bg": 0.13478603959083557
+    }
+  }
+}

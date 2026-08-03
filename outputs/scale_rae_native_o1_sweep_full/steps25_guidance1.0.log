@@ -1,0 +1,6 @@
+2026-07-06 05:52:13 PID=51414 __init__.py:49 setup_logging() INFO → 'standard' logger initialized.
+2026-07-06 05:52:26 PID=51414 eval_scale_rae_native_o1.py:147 load_scale_rae() INFO → Loading native Scale-RAE from: /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B
+2026-07-06 05:53:20 PID=51414 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch14-224-interp256
+[AURORA-INIT] diffusion_norm_stats_path = None
+[AURORA-INIT] diff_head.normalize_data = False
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]

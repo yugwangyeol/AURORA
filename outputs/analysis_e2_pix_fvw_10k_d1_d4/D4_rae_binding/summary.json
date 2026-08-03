@@ -1,0 +1,20 @@
+{
+  "num_pairs": 2,
+  "definition": "For each of the 256 final RAE queries: ||q_swap-q_self||_2 / ||q_self||_2, reshaped row-major to 16x16.",
+  "final_aggregate": {
+    "inside_mean": 0.08181215263903141,
+    "outside_mean": 0.05138188973069191,
+    "inside_outside_ratio": 1.6208757162094116,
+    "auroc": 0.7180114686489105,
+    "top_gt_area_precision": 0.5107323378324509,
+    "center_of_mass_distance_normalized": 0.16219954751431942
+  },
+  "own_ovt_block_final_aggregate": {
+    "inside_mean": 0.0954196359962225,
+    "outside_mean": 0.06192142888903618,
+    "inside_outside_ratio": 1.486122190952301,
+    "auroc": 0.692205548286438,
+    "top_gt_area_precision": 0.5225168317556381,
+    "center_of_mass_distance_normalized": 0.1662326157093048
+  }
+}

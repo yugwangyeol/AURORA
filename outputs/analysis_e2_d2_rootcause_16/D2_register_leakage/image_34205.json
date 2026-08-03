@@ -1,0 +1,52 @@
+{
+  "image_id": 34205,
+  "dataset_idx": 309,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.1025390625,
+  "caption": "<thing> Broccoli 1: of broccoli is bright green with a healthy appearance. it has a long stem that's clearly visible and well-defined florets at the top. the broccoli is. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.09936469793319702,
+      "background_mse": 0.11197871714830399,
+      "foreground_psnr": 10.027679443359375,
+      "background_psnr": 9.508646011352539
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.11033622175455093,
+      "background_mse": 0.11226653307676315,
+      "foreground_psnr": 9.572818756103516,
+      "background_psnr": 9.497496604919434
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.15115126967430115,
+      "background_mse": 0.11277958005666733,
+      "foreground_psnr": 8.20588207244873,
+      "background_psnr": 9.47769546508789
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.19256336987018585,
+      "background_mse": 0.11382746696472168,
+      "foreground_psnr": 7.154263973236084,
+      "background_psnr": 9.437529563903809,
+      "mean_abs_delta_vs_post_register_fg": 0.13648852705955505,
+      "mean_abs_delta_vs_post_register_bg": 0.09448803216218948
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.07045236229896545,
+      "background_mse": 0.09748496860265732,
+      "foreground_psnr": 11.521044731140137,
+      "background_psnr": 10.110624313354492,
+      "mean_abs_delta_vs_post_register_fg": 0.30159810185432434,
+      "mean_abs_delta_vs_post_register_bg": 0.2660377323627472
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.17637909948825836,
+      "background_mse": 0.1133752390742302,
+      "foreground_psnr": 7.535528659820557,
+      "background_psnr": 9.454817771911621,
+      "mean_abs_delta_vs_post_register_fg": 0.1772116720676422,
+      "mean_abs_delta_vs_post_register_bg": 0.11294163763523102
+    }
+  }
+}

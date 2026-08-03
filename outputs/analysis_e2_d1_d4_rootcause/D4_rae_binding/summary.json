@@ -1,0 +1,12 @@
+{
+  "num_pairs": 2,
+  "definition": "For each of the 256 final RAE queries: ||q_swap-q_self||_2 / ||q_self||_2, reshaped row-major to 16x16.",
+  "final_aggregate": {
+    "inside_mean": 0.046575386077165604,
+    "outside_mean": 0.058267827378585935,
+    "inside_outside_ratio": 3.210146576166153,
+    "auroc": 0.6777267158031464,
+    "top_gt_area_precision": 0.46990740299224854,
+    "center_of_mass_distance_normalized": 0.203405499458313
+  }
+}

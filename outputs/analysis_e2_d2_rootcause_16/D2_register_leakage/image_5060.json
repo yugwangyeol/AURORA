@@ -1,0 +1,52 @@
+{
+  "image_id": 5060,
+  "dataset_idx": 49,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.0791015625,
+  "caption": "<thing> Person 1: a person is sitting on the bed, wearing dark clothing and focusing intently on their laptop screen which illuminates their face casting shadows behind them. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.09070631861686707,
+      "background_mse": 0.09680715948343277,
+      "foreground_psnr": 10.423625946044922,
+      "background_psnr": 10.140925407409668
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.08284973353147507,
+      "background_mse": 0.10187146812677383,
+      "foreground_psnr": 10.817089080810547,
+      "background_psnr": 9.919473648071289
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.08345168083906174,
+      "background_mse": 0.10248295962810516,
+      "foreground_psnr": 10.785650253295898,
+      "background_psnr": 9.89348316192627
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.13024763762950897,
+      "background_mse": 0.08474332839250565,
+      "foreground_psnr": 8.852301597595215,
+      "background_psnr": 10.718945503234863,
+      "mean_abs_delta_vs_post_register_fg": 0.2073027342557907,
+      "mean_abs_delta_vs_post_register_bg": 0.15753696858882904
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.05055263265967369,
+      "background_mse": 0.09481918811798096,
+      "foreground_psnr": 12.962562561035156,
+      "background_psnr": 10.231038093566895,
+      "mean_abs_delta_vs_post_register_fg": 0.21070823073387146,
+      "mean_abs_delta_vs_post_register_bg": 0.21618667244911194
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.13323068618774414,
+      "background_mse": 0.08494217693805695,
+      "foreground_psnr": 8.753957748413086,
+      "background_psnr": 10.708765983581543,
+      "mean_abs_delta_vs_post_register_fg": 0.20512397587299347,
+      "mean_abs_delta_vs_post_register_bg": 0.1532297283411026
+    }
+  }
+}

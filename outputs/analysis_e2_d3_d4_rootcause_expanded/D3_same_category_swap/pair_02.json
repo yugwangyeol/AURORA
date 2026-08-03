@@ -1,0 +1,20 @@
+{
+  "pair": 2,
+  "image_id_A": 14888,
+  "image_id_B": 52565,
+  "object_A": {
+    "category": "cow",
+    "description": "is black and appears to be standing still. it has a shiny, well-groomed coat and is adorned with a few small, round spots. the cow's head is lowered as"
+  },
+  "object_B": {
+    "category": "cow",
+    "description": "cow with a white face and brown spots stands prominently in the middle of the image. its fur is a mix of dark and light brown, with distinct patches and patterns on its body. the"
+  },
+  "same_category": true,
+  "swap_mode": "all_layers",
+  "fixed_noise_seed": 123,
+  "mean_abs_recon_delta_inside_A": 0.09436073154211044,
+  "mean_abs_recon_delta_outside_A": 0.08042018860578537,
+  "recon_delta_inside_outside_ratio": 1.1733463099006236,
+  "implementation_max_abs_difference": 0.0
+}

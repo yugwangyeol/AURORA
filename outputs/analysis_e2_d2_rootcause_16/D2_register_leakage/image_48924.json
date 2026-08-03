@@ -1,0 +1,52 @@
+{
+  "image_id": 48924,
+  "dataset_idx": 413,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.1435546875,
+  "caption": "<thing> Motorcycle 1: a sleek motorcycle with a glossy black finish and chrome detailing, adorned with intricate designs and patterns. it's positioned in the foreground of the image. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.07364814728498459,
+      "background_mse": 0.06043871119618416,
+      "foreground_psnr": 11.32838249206543,
+      "background_psnr": 12.186847686767578
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.0741664245724678,
+      "background_mse": 0.06138583645224571,
+      "foreground_psnr": 11.297926902770996,
+      "background_psnr": 12.119318008422852
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.078520767390728,
+      "background_mse": 0.05956413596868515,
+      "foreground_psnr": 11.050155639648438,
+      "background_psnr": 12.250151634216309
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.047299351543188095,
+      "background_mse": 0.07274530827999115,
+      "foreground_psnr": 13.251448631286621,
+      "background_psnr": 11.381950378417969,
+      "mean_abs_delta_vs_post_register_fg": 0.16906245052814484,
+      "mean_abs_delta_vs_post_register_bg": 0.1356247514486313
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.032894913107156754,
+      "background_mse": 0.048298466950654984,
+      "foreground_psnr": 14.828712463378906,
+      "background_psnr": 13.160666465759277,
+      "mean_abs_delta_vs_post_register_fg": 0.16420066356658936,
+      "mean_abs_delta_vs_post_register_bg": 0.17686085402965546
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.03765985742211342,
+      "background_mse": 0.0720854178071022,
+      "foreground_psnr": 14.24121379852295,
+      "background_psnr": 11.421526908874512,
+      "mean_abs_delta_vs_post_register_fg": 0.1854008436203003,
+      "mean_abs_delta_vs_post_register_bg": 0.1397085040807724
+    }
+  }
+}

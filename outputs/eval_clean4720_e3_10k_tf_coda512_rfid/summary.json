@@ -1,0 +1,67 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_pix2cap_thing_e3/checkpoint-10000",
+  "readout": "llm_attention",
+  "num_samples": 4720,
+  "fARI": 0.4917029625520059,
+  "mBO": 0.40280685517397335,
+  "mIoU": 0.4680521501070362,
+  "active_count_mean": 5.152966101694915,
+  "by_object_count": {
+    "11+": {
+      "n": 590,
+      "fARI": 0.5440357088455877,
+      "mBO": 0.2083380673838369,
+      "mIoU": 0.22087602444245655
+    },
+    "1-3": {
+      "n": 2375,
+      "fARI": 0.42266318512821355,
+      "mBO": 0.5169892926789572,
+      "mIoU": 0.6074132889258234
+    },
+    "4-6": {
+      "n": 1044,
+      "fARI": 0.5667446932483005,
+      "mBO": 0.35280694091653314,
+      "mIoU": 0.4104261931024806
+    },
+    "7-10": {
+      "n": 711,
+      "fARI": 0.5687065971812075,
+      "mBO": 0.2581140217796995,
+      "mIoU": 0.2922613042001986
+    }
+  },
+  "gt_source": "coco_instance",
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "metric_resolution": 512,
+  "image_patch_grid": 32,
+  "image_patch_tokens": 1024,
+  "teacher_forced_caption": true,
+  "register_hard_gt_mask_training": false,
+  "register_eval_route": "unrestricted",
+  "register_hard_mask_used_in_eval": false,
+  "register_hard_gt_mask_used_in_eval": false,
+  "segmentation_forward": "unrestricted_discovery",
+  "reconstruction_forward": "unrestricted",
+  "recon_source": "diffusion",
+  "dit_ovt_cross_attn_disabled": false,
+  "coda_overlap_excluded": true,
+  "attention_source": "exact_llm_post_rope_image_patch_softmax",
+  "attention_layers": "all",
+  "attention_temperature": 1.0,
+  "image_use_weight": 0.0,
+  "image_use_margin": 0.05,
+  "core_void_weight": 0.0,
+  "background_attention_source": "register_mean",
+  "register_tokens": 4,
+  "register_attends_caption": false,
+  "eval_merge": "mean",
+  "void_tokens": 0,
+  "rFID": 27.39105224609375,
+  "recon_psnr": 9.896485771617646,
+  "recon_ssim": 0.1996555598942026,
+  "recon_mse": 0.11055898919624624,
+  "recon_mae": 0.2624166730680834
+}

@@ -1,0 +1,20 @@
+{
+  "pair": 4,
+  "image_id_A": 348243,
+  "image_id_B": 252216,
+  "object_A": {
+    "category": "horse",
+    "description": "a black horse in the foreground, standing still with its body facing towards the left side of the image. its coat is shiny and well-groomed, reflecting the sunlight."
+  },
+  "object_B": {
+    "category": "horse",
+    "description": "this horse has a white coat with large, irregularly shaped brown spots surrounded by white lines, it stands majestically facing left."
+  },
+  "same_category": true,
+  "swap_mode": "all_layers",
+  "fixed_noise_seed": 123,
+  "mean_abs_recon_delta_inside_A": 0.03319764882326126,
+  "mean_abs_recon_delta_outside_A": 0.0434812568128109,
+  "recon_delta_inside_outside_ratio": 0.763493313134413,
+  "implementation_max_abs_difference": 0.0
+}

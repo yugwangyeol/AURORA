@@ -1,0 +1,28 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_lviscap_hardreg_e2/checkpoint-10000",
+  "val_jsonl": "/home/jovyan/PGOT/data/pgot_pix2cap_generated_val5k.jsonl",
+  "only": "d3d4",
+  "D3": {
+    "mean_recon_delta_inside": 0.06876077068348725,
+    "mean_recon_delta_outside": 0.06293165093908708,
+    "mean_locality_ratio": 1.2939239502448816
+  },
+  "D4": {
+    "swap": {
+      "inside_mean": 0.05605480447411537,
+      "outside_mean": 0.04881771785827974,
+      "inside_outside_ratio": 1.9494645694891612,
+      "auroc": 0.683004250129064,
+      "top_gt_area_precision": 0.5046971303721269,
+      "center_of_mass_distance_normalized": 0.16029137621323267
+    },
+    "own_ovt_block": {
+      "inside_mean": 0.046131740945080914,
+      "outside_mean": 0.014707278460264206,
+      "inside_outside_ratio": 3.0145331223805747,
+      "auroc": 0.8219665586948395,
+      "top_gt_area_precision": 0.6290490453441938,
+      "center_of_mass_distance_normalized": 0.07908786833286285
+    }
+  }
+}

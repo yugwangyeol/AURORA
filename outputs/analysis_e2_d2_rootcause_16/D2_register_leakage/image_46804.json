@@ -1,0 +1,52 @@
+{
+  "image_id": 46804,
+  "dataset_idx": 396,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.212890625,
+  "caption": "<thing> Sheep 1: sheep with a thick, woolly white coat is standing on the grass. its face is calm, and it appears calm and observant. the sheep's wool is visible in patches. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.09960906952619553,
+      "background_mse": 0.07720039784908295,
+      "foreground_psnr": 10.017011642456055,
+      "background_psnr": 11.123805046081543
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.09654843062162399,
+      "background_mse": 0.07067342847585678,
+      "foreground_psnr": 10.152548789978027,
+      "background_psnr": 11.507438659667969
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.14032256603240967,
+      "background_mse": 0.0700189545750618,
+      "foreground_psnr": 8.528725624084473,
+      "background_psnr": 11.547842979431152
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.0613778717815876,
+      "background_mse": 0.052241116762161255,
+      "foreground_psnr": 12.119882583618164,
+      "background_psnr": 12.819875717163086,
+      "mean_abs_delta_vs_post_register_fg": 0.20699548721313477,
+      "mean_abs_delta_vs_post_register_bg": 0.14366775751113892
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.23583047091960907,
+      "background_mse": 0.044308461248874664,
+      "foreground_psnr": 6.274001121520996,
+      "background_psnr": 13.535133361816406,
+      "mean_abs_delta_vs_post_register_fg": 0.29318898916244507,
+      "mean_abs_delta_vs_post_register_bg": 0.2396063357591629
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.08463137596845627,
+      "background_mse": 0.07087133824825287,
+      "foreground_psnr": 10.724686622619629,
+      "background_psnr": 11.495294570922852,
+      "mean_abs_delta_vs_post_register_fg": 0.25290647149086,
+      "mean_abs_delta_vs_post_register_bg": 0.15455316007137299
+    }
+  }
+}

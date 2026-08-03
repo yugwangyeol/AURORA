@@ -1,0 +1,30 @@
+{
+  "sample_index": 1020,
+  "image_id": 127182,
+  "source_uses_eval_target_image": true,
+  "gt_overlap_removed": true,
+  "large_source": "/home/jovyan/PGOT/outputs/analysis_e2_10k_oracle_register_recon_examples/E2/sample1020_masks/large_pred_overlays/source.png",
+  "large_gt_overlay": "/home/jovyan/PGOT/outputs/analysis_e2_10k_oracle_register_recon_examples/E2/sample1020_masks/large_pred_overlays/GT_overlay.png",
+  "models": [
+    {
+      "label": "E2",
+      "path": "/home/jovyan/PGOT/checkpoints/pgot_lviscap_hardreg_e2/checkpoint-10000",
+      "readout": "llm_attention",
+      "merge": "mean",
+      "object_overlay": "/home/jovyan/PGOT/outputs/analysis_e2_10k_oracle_register_recon_examples/E2/sample1020_masks/E2_object_overlays.png",
+      "large_pred_overlay": "/home/jovyan/PGOT/outputs/analysis_e2_10k_oracle_register_recon_examples/E2/sample1020_masks/large_pred_overlays/E2_pred_overlay.png",
+      "labels": [
+        "1:oven",
+        "2:refrigerator",
+        "3:microwave",
+        "4:potted plant",
+        "5:knife",
+        "6:knife",
+        "7:knife",
+        "8:spoon",
+        "9:spoon"
+      ]
+    }
+  ],
+  "large_comparison": "/home/jovyan/PGOT/outputs/analysis_e2_10k_oracle_register_recon_examples/E2/sample1020_masks/large_pred_overlays/comparison_large_pred_overlays.png"
+}

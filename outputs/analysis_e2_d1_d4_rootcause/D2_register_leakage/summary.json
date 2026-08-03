@@ -1,0 +1,52 @@
+{
+  "num_images": 3,
+  "image_ids": [
+    285,
+    92839,
+    22192
+  ],
+  "fixed_noise_seed": 123,
+  "aggregate": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.08803475648164749,
+      "background_mse": 0.10554907346765201,
+      "foreground_psnr": 10.80630366007487,
+      "background_psnr": 10.288507779439291
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.08982513596614201,
+      "background_mse": 0.07848018407821655,
+      "foreground_psnr": 10.667325337727865,
+      "background_psnr": 11.318943659464518
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.10056000699599583,
+      "background_mse": 0.08193198218941689,
+      "foreground_psnr": 10.092422167460123,
+      "background_psnr": 11.050405184427897
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.10137079159418742,
+      "background_mse": 0.07709968462586403,
+      "foreground_psnr": 10.67650572458903,
+      "background_psnr": 12.026925086975098
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.09371206661065419,
+      "background_mse": 0.07435339440902074,
+      "foreground_psnr": 10.388267199198404,
+      "background_psnr": 11.608001708984375
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.11090503633022308,
+      "background_mse": 0.075405552983284,
+      "foreground_psnr": 9.56718889872233,
+      "background_psnr": 11.552792231241861
+    }
+  },
+  "interpretation_key": {
+    "post_vs_pre_siglip": "A large change means post-SigLIP background tokens carried foreground-dependent contextual information.",
+    "pre_siglip_vs_self": "Similarity means the remaining reconstruction is dominated by RAE self state / DiT scene prior rather than register evidence.",
+    "hybrid": "Original OVTs are retained while every-layer register states come from the pre-SigLIP foreground-removed image."
+  }
+}

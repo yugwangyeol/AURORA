@@ -1,0 +1,52 @@
+{
+  "image_id": 18737,
+  "dataset_idx": 179,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.22265625,
+  "caption": "<thing> Motorcycle 1: a red and black motorcycle is in motion, its wheels blurred due to being ridden by a person. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.13183608651161194,
+      "background_mse": 0.10010604560375214,
+      "foreground_psnr": 8.799657821655273,
+      "background_psnr": 9.995396614074707
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.16304448246955872,
+      "background_mse": 0.08808091282844543,
+      "foreground_psnr": 7.876938819885254,
+      "background_psnr": 10.55118179321289
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.18070295453071594,
+      "background_mse": 0.07752983272075653,
+      "foreground_psnr": 7.430347919464111,
+      "background_psnr": 11.10531234741211
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.14121177792549133,
+      "background_mse": 0.06417057663202286,
+      "foreground_psnr": 8.501290321350098,
+      "background_psnr": 11.926641464233398,
+      "mean_abs_delta_vs_post_register_fg": 0.28132298588752747,
+      "mean_abs_delta_vs_post_register_bg": 0.17207124829292297
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.07579044997692108,
+      "background_mse": 0.26069849729537964,
+      "foreground_psnr": 11.203855514526367,
+      "background_psnr": 5.838614463806152,
+      "mean_abs_delta_vs_post_register_fg": 0.3558603823184967,
+      "mean_abs_delta_vs_post_register_bg": 0.45431363582611084
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.1283608078956604,
+      "background_mse": 0.05836758762598038,
+      "foreground_psnr": 8.915675163269043,
+      "background_psnr": 12.33828353881836,
+      "mean_abs_delta_vs_post_register_fg": 0.414239764213562,
+      "mean_abs_delta_vs_post_register_bg": 0.2135048508644104
+    }
+  }
+}

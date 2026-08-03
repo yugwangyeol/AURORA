@@ -1,0 +1,52 @@
+{
+  "image_id": 20247,
+  "dataset_idx": 193,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.1708984375,
+  "caption": "<thing> Bear 1: bear with a thick coat is captured mid-step, its body partially turned as it moves across the gravel, showcasing a dynamic and lively appearance. the bear appears to be of medium size and. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.2251727133989334,
+      "background_mse": 0.04221551865339279,
+      "foreground_psnr": 6.474842548370361,
+      "background_psnr": 13.745278358459473
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.26640966534614563,
+      "background_mse": 0.03886330872774124,
+      "foreground_psnr": 5.744500160217285,
+      "background_psnr": 14.104602813720703
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.27289989590644836,
+      "background_mse": 0.03912307322025299,
+      "foreground_psnr": 5.63996696472168,
+      "background_psnr": 14.07567024230957
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.12672357261180878,
+      "background_mse": 0.024267204105854034,
+      "foreground_psnr": 8.971426010131836,
+      "background_psnr": 16.149803161621094,
+      "mean_abs_delta_vs_post_register_fg": 0.30446749925613403,
+      "mean_abs_delta_vs_post_register_bg": 0.13775482773780823
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.09422241151332855,
+      "background_mse": 0.1552383303642273,
+      "foreground_psnr": 10.258459091186523,
+      "background_psnr": 8.090010643005371,
+      "mean_abs_delta_vs_post_register_fg": 0.3922925293445587,
+      "mean_abs_delta_vs_post_register_bg": 0.42169734835624695
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.08636274188756943,
+      "background_mse": 0.025063807144761086,
+      "foreground_psnr": 10.636735916137695,
+      "background_psnr": 16.00952911376953,
+      "mean_abs_delta_vs_post_register_fg": 0.2936263084411621,
+      "mean_abs_delta_vs_post_register_bg": 0.13888293504714966
+    }
+  }
+}

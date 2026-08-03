@@ -1,0 +1,26 @@
+2026-07-07 14:24:07 PID=121025 __init__.py:49 setup_logging() INFO → 'standard' logger initialized.
+2026-07-07 14:24:11 PID=121025 diagnose_v14_bottleneck.py:485 main() INFO → Loading V16: /home/jovyan/PGOT/checkpoints/pgot_main_v16_bce_bottleneck_void4
+2026-07-07 14:24:11 PID=121025 visualize_ovt_overlays.py:86 _load_model() INFO → [LoRA] adapter checkpoint detected; bootstrap model from base path: /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B
+2026-07-07 14:24:29 PID=121025 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch16-512-interp1024
+2026-07-07 14:24:29 PID=121025 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch14-224-interp256
+[AURORA-INIT] diffusion_norm_stats_path = /home/jovyan/data/siglip2_bn_stats.pt
+[DEBUG] data_std: torch.Size([1152]), data_mean: torch.Size([1152])
+[AURORA-INIT] diff_head.normalize_data = True
+[PGOT] Initialised — D=1536, N_register=0, n_ovt_per_object=2, N_null_bg=4, v12=False, v12_layers=[12, 16, 20, 24], v14=True
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:29<00:29, 29.41s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:49<00:00, 23.84s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:49<00:00, 24.68s/it]
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B and are newly initialized: ['diff_head.data_mean', 'diff_head.data_std', 'pgot_null_bg_embeddings', 'pgot_register_embeddings', 'pgot_v14_router.context_ln.bias', 'pgot_v14_router.context_ln.weight', 'pgot_v14_router.k_proj.weight', 'pgot_v14_router.out_proj.weight', 'pgot_v14_router.ovt_ln.bias', 'pgot_v14_router.ovt_ln.weight', 'pgot_v14_router.pos_proj.weight', 'pgot_v14_router.q_proj.weight', 'pgot_v14_router.query_ln.bias', 'pgot_v14_router.query_ln.weight', 'pgot_v14_router.v_proj.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B and are newly initialized because the shapes did not match:
+- model.embed_tokens.weight: found shape torch.Size([151667, 1536]) in the checkpoint and torch.Size([151669, 1536]) in the model instantiated
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/huggingface_hub/file_download.py:1142: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+pretrain_adapter_and_vision_head is: None
+2026-07-07 14:27:44 PID=121025 visualize_ovt_overlays.py:148 _load_model() INFO → [LoRA] re-loaded ckpt after adapter injection | unexpected=0
+2026-07-07 14:27:47 PID=121025 run_eval.py:87 load_rae_decoder() INFO → Loading RAE decoder (nyu-visionx/siglip2_decoder) for encoder=google/siglip2-so400m-patch14-224 P=256
+Decoder loaded successfully
+2026-07-07 14:28:02 PID=121025 diagnose_v14_bottleneck.py:618 main() INFO → V16 sample=0 route_loss=1.2944 recon={'baseline': 0.5860856771469116, 'zero_final_object_ovt': 0.5852333903312683, 'zero_final_void': 0.7002440690994263, 'zero_final_object_and_void': 38.58129119873047, 'zero_input_object_ovt': 0.5745338797569275, 'zero_input_void': 0.609832763671875, 'swap_final_object_ovt': 0.6948333382606506}
+2026-07-07 14:28:12 PID=121025 diagnose_v14_bottleneck.py:618 main() INFO → V16 sample=1020 route_loss=2.3435 recon={'baseline': 0.7965750098228455, 'zero_final_object_ovt': 0.8494302034378052, 'zero_final_void': 0.8603425621986389, 'zero_final_object_and_void': 38.729679107666016, 'zero_input_object_ovt': 0.8207862377166748, 'zero_input_void': 0.812419056892395, 'swap_final_object_ovt': 0.7965750098228455}
+2026-07-07 14:28:24 PID=121025 diagnose_v14_bottleneck.py:618 main() INFO → V16 sample=1407 route_loss=4.0055 recon={'baseline': 1.0001591444015503, 'zero_final_object_ovt': 1.1268659830093384, 'zero_final_void': 1.0302916765213013, 'zero_final_object_and_void': 38.59946060180664, 'zero_input_object_ovt': 1.000831961631775, 'zero_input_void': 1.0013517141342163, 'swap_final_object_ovt': 0.9961851239204407}
+/home/jovyan/PGOT/outputs/v16_bottleneck_diagnostics_sanity_lorafixed2/summary.json

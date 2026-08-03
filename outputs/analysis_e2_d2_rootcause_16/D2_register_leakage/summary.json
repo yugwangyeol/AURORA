@@ -1,0 +1,65 @@
+{
+  "num_images": 16,
+  "image_ids": [
+    5060,
+    7784,
+    12667,
+    14380,
+    15746,
+    18737,
+    18833,
+    19742,
+    20247,
+    22192,
+    27932,
+    31749,
+    34205,
+    46804,
+    48924,
+    50165
+  ],
+  "fixed_noise_seed": 123,
+  "aggregate": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.11081505659967661,
+      "background_mse": 0.08725009998306632,
+      "foreground_psnr": 9.858551055192947,
+      "background_psnr": 11.064789056777954
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.11814910778775811,
+      "background_mse": 0.08597809704951942,
+      "foreground_psnr": 9.622995615005493,
+      "background_psnr": 11.123854219913483
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.1264738985337317,
+      "background_mse": 0.08363929810002446,
+      "foreground_psnr": 9.249950289726257,
+      "background_psnr": 11.236149311065674
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.08923526981379837,
+      "background_mse": 0.1261255939025432,
+      "foreground_psnr": 11.35653018951416,
+      "background_psnr": 9.415841519832611
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.10388370580039918,
+      "background_mse": 0.08140124415513128,
+      "foreground_psnr": 10.095201820135117,
+      "background_psnr": 11.457207381725311
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.1150575983338058,
+      "background_mse": 0.08267716830596328,
+      "foreground_psnr": 9.64162865281105,
+      "background_psnr": 11.49180018901825
+    }
+  },
+  "interpretation_key": {
+    "post_vs_pre_siglip": "A large change means post-SigLIP background tokens carried foreground-dependent contextual information.",
+    "pre_siglip_vs_self": "Similarity means the remaining reconstruction is dominated by RAE self state / DiT scene prior rather than register evidence.",
+    "hybrid": "Original OVTs are retained while every-layer register states come from the pre-SigLIP foreground-removed image."
+  }
+}

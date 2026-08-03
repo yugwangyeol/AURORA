@@ -1,0 +1,20 @@
+{
+  "pair": 0,
+  "image_id_A": 285,
+  "image_id_B": 92839,
+  "object_A": {
+    "category": "bear",
+    "description": "is a large mammal with a thick, dense coat of fur that is a mix of light brown and dark brown colors. its eyes are closed, and it has a calm expression on its face"
+  },
+  "object_B": {
+    "category": "bear",
+    "description": "is a large polar bear with thick, white fur. it appears to be resting peacefully on a rock. its eyes are closed, and its mouth is slightly open, revealing its teeth and tongue"
+  },
+  "same_category": true,
+  "swap_mode": "all_layers",
+  "fixed_noise_seed": 123,
+  "mean_abs_recon_delta_inside_A": 0.06477008014917374,
+  "mean_abs_recon_delta_outside_A": 0.02714189700782299,
+  "recon_delta_inside_outside_ratio": 2.3863505240811036,
+  "implementation_max_abs_difference": 0.0
+}

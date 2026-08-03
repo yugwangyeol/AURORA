@@ -1,0 +1,20 @@
+{
+  "pair": 5,
+  "image_id_A": 421834,
+  "image_id_B": 523811,
+  "object_A": {
+    "category": "bird",
+    "description": "with vibrant red feathers is perched on one of the branches of the tree. its body is sleek and streamlined, and it appears alert, with its head turned slightly to the side. the bird"
+  },
+  "object_B": {
+    "category": "bird",
+    "description": "a small bird with bright blue feathers on its body and wings, and an orange-yellowish head is perched on the edge of a wooden post."
+  },
+  "same_category": true,
+  "swap_mode": "all_layers",
+  "fixed_noise_seed": 123,
+  "mean_abs_recon_delta_inside_A": 0.04186895117163658,
+  "mean_abs_recon_delta_outside_A": 0.017717229202389717,
+  "recon_delta_inside_outside_ratio": 2.363177147699216,
+  "implementation_max_abs_difference": 0.0
+}

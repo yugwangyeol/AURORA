@@ -1,0 +1,372 @@
+{
+  "sample_index": 0,
+  "image_id": 139,
+  "n_objects": 14,
+  "recon_loss": {
+    "baseline": 1.0119130611419678,
+    "ovt_only_access": 1.1508418321609497,
+    "register_only_access": 1.0119781494140625,
+    "self_only_access": 11.336405754089355,
+    "zero_ovt_inputs": 1.0078054666519165,
+    "zero_register_inputs": 1.1413419246673584,
+    "zero_ovt_and_register_inputs": 1.1445908546447754
+  },
+  "rae_hidden_shift": {
+    "baseline": {
+      "cosine_to_baseline": 1.0,
+      "relative_l2_to_baseline": 0.0,
+      "delta_recon_loss": 0.0
+    },
+    "ovt_only_access": {
+      "cosine_to_baseline": 0.7650858163833618,
+      "relative_l2_to_baseline": 1.8526232242584229,
+      "delta_recon_loss": 0.13892877101898193
+    },
+    "register_only_access": {
+      "cosine_to_baseline": 0.9827440977096558,
+      "relative_l2_to_baseline": 0.18979866802692413,
+      "delta_recon_loss": 6.508827209472656e-05
+    },
+    "self_only_access": {
+      "cosine_to_baseline": 0.04526966065168381,
+      "relative_l2_to_baseline": 10.027377128601074,
+      "delta_recon_loss": 10.324492692947388
+    },
+    "zero_ovt_inputs": {
+      "cosine_to_baseline": 0.9838179349899292,
+      "relative_l2_to_baseline": 0.18887856602668762,
+      "delta_recon_loss": -0.0041075944900512695
+    },
+    "zero_register_inputs": {
+      "cosine_to_baseline": 0.7989751100540161,
+      "relative_l2_to_baseline": 1.5328081846237183,
+      "delta_recon_loss": 0.12942886352539062
+    },
+    "zero_ovt_and_register_inputs": {
+      "cosine_to_baseline": 0.6989401578903198,
+      "relative_l2_to_baseline": 1.7454631328582764,
+      "delta_recon_loss": 0.13267779350280762
+    }
+  },
+  "rae_qk_source_mass_with_bias": [
+    {
+      "layer": 0,
+      "image_mass": 0.0,
+      "ovt_mass": 0.3251440227031708,
+      "register_mass": 0.43227481842041016,
+      "rae_self_mass": 0.24258112907409668,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 1,
+      "image_mass": 0.0,
+      "ovt_mass": 0.4874686598777771,
+      "register_mass": 0.42213886976242065,
+      "rae_self_mass": 0.09039248526096344,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 2,
+      "image_mass": 0.0,
+      "ovt_mass": 0.35323160886764526,
+      "register_mass": 0.41850537061691284,
+      "rae_self_mass": 0.2282630205154419,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 3,
+      "image_mass": 0.0,
+      "ovt_mass": 0.2748519778251648,
+      "register_mass": 0.5875076055526733,
+      "rae_self_mass": 0.13764047622680664,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 4,
+      "image_mass": 0.0,
+      "ovt_mass": 0.11161156743764877,
+      "register_mass": 0.6887251734733582,
+      "rae_self_mass": 0.19966325163841248,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 5,
+      "image_mass": 0.0,
+      "ovt_mass": 0.0219820998609066,
+      "register_mass": 0.678469181060791,
+      "rae_self_mass": 0.2995487451553345,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 6,
+      "image_mass": 0.0,
+      "ovt_mass": 0.0070879049599170685,
+      "register_mass": 0.6278437972068787,
+      "rae_self_mass": 0.36506837606430054,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 7,
+      "image_mass": 0.0,
+      "ovt_mass": 0.029818378388881683,
+      "register_mass": 0.8632873296737671,
+      "rae_self_mass": 0.1068943589925766,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 8,
+      "image_mass": 0.0,
+      "ovt_mass": 0.013473594561219215,
+      "register_mass": 0.6311697363853455,
+      "rae_self_mass": 0.35535669326782227,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 9,
+      "image_mass": 0.0,
+      "ovt_mass": 0.010485651902854443,
+      "register_mass": 0.6573357582092285,
+      "rae_self_mass": 0.33217859268188477,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 10,
+      "image_mass": 0.0,
+      "ovt_mass": 0.0053428225219249725,
+      "register_mass": 0.5251728892326355,
+      "rae_self_mass": 0.4694842994213104,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 11,
+      "image_mass": 0.0,
+      "ovt_mass": 0.006206464022397995,
+      "register_mass": 0.5436894297599792,
+      "rae_self_mass": 0.4501041769981384,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 12,
+      "image_mass": 0.0,
+      "ovt_mass": 0.00208562845364213,
+      "register_mass": 0.2720390558242798,
+      "rae_self_mass": 0.7258753776550293,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 13,
+      "image_mass": 0.0,
+      "ovt_mass": 0.020092831924557686,
+      "register_mass": 0.7920748591423035,
+      "rae_self_mass": 0.1878323256969452,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 14,
+      "image_mass": 0.0,
+      "ovt_mass": 0.004636683501303196,
+      "register_mass": 0.36193931102752686,
+      "rae_self_mass": 0.6334240436553955,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 15,
+      "image_mass": 0.0,
+      "ovt_mass": 0.007410429418087006,
+      "register_mass": 0.7426607012748718,
+      "rae_self_mass": 0.24992895126342773,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 16,
+      "image_mass": 0.0,
+      "ovt_mass": 0.006637630518525839,
+      "register_mass": 0.6665859222412109,
+      "rae_self_mass": 0.32677650451660156,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 17,
+      "image_mass": 0.0,
+      "ovt_mass": 0.01219471450895071,
+      "register_mass": 0.6591617465019226,
+      "rae_self_mass": 0.3286435604095459,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 18,
+      "image_mass": 0.0,
+      "ovt_mass": 0.023325972259044647,
+      "register_mass": 0.7404494285583496,
+      "rae_self_mass": 0.23622457683086395,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 19,
+      "image_mass": 0.0,
+      "ovt_mass": 0.047491442412137985,
+      "register_mass": 0.5094794631004333,
+      "rae_self_mass": 0.44302916526794434,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 20,
+      "image_mass": 0.0,
+      "ovt_mass": 0.06189985200762749,
+      "register_mass": 0.6818832159042358,
+      "rae_self_mass": 0.2562168836593628,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 21,
+      "image_mass": 0.0,
+      "ovt_mass": 0.06286890804767609,
+      "register_mass": 0.6784762144088745,
+      "rae_self_mass": 0.25865495204925537,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 22,
+      "image_mass": 0.0,
+      "ovt_mass": 0.028026193380355835,
+      "register_mass": 0.8130745887756348,
+      "rae_self_mass": 0.15889927744865417,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 23,
+      "image_mass": 0.0,
+      "ovt_mass": 0.07633990049362183,
+      "register_mass": 0.7088208198547363,
+      "rae_self_mass": 0.21483926475048065,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 24,
+      "image_mass": 0.0,
+      "ovt_mass": 0.02011743374168873,
+      "register_mass": 0.7731961011886597,
+      "rae_self_mass": 0.20668652653694153,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 25,
+      "image_mass": 0.0,
+      "ovt_mass": 0.02409888431429863,
+      "register_mass": 0.8051221370697021,
+      "rae_self_mass": 0.17077895998954773,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 26,
+      "image_mass": 0.0,
+      "ovt_mass": 0.0402790904045105,
+      "register_mass": 0.626700758934021,
+      "rae_self_mass": 0.3330201804637909,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    },
+    {
+      "layer": 27,
+      "image_mass": 0.0,
+      "ovt_mass": 0.028318148106336594,
+      "register_mass": 0.6696323752403259,
+      "rae_self_mass": 0.30204951763153076,
+      "null_bg_mass": 0.0,
+      "caption_non_ovt_mass": 0.0,
+      "other_mass": 0.0,
+      "allowed_token_fraction": 0.011098130606114864
+    }
+  ],
+  "recon_grid": "/home/jovyan/PGOT/outputs/analysis_e5_5k_causal_paths/E5_Causal_Mixed/sample0_causal_recon_grid.png",
+  "recon_grid_order": [
+    "source",
+    "baseline",
+    "ovt_only_access",
+    "register_only_access",
+    "self_only_access",
+    "zero_ovt_inputs",
+    "zero_register_inputs",
+    "zero_ovt_and_register_inputs"
+  ]
+}

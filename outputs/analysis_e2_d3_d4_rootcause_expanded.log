@@ -1,0 +1,32 @@
+2026-07-31 09:25:45 PID=190874 __init__.py:49 setup_logging() INFO → 'standard' logger initialized.
+2026-07-31 09:25:49 PID=190874 eval_recon_oracles.py:102 load_model_and_tokenizer() INFO → Loading model from: /home/jovyan/PGOT/checkpoints/pgot_lviscap_hardreg_e2/checkpoint-10000
+2026-07-31 09:25:49 PID=190874 eval_recon_oracles.py:123 load_model_and_tokenizer() INFO → [LoRA] adapter checkpoint detected; bootstrap from /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B
+2026-07-31 09:26:07 PID=190874 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch16-512-interp1024
+2026-07-31 09:26:07 PID=190874 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch14-224-interp256
+[AURORA-INIT] diffusion_norm_stats_path = /home/jovyan/data/siglip2_bn_stats.pt
+[DEBUG] data_std: torch.Size([1152]), data_mean: torch.Size([1152])
+[AURORA-INIT] diff_head.normalize_data = True
+[PGOT] Initialised — D=1536, N_register=4, n_ovt_per_object=1, N_null_bg=0, v12=False, v12_layers=[12, 16, 20, 24], v14=False, v14_router_depth=1, v21=False, latent_distill=False
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:27<00:27, 27.31s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:47<00:00, 23.09s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:47<00:00, 23.72s/it]
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B and are newly initialized: ['diff_head.data_mean', 'diff_head.data_std', 'pgot_ovt_caption_norm.bias', 'pgot_ovt_caption_norm.weight', 'pgot_ovt_caption_projector.weight', 'pgot_register_embeddings']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B and are newly initialized because the shapes did not match:
+- model.embed_tokens.weight: found shape torch.Size([151667, 1536]) in the checkpoint and torch.Size([151671, 1536]) in the model instantiated
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/huggingface_hub/file_download.py:1142: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+2026-07-31 09:29:35 PID=190874 eval_recon_oracles.py:190 load_model_and_tokenizer() INFO → [LoRA] loaded checkpoint | missing=1 unexpected=0
+2026-07-31 09:29:39 PID=190874 eval_recon_oracles.py:93 patch_diffusion_steps() INFO → Patched RF inference_flow to 25 steps.
+2026-07-31 09:29:39 PID=190874 eval_recon_oracles.py:208 load_model_and_tokenizer() INFO → Model loaded on cuda.
+2026-07-31 09:29:40 PID=190874 diagnose_e2_d1_d4.py:1096 main() INFO → Dataset ready: 4720 samples.
+2026-07-31 09:29:40 PID=190874 run_eval.py:87 load_rae_decoder() INFO → Loading RAE decoder (nyu-visionx/siglip2_decoder) for encoder=google/siglip2-so400m-patch14-224 P=256
+2026-07-31 09:31:12 PID=190874 diagnose_e2_d1_d4.py:971 run_d3_d4() INFO → [D3/D4] pair 0 A=285 B=92839 complete.
+2026-07-31 09:31:52 PID=190874 diagnose_e2_d1_d4.py:971 run_d3_d4() INFO → [D3/D4] pair 1 A=22192 B=131273 complete.
+2026-07-31 09:32:27 PID=190874 diagnose_e2_d1_d4.py:971 run_d3_d4() INFO → [D3/D4] pair 2 A=14888 B=52565 complete.
+2026-07-31 09:33:12 PID=190874 diagnose_e2_d1_d4.py:971 run_d3_d4() INFO → [D3/D4] pair 3 A=63552 B=554291 complete.
+2026-07-31 09:33:16 PID=190874 diagnose_e2_d1_d4.py:971 run_d3_d4() INFO → [D3/D4] pair 4 A=348243 B=252216 complete.
+2026-07-31 09:33:19 PID=190874 diagnose_e2_d1_d4.py:971 run_d3_d4() INFO → [D3/D4] pair 5 A=421834 B=523811 complete.
+2026-07-31 09:33:19 PID=190874 diagnose_e2_d1_d4.py:1130 main() INFO → D1--D4 complete: /home/jovyan/PGOT/outputs/analysis_e2_d3_d4_rootcause_expanded/summary.json
+pretrain_adapter_and_vision_head is: None
+Decoder loaded successfully

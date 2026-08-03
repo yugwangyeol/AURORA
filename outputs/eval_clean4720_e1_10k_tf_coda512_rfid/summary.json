@@ -1,0 +1,67 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_instance_e1/checkpoint-10000",
+  "readout": "llm_attention",
+  "num_samples": 4720,
+  "fARI": 0.28987080468732357,
+  "mBO": 0.31449111345724656,
+  "mIoU": 0.39808645371497625,
+  "active_count_mean": 5.152966101694915,
+  "by_object_count": {
+    "11+": {
+      "n": 590,
+      "fARI": 0.37504407128183515,
+      "mBO": 0.1653366353425939,
+      "mIoU": 0.18562551624757254
+    },
+    "1-3": {
+      "n": 2375,
+      "fARI": 0.23145376466996745,
+      "mBO": 0.4145007518272736,
+      "mIoU": 0.5305613675431201
+    },
+    "4-6": {
+      "n": 1044,
+      "fARI": 0.32888991731888484,
+      "mBO": 0.2555123333697889,
+      "mIoU": 0.32781213530521286
+    },
+    "7-10": {
+      "n": 711,
+      "fARI": 0.3570329554089954,
+      "mBO": 0.19248297425974606,
+      "mIoU": 0.23506313611120613
+    }
+  },
+  "gt_source": "coco_instance",
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "metric_resolution": 512,
+  "image_patch_grid": 32,
+  "image_patch_tokens": 1024,
+  "teacher_forced_caption": true,
+  "register_hard_gt_mask_training": false,
+  "register_eval_route": "unrestricted",
+  "register_hard_mask_used_in_eval": false,
+  "register_hard_gt_mask_used_in_eval": false,
+  "segmentation_forward": "unrestricted_discovery",
+  "reconstruction_forward": "unrestricted",
+  "recon_source": "diffusion",
+  "dit_ovt_cross_attn_disabled": false,
+  "coda_overlap_excluded": true,
+  "attention_source": "exact_llm_post_rope_image_patch_softmax",
+  "attention_layers": "all",
+  "attention_temperature": 1.0,
+  "image_use_weight": 0.0,
+  "image_use_margin": 0.05,
+  "core_void_weight": 0.0,
+  "background_attention_source": "register_mean",
+  "register_tokens": 4,
+  "register_attends_caption": false,
+  "eval_merge": "mean",
+  "void_tokens": 0,
+  "rFID": 25.059036254882812,
+  "recon_psnr": 10.223070854554742,
+  "recon_ssim": 0.22125649154028398,
+  "recon_mse": 0.10287571775853255,
+  "recon_mae": 0.25148688463841457
+}

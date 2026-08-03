@@ -1,0 +1,25 @@
+2026-07-31 07:34:54 PID=178145 __init__.py:49 setup_logging() INFO → 'standard' logger initialized.
+2026-07-31 07:34:58 PID=178145 diagnose_v13_causal_paths.py:358 main() INFO → Loading E2: /home/jovyan/PGOT/checkpoints/pgot_lviscap_hardreg_e2/checkpoint-10000
+2026-07-31 07:34:58 PID=178145 visualize_ovt_overlays.py:87 _load_model() INFO → [LoRA] adapter checkpoint detected; bootstrap model from base path: /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B
+2026-07-31 07:35:15 PID=178145 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch16-512-interp1024
+2026-07-31 07:35:15 PID=178145 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch14-224-interp256
+[AURORA-INIT] diffusion_norm_stats_path = /home/jovyan/data/siglip2_bn_stats.pt
+[DEBUG] data_std: torch.Size([1152]), data_mean: torch.Size([1152])
+[AURORA-INIT] diff_head.normalize_data = True
+[PGOT] Initialised — D=1536, N_register=4, n_ovt_per_object=1, N_null_bg=0, v12=False, v12_layers=[12, 16, 20, 24], v14=False, v14_router_depth=1, v21=False, latent_distill=False
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:26<00:26, 26.09s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:45<00:00, 22.15s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:45<00:00, 22.74s/it]
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B and are newly initialized: ['diff_head.data_mean', 'diff_head.data_std', 'pgot_ovt_caption_norm.bias', 'pgot_ovt_caption_norm.weight', 'pgot_ovt_caption_projector.weight', 'pgot_register_embeddings']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B and are newly initialized because the shapes did not match:
+- model.embed_tokens.weight: found shape torch.Size([151667, 1536]) in the checkpoint and torch.Size([151671, 1536]) in the model instantiated
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/huggingface_hub/file_download.py:1142: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+2026-07-31 07:38:12 PID=178145 visualize_ovt_overlays.py:149 _load_model() INFO → [LoRA] re-loaded ckpt after adapter injection | unexpected=0
+2026-07-31 07:38:15 PID=178145 run_eval.py:87 load_rae_decoder() INFO → Loading RAE decoder (nyu-visionx/siglip2_decoder) for encoder=google/siglip2-so400m-patch14-224 P=256
+2026-07-31 07:38:26 PID=178145 diagnose_v13_causal_paths.py:562 main() INFO → E2 sample=0 recon_loss={'R0_unrestricted': 0.935045063495636, 'R1_oracle_mask': 0.9336832761764526, 'R1_OVT_only': 1.0987695455551147, 'R1_register_only': 0.9559324383735657, 'R1_zero_OVT_init': 0.9402559995651245, 'R1_zero_register_init': 0.948390543460846}
+2026-07-31 07:38:31 PID=178145 diagnose_v13_causal_paths.py:562 main() INFO → E2 sample=1020 recon_loss={'R0_unrestricted': 0.9484718441963196, 'R1_oracle_mask': 0.9361074566841125, 'R1_OVT_only': 1.0205230712890625, 'R1_register_only': 0.9320235848426819, 'R1_zero_OVT_init': 0.9476872682571411, 'R1_zero_register_init': 0.9385465979576111}
+pretrain_adapter_and_vision_head is: None
+Decoder loaded successfully
+/home/jovyan/PGOT/outputs/analysis_e2_10k_oracle_register_recon_examples/summary.json

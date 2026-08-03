@@ -1,0 +1,1051 @@
+{
+  "definition": "Foreground pixels are replaced before SigLIP with the image's mean background colour; every outside pixel remains bit-identical.",
+  "num_images": 64,
+  "num_hidden_states": 28,
+  "first_layer": 0,
+  "final_layer": 27,
+  "aggregate_by_layer": {
+    "0": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.04816594371004612,
+        "cosine_distance_std": 0.029516192666862628,
+        "relative_l2_mean": 0.2776578894117847,
+        "relative_l2_std": 0.09331221808262466
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 5.109454904311805e-09,
+        "cosine_distance_std": 1.7410068628099445e-08,
+        "relative_l2_mean": 0.0,
+        "relative_l2_std": 0.0
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 5.8940489962647225e-09,
+        "cosine_distance_std": 9.16988039649703e-09,
+        "relative_l2_mean": 0.0,
+        "relative_l2_std": 0.0
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 4.682361524552259e-09,
+        "cosine_distance_std": 8.345554423056013e-09,
+        "relative_l2_mean": 0.0,
+        "relative_l2_std": 0.0
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 5.352614147486473e-09,
+        "cosine_distance_std": 4.248322947109348e-09,
+        "relative_l2_mean": 0.0,
+        "relative_l2_std": 0.0
+      }
+    },
+    "1": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.1036300122650573,
+        "cosine_distance_std": 0.06504621887784658,
+        "relative_l2_mean": 0.40730127482675016,
+        "relative_l2_std": 0.14403832469941868
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.00018013770559122122,
+        "cosine_distance_std": 0.00024800828301728336,
+        "relative_l2_mean": 0.01516840981275891,
+        "relative_l2_std": 0.010415933664420039
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.0001732442264703593,
+        "cosine_distance_std": 0.00024703921222799907,
+        "relative_l2_mean": 0.014481274210993433,
+        "relative_l2_std": 0.010712801682741488
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.00015901610520518972,
+        "cosine_distance_std": 0.0002468043470136786,
+        "relative_l2_mean": 0.013427455705823377,
+        "relative_l2_std": 0.010623287825867779
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.00015036158479375672,
+        "cosine_distance_std": 0.0002483057621651472,
+        "relative_l2_mean": 0.012724909573080367,
+        "relative_l2_std": 0.010527897001134726
+      }
+    },
+    "2": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.23626611719373614,
+        "cosine_distance_std": 0.08352812715131021,
+        "relative_l2_mean": 0.6580113326199353,
+        "relative_l2_std": 0.1304575803110554
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.005607923018033034,
+        "cosine_distance_std": 0.0030398565852265197,
+        "relative_l2_mean": 0.09158724645385519,
+        "relative_l2_std": 0.027809895541546135
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.001324361738056723,
+        "cosine_distance_std": 0.001496516730912275,
+        "relative_l2_mean": 0.04391731560463086,
+        "relative_l2_std": 0.024456555945304246
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.0010253665067381235,
+        "cosine_distance_std": 0.0012605803349784628,
+        "relative_l2_mean": 0.03771073649113532,
+        "relative_l2_std": 0.023136951469210434
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.000780667982908767,
+        "cosine_distance_std": 0.0010537360187035196,
+        "relative_l2_mean": 0.03207990808732575,
+        "relative_l2_std": 0.021378575901482025
+      }
+    },
+    "3": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.3689458784647286,
+        "cosine_distance_std": 0.07552141536027454,
+        "relative_l2_mean": 0.842202109284699,
+        "relative_l2_std": 0.09271531557213009
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.020938562563969754,
+        "cosine_distance_std": 0.006473757438229749,
+        "relative_l2_mean": 0.18145810230635107,
+        "relative_l2_std": 0.03269503071001077
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.0029487174072073685,
+        "cosine_distance_std": 0.0026038111736550263,
+        "relative_l2_mean": 0.06798453262308612,
+        "relative_l2_std": 0.029846173303051966
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.002091492356157687,
+        "cosine_distance_std": 0.0021861206875376086,
+        "relative_l2_mean": 0.055539622975629754,
+        "relative_l2_std": 0.028831906773098253
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.001545507484877362,
+        "cosine_distance_std": 0.0018282204481279256,
+        "relative_l2_mean": 0.04636811657110229,
+        "relative_l2_std": 0.027087635445516137
+      }
+    },
+    "4": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.4166294252499938,
+        "cosine_distance_std": 0.06280436072015332,
+        "relative_l2_mean": 0.9002340948209167,
+        "relative_l2_std": 0.07303281822067283
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.03465071263781283,
+        "cosine_distance_std": 0.01041416087034907,
+        "relative_l2_mean": 0.23632465535774827,
+        "relative_l2_std": 0.03934010964521332
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.004285562839868362,
+        "cosine_distance_std": 0.00327676605412933,
+        "relative_l2_mean": 0.08259938066476025,
+        "relative_l2_std": 0.031839111297536464
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.002951751077944209,
+        "cosine_distance_std": 0.002726013207262841,
+        "relative_l2_mean": 0.06633297097869217,
+        "relative_l2_std": 0.03065320119257382
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.002118369593404168,
+        "cosine_distance_std": 0.0022526479953495146,
+        "relative_l2_mean": 0.05470934264303651,
+        "relative_l2_std": 0.029046096087292705
+      }
+    },
+    "5": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.42670513689517975,
+        "cosine_distance_std": 0.053741810588508555,
+        "relative_l2_mean": 0.9128661416471004,
+        "relative_l2_std": 0.06198216062243958
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.04566236853133887,
+        "cosine_distance_std": 0.01408449594717179,
+        "relative_l2_mean": 0.27396474103443325,
+        "relative_l2_std": 0.046277121228210975
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.006029336614119529,
+        "cosine_distance_std": 0.004284644005009434,
+        "relative_l2_mean": 0.09852312889415771,
+        "relative_l2_std": 0.034135512029503115
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.0041712584438755584,
+        "cosine_distance_std": 0.004008956298195921,
+        "relative_l2_mean": 0.07816439916496165,
+        "relative_l2_std": 0.03357647882037223
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.0028716061680142957,
+        "cosine_distance_std": 0.0031460016977463614,
+        "relative_l2_mean": 0.0628361229901202,
+        "relative_l2_std": 0.03232039741370404
+      }
+    },
+    "6": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.5018477728590369,
+        "cosine_distance_std": 0.050984406828848715,
+        "relative_l2_mean": 0.9913726495578885,
+        "relative_l2_std": 0.05518013838648984
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.06991691762232222,
+        "cosine_distance_std": 0.02094767043878032,
+        "relative_l2_mean": 0.34081688011065125,
+        "relative_l2_std": 0.05699660843757134
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.00940735623225919,
+        "cosine_distance_std": 0.007249190744498969,
+        "relative_l2_mean": 0.11970678868237883,
+        "relative_l2_std": 0.040878240745986026
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.006405280087619758,
+        "cosine_distance_std": 0.007617898430084069,
+        "relative_l2_mean": 0.09097516030305997,
+        "relative_l2_std": 0.04032589154166047
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.004516636196967738,
+        "cosine_distance_std": 0.006039462869407506,
+        "relative_l2_mean": 0.07306460029212758,
+        "relative_l2_std": 0.03897056973775839
+      }
+    },
+    "7": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.5402302029542625,
+        "cosine_distance_std": 0.049474620979862396,
+        "relative_l2_mean": 1.0289932889863849,
+        "relative_l2_std": 0.052218354394059606
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.08466692161164246,
+        "cosine_distance_std": 0.025972044561079898,
+        "relative_l2_mean": 0.375123766483739,
+        "relative_l2_std": 0.06502359346286772
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.013311193000845378,
+        "cosine_distance_std": 0.011079131118989427,
+        "relative_l2_mean": 0.14004550740355626,
+        "relative_l2_std": 0.048381530337821575
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.00891315219723765,
+        "cosine_distance_std": 0.011415380244402983,
+        "relative_l2_mean": 0.10327532363589853,
+        "relative_l2_std": 0.04776198321787354
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.00617048379535845,
+        "cosine_distance_std": 0.009248097675528104,
+        "relative_l2_mean": 0.08045860353740864,
+        "relative_l2_std": 0.046280471509132386
+      }
+    },
+    "8": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.5217106733471155,
+        "cosine_distance_std": 0.05063350929034046,
+        "relative_l2_mean": 1.01105469558388,
+        "relative_l2_std": 0.05463007613975932
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.0962612020666711,
+        "cosine_distance_std": 0.02877671325546559,
+        "relative_l2_mean": 0.4009193708188832,
+        "relative_l2_std": 0.06897036350267657
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.01648086097338819,
+        "cosine_distance_std": 0.014081138584662173,
+        "relative_l2_mean": 0.1542109838919714,
+        "relative_l2_std": 0.05525193689632567
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.01112550923062372,
+        "cosine_distance_std": 0.01405049964539398,
+        "relative_l2_mean": 0.1132909057487268,
+        "relative_l2_std": 0.05453941596932339
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.007744045570916569,
+        "cosine_distance_std": 0.01181415224738028,
+        "relative_l2_mean": 0.08795487417955883,
+        "relative_l2_std": 0.05256593836936239
+      }
+    },
+    "9": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.5262190322391689,
+        "cosine_distance_std": 0.05061214748285741,
+        "relative_l2_mean": 1.0144127598032355,
+        "relative_l2_std": 0.053785471806471336
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.10661010700277984,
+        "cosine_distance_std": 0.032456459571142106,
+        "relative_l2_mean": 0.4229392930865288,
+        "relative_l2_std": 0.0738078369115132
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.02162498984398553,
+        "cosine_distance_std": 0.019534268236107887,
+        "relative_l2_mean": 0.1737872390076518,
+        "relative_l2_std": 0.06570672347065186
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.015074193001055392,
+        "cosine_distance_std": 0.019795902022705075,
+        "relative_l2_mean": 0.12700394069543108,
+        "relative_l2_std": 0.06721537422241187
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.010611300808704982,
+        "cosine_distance_std": 0.01651289427320597,
+        "relative_l2_mean": 0.09881950338603929,
+        "relative_l2_std": 0.06328928830451278
+      }
+    },
+    "10": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.5344946323893964,
+        "cosine_distance_std": 0.05150187337809324,
+        "relative_l2_mean": 1.0211829412728548,
+        "relative_l2_std": 0.055263108830306974
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.1164463238674216,
+        "cosine_distance_std": 0.03680805500768658,
+        "relative_l2_mean": 0.43916663667187095,
+        "relative_l2_std": 0.08008135502742458
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.025991748429078143,
+        "cosine_distance_std": 0.02439167931636021,
+        "relative_l2_mean": 0.18744384869933128,
+        "relative_l2_std": 0.07516240737534344
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.018612849291457678,
+        "cosine_distance_std": 0.024771035054509487,
+        "relative_l2_mean": 0.1382219071383588,
+        "relative_l2_std": 0.07806851203362128
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.0130795784766633,
+        "cosine_distance_std": 0.020334576913433867,
+        "relative_l2_mean": 0.10762011774932034,
+        "relative_l2_std": 0.07247712358266682
+      }
+    },
+    "11": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.5604785871692002,
+        "cosine_distance_std": 0.05511046664228625,
+        "relative_l2_mean": 1.045512237586081,
+        "relative_l2_std": 0.05834761445091421
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.13308638759190217,
+        "cosine_distance_std": 0.042524028979862696,
+        "relative_l2_mean": 0.4685264206491411,
+        "relative_l2_std": 0.08727873946127426
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.0321005656151101,
+        "cosine_distance_std": 0.030682034600133034,
+        "relative_l2_mean": 0.20664983347523957,
+        "relative_l2_std": 0.08588237816739995
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.02314134124389966,
+        "cosine_distance_std": 0.030710091722984303,
+        "relative_l2_mean": 0.1536181137780659,
+        "relative_l2_std": 0.08976200569211891
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.01618824822253373,
+        "cosine_distance_std": 0.02498672910664092,
+        "relative_l2_mean": 0.11949134001042694,
+        "relative_l2_std": 0.08225394697277069
+      }
+    },
+    "12": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.5720991441048682,
+        "cosine_distance_std": 0.054043703478781235,
+        "relative_l2_mean": 1.056064517237246,
+        "relative_l2_std": 0.05715234983063737
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.14674144354648888,
+        "cosine_distance_std": 0.04820565519662176,
+        "relative_l2_mean": 0.48981010215356946,
+        "relative_l2_std": 0.0948816931046421
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.039949742385942955,
+        "cosine_distance_std": 0.03741063954368239,
+        "relative_l2_mean": 0.22865525365341455,
+        "relative_l2_std": 0.0959832559923577
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.02972233257969492,
+        "cosine_distance_std": 0.03908256165288592,
+        "relative_l2_mean": 0.17380060744471848,
+        "relative_l2_std": 0.10331542235332229
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.02078626638103742,
+        "cosine_distance_std": 0.03100198181091603,
+        "relative_l2_mean": 0.13632121548289433,
+        "relative_l2_std": 0.09325908193692853
+      }
+    },
+    "13": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.6053578816354275,
+        "cosine_distance_std": 0.05685881727261307,
+        "relative_l2_mean": 1.0858879294246435,
+        "relative_l2_std": 0.05824267100360045
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.16735977662028745,
+        "cosine_distance_std": 0.05517932185030807,
+        "relative_l2_mean": 0.5228289291262627,
+        "relative_l2_std": 0.1026927449898188
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.05024504208995495,
+        "cosine_distance_std": 0.046231585427747954,
+        "relative_l2_mean": 0.25472950120456517,
+        "relative_l2_std": 0.10715194167376728
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.03817153794079786,
+        "cosine_distance_std": 0.0498815406767792,
+        "relative_l2_mean": 0.19587134080938995,
+        "relative_l2_std": 0.11783472148018159
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.026869667090068106,
+        "cosine_distance_std": 0.03949227812504117,
+        "relative_l2_mean": 0.15328029415104538,
+        "relative_l2_std": 0.10578771031277807
+      }
+    },
+    "14": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.622497406322509,
+        "cosine_distance_std": 0.050232703072974214,
+        "relative_l2_mean": 1.1019636131823063,
+        "relative_l2_std": 0.05093229616586963
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.18064668023725972,
+        "cosine_distance_std": 0.05900190328684376,
+        "relative_l2_mean": 0.5396228735335171,
+        "relative_l2_std": 0.10759369403481289
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.05935428036900703,
+        "cosine_distance_std": 0.05158408152677164,
+        "relative_l2_mean": 0.27281001897063106,
+        "relative_l2_std": 0.11466329721607475
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.046182548510842025,
+        "cosine_distance_std": 0.05704432505056718,
+        "relative_l2_mean": 0.21443836216349155,
+        "relative_l2_std": 0.12844003831361261
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.03323978028311103,
+        "cosine_distance_std": 0.04638827615245761,
+        "relative_l2_mean": 0.17069409327814355,
+        "relative_l2_std": 0.11614481990468836
+      }
+    },
+    "15": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.672758893109858,
+        "cosine_distance_std": 0.05211797863351833,
+        "relative_l2_mean": 1.1456408919766545,
+        "relative_l2_std": 0.05265444142580584
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.20277830702252686,
+        "cosine_distance_std": 0.06767269142086749,
+        "relative_l2_mean": 0.5697165932506323,
+        "relative_l2_std": 0.11803906205998968
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.06941200999426655,
+        "cosine_distance_std": 0.05844186898185398,
+        "relative_l2_mean": 0.292223988333717,
+        "relative_l2_std": 0.12318563715167305
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.05426085448561935,
+        "cosine_distance_std": 0.06389597264980844,
+        "relative_l2_mean": 0.23055352887604386,
+        "relative_l2_std": 0.13696629905114424
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.0387484907732869,
+        "cosine_distance_std": 0.05202958582790985,
+        "relative_l2_mean": 0.18289112468482926,
+        "relative_l2_std": 0.12359504772445509
+      }
+    },
+    "16": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.7074282607063651,
+        "cosine_distance_std": 0.05206924590580527,
+        "relative_l2_mean": 1.1752033727243543,
+        "relative_l2_std": 0.05266322414041445
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.21944273728877306,
+        "cosine_distance_std": 0.07225145231974231,
+        "relative_l2_mean": 0.5926225609146059,
+        "relative_l2_std": 0.12250074795568366
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.07746642679558136,
+        "cosine_distance_std": 0.0628151780481422,
+        "relative_l2_mean": 0.3087289839750156,
+        "relative_l2_std": 0.12799180808923005
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.061446519390301546,
+        "cosine_distance_std": 0.06933461748547753,
+        "relative_l2_mean": 0.24612447415711358,
+        "relative_l2_std": 0.14340895426719616
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.043961910658254055,
+        "cosine_distance_std": 0.05660069840490199,
+        "relative_l2_mean": 0.19591491378378123,
+        "relative_l2_std": 0.1291479954501271
+      }
+    },
+    "17": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.7174325082451105,
+        "cosine_distance_std": 0.05368615834482548,
+        "relative_l2_mean": 1.1834892015904188,
+        "relative_l2_std": 0.05396164758847414
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.22071467712521553,
+        "cosine_distance_std": 0.07408531116073645,
+        "relative_l2_mean": 0.5936259725131094,
+        "relative_l2_std": 0.1254188206809621
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.08020587611827068,
+        "cosine_distance_std": 0.06396572135952962,
+        "relative_l2_mean": 0.31345369142945856,
+        "relative_l2_std": 0.12871072857077276
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.06494428518635686,
+        "cosine_distance_std": 0.07164272074961799,
+        "relative_l2_mean": 0.25280968978768215,
+        "relative_l2_std": 0.14574230254027612
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.04664368924932205,
+        "cosine_distance_std": 0.05816070671088933,
+        "relative_l2_mean": 0.20291796699166298,
+        "relative_l2_std": 0.13091166166117754
+      }
+    },
+    "18": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.7302769301459193,
+        "cosine_distance_std": 0.053645839311126035,
+        "relative_l2_mean": 1.194280231371522,
+        "relative_l2_std": 0.05321760117190151
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.23760018614120781,
+        "cosine_distance_std": 0.08205283974554259,
+        "relative_l2_mean": 0.6144068981520832,
+        "relative_l2_std": 0.13212863515258008
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.08621408412000164,
+        "cosine_distance_std": 0.066129526421309,
+        "relative_l2_mean": 0.3245309612248093,
+        "relative_l2_std": 0.13096191899600246
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.06903728294128086,
+        "cosine_distance_std": 0.07341313115455457,
+        "relative_l2_mean": 0.26118576468434185,
+        "relative_l2_std": 0.14813080983788773
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.04941826934373239,
+        "cosine_distance_std": 0.05906647965268389,
+        "relative_l2_mean": 0.21024929522536695,
+        "relative_l2_std": 0.13223025282732215
+      }
+    },
+    "19": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.7656123833730817,
+        "cosine_distance_std": 0.05585461229871849,
+        "relative_l2_mean": 1.223017193377018,
+        "relative_l2_std": 0.0548019221606942
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.25266514404211193,
+        "cosine_distance_std": 0.08648897141091945,
+        "relative_l2_mean": 0.6347306449897587,
+        "relative_l2_std": 0.13554883305856003
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.0938513571745716,
+        "cosine_distance_std": 0.07085440945385671,
+        "relative_l2_mean": 0.34055648650974035,
+        "relative_l2_std": 0.13572277339160027
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.075265741244948,
+        "cosine_distance_std": 0.07852794851994972,
+        "relative_l2_mean": 0.2756252234103158,
+        "relative_l2_std": 0.15353342062099665
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.05414194601326017,
+        "cosine_distance_std": 0.06301380086117556,
+        "relative_l2_mean": 0.2231729154009372,
+        "relative_l2_std": 0.13679445805570406
+      }
+    },
+    "20": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.7457943623885512,
+        "cosine_distance_std": 0.05677575092748045,
+        "relative_l2_mean": 1.2070486508309841,
+        "relative_l2_std": 0.05562978616172416
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.2506446533370763,
+        "cosine_distance_std": 0.08599922686994795,
+        "relative_l2_mean": 0.6317167277447879,
+        "relative_l2_std": 0.13486376451721374
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.0971073376131244,
+        "cosine_distance_std": 0.07101566242170411,
+        "relative_l2_mean": 0.3460489616263658,
+        "relative_l2_std": 0.1344790183425314
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.07910579726012656,
+        "cosine_distance_std": 0.07928295844716413,
+        "relative_l2_mean": 0.28366173279937357,
+        "relative_l2_std": 0.1535846995114712
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.057657965713588055,
+        "cosine_distance_std": 0.06390346979871435,
+        "relative_l2_mean": 0.2319852306973189,
+        "relative_l2_std": 0.13640387151800282
+      }
+    },
+    "21": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.7227339446544647,
+        "cosine_distance_std": 0.0536606616016685,
+        "relative_l2_mean": 1.1882947031408548,
+        "relative_l2_std": 0.05307331654719933
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.24951388069894165,
+        "cosine_distance_std": 0.08461733826835365,
+        "relative_l2_mean": 0.6308821919374168,
+        "relative_l2_std": 0.13387235873911008
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.09943118655064609,
+        "cosine_distance_std": 0.07171242686949747,
+        "relative_l2_mean": 0.3511119324248284,
+        "relative_l2_std": 0.13518749466739668
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.08162441082822625,
+        "cosine_distance_std": 0.08023484030760861,
+        "relative_l2_mean": 0.29036656266544014,
+        "relative_l2_std": 0.15443288128558308
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.06037917046342045,
+        "cosine_distance_std": 0.06550046745091664,
+        "relative_l2_mean": 0.24026431480888277,
+        "relative_l2_std": 0.1376756891038619
+      }
+    },
+    "22": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.7029621237888932,
+        "cosine_distance_std": 0.056833006693283915,
+        "relative_l2_mean": 1.1712843533605337,
+        "relative_l2_std": 0.05632993255551807
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.24536985473241657,
+        "cosine_distance_std": 0.08265904881153831,
+        "relative_l2_mean": 0.6259414195083082,
+        "relative_l2_std": 0.13202469266679462
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.10026778822066262,
+        "cosine_distance_std": 0.07002284435468356,
+        "relative_l2_mean": 0.3540164344012737,
+        "relative_l2_std": 0.13292587094803426
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.08224429811525624,
+        "cosine_distance_std": 0.07805079617062202,
+        "relative_l2_mean": 0.2942750727524981,
+        "relative_l2_std": 0.15202235539869025
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.06127150975953555,
+        "cosine_distance_std": 0.06367534825442071,
+        "relative_l2_mean": 0.24564300035126507,
+        "relative_l2_std": 0.13576723107865415
+      }
+    },
+    "23": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.670625560451299,
+        "cosine_distance_std": 0.05178808182411002,
+        "relative_l2_mean": 1.144148014485836,
+        "relative_l2_std": 0.05283266295910261
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.23907251842319965,
+        "cosine_distance_std": 0.07920450394365584,
+        "relative_l2_mean": 0.6182088912464678,
+        "relative_l2_std": 0.12843306489311934
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.10124621221621055,
+        "cosine_distance_std": 0.06784599307879058,
+        "relative_l2_mean": 0.3572190343402326,
+        "relative_l2_std": 0.13099010706904904
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.08416305285209091,
+        "cosine_distance_std": 0.07668644076689864,
+        "relative_l2_mean": 0.3004007391864434,
+        "relative_l2_std": 0.15089424447541983
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.06324616662459448,
+        "cosine_distance_std": 0.0627396360941325,
+        "relative_l2_mean": 0.2530275620520115,
+        "relative_l2_std": 0.13512902362861096
+      }
+    },
+    "24": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.6742704436182976,
+        "cosine_distance_std": 0.04973621492154167,
+        "relative_l2_mean": 1.1470356732606888,
+        "relative_l2_std": 0.05051411185092441
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.24731313245138153,
+        "cosine_distance_std": 0.08218987367072009,
+        "relative_l2_mean": 0.628779434133321,
+        "relative_l2_std": 0.1316892174080569
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.11023134979768656,
+        "cosine_distance_std": 0.07258930234150407,
+        "relative_l2_mean": 0.3741172042209655,
+        "relative_l2_std": 0.13616498831870713
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.09232240188430296,
+        "cosine_distance_std": 0.0806963313239723,
+        "relative_l2_mean": 0.3179145611356944,
+        "relative_l2_std": 0.15519447955128024
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.07034519074659329,
+        "cosine_distance_std": 0.06673303640871753,
+        "relative_l2_mean": 0.27040408202446997,
+        "relative_l2_std": 0.1393741209302427
+      }
+    },
+    "25": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.629328406881541,
+        "cosine_distance_std": 0.04418821945381803,
+        "relative_l2_mean": 1.108041032217443,
+        "relative_l2_std": 0.046700454785544465
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.24159547087037936,
+        "cosine_distance_std": 0.07902228133790251,
+        "relative_l2_mean": 0.622339719440788,
+        "relative_l2_std": 0.12880312652625603
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.11369686166290194,
+        "cosine_distance_std": 0.0720716153412974,
+        "relative_l2_mean": 0.38281020894646645,
+        "relative_l2_std": 0.13560275662599003
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.09668101104034577,
+        "cosine_distance_std": 0.08035180033131367,
+        "relative_l2_mean": 0.3294229138409719,
+        "relative_l2_std": 0.1555680349816783
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.07491487490187865,
+        "cosine_distance_std": 0.0676455971068932,
+        "relative_l2_mean": 0.2838921626098454,
+        "relative_l2_std": 0.1408062970502746
+      }
+    },
+    "26": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.6465257611125708,
+        "cosine_distance_std": 0.04537232519971116,
+        "relative_l2_mean": 1.1229514423757792,
+        "relative_l2_std": 0.0469953791248881
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.25519477418856695,
+        "cosine_distance_std": 0.0844033719086277,
+        "relative_l2_mean": 0.6394702042452991,
+        "relative_l2_std": 0.1337448566371806
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.12574097065953538,
+        "cosine_distance_std": 0.07707912197743924,
+        "relative_l2_mean": 0.40474290307611227,
+        "relative_l2_std": 0.1410680687505136
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.10834167095890734,
+        "cosine_distance_std": 0.08652194007304148,
+        "relative_l2_mean": 0.35300687269773334,
+        "relative_l2_std": 0.16208726019071212
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.0854732688749209,
+        "cosine_distance_std": 0.07387393446096915,
+        "relative_l2_mean": 0.30861332756467164,
+        "relative_l2_std": 0.14712582718736195
+      }
+    },
+    "27": {
+      "inside": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.7079267762601376,
+        "cosine_distance_std": 0.052166927788579474,
+        "relative_l2_mean": 1.1749926880002022,
+        "relative_l2_std": 0.051641604557273665
+      },
+      "ring_1": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.27907186513766646,
+        "cosine_distance_std": 0.0904918433441605,
+        "relative_l2_mean": 0.6696723070926964,
+        "relative_l2_std": 0.13755139478543119
+      },
+      "near_2_4": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.1410286215832457,
+        "cosine_distance_std": 0.0861521300927836,
+        "relative_l2_mean": 0.43143733334727585,
+        "relative_l2_std": 0.14960393882295886
+      },
+      "mid_5_8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.12191713183710817,
+        "cosine_distance_std": 0.09583340316649842,
+        "relative_l2_mean": 0.3788975247880444,
+        "relative_l2_std": 0.1708625327309555
+      },
+      "far_gt8": {
+        "n_images": 64,
+        "cosine_distance_mean": 0.09693278695340268,
+        "cosine_distance_std": 0.08170914733398449,
+        "relative_l2_mean": 0.33335070800967515,
+        "relative_l2_std": 0.15432821681922976
+      }
+    }
+  },
+  "headline": {
+    "patch_embedding_far_relative_l2": 0.0,
+    "final_far_relative_l2": 0.33335070800967515,
+    "final_inside_relative_l2": 1.1749926880002022,
+    "final_far_cosine_distance": 0.09693278695340268
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "pair": 3,
+  "image_id_A": 63552,
+  "image_id_B": 554291,
+  "object_A": {
+    "category": "cat",
+    "description": "has a ginger coat with short, dense fur. its eyes are large and green, showing a focused gaze. the ears are upright and it appears to be in a relaxed state, laying down"
+  },
+  "object_B": {
+    "category": "cat",
+    "description": "a grey cat with stripes is lying comfortably on the person's lap, looking directly at the camera with its eyes wide open."
+  },
+  "same_category": true,
+  "swap_mode": "all_layers",
+  "fixed_noise_seed": 123,
+  "mean_abs_recon_delta_inside_A": 0.07550598680973053,
+  "mean_abs_recon_delta_outside_A": 0.0718792974948883,
+  "recon_delta_inside_outside_ratio": 1.0504552693367675,
+  "implementation_max_abs_difference": 0.0
+}

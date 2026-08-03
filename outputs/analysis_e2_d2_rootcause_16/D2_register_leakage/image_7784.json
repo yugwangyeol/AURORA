@@ -1,0 +1,52 @@
+{
+  "image_id": 7784,
+  "dataset_idx": 73,
+  "n_objects": 1,
+  "foreground_patch_fraction": 0.1875,
+  "caption": "<thing> Kite 1: is a vibrant and colorful kite with a fish-like shape. it has a predominantly red and yellow color scheme, with the wings and tail. the kite is soaring in the sky, with. <ovt>. <scene_end>",
+  "seed": 123,
+  "metrics": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.13187815248966217,
+      "background_mse": 0.028094928711652756,
+      "foreground_psnr": 8.798271179199219,
+      "background_psnr": 15.513720512390137
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.1535024791955948,
+      "background_mse": 0.02987918257713318,
+      "foreground_psnr": 8.138846397399902,
+      "background_psnr": 15.246313095092773
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.1272282898426056,
+      "background_mse": 0.025082841515541077,
+      "foreground_psnr": 8.954163551330566,
+      "background_psnr": 16.00623321533203
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.145333394408226,
+      "background_mse": 0.030567172914743423,
+      "foreground_psnr": 8.376346588134766,
+      "background_psnr": 15.14744758605957,
+      "mean_abs_delta_vs_post_register_fg": 0.20859943330287933,
+      "mean_abs_delta_vs_post_register_bg": 0.05241292342543602
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.19281265139579773,
+      "background_mse": 0.11824217438697815,
+      "foreground_psnr": 7.148644924163818,
+      "background_psnr": 9.272275924682617,
+      "mean_abs_delta_vs_post_register_fg": 0.3277074694633484,
+      "mean_abs_delta_vs_post_register_bg": 0.3232657015323639
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.1388566941022873,
+      "background_mse": 0.03111988678574562,
+      "foreground_psnr": 8.574332237243652,
+      "background_psnr": 15.069620132446289,
+      "mean_abs_delta_vs_post_register_fg": 0.1922416090965271,
+      "mean_abs_delta_vs_post_register_bg": 0.04443519935011864
+    }
+  }
+}

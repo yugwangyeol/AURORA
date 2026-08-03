@@ -1,0 +1,67 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_e2_pix_ovt_isolated/checkpoint-10000",
+  "readout": "llm_attention",
+  "num_samples": 2088,
+  "fARI": 0.08740279743309347,
+  "mBO": 0.23885509942609348,
+  "mIoU": 0.33141000955668903,
+  "active_count_mean": 3.2729885057471266,
+  "by_object_count": {
+    "1-3": {
+      "n": 1453,
+      "fARI": 0.07539783028873467,
+      "mBO": 0.26433919349621454,
+      "mIoU": 0.3776859127226076
+    },
+    "7-10": {
+      "n": 165,
+      "fARI": 0.10279799630027028,
+      "mBO": 0.16401886508771868,
+      "mIoU": 0.19540847160599448
+    },
+    "11+": {
+      "n": 60,
+      "fARI": 0.08937673767989812,
+      "mBO": 0.17462867069989443,
+      "mIoU": 0.19416377171874047
+    },
+    "4-6": {
+      "n": 410,
+      "fARI": 0.12346273165958337,
+      "mBO": 0.18805796700052735,
+      "mIoU": 0.24222986500074223
+    }
+  },
+  "gt_source": "coco_instance",
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "metric_resolution": 512,
+  "image_patch_grid": 32,
+  "image_patch_tokens": 1024,
+  "teacher_forced_caption": true,
+  "register_hard_gt_mask_training": true,
+  "register_eval_route": "unrestricted",
+  "register_hard_mask_used_in_eval": false,
+  "register_hard_gt_mask_used_in_eval": false,
+  "segmentation_forward": "unrestricted_discovery",
+  "reconstruction_forward": "unrestricted",
+  "recon_source": "diffusion",
+  "dit_ovt_cross_attn_disabled": false,
+  "coda_overlap_excluded": true,
+  "attention_source": "exact_llm_post_rope_image_patch_softmax",
+  "attention_layers": "all",
+  "attention_temperature": 1.0,
+  "image_use_weight": 0.0,
+  "image_use_margin": 0.05,
+  "core_void_weight": 0.0,
+  "background_attention_source": "register_mean",
+  "register_tokens": 4,
+  "register_attends_caption": false,
+  "eval_merge": "mean",
+  "void_tokens": 0,
+  "rFID": 37.7701530456543,
+  "recon_psnr": 10.46375653981249,
+  "recon_ssim": 0.2261914833470237,
+  "recon_mse": 0.09727697050996424,
+  "recon_mae": 0.24174265180967777
+}

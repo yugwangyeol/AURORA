@@ -1,0 +1,72 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_e2_pix_fvw/checkpoint-10000",
+  "val_jsonl": "/home/jovyan/PGOT/data/pgot_pix2cap_generated_val5k.jsonl",
+  "only": "all",
+  "D1": {
+    "patch_embedding_far_relative_l2": 0.0,
+    "final_far_relative_l2": 0.33335070800967515,
+    "final_inside_relative_l2": 1.1749926880002022,
+    "final_far_cosine_distance": 0.09693278695340268
+  },
+  "D2": {
+    "R0_unrestricted": {
+      "foreground_mse": 0.10815517107645671,
+      "background_mse": 0.08302656809488933,
+      "foreground_psnr": 9.897955576578775,
+      "background_psnr": 10.860907872517904
+    },
+    "R1_post_siglip_all": {
+      "foreground_mse": 0.0801455130179723,
+      "background_mse": 0.08735032131274541,
+      "foreground_psnr": 12.10170046488444,
+      "background_psnr": 10.669362703959147
+    },
+    "R1_post_siglip_register_only": {
+      "foreground_mse": 0.07817631214857101,
+      "background_mse": 0.0921082819501559,
+      "foreground_psnr": 12.063389460245768,
+      "background_psnr": 10.414278348286947
+    },
+    "RAE_self_only": {
+      "foreground_mse": 0.1499493196606636,
+      "background_mse": 0.12895698845386505,
+      "foreground_psnr": 8.355173587799072,
+      "background_psnr": 9.164026419321695
+    },
+    "hybrid_original_OVT_masked_register": {
+      "foreground_mse": 0.08100437372922897,
+      "background_mse": 0.08933088307579358,
+      "foreground_psnr": 11.213387807210287,
+      "background_psnr": 10.779417037963867
+    },
+    "pre_siglip_masked_register_only": {
+      "foreground_mse": 0.07104079735775788,
+      "background_mse": 0.08322850490609805,
+      "foreground_psnr": 12.307703336079916,
+      "background_psnr": 11.09463914235433
+    }
+  },
+  "D3": {
+    "mean_recon_delta_inside": 0.1360565535724163,
+    "mean_recon_delta_outside": 0.07433000113815069,
+    "mean_locality_ratio": 2.046311617884652
+  },
+  "D4": {
+    "swap": {
+      "inside_mean": 0.08181215263903141,
+      "outside_mean": 0.05138188973069191,
+      "inside_outside_ratio": 1.6208757162094116,
+      "auroc": 0.7180114686489105,
+      "top_gt_area_precision": 0.5107323378324509,
+      "center_of_mass_distance_normalized": 0.16219954751431942
+    },
+    "own_ovt_block": {
+      "inside_mean": 0.0954196359962225,
+      "outside_mean": 0.06192142888903618,
+      "inside_outside_ratio": 1.486122190952301,
+      "auroc": 0.692205548286438,
+      "top_gt_area_precision": 0.5225168317556381,
+      "center_of_mass_distance_normalized": 0.1662326157093048
+    }
+  }
+}
