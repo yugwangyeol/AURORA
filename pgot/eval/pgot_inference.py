@@ -195,8 +195,12 @@ def pgot_forward_eval(
             result["inputs_embeds"] = out["inputs_embeds"].detach()
         return result
 
-    # 1) Vision tower
-    _, img_features, gt_siglip = model._encode_images_aurora(images, target_images=target_images)
+    # 1) Vision tower. E6 has no Scale-RAE target-latent path, so it avoids the
+    # second (224px) vision-tower forward entirely.
+    e6_enabled = bool(getattr(model.config, "pgot_e6_enable", False))
+    _, img_features, gt_siglip = model._encode_images_aurora(
+        images, target_images=None if e6_enabled else target_images
+    )
     dtype = model._aurora_model_dtype()
 
     # 2) Template + caption embeds (no grad)
@@ -212,8 +216,14 @@ def pgot_forward_eval(
     )
     null_bg_embeds = model._pgot_embed_null_bg(B, device, dtype)
     register_embeds = model.pgot_register_embeddings.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
-    n_rae = model.get_model().latent_queries.shape[0]
-    rae_embeds = model.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1).to(device=device, dtype=dtype)
+    if e6_enabled:
+        n_rae = 0
+        rae_embeds = torch.empty(
+            B, 0, model.config.hidden_size, device=device, dtype=dtype
+        )
+    else:
+        n_rae = model.get_model().latent_queries.shape[0]
+        rae_embeds = model.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1).to(device=device, dtype=dtype)
 
     # 3) Positions
     positions = pgot_positions(
@@ -541,6 +551,8 @@ def pgot_forward_eval(
         "e3_competition_background_probs": e3_competition_background_probs,
         "ovt_valid_mask": ovt_valid_mask,
         "rae_hidden": rae_hidden,
+        "ovt_hidden": ovt_hidden,
+        "register_hidden": register_hidden,
         "img_hidden": img_hidden,
         "gt_siglip": gt_siglip,
         "rae_access_mode": rae_access_mode,

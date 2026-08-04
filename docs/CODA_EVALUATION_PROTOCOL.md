@@ -1,6 +1,6 @@
 # PGOT COCO/CODA Evaluation Protocol
 
-Protocol version: 1.3 (2026-08-03)
+Protocol version: 1.4 (2026-08-04)
 
 This document is the fixed reference for PGOT segmentation evaluation. Any
 result table must name the protocol version, evaluation set, checkpoint, and
@@ -112,6 +112,26 @@ Do not conflate the following three resolutions:
   decoder predicts 14 x 14 pixels per feature token. Native 512 reconstruction
   requires a new high-resolution decoder or a changed diffusion target; merely
   resizing the 224 output to 512 does not add reconstruction information.
+
+### E6 direct-CODA evaluation configuration
+
+- Current teacher-forced manifest: `data/pgot_pix2cap_generated_val5k.jsonl`
+  (4,720 images). Label this set `PGOT-Pix2Cap-4720/512`; it is not CODA's full
+  5,000-image set.
+- E6 reconstruction is generated natively at 512 x 512 by the CODA SD-v1.5
+  decoder. It does not use the Scale-RAE 256-query/DiT/224px path.
+- CODA segmentation is read from its **encoder slot-attention** map, not from
+  U-Net decoder cross-attention. The corresponding primary E6 readout is
+  `llm_attention` (`core` OVT-to-image attention plus register background).
+  `e6_decoder` is retained only as a decoder-ownership diagnostic and must not
+  be labelled a CODA-equivalent segmentation readout.
+- The original CODA evaluation recipe uses FP32 evaluation, 100 DDIM steps and
+  guidance 2.0. PGOT's historical reconstruction launcher uses BF16, 10 steps
+  and guidance 2.5. Results using these recipes must be labelled separately.
+- An E6 checkpoint is valid for evaluation only when PEFT/LoRA is detected and
+  injected before loading `base_layer`/`lora_*` tensors. This applies to both
+  sharded checkpoints and a single `model.safetensors` file. Summaries record
+  `checkpoint_lora_detected`; a false value invalidates a LoRA-trained row.
 
 ## 5. Background rule for E1
 

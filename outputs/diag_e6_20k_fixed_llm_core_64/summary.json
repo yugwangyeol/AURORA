@@ -1,0 +1,69 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_e6_coda_direct_20k/checkpoint-20000",
+  "readout": "llm_attention",
+  "num_samples": 64,
+  "fARI": 0.11354938459484898,
+  "mBO": 0.2727243474801071,
+  "mIoU": 0.3221415173029527,
+  "active_count_mean": 5.59375,
+  "by_object_count": {
+    "11+": {
+      "n": 11,
+      "fARI": 0.10280670860612934,
+      "mBO": 0.15173913436857137,
+      "mIoU": 0.18499404191970825
+    },
+    "1-3": {
+      "n": 31,
+      "fARI": 0.08644511127222093,
+      "mBO": 0.33174871148601653,
+      "mIoU": 0.39950147102917394
+    },
+    "4-6": {
+      "n": 10,
+      "fARI": 0.18255691304802896,
+      "mBO": 0.27729627266526224,
+      "mIoU": 0.30479987263679503
+    },
+    "7-10": {
+      "n": 12,
+      "fARI": 0.1359099366236478,
+      "mBO": 0.22733791482945284,
+      "mIoU": 0.26246485983331996
+    }
+  },
+  "gt_source": "coco_instance",
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "metric_resolution": 512,
+  "image_patch_grid": 32,
+  "image_patch_tokens": 1024,
+  "teacher_forced_caption": true,
+  "llm_attention_readout_requested": "core",
+  "register_hard_gt_mask_training": true,
+  "register_eval_route": "unrestricted",
+  "register_hard_mask_used_in_eval": false,
+  "register_hard_gt_mask_used_in_eval": false,
+  "segmentation_forward": "unrestricted_discovery",
+  "reconstruction_forward": "unrestricted",
+  "recon_source": "diffusion",
+  "e6_coda_direct_bottleneck": true,
+  "reconstruction_decoder": "CODA Stable-Diffusion v1.5",
+  "decoder_condition": "final OVT + background registers only",
+  "scale_rae_queries_in_sequence": 0,
+  "decoder_attention_source": "post_rope_image_patch_softmax",
+  "decoder_background_aggregation": "register_mean",
+  "dit_ovt_cross_attn_disabled": false,
+  "coda_overlap_excluded": true,
+  "attention_source": "exact_llm_post_rope_image_patch_softmax",
+  "attention_layers": "all",
+  "attention_temperature": 1.0,
+  "image_use_weight": 0.0,
+  "image_use_margin": 0.05,
+  "core_void_weight": 0.0,
+  "background_attention_source": "register_mean",
+  "register_tokens": 4,
+  "register_attends_caption": false,
+  "eval_merge": "mean",
+  "void_tokens": 0
+}

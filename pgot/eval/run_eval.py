@@ -30,7 +30,14 @@ from tqdm import tqdm
 
 # Project imports
 sys.path.insert(0, "/home/jovyan/PGOT")
-from pgot.constants import OVT_TOKEN, SCENE_END_TOKEN, NEW_SPECIAL_TOKENS, get_pgot_prompts
+from pgot.constants import (
+    OVT_TOKEN,
+    SCENE_END_TOKEN,
+    THING_TOKEN,
+    STUFF_TOKEN,
+    NEW_SPECIAL_TOKENS,
+    get_pgot_prompts,
+)
 from pgot.model.pgot_qwen2 import PGOTQwen2ForCausalLM
 from pgot.train.pgot_dataset import Pix2CapPGOTDataset, PGOTDataCollator
 from pgot.eval.pgot_metrics import (
@@ -178,7 +185,9 @@ class CocoInstanceMaskCache:
         idx = self.id2idx.get(int(image_id))
         if idx is None:
             return None
-        return torch.from_numpy(np.asarray(self.overlap_masks[idx], dtype=np.uint8))
+        # Memmap-backed arrays are read-only; copy before exposing the storage
+        # to torch to avoid undefined behaviour if a downstream op mutates it.
+        return torch.from_numpy(np.array(self.overlap_masks[idx], dtype=np.uint8, copy=True))
 
 
 def build_oracle_register_block_mask(
@@ -273,6 +282,7 @@ def main():
         choices=[
             "competition", "threshold", "nullbg", "spatial",
             "spatial_trainmatch", "llm_attention", "ovt_owner", "slot_owner",
+            "e6_decoder",
         ],
         default="competition",
                    help="competition: argmax over {K objects, register-bg} (v5/v6 style). "
@@ -283,6 +293,7 @@ def main():
                         "checkpoint temperature, and mean merge. "
                         "llm_attention: V8.4/V8.5 internal-attention maps with void. "
                         "ovt_owner: V12 OVT-owner softmax maps with void. "
+                        "e6_decoder: 32x32 CODA U-Net cross-attention ownership. "
                         "slot_owner is accepted as a legacy alias.")
     p.add_argument("--spatial_temperature", type=float, default=1.0,
                    help="Patch-axis softmax temperature for --readout spatial.")
@@ -379,6 +390,7 @@ def main():
         raw_name_or_path = str(raw_cfg.get("_name_or_path", args.model_path))
     config = AutoConfig.from_pretrained(args.model_path)
     import glob
+    import safetensors.torch as safe_torch
     has_lora_in_ckpt = False
     index_path = os.path.join(args.model_path, "model.safetensors.index.json")
     if os.path.exists(index_path):
@@ -388,6 +400,23 @@ def main():
             "lora_" in k or ".base_layer." in k
             for k in index_json.get("weight_map", {}).keys()
         )
+    else:
+        # Small/compact PGOT checkpoints are written as one model.safetensors
+        # file and therefore have no shard index.  Looking only for the index
+        # silently skipped PEFT injection for E6: all trained LoRA/base_layer
+        # attention weights were then ignored by from_pretrained().
+        for checkpoint_file in sorted(
+            glob.glob(os.path.join(args.model_path, "*.safetensors"))
+        ):
+            with safe_torch.safe_open(
+                checkpoint_file, framework="pt", device="cpu"
+            ) as checkpoint_reader:
+                if any(
+                    "lora_" in key or ".base_layer." in key
+                    for key in checkpoint_reader.keys()
+                ):
+                    has_lora_in_ckpt = True
+                    break
 
     model_init_path = args.model_path
     if has_lora_in_ckpt:
@@ -438,26 +467,47 @@ def main():
         diffusion_norm_stats_path=getattr(config, "diffusion_norm_stats_path", None),
     )
     model.get_model().initialize_vision_modules(model_args=vt_args, fsdp=None)
-    model.load_vision_head(model_args=vt_args)
+    if bool(getattr(config, "pgot_e6_enable", False)):
+        model.diff_head = None
+        model.diff_head_projector = None
+        log.info("[E6] Scale-RAE DiT removed; CODA SD decoder is the only reconstruction path.")
+    else:
+        model.load_vision_head(model_args=vt_args)
     for vt in model.get_vision_tower_aux_list():
         vt.to(dtype=dtype, device=device)
 
     # Register ovt token ids on model
     model.pgot_ovt_token_id = tokenizer.convert_tokens_to_ids(OVT_TOKEN)
     model.pgot_scene_end_token_id = tokenizer.convert_tokens_to_ids(SCENE_END_TOKEN)
+    # Standalone evaluation must use the same per-object caption span markers
+    # as training.  Otherwise own-caption-conditioned OVT initialization falls
+    # back to averaging all preceding text, mixing earlier object captions.
+    model.pgot_thing_token_id = tokenizer.convert_tokens_to_ids(THING_TOKEN)
+    model.pgot_stuff_token_id = tokenizer.convert_tokens_to_ids(STUFF_TOKEN)
 
     # If checkpoint contains LoRA-wrapped weights, inject the adapters AFTER
     # all PGOT/vision modules exist, then load the checkpoint state once.
     if has_lora_in_ckpt:
-        import safetensors.torch as safe_torch
         from peft import LoraConfig, inject_adapter_in_model
 
         lora_cfg = LoraConfig(
-            r=int(getattr(config, "captionslot_lora_r", 16)) if hasattr(config, "captionslot_lora_r") else 16,
-            lora_alpha=int(getattr(config, "captionslot_lora_alpha", 32)) if hasattr(config, "captionslot_lora_alpha") else 32,
-            lora_dropout=0.0,
+            r=int(getattr(config, "pgot_lora_r", getattr(config, "captionslot_lora_r", 16))),
+            lora_alpha=int(
+                getattr(config, "pgot_lora_alpha", getattr(config, "captionslot_lora_alpha", 32))
+            ),
+            lora_dropout=float(getattr(config, "pgot_lora_dropout", 0.0)),
             bias="none",
-            target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+            target_modules=[
+                name.strip()
+                for name in str(
+                    getattr(
+                        config,
+                        "pgot_lora_target_modules",
+                        "q_proj,k_proj,v_proj,o_proj",
+                    )
+                ).split(",")
+                if name.strip()
+            ],
             task_type="CAUSAL_LM",
         )
         inject_adapter_in_model(lora_cfg, model, adapter_name="default")
@@ -468,6 +518,18 @@ def main():
                 for k in f.keys():
                     sd[k] = f.get_tensor(k)
         missing, unexpected = model.load_state_dict(sd, strict=False)
+        critical_unexpected = [
+            key
+            for key in unexpected
+            if "lora_" in key
+            or ".base_layer." in key
+            or key.startswith("pgot_e6_decoder.")
+        ]
+        if critical_unexpected:
+            raise RuntimeError(
+                "Trained LoRA/E6 checkpoint tensors were not accepted by the "
+                f"evaluation model: {critical_unexpected[:8]}"
+            )
         log.info(
             "[LoRA] re-loaded ckpt after adapter injection | missing=%d unexpected=%d",
             len(missing),
@@ -550,10 +612,19 @@ def main():
     rae_decoder = None
     recon_psnr_list, recon_ssim_list, recon_mse_list, recon_mae_list = [], [], [], []
 
+    e6_enabled = bool(getattr(model.config, "pgot_e6_enable", False))
+    if args.readout == "e6_decoder" and not e6_enabled:
+        p.error("--readout e6_decoder requires a pgot_e6_enable checkpoint")
+
     if args.compute_rfid:
-        rae_decoder = load_rae_decoder(model, device=device, dtype=dtype)
+        if not e6_enabled:
+            rae_decoder = load_rae_decoder(model, device=device, dtype=dtype)
         # Patch inference steps for speed (10 vs default 50)
-        if args.diffusion_inference_steps and args.diffusion_inference_steps != 50:
+        if (
+            not e6_enabled
+            and args.diffusion_inference_steps
+            and args.diffusion_inference_steps != 50
+        ):
             try:
                 from scale_rae.model.diffusion_loss.diffusion import create_diffusion
                 inf = model.diff_head.inference_flow
@@ -643,6 +714,21 @@ def main():
                 register_image_block_mask=register_block_mask,
             )
 
+        # E6 decoder maps and pixels come from the same causal reconstruction
+        # forward. The U-Net sees no image/RAE/DiT condition: OVT + registers only.
+        e6_sampled = None
+        if e6_enabled and (args.readout == "e6_decoder" or args.compute_rfid):
+            e6_sampled = model.pgot_e6_decoder.sample(
+                ovt_hidden=recon_out["ovt_hidden"],
+                register_hidden=recon_out["register_hidden"],
+                ovt_valid_mask=recon_out["ovt_valid_mask"],
+                resolution=int(args.coda_crop_size),
+                inference_steps=int(args.diffusion_inference_steps),
+                guidance_scale=float(args.guidance_scale),
+                seed=1234 + batch_idx,
+                record_attention=(args.readout == "e6_decoder"),
+            )
+
         # ── Readout: either v5/v6 competition (thing+stuff+register-bg argmax)
         # or v3-style threshold (stuff OVTs filtered out, sigmoid+bg_threshold
         # on thing OVTs only). The latter is the cleaner background mechanism
@@ -670,7 +756,27 @@ def main():
             ovt_is_thing = valid_for_pred.clone()
 
         readout = getattr(args, "readout", "competition")
-        if readout == "threshold":
+        if readout == "e6_decoder":
+            decoder_maps = e6_sampled.get("attention_maps") if e6_sampled else None
+            if decoder_maps is None:
+                raise RuntimeError("E6 decoder produced no 32x32 cross-attention maps")
+            n_ovt_tokens = out["ovt_valid_mask"].shape[1]
+            object_maps = decoder_maps[:, :n_ovt_tokens]
+            register_maps = decoder_maps[:, n_ovt_tokens:].sum(dim=1, keepdim=True)
+            pred_mask = build_pred_mask_llm_attention_eval(
+                ovt_attention_maps=object_maps,
+                void_attention_maps=register_maps,
+                ovt_valid_mask=valid_for_pred,
+                ovt_is_thing=ovt_is_thing,
+                target_size=args.eval_size,
+                n_ovt_per_object=args.n_ovt_per_object,
+                patch_grid=args.grid_size,
+                merge="mean",
+                map_stuff_to_bg=(args.gt_source == "coco_instance"),
+            )
+            llm_attention_source_used = "coda_unet_attn2_32x32_layer_step_mean"
+            background_attention_source_used = "register_probability_sum"
+        elif readout == "threshold":
             # v3-style: filter out stuff OVTs, then sigmoid+bg_threshold readout
             # on the surviving thing OVTs only. No register involvement.
             valid_thing_only = valid_for_pred & ovt_is_thing
@@ -867,9 +973,16 @@ def main():
         active_counts.extend(active.cpu().tolist())
 
         # rFID
-        if fid_acc is not None and rae_decoder is not None:
+        if fid_acc is not None and (rae_decoder is not None or e6_enabled):
             try:
-                if args.recon_source == "direct_latent":
+                if e6_enabled:
+                    if e6_sampled is None:
+                        raise RuntimeError("E6 sampling result is missing")
+                    recon_images = e6_sampled["images"].detach().float()
+                    src = denormalize_images(
+                        batch["images"].to(device).float(), img_mean, img_std
+                    )
+                elif args.recon_source == "direct_latent":
                     generated_latent = recon_out.get("direct_latent")
                     if generated_latent is None:
                         raise ValueError("direct_latent recon requested but checkpoint has no V18 latent head output")
@@ -881,12 +994,13 @@ def main():
                         slot_context=recon_out.get("slot_context"),
                         slot_mask=recon_out.get("slot_mask"),
                     )
-                recon_images = decode_to_image(rae_decoder, generated_latent, device)
-                # Real image: denormalize target_images (which was SigLIP-preprocessed)
-                target_proc = vt_list[1].image_processor if len(vt_list) > 1 else vt_list[0].image_processor
-                t_mean = torch.tensor(target_proc.image_mean).view(1, -1, 1, 1)
-                t_std = torch.tensor(target_proc.image_std).view(1, -1, 1, 1)
-                src = denormalize_images(batch["target_images"].to(device).float(), t_mean, t_std)
+                if not e6_enabled:
+                    recon_images = decode_to_image(rae_decoder, generated_latent, device)
+                    # Real image: denormalize target_images (SigLIP decoder target).
+                    target_proc = vt_list[1].image_processor if len(vt_list) > 1 else vt_list[0].image_processor
+                    t_mean = torch.tensor(target_proc.image_mean).view(1, -1, 1, 1)
+                    t_std = torch.tensor(target_proc.image_std).view(1, -1, 1, 1)
+                    src = denormalize_images(batch["target_images"].to(device).float(), t_mean, t_std)
                 # Match resolution to decoder output
                 if src.shape[-2:] != recon_images.shape[-2:]:
                     src = F.interpolate(src, size=recon_images.shape[-2:], mode="bilinear", align_corners=False)
@@ -906,6 +1020,7 @@ def main():
 
     summary = {
         "ckpt": args.model_path,
+        "checkpoint_lora_detected": bool(has_lora_in_ckpt),
         "readout": args.readout,
         "num_samples": len(image_ids),
         "fARI": _mean(fari_scores),
@@ -973,6 +1088,17 @@ def main():
                 args.register_eval_pred_dilation
             )
     summary["recon_source"] = args.recon_source
+    summary["e6_coda_direct_bottleneck"] = e6_enabled
+    if e6_enabled:
+        summary["reconstruction_decoder"] = "CODA Stable-Diffusion v1.5"
+        summary["decoder_condition"] = "final OVT + background registers only"
+        summary["scale_rae_queries_in_sequence"] = 0
+        summary["sampling_dtype"] = str(args.dtype)
+        summary["diffusion_inference_steps"] = int(args.diffusion_inference_steps)
+        summary["guidance_scale"] = float(args.guidance_scale)
+        if args.readout == "e6_decoder":
+            summary["decoder_attention_source"] = llm_attention_source_used
+            summary["decoder_background_aggregation"] = background_attention_source_used
     summary["dit_ovt_cross_attn_disabled"] = bool(args.disable_dit_ovt_cross_attn)
     summary["coda_overlap_excluded"] = bool(
         coco_cache is not None and coco_cache.overlap_masks is not None

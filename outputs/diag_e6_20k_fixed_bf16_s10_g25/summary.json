@@ -1,0 +1,63 @@
+{
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_e6_coda_direct_20k/checkpoint-20000",
+  "readout": "e6_decoder",
+  "num_samples": 64,
+  "fARI": 0.15625000058583732,
+  "mBO": 0.18185598355557886,
+  "mIoU": 0.21388879176811315,
+  "active_count_mean": 5.59375,
+  "by_object_count": {
+    "11+": {
+      "n": 11,
+      "fARI": -1.981107157110852e-09,
+      "mBO": 0.08146756345575507,
+      "mIoU": 0.10829820365390995
+    },
+    "1-3": {
+      "n": 31,
+      "fARI": 0.29032258642112835,
+      "mBO": 0.2559457669755624,
+      "mIoU": 0.29708388664068713
+    },
+    "4-6": {
+      "n": 10,
+      "fARI": -1.1976921143741493e-08,
+      "mBO": 0.12826440625358373,
+      "mIoU": 0.14898888096213342
+    },
+    "7-10": {
+      "n": 12,
+      "fARI": 0.08333333333333333,
+      "mBO": 0.1271397425637891,
+      "mIoU": 0.1498427614569664
+    }
+  },
+  "gt_source": "coco_instance",
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "metric_resolution": 512,
+  "image_patch_grid": 32,
+  "image_patch_tokens": 1024,
+  "teacher_forced_caption": true,
+  "llm_attention_readout_requested": "auto",
+  "register_hard_gt_mask_training": true,
+  "register_eval_route": "unrestricted",
+  "register_hard_mask_used_in_eval": false,
+  "register_hard_gt_mask_used_in_eval": false,
+  "segmentation_forward": "unrestricted_discovery",
+  "reconstruction_forward": "unrestricted",
+  "recon_source": "diffusion",
+  "e6_coda_direct_bottleneck": true,
+  "reconstruction_decoder": "CODA Stable-Diffusion v1.5",
+  "decoder_condition": "final OVT + background registers only",
+  "scale_rae_queries_in_sequence": 0,
+  "decoder_attention_source": "coda_unet_attn2_32x32_layer_step_mean",
+  "decoder_background_aggregation": "register_probability_sum",
+  "dit_ovt_cross_attn_disabled": false,
+  "coda_overlap_excluded": true,
+  "rFID": 347.97454833984375,
+  "recon_psnr": 9.597105167806149,
+  "recon_ssim": 0.42538118234369904,
+  "recon_mse": 0.11905107012717053,
+  "recon_mae": 0.2914922370109707
+}

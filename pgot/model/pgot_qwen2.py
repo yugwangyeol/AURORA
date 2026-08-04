@@ -43,6 +43,7 @@ from pgot.model.pgot_utils import (
     compute_anti_overlap_loss,
     compute_ovt_shuffle_contrastive_loss,
 )
+from pgot.model.coda_direct import PGOTCODADirectBottleneck
 
 
 class PGOTQwen2Config(ScaleRAEQwenConfig):
@@ -620,6 +621,34 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             self.pgot_ovt_caption_norm = None
             self.pgot_ovt_caption_projector = None
 
+        # E6: final OVT/register states directly condition CODA's SD-v1.5
+        # decoder.  Scale-RAE queries and DiT remain loaded only for checkpoint
+        # compatibility; they are absent from the E6 sequence and loss path.
+        self.pgot_e6_enable = bool(getattr(self.config, "pgot_e6_enable", False))
+        if self.pgot_e6_enable:
+            self.pgot_e6_decoder = PGOTCODADirectBottleneck(
+                llm_dim=D,
+                model_id=str(
+                    getattr(
+                        self.config,
+                        "pgot_e6_model_id",
+                        "stable-diffusion-v1-5/stable-diffusion-v1-5",
+                    )
+                ),
+                coda_unet_checkpoint=str(
+                    getattr(self.config, "pgot_e6_coda_unet_checkpoint", "")
+                ),
+                context_dim=int(getattr(self.config, "pgot_e6_context_dim", 768)),
+                cfg_drop_rate=float(
+                    getattr(self.config, "pgot_e6_cfg_drop_rate", 0.1)
+                ),
+                attention_grid_size=int(
+                    getattr(self.config, "pgot_e6_attention_grid_size", 32)
+                ),
+            )
+        else:
+            self.pgot_e6_decoder = None
+
         self.pgot_fvw_enable = bool(getattr(self.config, "pgot_fvw_enable", False))
         self.pgot_fvw_layers = _resolve_layer_spec(
             str(getattr(self.config, "pgot_fvw_layers", "0,8,16,24,27")),
@@ -739,6 +768,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             f"[PGOT] Initialised — D={D}, N_register={self.pgot_n_register}, "
             f"n_ovt_per_object={self.pgot_n_ovt_per_object}, "
             f"N_null_bg={self.pgot_n_null_bg}, "
+            f"e6_coda_direct={self.pgot_e6_enable}, "
             f"fvw={self.pgot_fvw_enable}, fvw_layers={self.pgot_fvw_layers}, "
             f"v12={self.pgot_v12_enable}, v12_layers={self.pgot_v12_layers}, "
             f"v14={self.pgot_v14_enable}, "
@@ -4530,6 +4560,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         target_images: torch.Tensor,
         pgot_contrastive_weight: Optional[float] = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        e6_enabled = bool(getattr(self.config, "pgot_e6_enable", False))
         if bool(getattr(self.config, "pgot_register_hard_gt_mask", False)) and (
             bool(getattr(self.config, "pgot_v14_enable", False))
             or bool(getattr(self.config, "pgot_v12_enable", False))
@@ -4584,8 +4615,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         B, caption_len = caption_input_ids.shape
 
         # 1) Encode image (AURORA helper returns: feature for LLM, target for diffusion)
-        _, img_features, gt_siglip = self._encode_images_aurora(images, target_images=target_images)
-        if gt_siglip is None:
+        _, img_features, gt_siglip = self._encode_images_aurora(
+            images, target_images=None if e6_enabled else target_images
+        )
+        if gt_siglip is None and not e6_enabled:
             raise ValueError("PGOT training requires target_images.")
         dtype = self._aurora_model_dtype()
 
@@ -4602,10 +4635,16 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         )
         null_bg_embeds = self._pgot_embed_null_bg(B, model_device, dtype)
         register_embeds = self.pgot_register_embeddings.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
-        n_rae = self.get_model().latent_queries.shape[0]
-        rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1).to(
-            device=model_device, dtype=dtype
-        )
+        if e6_enabled:
+            n_rae = 0
+            rae_embeds = torch.empty(
+                B, 0, self.config.hidden_size, device=model_device, dtype=dtype
+            )
+        else:
+            n_rae = self.get_model().latent_queries.shape[0]
+            rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1).to(
+                device=model_device, dtype=dtype
+            )
 
         # 3) Compute positions
         positions = pgot_positions(
@@ -4706,7 +4745,15 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             if gt_rae_masks_per_ovt is not None
             else gt_masks_per_ovt
         ).float().clamp(0.0, 1.0)
-        if e5_source_masks.shape[-1] != n_rae:
+        if e6_enabled:
+            if e5_forcing_probability > 0.0 or self.pgot_fvw_enable:
+                raise ValueError(
+                    "E6 direct bottleneck is incompatible with E5/FVW RAE routing."
+                )
+            e5_source_masks = e5_source_masks.new_zeros(
+                B, e5_source_masks.shape[1], 0
+            )
+        elif e5_source_masks.shape[-1] != n_rae:
             src_side = int(math.isqrt(e5_source_masks.shape[-1]))
             dst_side = int(math.isqrt(n_rae))
             if (
@@ -5439,48 +5486,64 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 beta=tversky_beta,
             )
 
-        # 10) L3: rectified-flow reconstruction (rae_hidden -> diff_head) with CFG dropping
-        cfg_drop_rate = float(getattr(self.config, "pgot_cfg_drop_rate", 0.0))
-        causal_route_mask = e5_forcing_mask | fvw_ovt_only_mask | fvw_register_only_mask
-        role_condition_keep = torch.ones_like(e5_foreground_mask)
-        role_condition_keep = torch.where(
-            (e5_forcing_mask | fvw_ovt_only_mask)[:, None],
-            e5_foreground_mask,
-            role_condition_keep,
-        )
-        role_condition_keep = torch.where(
-            fvw_register_only_mask[:, None],
-            1.0 - e5_foreground_mask,
-            role_condition_keep,
-        )
-        rae_hidden_for_diff = rae_hidden * role_condition_keep.unsqueeze(-1).to(
-            rae_hidden.dtype
-        )
-        if self.training and cfg_drop_rate > 0.0:
-            # Per-sample independent Bernoulli drop. When dropped, rae_hidden -> zeros
-            # so the diffusion head learns an unconditional path (used for CFG at inference).
-            drop_mask = (
-                (torch.rand(B, device=rae_hidden.device) < cfg_drop_rate)
-                & ~causal_route_mask
-            ).view(B, 1, 1)
-            rae_hidden_for_diff = rae_hidden * (~drop_mask).to(rae_hidden.dtype)
-            rae_hidden_for_diff = rae_hidden_for_diff * role_condition_keep.unsqueeze(-1).to(
+        # 10) L3 reconstruction. E6's decoder receives only final OVT/register
+        # states; no RAE query, SigLIP target latent, or Scale-RAE DiT condition
+        # can carry sample-specific information around the bottleneck.
+        e6_details = {}
+        if e6_enabled:
+            if self.pgot_e6_decoder is None:
+                raise RuntimeError("pgot_e6_enable=True but the CODA decoder is missing")
+            loss_recon, e6_details = self.pgot_e6_decoder.diffusion_loss(
+                images=images,
+                ovt_hidden=ovt_hidden,
+                register_hidden=register_hidden,
+                ovt_valid_mask=ovt_valid_mask,
+            )
+            role_recon_loss_mask = images.new_ones(B, 1)
+        else:
+            cfg_drop_rate = float(getattr(self.config, "pgot_cfg_drop_rate", 0.0))
+            causal_route_mask = e5_forcing_mask | fvw_ovt_only_mask | fvw_register_only_mask
+            role_condition_keep = torch.ones_like(e5_foreground_mask)
+            role_condition_keep = torch.where(
+                (e5_forcing_mask | fvw_ovt_only_mask)[:, None],
+                e5_foreground_mask,
+                role_condition_keep,
+            )
+            role_condition_keep = torch.where(
+                fvw_register_only_mask[:, None],
+                1.0 - e5_foreground_mask,
+                role_condition_keep,
+            )
+            rae_hidden_for_diff = rae_hidden * role_condition_keep.unsqueeze(-1).to(
                 rae_hidden.dtype
             )
-        role_recon_loss_mask = role_condition_keep
-        loss_recon = self._captionslot_compute_diffusion_loss(
-            hidden=rae_hidden_for_diff,
-            target_features=gt_siglip,
-            slot_context=None,
-            slot_mask=None,
-            loss_mask=role_recon_loss_mask,
-        )
+            if self.training and cfg_drop_rate > 0.0:
+                # Per-sample independent Bernoulli drop. When dropped, rae_hidden -> zeros
+                # so the diffusion head learns an unconditional path (used for CFG at inference).
+                drop_mask = (
+                    (torch.rand(B, device=rae_hidden.device) < cfg_drop_rate)
+                    & ~causal_route_mask
+                ).view(B, 1, 1)
+                rae_hidden_for_diff = rae_hidden * (~drop_mask).to(rae_hidden.dtype)
+                rae_hidden_for_diff = rae_hidden_for_diff * role_condition_keep.unsqueeze(-1).to(
+                    rae_hidden.dtype
+                )
+            role_recon_loss_mask = role_condition_keep
+            loss_recon = self._captionslot_compute_diffusion_loss(
+                hidden=rae_hidden_for_diff,
+                target_features=gt_siglip,
+                slot_context=None,
+                slot_mask=None,
+                loss_mask=role_recon_loss_mask,
+            )
 
         # 11) L4: OVT-swap contrastive (CODA-style, last-layer re-run for editing alignment)
         loss_contrastive = loss_recon.new_zeros(())
         contrastive_w = float(getattr(self.config, "pgot_contrastive_loss_weight", 0.0))
         if pgot_contrastive_weight is not None:
             contrastive_w = float(pgot_contrastive_weight)
+        if contrastive_w > 0.0 and e6_enabled:
+            raise ValueError("E6 does not use the legacy RAE OVT-swap contrastive loss")
         if contrastive_w > 0.0 and B >= 2:
             loss_contrastive = self._compute_ovt_swap_contrastive(
                 hidden=hidden,
@@ -5539,6 +5602,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             self.pgot_n_ovt_per_object, 1
         )
         details = {}
+        details.update(e6_details)
         if e5_forcing_probability > 0.0:
             details["e5_forcing_probability"] = zero.new_tensor(
                 e5_forcing_probability

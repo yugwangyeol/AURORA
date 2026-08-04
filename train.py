@@ -251,6 +251,16 @@ def train():
     config.pgot_fvw_ovt_only_probability = float(
         model_args.pgot_fvw_ovt_only_probability
     )
+    config.pgot_e6_enable = bool(model_args.pgot_e6_enable)
+    config.pgot_e6_model_id = str(model_args.pgot_e6_model_id)
+    config.pgot_e6_coda_unet_checkpoint = str(
+        model_args.pgot_e6_coda_unet_checkpoint
+    )
+    config.pgot_e6_context_dim = int(model_args.pgot_e6_context_dim)
+    config.pgot_e6_cfg_drop_rate = float(model_args.pgot_e6_cfg_drop_rate)
+    config.pgot_e6_attention_grid_size = int(
+        model_args.pgot_e6_attention_grid_size
+    )
     config.pgot_v12_enable = bool(model_args.pgot_v12_enable)
     config.pgot_v12_layers = str(model_args.pgot_v12_layers)
     v12_ovt_temp = float(
@@ -453,6 +463,16 @@ def train():
     model.config.pgot_fvw_ovt_only_probability = float(
         model_args.pgot_fvw_ovt_only_probability
     )
+    model.config.pgot_e6_enable = bool(model_args.pgot_e6_enable)
+    model.config.pgot_e6_model_id = str(model_args.pgot_e6_model_id)
+    model.config.pgot_e6_coda_unet_checkpoint = str(
+        model_args.pgot_e6_coda_unet_checkpoint
+    )
+    model.config.pgot_e6_context_dim = int(model_args.pgot_e6_context_dim)
+    model.config.pgot_e6_cfg_drop_rate = float(model_args.pgot_e6_cfg_drop_rate)
+    model.config.pgot_e6_attention_grid_size = int(
+        model_args.pgot_e6_attention_grid_size
+    )
     model.config.pgot_dataset_format = str(data_args.dataset_format)
     model.config.pgot_v12_enable = bool(model_args.pgot_v12_enable)
     model.config.pgot_v12_layers = str(model_args.pgot_v12_layers)
@@ -631,8 +651,15 @@ def train():
         model_args.vision_tower_aux_token_len_list = parsed_token_lens
         model_args.unfreeze_mm_vision_tower = training_args.pgot_lora_enable and False  # keep frozen
         model.get_model().initialize_vision_modules(model_args=model_args, fsdp=training_args.fsdp)
-        model.load_vision_head(model_args=model_args)
-        logger.info("[PGOT] vision tower + diffusion head initialized")
+        if bool(model_args.pgot_e6_enable):
+            # E6 has a CODA SD decoder. Removing the unused Scale-RAE DiT also
+            # keeps it out of every E6 checkpoint.
+            model.diff_head = None
+            model.diff_head_projector = None
+            logger.info("[PGOT/E6] vision tower initialized; Scale-RAE DiT removed")
+        else:
+            model.load_vision_head(model_args=model_args)
+            logger.info("[PGOT] vision tower + diffusion head initialized")
 
         vt_list = model.get_vision_tower_aux_list()
         for vt in vt_list:
@@ -652,6 +679,13 @@ def train():
     if bool(training_args.pgot_lora_enable):
         from peft import LoraConfig, inject_adapter_in_model
         lora_targets = [t.strip() for t in training_args.pgot_lora_target_modules.split(",") if t.strip()]
+        # Persist the exact PEFT structure so standalone evaluation can rebuild
+        # the adapter before loading base_layer/lora_* checkpoint keys.
+        model.config.pgot_lora_enable = True
+        model.config.pgot_lora_r = int(training_args.pgot_lora_r)
+        model.config.pgot_lora_alpha = int(training_args.pgot_lora_alpha)
+        model.config.pgot_lora_dropout = float(training_args.pgot_lora_dropout)
+        model.config.pgot_lora_target_modules = ",".join(lora_targets)
         lora_config = LoraConfig(
             r=int(training_args.pgot_lora_r),
             lora_alpha=int(training_args.pgot_lora_alpha),
@@ -836,6 +870,8 @@ def train():
 
     # ---- Device sanity check log
     def _first_param_device(m):
+        if m is None:
+            return "removed"
         try:
             return str(next(m.parameters()).device)
         except StopIteration:
@@ -848,6 +884,15 @@ def train():
     logger.info(f"  diff_head_projector: {_first_param_device(inner.diff_head_projector)}")
     logger.info(f"  pgot_register: {inner.pgot_register_embeddings.device}")
     logger.info(f"  latent_queries: {inner.get_model().latent_queries.device}")
+    if bool(getattr(inner.config, "pgot_e6_enable", False)):
+        logger.info(
+            f"  e6_context_projector: "
+            f"{_first_param_device(inner.pgot_e6_decoder.context_projector)}"
+        )
+        logger.info(
+            f"  e6_coda_unet: {_first_param_device(inner.pgot_e6_decoder.unet)}"
+        )
+        logger.info(f"  e6_coda_vae: {_first_param_device(inner.pgot_e6_decoder.vae)}")
     if parsed_towers is not None:
         for i, vt in enumerate(model.get_vision_tower_aux_list()):
             logger.info(f"  vision_tower[{i}]: {_first_param_device(vt)}")
