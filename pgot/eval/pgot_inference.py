@@ -195,11 +195,13 @@ def pgot_forward_eval(
             result["inputs_embeds"] = out["inputs_embeds"].detach()
         return result
 
-    # 1) Vision tower. E6 has no Scale-RAE target-latent path, so it avoids the
-    # second (224px) vision-tower forward entirely.
+    # 1) Vision tower. Direct-SD experiments have no Scale-RAE target-latent
+    # path, so they avoid the second (224px) vision-tower forward entirely.
     e6_enabled = bool(getattr(model.config, "pgot_e6_enable", False))
+    e7_enabled = bool(getattr(model.config, "pgot_e7_enable", False))
+    direct_sd_enabled = e6_enabled or e7_enabled
     _, img_features, gt_siglip = model._encode_images_aurora(
-        images, target_images=None if e6_enabled else target_images
+        images, target_images=None if direct_sd_enabled else target_images
     )
     dtype = model._aurora_model_dtype()
 
@@ -216,7 +218,7 @@ def pgot_forward_eval(
     )
     null_bg_embeds = model._pgot_embed_null_bg(B, device, dtype)
     register_embeds = model.pgot_register_embeddings.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
-    if e6_enabled:
+    if direct_sd_enabled:
         n_rae = 0
         rae_embeds = torch.empty(
             B, 0, model.config.hidden_size, device=device, dtype=dtype

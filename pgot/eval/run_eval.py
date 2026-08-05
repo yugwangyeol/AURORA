@@ -283,6 +283,7 @@ def main():
             "competition", "threshold", "nullbg", "spatial",
             "spatial_trainmatch", "llm_attention", "ovt_owner", "slot_owner",
             "e6_decoder",
+            "e7_owner",
         ],
         default="competition",
                    help="competition: argmax over {K objects, register-bg} (v5/v6 style). "
@@ -294,6 +295,8 @@ def main():
                         "llm_attention: V8.4/V8.5 internal-attention maps with void. "
                         "ovt_owner: V12 OVT-owner softmax maps with void. "
                         "e6_decoder: 32x32 CODA U-Net cross-attention ownership. "
+                        "e7_owner: the competitive patch ownership probabilities "
+                        "that perform E7's visual write. "
                         "slot_owner is accepted as a legacy alias.")
     p.add_argument("--spatial_temperature", type=float, default=1.0,
                    help="Patch-axis softmax temperature for --readout spatial.")
@@ -467,10 +470,12 @@ def main():
         diffusion_norm_stats_path=getattr(config, "diffusion_norm_stats_path", None),
     )
     model.get_model().initialize_vision_modules(model_args=vt_args, fsdp=None)
-    if bool(getattr(config, "pgot_e6_enable", False)):
+    if bool(getattr(config, "pgot_e6_enable", False)) or bool(
+        getattr(config, "pgot_e7_enable", False)
+    ):
         model.diff_head = None
         model.diff_head_projector = None
-        log.info("[E6] Scale-RAE DiT removed; CODA SD decoder is the only reconstruction path.")
+        log.info("[direct-SD] Scale-RAE DiT removed; SD is the only reconstruction path.")
     else:
         model.load_vision_head(model_args=vt_args)
     for vt in model.get_vision_tower_aux_list():
@@ -524,10 +529,11 @@ def main():
             if "lora_" in key
             or ".base_layer." in key
             or key.startswith("pgot_e6_decoder.")
+            or key.startswith("pgot_e7_decoder.")
         ]
         if critical_unexpected:
             raise RuntimeError(
-                "Trained LoRA/E6 checkpoint tensors were not accepted by the "
+                "Trained LoRA/direct-SD checkpoint tensors were not accepted by the "
                 f"evaluation model: {critical_unexpected[:8]}"
             )
         log.info(
@@ -613,15 +619,19 @@ def main():
     recon_psnr_list, recon_ssim_list, recon_mse_list, recon_mae_list = [], [], [], []
 
     e6_enabled = bool(getattr(model.config, "pgot_e6_enable", False))
+    e7_enabled = bool(getattr(model.config, "pgot_e7_enable", False))
+    direct_sd_enabled = e6_enabled or e7_enabled
     if args.readout == "e6_decoder" and not e6_enabled:
         p.error("--readout e6_decoder requires a pgot_e6_enable checkpoint")
+    if args.readout == "e7_owner" and not e7_enabled:
+        p.error("--readout e7_owner requires a pgot_e7_enable checkpoint")
 
     if args.compute_rfid:
-        if not e6_enabled:
+        if not direct_sd_enabled:
             rae_decoder = load_rae_decoder(model, device=device, dtype=dtype)
         # Patch inference steps for speed (10 vs default 50)
         if (
-            not e6_enabled
+            not direct_sd_enabled
             and args.diffusion_inference_steps
             and args.diffusion_inference_steps != 50
         ):
@@ -728,6 +738,18 @@ def main():
                 seed=1234 + batch_idx,
                 record_attention=(args.readout == "e6_decoder"),
             )
+        e7_sampled = None
+        if e7_enabled and (args.readout == "e7_owner" or args.compute_rfid):
+            e7_sampled = model.pgot_e7_decoder.sample(
+                ovt_hidden=recon_out["ovt_hidden"],
+                register_hidden=recon_out["register_hidden"],
+                image_hidden=recon_out["img_hidden"],
+                ovt_valid_mask=recon_out["ovt_valid_mask"],
+                resolution=int(args.coda_crop_size),
+                inference_steps=int(args.diffusion_inference_steps),
+                guidance_scale=float(args.guidance_scale),
+                seed=1234 + batch_idx,
+            )
 
         # ── Readout: either v5/v6 competition (thing+stuff+register-bg argmax)
         # or v3-style threshold (stuff OVTs filtered out, sigmoid+bg_threshold
@@ -756,7 +778,27 @@ def main():
             ovt_is_thing = valid_for_pred.clone()
 
         readout = getattr(args, "readout", "competition")
-        if readout == "e6_decoder":
+        if readout == "e7_owner":
+            owner_maps = e7_sampled.get("owner_probs") if e7_sampled else None
+            if owner_maps is None:
+                raise RuntimeError("E7 produced no competitive owner/write maps")
+            n_ovt_tokens = out["ovt_valid_mask"].shape[1]
+            object_maps = owner_maps[:, :n_ovt_tokens]
+            register_maps = owner_maps[:, n_ovt_tokens:].sum(dim=1, keepdim=True)
+            pred_mask = build_pred_mask_llm_attention_eval(
+                ovt_attention_maps=object_maps,
+                void_attention_maps=register_maps,
+                ovt_valid_mask=valid_for_pred,
+                ovt_is_thing=ovt_is_thing,
+                target_size=args.eval_size,
+                n_ovt_per_object=args.n_ovt_per_object,
+                patch_grid=args.grid_size,
+                merge="mean",
+                map_stuff_to_bg=(args.gt_source == "coco_instance"),
+            )
+            llm_attention_source_used = "e7_predicted_patch_to_owner_softmax"
+            background_attention_source_used = "register_probability_sum"
+        elif readout == "e6_decoder":
             decoder_maps = e6_sampled.get("attention_maps") if e6_sampled else None
             if decoder_maps is None:
                 raise RuntimeError("E6 decoder produced no 32x32 cross-attention maps")
@@ -973,9 +1015,16 @@ def main():
         active_counts.extend(active.cpu().tolist())
 
         # rFID
-        if fid_acc is not None and (rae_decoder is not None or e6_enabled):
+        if fid_acc is not None and (rae_decoder is not None or direct_sd_enabled):
             try:
-                if e6_enabled:
+                if e7_enabled:
+                    if e7_sampled is None:
+                        raise RuntimeError("E7 sampling result is missing")
+                    recon_images = e7_sampled["images"].detach().float()
+                    src = denormalize_images(
+                        batch["images"].to(device).float(), img_mean, img_std
+                    )
+                elif e6_enabled:
                     if e6_sampled is None:
                         raise RuntimeError("E6 sampling result is missing")
                     recon_images = e6_sampled["images"].detach().float()
@@ -994,7 +1043,7 @@ def main():
                         slot_context=recon_out.get("slot_context"),
                         slot_mask=recon_out.get("slot_mask"),
                     )
-                if not e6_enabled:
+                if not direct_sd_enabled:
                     recon_images = decode_to_image(rae_decoder, generated_latent, device)
                     # Real image: denormalize target_images (SigLIP decoder target).
                     target_proc = vt_list[1].image_processor if len(vt_list) > 1 else vt_list[0].image_processor
@@ -1019,6 +1068,7 @@ def main():
         return float(np.mean(xs)) if xs else float("nan")
 
     summary = {
+        "protocol_version": "1.5",
         "ckpt": args.model_path,
         "checkpoint_lora_detected": bool(has_lora_in_ckpt),
         "readout": args.readout,
@@ -1089,6 +1139,7 @@ def main():
             )
     summary["recon_source"] = args.recon_source
     summary["e6_coda_direct_bottleneck"] = e6_enabled
+    summary["e7_causal_ownership_bottleneck"] = e7_enabled
     if e6_enabled:
         summary["reconstruction_decoder"] = "CODA Stable-Diffusion v1.5"
         summary["decoder_condition"] = "final OVT + background registers only"
@@ -1099,6 +1150,22 @@ def main():
         if args.readout == "e6_decoder":
             summary["decoder_attention_source"] = llm_attention_source_used
             summary["decoder_background_aggregation"] = background_attention_source_used
+    if e7_enabled:
+        summary["reconstruction_decoder"] = "base Stable-Diffusion v1.5 + K/V LoRA"
+        summary["decoder_condition"] = (
+            "predicted-owner visual-written OVT + background registers only"
+        )
+        summary["positive_null_prompt_tokens"] = 0
+        summary["scale_rae_queries_in_sequence"] = 0
+        summary["sampling_dtype"] = str(args.dtype)
+        summary["diffusion_inference_steps"] = int(args.diffusion_inference_steps)
+        summary["guidance_scale"] = float(args.guidance_scale)
+        if args.readout == "e7_owner":
+            summary["attention_source"] = llm_attention_source_used
+            summary["softmax_axis"] = "owner_per_patch"
+            summary["background_attention_source"] = (
+                background_attention_source_used
+            )
     summary["dit_ovt_cross_attn_disabled"] = bool(args.disable_dit_ovt_cross_attn)
     summary["coda_overlap_excluded"] = bool(
         coco_cache is not None and coco_cache.overlap_masks is not None

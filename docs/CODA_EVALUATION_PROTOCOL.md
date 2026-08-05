@@ -1,6 +1,6 @@
 # PGOT COCO/CODA Evaluation Protocol
 
-Protocol version: 1.4 (2026-08-04)
+Protocol version: 1.5 (2026-08-04)
 
 This document is the fixed reference for PGOT segmentation evaluation. Any
 result table must name the protocol version, evaluation set, checkpoint, and
@@ -132,6 +132,24 @@ Do not conflate the following three resolutions:
   injected before loading `base_layer`/`lora_*` tensors. This applies to both
   sharded checkpoints and a single `model.safetensors` file. Summaries record
   `checkpoint_lora_detected`; a false value invalidates a LoRA-trained row.
+
+### E7 causal-ownership evaluation configuration
+
+- Use `readout=e7_owner`. This is the exact 32 x 32 patch-to-owner probability
+  used by E7's visual write: every patch softmaxes over valid OVTs plus four
+  registers.
+- Sum the four register probabilities into one background score. Segmentation
+  and reconstruction must use the same unrestricted discovery forward; do not
+  apply the legacy second-pass register mask route.
+- The SD-v1.5 positive condition contains only visual-written OVTs and
+  registers. The 77 empty-prompt embeddings occur only on the unconditional
+  CFG branch and are not positive null tokens.
+- Scale-RAE queries and DiT are absent. E7 uses the original SD-v1.5 U-Net and
+  trains only cross-attention K/V low-rank updates plus owner/write and context
+  projections.
+- A valid summary must record `checkpoint_lora_detected=true`,
+  `e7_causal_ownership_bottleneck=true`, `positive_null_prompt_tokens=0`,
+  `register_eval_route=unrestricted`, and `scale_rae_queries_in_sequence=0`.
 
 ## 5. Background rule for E1
 

@@ -180,6 +180,28 @@ class PGOTModelArguments:
     pgot_e6_cfg_drop_rate: float = field(default=0.1)
     pgot_e6_attention_grid_size: int = field(default=32)
 
+    # E7: competitive patch ownership is the actual image-only write into a
+    # clean SD-v1.5 direct bottleneck. The positive condition contains only
+    # OVTs and four registers; empty-prompt tokens are CFG-negative only.
+    pgot_e7_enable: bool = field(default=False)
+    pgot_e7_model_id: str = field(
+        default="stable-diffusion-v1-5/stable-diffusion-v1-5"
+    )
+    pgot_e7_context_dim: int = field(default=768)
+    pgot_e7_router_dim: int = field(default=512)
+    pgot_e7_owner_num_heads: int = field(default=8)
+    pgot_e7_owner_temperature: float = field(default=1.0)
+    pgot_e7_owner_weight: float = field(default=1.0)
+    pgot_e7_owner_bg_weight: float = field(default=0.25)
+    pgot_e7_cfg_drop_rate: float = field(default=0.1)
+    pgot_e7_unet_lora_rank: int = field(default=8)
+    pgot_e7_unet_lora_alpha: float = field(default=8.0)
+    pgot_e7_causal_weight: float = field(default=0.1)
+    pgot_e7_invariance_weight: float = field(default=0.05)
+    pgot_e7_causal_min_timestep: int = field(default=700)
+    pgot_e7_causal_margin: float = field(default=0.05)
+    pgot_e7_causal_temperature: float = field(default=0.1)
+
     # V12: OVT-style owner competition injected between selected LLM layers.
     pgot_v12_enable: bool = field(default=False)
     pgot_v12_layers: str = field(default="12,16,20,24")
@@ -325,12 +347,17 @@ class PGOTTrainingArguments(transformers.TrainingArguments):
     pgot_dit_body_lr: Optional[float] = field(default=None)
     pgot_e6_projector_lr: Optional[float] = field(default=None)
     pgot_e6_unet_lr: Optional[float] = field(default=None)
+    pgot_e7_owner_lr: Optional[float] = field(default=None)
+    pgot_e7_projector_lr: Optional[float] = field(default=None)
+    pgot_e7_unet_lr: Optional[float] = field(default=None)
 
     # Eval-time image reconstruction logging (wandb)
     pgot_eval_log_recon_images: int = field(default=0)  # 0 = disabled; >0 = N images per eval
     pgot_eval_decoder_repo: str = field(default="nyu-visionx/siglip2_decoder")
     pgot_e6_eval_inference_steps: int = field(default=10)
     pgot_e6_eval_guidance_scale: float = field(default=2.5)
+    pgot_e7_eval_inference_steps: int = field(default=10)
+    pgot_e7_eval_guidance_scale: float = field(default=2.5)
     # "e6" keeps only varying, decision-relevant E6 metrics in HF/W&B history.
     pgot_log_metric_profile: str = field(default="all")
 
@@ -338,6 +365,8 @@ class PGOTTrainingArguments(transformers.TrainingArguments):
     pgot_contrastive_loss_target_weight: float = field(default=0.0)
     pgot_contrastive_warmup_steps: int = field(default=0)
     pgot_e4_loss_warmup_steps: int = field(default=0)
+    pgot_e7_causal_warmup_start_steps: int = field(default=2000)
+    pgot_e7_causal_ramp_steps: int = field(default=3000)
 
     # LoRA
     pgot_lora_enable: bool = field(default=True)
@@ -383,6 +412,8 @@ def freeze_for_pgot(
     # Start by freezing everything
     model.requires_grad_(False)
     e6_enabled = bool(getattr(model.config, "pgot_e6_enable", False))
+    e7_enabled = bool(getattr(model.config, "pgot_e7_enable", False))
+    direct_sd_enabled = e6_enabled or e7_enabled
 
     n_trainable = 0
     def _unfreeze(module_or_param, name=""):
@@ -471,10 +502,22 @@ def freeze_for_pgot(
         n_e6_projector, n_e6_unet = decoder.enable_trainable_parameters()
         n_trainable += n_e6_projector + n_e6_unet
 
+    n_e7_owner = 0
+    n_e7_projector = 0
+    n_e7_unet = 0
+    if e7_enabled:
+        decoder = getattr(model, "pgot_e7_decoder", None)
+        if decoder is None:
+            raise RuntimeError("E7 is configured but pgot_e7_decoder is missing")
+        n_e7_owner, n_e7_projector, n_e7_unet = (
+            decoder.enable_trainable_parameters()
+        )
+        n_trainable += n_e7_owner + n_e7_projector + n_e7_unet
+
     # rae_query (latent_queries inside model.get_model())
     inner = model.get_model() if hasattr(model, "get_model") else model
     if (
-        not e6_enabled
+        not direct_sd_enabled
         and hasattr(inner, "latent_queries")
         and inner.latent_queries is not None
     ):
@@ -490,7 +533,7 @@ def freeze_for_pgot(
 
     # diff_head_projector
     if (
-        not e6_enabled
+        not direct_sd_enabled
         and hasattr(model, "diff_head_projector")
         and model.diff_head_projector is not None
     ):
@@ -501,7 +544,7 @@ def freeze_for_pgot(
     # DiT body
     n_dit_adaln = 0
     n_dit_body_blocks = 0
-    if not e6_enabled and hasattr(model, "diff_head") and model.diff_head is not None:
+    if not direct_sd_enabled and hasattr(model, "diff_head") and model.diff_head is not None:
         if not freeze_dit_body:
             # Full unfreeze (legacy path)
             for p in model.diff_head.parameters():
@@ -581,12 +624,16 @@ def freeze_for_pgot(
 
     logger.info(
         "[PGOT/Freeze] Total trainable params: %s  "
-        "(LoRA: %s, mm_projector: %s, E6 projector: %s, E6 U-Net xattn: %s)",
+        "(LoRA: %s, mm_projector: %s, E6 projector: %s, E6 U-Net xattn: %s, "
+        "E7 owner: %s, E7 projector: %s, E7 U-Net LoRA: %s)",
         f"{n_trainable:,}",
         f"{n_lora:,}",
         f"{n_mm_projector:,}",
         f"{n_e6_projector:,}",
         f"{n_e6_unet:,}",
+        f"{n_e7_owner:,}",
+        f"{n_e7_projector:,}",
+        f"{n_e7_unet:,}",
     )
     return model
 
@@ -612,7 +659,7 @@ class PGOTTrainer(Trainer):
         self._eval_decoder = None  # lazy-loaded siglip2 decoder for image recon logging
 
     def _keep_metric(self, key: str) -> bool:
-        if self._metric_profile != "e6":
+        if self._metric_profile not in {"e6", "e7"}:
             return True
         normalized = key
         for prefix in ("eval_", "train_"):
@@ -622,7 +669,7 @@ class PGOTTrainer(Trainer):
             "loss", "grad_norm", "learning_rate", "runtime",
             "samples_per_second", "steps_per_second",
         }
-        e6_metrics = {
+        direct_metrics = {
             "loss_lm",
             "loss_e6_diffusion",
             "loss_core_outside",
@@ -631,8 +678,28 @@ class PGOTTrainer(Trainer):
             "core_full_image_mass",
             "core_worst_head_outside_mass",
             "e6_cfg_drop_fraction",
+            "loss_e7_diffusion",
+            "loss_e7_owner",
+            "loss_e7_causal",
+            "loss_e7_invariance",
+            "e7_owner_fg_loss",
+            "e7_owner_bg_loss",
+            "e7_owner_fg_acc",
+            "e7_owner_bg_acc",
+            "e7_owner_bg_iou",
+            "e7_owner_entropy",
+            "e7_owner_supervised_fg_fraction",
+            "e7_owner_ambiguous_fraction",
+            "e7_register_prob_on_fg",
+            "e7_object_prob_on_bg",
+            "e7_cfg_drop_fraction",
+            "e7_causal_active_fraction",
+            "e7_causal_pos_error",
+            "e7_causal_swap_error",
+            "e7_causal_error_gap",
+            "e7_causal_weight_effective",
         }
-        return normalized in generic or normalized in e6_metrics
+        return normalized in generic or normalized in direct_metrics
 
     # ----- Optimizer with grouped LRs -----
     def create_optimizer(self):
@@ -671,6 +738,21 @@ class PGOTTrainer(Trainer):
         e6_unet_lr = (
             self.args.pgot_e6_unet_lr
             if getattr(self.args, "pgot_e6_unet_lr", None) is not None
+            else self.args.learning_rate
+        )
+        e7_owner_lr = (
+            self.args.pgot_e7_owner_lr
+            if getattr(self.args, "pgot_e7_owner_lr", None) is not None
+            else self.args.learning_rate
+        )
+        e7_projector_lr = (
+            self.args.pgot_e7_projector_lr
+            if getattr(self.args, "pgot_e7_projector_lr", None) is not None
+            else self.args.learning_rate
+        )
+        e7_unet_lr = (
+            self.args.pgot_e7_unet_lr
+            if getattr(self.args, "pgot_e7_unet_lr", None) is not None
             else self.args.learning_rate
         )
 
@@ -712,6 +794,23 @@ class PGOTTrainer(Trainer):
             n for n, p in opt_model.named_parameters()
             if p.requires_grad and "pgot_e6_decoder.unet." in n
         }
+        e7_owner_names = {
+            n for n, p in opt_model.named_parameters()
+            if p.requires_grad and "pgot_e7_decoder.owner_write." in n
+        }
+        e7_projector_names = {
+            n for n, p in opt_model.named_parameters()
+            if p.requires_grad
+            and (
+                "pgot_e7_decoder.context_norm" in n
+                or "pgot_e7_decoder.context_projector" in n
+                or "pgot_e7_decoder.context_out_norm" in n
+            )
+        }
+        e7_unet_names = {
+            n for n, p in opt_model.named_parameters()
+            if p.requires_grad and "pgot_e7_decoder.unet." in n
+        }
         llm_names = {n for n, p in opt_model.named_parameters()
                      if p.requires_grad and (n.startswith("model.layers.")
                                              or n.startswith("model.model.layers.")
@@ -729,6 +828,9 @@ class PGOTTrainer(Trainer):
             | latent_head_names
             | e6_projector_names
             | e6_unet_names
+            | e7_owner_names
+            | e7_projector_names
+            | e7_unet_names
             | llm_names
         )
 
@@ -793,16 +895,25 @@ class PGOTTrainer(Trainer):
         params = _take_params(e6_unet_names)
         if params:
             groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": e6_unet_lr})
+        params = _take_params(e7_owner_names)
+        if params:
+            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": e7_owner_lr})
+        params = _take_params(e7_projector_names)
+        if params:
+            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": e7_projector_lr})
+        params = _take_params(e7_unet_names)
+        if params:
+            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": e7_unet_lr})
         params = _take_params(llm_names)
         if params:
             groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": llm_lr})
 
         logger.info(
-            "[PGOT] optimizer | base=%g mm_projector=%g diff_head=%g dit_body=%g register=%g rae_query=%g llm=%g e6_proj=%g e6_unet=%g | "
-            "mm_projector=%d projector=%d dit_adaln=%d dit_body=%d register=%d null_bg=%d rae_query=%d v14=%d v21=%d latent_head=%d e6_proj=%d e6_unet=%d llm=%d",
-            self.args.learning_rate, mm_projector_lr, diff_head_lr, dit_body_lr, register_lr, rae_query_lr, llm_lr, e6_projector_lr, e6_unet_lr,
+            "[PGOT] optimizer | base=%g mm_projector=%g diff_head=%g dit_body=%g register=%g rae_query=%g llm=%g e6_proj=%g e6_unet=%g e7_owner=%g e7_proj=%g e7_unet=%g | "
+            "mm_projector=%d projector=%d dit_adaln=%d dit_body=%d register=%d null_bg=%d rae_query=%d v14=%d v21=%d latent_head=%d e6_proj=%d e6_unet=%d e7_owner=%d e7_proj=%d e7_unet=%d llm=%d",
+            self.args.learning_rate, mm_projector_lr, diff_head_lr, dit_body_lr, register_lr, rae_query_lr, llm_lr, e6_projector_lr, e6_unet_lr, e7_owner_lr, e7_projector_lr, e7_unet_lr,
             len(mm_projector_names), len(projector_names), len(dit_adaln_names), len(dit_body_names), len(register_names),
-            len(null_bg_names), len(rae_query_names), len(v14_names), len(v21_names), len(latent_head_names), len(e6_projector_names), len(e6_unet_names), len(llm_names),
+            len(null_bg_names), len(rae_query_names), len(v14_names), len(v21_names), len(latent_head_names), len(e6_projector_names), len(e6_unet_names), len(e7_owner_names), len(e7_projector_names), len(e7_unet_names), len(llm_names),
         )
 
         optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(self.args)
@@ -883,6 +994,24 @@ class PGOTTrainer(Trainer):
             e4_bind_target_w * e4_scale
         )
 
+        e7_target_w = float(
+            getattr(inner_model.config, "pgot_e7_causal_weight", 0.0)
+        )
+        e7_start = int(
+            getattr(self.args, "pgot_e7_causal_warmup_start_steps", 2000) or 0
+        )
+        e7_ramp = int(getattr(self.args, "pgot_e7_causal_ramp_steps", 3000) or 0)
+        if global_step < e7_start:
+            e7_scale = 0.0
+        elif e7_ramp > 0:
+            e7_scale = min(
+                max(float(global_step - e7_start + 1) / float(e7_ramp), 0.0),
+                1.0,
+            )
+        else:
+            e7_scale = 1.0
+        inner_model.config.pgot_e7_causal_weight_effective = e7_target_w * e7_scale
+
         images = inputs.pop("images")
         target_images = inputs.pop("target_images")
         outputs = model(
@@ -894,6 +1023,7 @@ class PGOTTrainer(Trainer):
             ovt_positions_in_caption=inputs["ovt_positions_in_caption"],
             ovt_valid_mask=inputs["ovt_valid_mask"],
             ovt_is_thing=inputs.get("ovt_is_thing"),
+            ovt_category_ids=inputs.get("ovt_category_ids"),
             gt_masks_per_ovt=inputs["gt_masks_per_ovt"],
             gt_rae_masks_per_ovt=inputs.get("gt_rae_masks_per_ovt"),
             pgot_contrastive_weight=contrastive_w,
@@ -930,7 +1060,7 @@ class PGOTTrainer(Trainer):
                 logs[k] = v
             self._custom_loss_buffer.clear()
             self._loss_count_buffer = 0
-        if self._metric_profile == "e6":
+        if self._metric_profile in {"e6", "e7"}:
             logs = {k: v for k, v in logs.items() if self._keep_metric(k)}
             # transformers.Trainer.log appends ``epoch`` after this override.
             # E6 is step-based (10k steps over many nominal epochs), so that
@@ -1446,6 +1576,14 @@ class PGOTTrainer(Trainer):
             return
 
         inner = self.model.module if hasattr(self.model, "module") else self.model
+        if bool(getattr(inner.config, "pgot_e7_enable", False)):
+            return self._log_e7_eval_recon_images(
+                dataloader=dataloader,
+                step_prefix=step_prefix,
+                n_images=n_images,
+                wandb=wandb,
+                inner=inner,
+            )
         if bool(getattr(inner.config, "pgot_e6_enable", False)):
             return self._log_e6_eval_recon_images(
                 dataloader=dataloader,
@@ -1569,6 +1707,136 @@ class PGOTTrainer(Trainer):
             table.add_data(*row)
 
         wandb.log({f"{step_prefix}/eval_table": table}, step=int(self.state.global_step))
+
+    def _log_e7_eval_recon_images(
+        self, dataloader, step_prefix: str, n_images: int, wandb, inner
+    ):
+        """Log E7 source, reconstruction, and the causal owner/write maps."""
+        from pgot.eval.pgot_inference import pgot_forward_eval
+
+        try:
+            batch = next(iter(dataloader))
+        except StopIteration:
+            return
+
+        def _slice(value):
+            return value[:n_images] if torch.is_tensor(value) else value
+
+        batch = {key: _slice(value) for key, value in batch.items()}
+        device = next(inner.parameters()).device
+        was_training = inner.training
+        inner.eval()
+        try:
+            autocast_enabled = device.type == "cuda" and bool(
+                getattr(self.args, "bf16", False)
+            )
+            with torch.autocast(
+                device_type=device.type,
+                dtype=torch.bfloat16,
+                enabled=autocast_enabled,
+            ):
+                features = pgot_forward_eval(
+                    inner,
+                    images=batch["images"].to(device),
+                    target_images=batch["target_images"].to(device),
+                    caption_input_ids=batch["caption_input_ids"].to(device),
+                    caption_attention_mask=batch["caption_attention_mask"].to(device),
+                    ovt_positions_in_caption=batch["ovt_positions_in_caption"].to(device),
+                    ovt_valid_mask=batch["ovt_valid_mask"].to(device),
+                )
+                sampled = inner.pgot_e7_decoder.sample(
+                    ovt_hidden=features["ovt_hidden"],
+                    register_hidden=features["register_hidden"],
+                    image_hidden=features["img_hidden"],
+                    ovt_valid_mask=features["ovt_valid_mask"],
+                    resolution=int(getattr(inner.config, "coda_crop_size", 512)),
+                    inference_steps=int(
+                        getattr(self.args, "pgot_e7_eval_inference_steps", 10)
+                    ),
+                    guidance_scale=float(
+                        getattr(self.args, "pgot_e7_eval_guidance_scale", 2.5)
+                    ),
+                    seed=1234 + int(self.state.global_step),
+                )
+        finally:
+            if was_training:
+                inner.train()
+
+        try:
+            vt = inner.get_vision_tower_aux_list()[0]
+            mean = torch.tensor(vt.image_processor.image_mean).view(1, -1, 1, 1)
+            std = torch.tensor(vt.image_processor.image_std).view(1, -1, 1, 1)
+        except Exception:
+            mean = torch.full((1, 3, 1, 1), 0.5)
+            std = torch.full((1, 3, 1, 1), 0.5)
+        source = (
+            batch["images"].detach().cpu().float() * std + mean
+        ).clamp(0.0, 1.0)
+        recon = sampled["images"].detach().cpu().float()
+        if source.shape[-2:] != recon.shape[-2:]:
+            source = F.interpolate(
+                source, size=recon.shape[-2:], mode="bilinear", align_corners=False
+            )
+
+        maps = sampled["owner_probs"].detach().cpu().float()
+        n_ovt = features["ovt_valid_mask"].shape[1]
+        side = int(round(float(maps.shape[-1]) ** 0.5))
+        labels = self._decode_chunk_labels(
+            self.tokenizer,
+            batch["caption_input_ids"],
+            batch["ovt_positions_in_caption"],
+            batch["ovt_valid_mask"],
+            int(inner.pgot_n_ovt_per_object),
+        )
+        ownership_panels = []
+        for batch_idx in range(recon.shape[0]):
+            tiles = [source[batch_idx]]
+            valid_indices = features["ovt_valid_mask"][batch_idx].nonzero(
+                as_tuple=False
+            ).flatten().tolist()
+            map_indices = valid_indices[:6]
+            map_indices.append(-1)  # summed register/background probability
+            for map_idx in map_indices:
+                if map_idx < 0:
+                    heat = maps[batch_idx, n_ovt:].sum(dim=0)
+                    color = torch.tensor([0.1, 0.35, 1.0]).view(3, 1, 1)
+                else:
+                    heat = maps[batch_idx, map_idx]
+                    color = torch.tensor([1.0, 0.15, 0.15]).view(3, 1, 1)
+                heat = F.interpolate(
+                    heat.reshape(1, 1, side, side),
+                    size=recon.shape[-2:],
+                    mode="bilinear",
+                    align_corners=False,
+                )[0, 0]
+                tiles.append(
+                    (source[batch_idx] * (1 - 0.6 * heat) + color * 0.6 * heat)
+                    .clamp(0, 1)
+                )
+            ownership_panels.append(
+                torch.cat(tiles, dim=2).permute(1, 2, 0).numpy()
+            )
+
+        table = wandb.Table(
+            columns=[
+                "step", "sample", "source", "e7_reconstruction",
+                "predicted_owner_write", "objects",
+            ]
+        )
+        for idx in range(min(source.shape[0], recon.shape[0])):
+            label = labels[idx] if idx < len(labels) else ""
+            table.add_data(
+                int(self.state.global_step),
+                idx,
+                wandb.Image(source[idx].permute(1, 2, 0).numpy()),
+                wandb.Image(recon[idx].permute(1, 2, 0).numpy()),
+                wandb.Image(ownership_panels[idx]),
+                " | ".join(label) if isinstance(label, list) else label,
+            )
+        wandb.log(
+            {f"{step_prefix}/e7_eval_table": table},
+            step=int(self.state.global_step),
+        )
 
     def _log_e6_eval_recon_images(
         self, dataloader, step_prefix: str, n_images: int, wandb, inner

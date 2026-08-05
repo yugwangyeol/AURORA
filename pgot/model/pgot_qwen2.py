@@ -44,6 +44,7 @@ from pgot.model.pgot_utils import (
     compute_ovt_shuffle_contrastive_loss,
 )
 from pgot.model.coda_direct import PGOTCODADirectBottleneck
+from pgot.model.sd_causal_ownership import PGOTE7SDCausalOwnership
 
 
 class PGOTQwen2Config(ScaleRAEQwenConfig):
@@ -649,6 +650,52 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         else:
             self.pgot_e6_decoder = None
 
+        self.pgot_e7_enable = bool(getattr(self.config, "pgot_e7_enable", False))
+        if self.pgot_e6_enable and self.pgot_e7_enable:
+            raise ValueError("E6 and E7 direct decoders are mutually exclusive")
+        if self.pgot_e7_enable:
+            self.pgot_e7_decoder = PGOTE7SDCausalOwnership(
+                llm_dim=D,
+                model_id=str(
+                    getattr(
+                        self.config,
+                        "pgot_e7_model_id",
+                        "stable-diffusion-v1-5/stable-diffusion-v1-5",
+                    )
+                ),
+                context_dim=int(getattr(self.config, "pgot_e7_context_dim", 768)),
+                router_dim=int(getattr(self.config, "pgot_e7_router_dim", 512)),
+                owner_num_heads=int(
+                    getattr(self.config, "pgot_e7_owner_num_heads", 8)
+                ),
+                owner_temperature=float(
+                    getattr(self.config, "pgot_e7_owner_temperature", 1.0)
+                ),
+                owner_bg_weight=float(
+                    getattr(self.config, "pgot_e7_owner_bg_weight", 0.25)
+                ),
+                cfg_drop_rate=float(
+                    getattr(self.config, "pgot_e7_cfg_drop_rate", 0.1)
+                ),
+                unet_lora_rank=int(
+                    getattr(self.config, "pgot_e7_unet_lora_rank", 8)
+                ),
+                unet_lora_alpha=float(
+                    getattr(self.config, "pgot_e7_unet_lora_alpha", 8.0)
+                ),
+                causal_min_timestep=int(
+                    getattr(self.config, "pgot_e7_causal_min_timestep", 700)
+                ),
+                causal_margin=float(
+                    getattr(self.config, "pgot_e7_causal_margin", 0.05)
+                ),
+                causal_temperature=float(
+                    getattr(self.config, "pgot_e7_causal_temperature", 0.1)
+                ),
+            )
+        else:
+            self.pgot_e7_decoder = None
+
         self.pgot_fvw_enable = bool(getattr(self.config, "pgot_fvw_enable", False))
         self.pgot_fvw_layers = _resolve_layer_spec(
             str(getattr(self.config, "pgot_fvw_layers", "0,8,16,24,27")),
@@ -769,6 +816,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             f"n_ovt_per_object={self.pgot_n_ovt_per_object}, "
             f"N_null_bg={self.pgot_n_null_bg}, "
             f"e6_coda_direct={self.pgot_e6_enable}, "
+            f"e7_causal_ownership={self.pgot_e7_enable}, "
             f"fvw={self.pgot_fvw_enable}, fvw_layers={self.pgot_fvw_layers}, "
             f"v12={self.pgot_v12_enable}, v12_layers={self.pgot_v12_layers}, "
             f"v14={self.pgot_v14_enable}, "
@@ -801,6 +849,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         ovt_positions_in_caption: Optional[torch.Tensor] = None,
         ovt_valid_mask: Optional[torch.Tensor] = None,
         ovt_is_thing: Optional[torch.Tensor] = None,
+        ovt_category_ids: Optional[torch.Tensor] = None,
         gt_masks_per_ovt: Optional[torch.Tensor] = None,
         gt_rae_masks_per_ovt: Optional[torch.Tensor] = None,
         target_images: Optional[torch.Tensor] = None,
@@ -822,6 +871,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 ovt_positions_in_caption=ovt_positions_in_caption,
                 ovt_valid_mask=ovt_valid_mask,
                 ovt_is_thing=ovt_is_thing,
+                ovt_category_ids=ovt_category_ids,
                 gt_masks_per_ovt=gt_masks_per_ovt,
                 gt_rae_masks_per_ovt=gt_rae_masks_per_ovt,
                 target_images=target_images,
@@ -4555,12 +4605,15 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         ovt_positions_in_caption: torch.Tensor,
         ovt_valid_mask: torch.Tensor,
         ovt_is_thing: Optional[torch.Tensor],
+        ovt_category_ids: Optional[torch.Tensor],
         gt_masks_per_ovt: torch.Tensor,
         gt_rae_masks_per_ovt: Optional[torch.Tensor],
         target_images: torch.Tensor,
         pgot_contrastive_weight: Optional[float] = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         e6_enabled = bool(getattr(self.config, "pgot_e6_enable", False))
+        e7_enabled = bool(getattr(self.config, "pgot_e7_enable", False))
+        direct_sd_enabled = e6_enabled or e7_enabled
         if bool(getattr(self.config, "pgot_register_hard_gt_mask", False)) and (
             bool(getattr(self.config, "pgot_v14_enable", False))
             or bool(getattr(self.config, "pgot_v12_enable", False))
@@ -4606,6 +4659,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             ovt_is_thing = ovt_valid_mask
         else:
             ovt_is_thing = ovt_is_thing.to(model_device, dtype=torch.bool)
+        if ovt_category_ids is not None:
+            ovt_category_ids = ovt_category_ids.to(model_device, dtype=torch.long)
         gt_masks_per_ovt = gt_masks_per_ovt.to(model_device).float()
         if gt_rae_masks_per_ovt is not None:
             gt_rae_masks_per_ovt = gt_rae_masks_per_ovt.to(model_device).float()
@@ -4616,9 +4671,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
 
         # 1) Encode image (AURORA helper returns: feature for LLM, target for diffusion)
         _, img_features, gt_siglip = self._encode_images_aurora(
-            images, target_images=None if e6_enabled else target_images
+            images, target_images=None if direct_sd_enabled else target_images
         )
-        if gt_siglip is None and not e6_enabled:
+        if gt_siglip is None and not direct_sd_enabled:
             raise ValueError("PGOT training requires target_images.")
         dtype = self._aurora_model_dtype()
 
@@ -4635,7 +4690,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         )
         null_bg_embeds = self._pgot_embed_null_bg(B, model_device, dtype)
         register_embeds = self.pgot_register_embeddings.unsqueeze(0).expand(B, -1, -1).to(dtype=dtype)
-        if e6_enabled:
+        if direct_sd_enabled:
             n_rae = 0
             rae_embeds = torch.empty(
                 B, 0, self.config.hidden_size, device=model_device, dtype=dtype
@@ -4745,7 +4800,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             if gt_rae_masks_per_ovt is not None
             else gt_masks_per_ovt
         ).float().clamp(0.0, 1.0)
-        if e6_enabled:
+        if direct_sd_enabled:
             if e5_forcing_probability > 0.0 or self.pgot_fvw_enable:
                 raise ValueError(
                     "E6 direct bottleneck is incompatible with E5/FVW RAE routing."
@@ -5486,10 +5541,14 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 beta=tversky_beta,
             )
 
-        # 10) L3 reconstruction. E6's decoder receives only final OVT/register
-        # states; no RAE query, SigLIP target latent, or Scale-RAE DiT condition
-        # can carry sample-specific information around the bottleneck.
+        # 10) L3 reconstruction. Direct SD decoders receive no RAE query,
+        # SigLIP target latent, or Scale-RAE DiT condition. E7 first turns its
+        # predicted patch ownership into the image-only OVT/register write.
         e6_details = {}
+        e7_details = {}
+        loss_e7_owner = zero
+        loss_e7_causal = zero
+        loss_e7_invariance = zero
         if e6_enabled:
             if self.pgot_e6_decoder is None:
                 raise RuntimeError("pgot_e6_enable=True but the CODA decoder is missing")
@@ -5498,6 +5557,26 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 ovt_hidden=ovt_hidden,
                 register_hidden=register_hidden,
                 ovt_valid_mask=ovt_valid_mask,
+            )
+            role_recon_loss_mask = images.new_ones(B, 1)
+        elif e7_enabled:
+            if self.pgot_e7_decoder is None:
+                raise RuntimeError("pgot_e7_enable=True but the E7 decoder is missing")
+            (
+                loss_recon,
+                loss_e7_owner,
+                loss_e7_causal,
+                loss_e7_invariance,
+                e7_details,
+            ) = self.pgot_e7_decoder.diffusion_loss(
+                images=images,
+                ovt_hidden=ovt_hidden,
+                register_hidden=register_hidden,
+                image_hidden=img_hidden,
+                ovt_valid_mask=ovt_valid_mask,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_category_ids=ovt_category_ids,
+                n_ovt_per_object=self.pgot_n_ovt_per_object,
             )
             role_recon_loss_mask = images.new_ones(B, 1)
         else:
@@ -5542,8 +5621,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         contrastive_w = float(getattr(self.config, "pgot_contrastive_loss_weight", 0.0))
         if pgot_contrastive_weight is not None:
             contrastive_w = float(pgot_contrastive_weight)
-        if contrastive_w > 0.0 and e6_enabled:
-            raise ValueError("E6 does not use the legacy RAE OVT-swap contrastive loss")
+        if contrastive_w > 0.0 and direct_sd_enabled:
+            raise ValueError(
+                "E6/E7 do not use the legacy RAE OVT-swap contrastive loss"
+            )
         if contrastive_w > 0.0 and B >= 2:
             loss_contrastive = self._compute_ovt_swap_contrastive(
                 hidden=hidden,
@@ -5558,6 +5639,17 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         # 12) Combine
         lm_w = float(getattr(self.config, "pgot_lm_loss_weight", 1.0))
         recon_w = float(getattr(self.config, "pgot_recon_loss_weight", 1.0))
+        e7_owner_w = float(getattr(self.config, "pgot_e7_owner_weight", 0.0))
+        e7_causal_w = float(
+            getattr(
+                self.config,
+                "pgot_e7_causal_weight_effective",
+                getattr(self.config, "pgot_e7_causal_weight", 0.0),
+            )
+        )
+        e7_invariance_w = float(
+            getattr(self.config, "pgot_e7_invariance_weight", 0.0)
+        )
 
         loss_mask = (
             mask_ce_w * loss_mask_ce
@@ -5588,6 +5680,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             + loss_mask
             + recon_w * loss_recon
             + contrastive_w * loss_contrastive
+            + e7_owner_w * loss_e7_owner
+            + e7_causal_w * loss_e7_causal
+            + e7_invariance_w * loss_e7_invariance
         )
 
         if not torch.isfinite(total_loss).all():
@@ -5603,6 +5698,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         )
         details = {}
         details.update(e6_details)
+        details.update(e7_details)
+        if e7_enabled:
+            details["e7_owner_weight"] = zero.new_tensor(e7_owner_w)
+            details["e7_causal_weight_effective"] = zero.new_tensor(e7_causal_w)
+            details["e7_invariance_weight"] = zero.new_tensor(e7_invariance_w)
         if e5_forcing_probability > 0.0:
             details["e5_forcing_probability"] = zero.new_tensor(
                 e5_forcing_probability

@@ -261,6 +261,26 @@ def train():
     config.pgot_e6_attention_grid_size = int(
         model_args.pgot_e6_attention_grid_size
     )
+    config.pgot_e7_enable = bool(model_args.pgot_e7_enable)
+    config.pgot_e7_model_id = str(model_args.pgot_e7_model_id)
+    config.pgot_e7_context_dim = int(model_args.pgot_e7_context_dim)
+    config.pgot_e7_router_dim = int(model_args.pgot_e7_router_dim)
+    config.pgot_e7_owner_num_heads = int(model_args.pgot_e7_owner_num_heads)
+    config.pgot_e7_owner_temperature = float(model_args.pgot_e7_owner_temperature)
+    config.pgot_e7_owner_weight = float(model_args.pgot_e7_owner_weight)
+    config.pgot_e7_owner_bg_weight = float(model_args.pgot_e7_owner_bg_weight)
+    config.pgot_e7_cfg_drop_rate = float(model_args.pgot_e7_cfg_drop_rate)
+    config.pgot_e7_unet_lora_rank = int(model_args.pgot_e7_unet_lora_rank)
+    config.pgot_e7_unet_lora_alpha = float(model_args.pgot_e7_unet_lora_alpha)
+    config.pgot_e7_causal_weight = float(model_args.pgot_e7_causal_weight)
+    config.pgot_e7_invariance_weight = float(model_args.pgot_e7_invariance_weight)
+    config.pgot_e7_causal_min_timestep = int(
+        model_args.pgot_e7_causal_min_timestep
+    )
+    config.pgot_e7_causal_margin = float(model_args.pgot_e7_causal_margin)
+    config.pgot_e7_causal_temperature = float(
+        model_args.pgot_e7_causal_temperature
+    )
     config.pgot_v12_enable = bool(model_args.pgot_v12_enable)
     config.pgot_v12_layers = str(model_args.pgot_v12_layers)
     v12_ovt_temp = float(
@@ -473,6 +493,30 @@ def train():
     model.config.pgot_e6_attention_grid_size = int(
         model_args.pgot_e6_attention_grid_size
     )
+    model.config.pgot_e7_enable = bool(model_args.pgot_e7_enable)
+    model.config.pgot_e7_model_id = str(model_args.pgot_e7_model_id)
+    model.config.pgot_e7_context_dim = int(model_args.pgot_e7_context_dim)
+    model.config.pgot_e7_router_dim = int(model_args.pgot_e7_router_dim)
+    model.config.pgot_e7_owner_num_heads = int(model_args.pgot_e7_owner_num_heads)
+    model.config.pgot_e7_owner_temperature = float(
+        model_args.pgot_e7_owner_temperature
+    )
+    model.config.pgot_e7_owner_weight = float(model_args.pgot_e7_owner_weight)
+    model.config.pgot_e7_owner_bg_weight = float(model_args.pgot_e7_owner_bg_weight)
+    model.config.pgot_e7_cfg_drop_rate = float(model_args.pgot_e7_cfg_drop_rate)
+    model.config.pgot_e7_unet_lora_rank = int(model_args.pgot_e7_unet_lora_rank)
+    model.config.pgot_e7_unet_lora_alpha = float(model_args.pgot_e7_unet_lora_alpha)
+    model.config.pgot_e7_causal_weight = float(model_args.pgot_e7_causal_weight)
+    model.config.pgot_e7_invariance_weight = float(
+        model_args.pgot_e7_invariance_weight
+    )
+    model.config.pgot_e7_causal_min_timestep = int(
+        model_args.pgot_e7_causal_min_timestep
+    )
+    model.config.pgot_e7_causal_margin = float(model_args.pgot_e7_causal_margin)
+    model.config.pgot_e7_causal_temperature = float(
+        model_args.pgot_e7_causal_temperature
+    )
     model.config.pgot_dataset_format = str(data_args.dataset_format)
     model.config.pgot_v12_enable = bool(model_args.pgot_v12_enable)
     model.config.pgot_v12_layers = str(model_args.pgot_v12_layers)
@@ -651,12 +695,12 @@ def train():
         model_args.vision_tower_aux_token_len_list = parsed_token_lens
         model_args.unfreeze_mm_vision_tower = training_args.pgot_lora_enable and False  # keep frozen
         model.get_model().initialize_vision_modules(model_args=model_args, fsdp=training_args.fsdp)
-        if bool(model_args.pgot_e6_enable):
-            # E6 has a CODA SD decoder. Removing the unused Scale-RAE DiT also
-            # keeps it out of every E6 checkpoint.
+        if bool(model_args.pgot_e6_enable) or bool(model_args.pgot_e7_enable):
+            # Direct SD experiments remove the unused Scale-RAE DiT so it
+            # cannot become a reconstruction path or enter checkpoints.
             model.diff_head = None
             model.diff_head_projector = None
-            logger.info("[PGOT/E6] vision tower initialized; Scale-RAE DiT removed")
+            logger.info("[PGOT/direct-SD] vision tower initialized; Scale-RAE DiT removed")
         else:
             model.load_vision_head(model_args=model_args)
             logger.info("[PGOT] vision tower + diffusion head initialized")
@@ -893,6 +937,18 @@ def train():
             f"  e6_coda_unet: {_first_param_device(inner.pgot_e6_decoder.unet)}"
         )
         logger.info(f"  e6_coda_vae: {_first_param_device(inner.pgot_e6_decoder.vae)}")
+    if bool(getattr(inner.config, "pgot_e7_enable", False)):
+        logger.info(
+            f"  e7_owner_write: {_first_param_device(inner.pgot_e7_decoder.owner_write)}"
+        )
+        logger.info(
+            f"  e7_context_projector: "
+            f"{_first_param_device(inner.pgot_e7_decoder.context_projector)}"
+        )
+        logger.info(
+            f"  e7_sd_unet: {_first_param_device(inner.pgot_e7_decoder.unet)}"
+        )
+        logger.info(f"  e7_sd_vae: {_first_param_device(inner.pgot_e7_decoder.vae)}")
     if parsed_towers is not None:
         for i, vt in enumerate(model.get_vision_tower_aux_list()):
             logger.info(f"  vision_tower[{i}]: {_first_param_device(vt)}")

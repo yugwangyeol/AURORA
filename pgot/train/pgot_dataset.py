@@ -330,6 +330,9 @@ class Pix2CapPGOTDataset(Dataset):
             dtype=torch.float32,
         )
         ovt_is_thing = torch.zeros(n_ovt_max, dtype=torch.bool)
+        # Category ids are used only to construct same-category
+        # counterfactual swaps. -1 means that no reliable category is known.
+        ovt_category_ids = torch.full((n_ovt_max,), -1, dtype=torch.long)
         n_obj_actual = n_keep // self.n_ovt_per_object
         for obj_idx in range(n_obj_actual):
             seg_info = segments[obj_idx]
@@ -355,6 +358,7 @@ class Pix2CapPGOTDataset(Dataset):
                 gt_masks_per_ovt[ovt_idx] = patch_mask
                 gt_rae_masks_per_ovt[ovt_idx] = rae_patch_mask
                 ovt_is_thing[ovt_idx] = is_thing
+                ovt_category_ids[ovt_idx] = int(seg_info.get("category_id", -1))
 
         # 6) Pad ovt positions
         ovt_pos_padded = torch.zeros(n_ovt_max, dtype=torch.long)
@@ -370,6 +374,7 @@ class Pix2CapPGOTDataset(Dataset):
             "ovt_positions_in_caption": ovt_pos_padded,
             "ovt_valid_mask": ovt_valid,
             "ovt_is_thing": ovt_is_thing,
+            "ovt_category_ids": ovt_category_ids,
             "gt_masks_per_ovt": gt_masks_per_ovt,
             "gt_rae_masks_per_ovt": gt_rae_masks_per_ovt,
             "image_id": int(sample["image_id"]),
@@ -405,6 +410,9 @@ class PGOTDataCollator:
             ),
             "ovt_valid_mask": torch.stack([inst["ovt_valid_mask"] for inst in instances]),
             "ovt_is_thing": torch.stack([inst["ovt_is_thing"] for inst in instances]),
+            "ovt_category_ids": torch.stack(
+                [inst["ovt_category_ids"] for inst in instances]
+            ),
             "gt_masks_per_ovt": torch.stack([inst["gt_masks_per_ovt"] for inst in instances]),
             "gt_rae_masks_per_ovt": torch.stack(
                 [inst["gt_rae_masks_per_ovt"] for inst in instances]
