@@ -219,6 +219,11 @@ class RectifiedFlow(GaussianDiffusion):
             'mse': mean_flat(mse_target),
             'loss': loss,
             't': t,
+            # Paired causal E8.2 consumes spatial errors and predictions from
+            # one shared-noise multi-condition forward.
+            'model_pred': model_pred,
+            'target': target,
+            'mse_map': mse_target,
         }
         return terms
         

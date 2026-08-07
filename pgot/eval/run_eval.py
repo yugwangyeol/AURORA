@@ -928,7 +928,7 @@ def main():
         elif readout == "ovt_owner":
             if out.get("ovt_object_probs") is None:
                 raise ValueError(
-                    "--readout ovt_owner requires a V12/V14 checkpoint with OVT-owner outputs."
+                    "--readout ovt_owner requires a checkpoint with OVT-owner outputs."
                 )
             pred_mask = build_pred_mask_ovt_owner_eval(
                 ovt_object_probs=out["ovt_object_probs"],
@@ -1061,7 +1061,7 @@ def main():
                 recon_mse_list.extend(rm["mse"].cpu().tolist())
                 recon_mae_list.extend(rm["mae"].cpu().tolist())
             except Exception as e:
-                log.warning(f"rFID batch failed: {type(e).__name__}: {e}")
+                log.exception(f"rFID batch failed: {type(e).__name__}: {e}")
 
     # ---- Aggregate
     def _mean(xs):
@@ -1140,6 +1140,30 @@ def main():
     summary["recon_source"] = args.recon_source
     summary["e6_coda_direct_bottleneck"] = e6_enabled
     summary["e7_causal_ownership_bottleneck"] = e7_enabled
+    e8_enabled = bool(
+        getattr(model.config, "pgot_e8_visual_memory_enable", False)
+    )
+    summary["e8_visual_memory_bottleneck"] = e8_enabled
+    if e8_enabled:
+        summary["decoder_condition"] = "semantic keys + image-only visual-memory values"
+        summary["rae_standard_slot_attention_blocked"] = True
+        summary["e8_clean_refinement"] = bool(
+            getattr(model.config, "pgot_e8_clean_refinement", False)
+        )
+        summary["e8_memory_injection_enabled"] = bool(
+            getattr(model.config, "pgot_e8_inject_memory", True)
+        )
+        summary["e8_reader_object_weight"] = float(
+            getattr(model.config, "pgot_e8_reader_object_weight", 0.0)
+        )
+        summary["e8_reader_background_weight"] = float(
+            getattr(model.config, "pgot_e8_reader_background_weight", 0.0)
+        )
+        summary["e8_causal_training_enabled"] = bool(
+            getattr(model.config, "pgot_e8_causal_enable", False)
+        )
+        summary["null_bg_tokens"] = int(getattr(model.config, "pgot_n_null_bg", 0))
+        summary["background_owner"] = "aggregate probability over registers"
     if e6_enabled:
         summary["reconstruction_decoder"] = "CODA Stable-Diffusion v1.5"
         summary["decoder_condition"] = "final OVT + background registers only"
@@ -1267,7 +1291,16 @@ def main():
         summary["eval_merge"] = "mean"
         summary["void_tokens"] = int(getattr(model.config, "pgot_n_null_bg", 0))
     if args.readout == "ovt_owner":
-        if bool(getattr(model.config, "pgot_v14_enable", False)):
+        if e8_enabled:
+            summary["owner_source"] = "e8_competitive_visual_memory_writer"
+            summary["ovt_layers"] = str(getattr(model.config, "pgot_e8_layers", ""))
+            summary["owner_temperature"] = float(
+                getattr(model.config, "pgot_e8_owner_temperature", 1.0)
+            )
+            summary["owner_weight"] = float(
+                getattr(model.config, "pgot_e8_owner_weight", 1.0)
+            )
+        elif bool(getattr(model.config, "pgot_v14_enable", False)):
             summary["owner_source"] = "v14_ovt_bottleneck_route"
             summary["route_temperature"] = float(getattr(model.config, "pgot_v14_route_temperature", 1.0))
             summary["route_weight"] = float(getattr(model.config, "pgot_v14_route_weight", 1.0))

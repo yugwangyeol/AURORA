@@ -122,6 +122,7 @@ def cache_features(args, model, loader, device) -> Dict[str, torch.Tensor]:
     X_img: List[torch.Tensor] = []      # (D,)          mask-pooled LLM image stream
     X_word: List[torch.Tensor] = []     # (D,)          frozen phrase embedding (no image)
     X_raw: List[torch.Tensor] = []      # (C_raw,)      mask-pooled RAW SigLIP patches
+    X_visual_memory: List[torch.Tensor] = []  # (D,) E8 image-only object memory
     Y_app: List[torch.Tensor] = []      # (C,)          mask-pooled GT SigLIP target
     img_ids: List[int] = []             # sample index -> for a leakage-free split
 
@@ -156,6 +157,7 @@ def cache_features(args, model, loader, device) -> Dict[str, torch.Tensor]:
         side_i = int(round(img_hidden.shape[1] ** 0.5))
         side_r = int(round(raw_feats.shape[1] ** 0.5))
         K = masks.shape[1] // n_ovt
+        visual_memory = out.get("visual_memory")
 
         for b in range(B):
             for k in range(K):
@@ -187,6 +189,11 @@ def cache_features(args, model, loader, device) -> Dict[str, torch.Tensor]:
                 X_img.append(pool_with_mask(img_hidden[b], m_i).cpu())
                 X_raw.append(pool_with_mask(raw_feats[b].to(device), m_r).cpu())
                 X_word.append(word_embeddings(model, caption_ids, ovt_pos, k, n_ovt, b))
+                if visual_memory is not None:
+                    # E8 orders slots as K object memories followed by registers.
+                    # Each object has one memory slot even when an older model uses
+                    # multiple inline OVT tokens per object.
+                    X_visual_memory.append(visual_memory[b, k].float().cpu())
                 img_ids.append(sample_idx * B + b)
 
     if not Y_app:
@@ -204,6 +211,10 @@ def cache_features(args, model, loader, device) -> Dict[str, torch.Tensor]:
     for j, xs in enumerate(X_ovt_slots):
         if xs:
             out[f"X_ovt_slot{j}"] = torch.stack(xs).float()
+    if X_visual_memory:
+        if len(X_visual_memory) != len(Y_app):
+            raise RuntimeError("E8 visual-memory/object target count mismatch")
+        out["X_visual_memory"] = torch.stack(X_visual_memory).float()
     if ovt_pair_cosines:
         out["ovt_pair_cosine"] = torch.stack(ovt_pair_cosines).float()
     return out
@@ -364,6 +375,8 @@ def main():
         key = f"X_ovt_slot{j}"
         if key in cache:
             probe_keys.append((f"P1_ovt_slot{j}", key))
+    if "X_visual_memory" in cache:
+        probe_keys.append(("P1b_e8_visual_memory", "X_visual_memory"))
     probe_keys.extend([
         ("P2_llm_image_stream", "X_img"),
         ("P3_word_only", "X_word"),
@@ -395,6 +408,8 @@ def main():
         "raw_siglip_pooled": effective_dim(cache["X_raw"], device),
         "appearance_target": effective_dim(cache["Y_app"], device),
     }
+    if "X_visual_memory" in cache:
+        dims["E8_visual_memory"] = effective_dim(cache["X_visual_memory"], device)
     for j in range(int(args.n_ovt_per_object)):
         key = f"X_ovt_slot{j}"
         if key in cache:

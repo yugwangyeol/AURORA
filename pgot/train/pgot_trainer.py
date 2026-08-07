@@ -202,6 +202,31 @@ class PGOTModelArguments:
     pgot_e7_causal_margin: float = field(default=0.05)
     pgot_e7_causal_temperature: float = field(default=0.1)
 
+    # E8 phase 1: iterative in-MLLM image-only visual memories. Object OVTs
+    # and background registers compete for patches; RAE reads semantic keys
+    # but receives reconstruction values only from the visual memories.
+    pgot_e8_visual_memory_enable: bool = field(default=False)
+    pgot_e8_layers: str = field(default="21,24,27")
+    pgot_e8_owner_temperature: float = field(default=1.0)
+    pgot_e8_owner_weight: float = field(default=1.0)
+    pgot_e8_owner_bg_weight: float = field(default=0.5)
+    pgot_e8_reader_num_heads: int = field(default=8)
+    pgot_e8_reader_temperature: float = field(default=1.0)
+    pgot_e8_clean_refinement: bool = field(default=False)
+    pgot_e8_inject_memory: bool = field(default=True)
+    pgot_e8_reader_object_weight: float = field(default=0.0)
+    pgot_e8_reader_background_weight: float = field(default=0.0)
+    # E8.2: paired full/object-ablated/register-only causal reconstruction.
+    pgot_e8_causal_enable: bool = field(default=False)
+    pgot_e8_causal_margin: float = field(default=0.05)
+    pgot_e8_register_margin: float = field(default=0.05)
+    pgot_e8_need_weight: float = field(default=0.1)
+    pgot_e8_local_weight: float = field(default=0.05)
+    pgot_e8_register_bg_weight: float = field(default=0.1)
+    pgot_e8_register_fg_weight: float = field(default=0.1)
+    pgot_e8_causal_batch_probability: float = field(default=0.25)
+    pgot_e8_causal_ramp_steps: int = field(default=1000)
+
     # V12: OVT-style owner competition injected between selected LLM layers.
     pgot_v12_enable: bool = field(default=False)
     pgot_v12_layers: str = field(default="12,16,20,24")
@@ -462,6 +487,14 @@ def freeze_for_pgot(
         for p in model.pgot_fvw_block.parameters():
             p.requires_grad_(True)
             n_trainable += p.numel()
+
+    # E8 competitive image-only writer and typed semantic-key/visual-value reader.
+    for module_name in ("pgot_e8_writer", "pgot_e8_reader"):
+        module = getattr(model, module_name, None)
+        if module is not None:
+            for p in module.parameters():
+                p.requires_grad_(True)
+                n_trainable += p.numel()
 
     # V12 OVT-update / owner heads
     if hasattr(model, "pgot_v12_slot_update_blocks"):
@@ -777,6 +810,10 @@ class PGOTTrainer(Trainer):
                            if p.requires_grad and "latent_queries" in n}
         v14_names = {n for n, p in opt_model.named_parameters()
                      if p.requires_grad and "pgot_v14_router" in n}
+        e8_names = {n for n, p in opt_model.named_parameters()
+                    if p.requires_grad and (
+                        "pgot_e8_writer" in n or "pgot_e8_reader" in n
+                    )}
         v21_names = {n for n, p in opt_model.named_parameters()
                      if p.requires_grad and "pgot_v21_router" in n}
         latent_head_names = {n for n, p in opt_model.named_parameters()
@@ -824,6 +861,7 @@ class PGOTTrainer(Trainer):
             | null_bg_names
             | rae_query_names
             | v14_names
+            | e8_names
             | v21_names
             | latent_head_names
             | e6_projector_names
@@ -881,6 +919,9 @@ class PGOTTrainer(Trainer):
         if params:
             groups.append({"params": params, "weight_decay": 0.0, "lr": rae_query_lr})
         params = _take_params(v14_names)
+        if params:
+            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": self.args.learning_rate})
+        params = _take_params(e8_names)
         if params:
             groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": self.args.learning_rate})
         params = _take_params(v21_names)
@@ -1011,6 +1052,37 @@ class PGOTTrainer(Trainer):
         else:
             e7_scale = 1.0
         inner_model.config.pgot_e7_causal_weight_effective = e7_target_w * e7_scale
+
+        if bool(getattr(inner_model.config, "pgot_e8_causal_enable", False)):
+            e8_ramp = int(
+                getattr(inner_model.config, "pgot_e8_causal_ramp_steps", 1000) or 0
+            )
+            e8_scale = (
+                min(max(float(global_step + 1) / float(e8_ramp), 0.0), 1.0)
+                if e8_ramp > 0
+                else 1.0
+            )
+            probability = min(
+                max(
+                    float(
+                        getattr(
+                            inner_model.config,
+                            "pgot_e8_causal_batch_probability",
+                            0.25,
+                        )
+                    ),
+                    0.0,
+                ),
+                1.0,
+            )
+            # Deterministic across DDP ranks, but well distributed over steps.
+            hashed_step = (global_step * 2654435761 + 1013904223) & 0xFFFFFFFF
+            active = (hashed_step / float(2**32)) < probability
+            inner_model.config.pgot_e8_causal_weight_scale_effective = float(e8_scale)
+            inner_model.config.pgot_e8_causal_active = bool(active)
+        else:
+            inner_model.config.pgot_e8_causal_weight_scale_effective = 0.0
+            inner_model.config.pgot_e8_causal_active = False
 
         images = inputs.pop("images")
         target_images = inputs.pop("target_images")
@@ -1254,7 +1326,12 @@ class PGOTTrainer(Trainer):
             and float(getattr(inner.config, "pgot_v14_route_weight", 1.0)) > 0.0
         )
         v21_owner_enabled = bool(getattr(inner.config, "pgot_v21_enable", False))
-        owner_enabled = bool(getattr(inner.config, "pgot_v12_enable", False)) or v14_owner_enabled or v21_owner_enabled
+        owner_enabled = (
+            bool(getattr(inner.config, "pgot_e8_visual_memory_enable", False))
+            or bool(getattr(inner.config, "pgot_v12_enable", False))
+            or v14_owner_enabled
+            or v21_owner_enabled
+        )
         bce_enabled = (
             float(getattr(inner.config, "pgot_mask_bce_weight", 0.0)) > 0.0
             or float(getattr(inner.config, "pgot_mask_object_balanced_bce_weight", 0.0)) > 0.0

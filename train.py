@@ -281,6 +281,38 @@ def train():
     config.pgot_e7_causal_temperature = float(
         model_args.pgot_e7_causal_temperature
     )
+    config.pgot_e8_visual_memory_enable = bool(
+        model_args.pgot_e8_visual_memory_enable
+    )
+    config.pgot_e8_layers = str(model_args.pgot_e8_layers)
+    config.pgot_e8_owner_temperature = float(
+        model_args.pgot_e8_owner_temperature
+    )
+    config.pgot_e8_owner_weight = float(model_args.pgot_e8_owner_weight)
+    config.pgot_e8_owner_bg_weight = float(model_args.pgot_e8_owner_bg_weight)
+    config.pgot_e8_reader_num_heads = int(model_args.pgot_e8_reader_num_heads)
+    config.pgot_e8_reader_temperature = float(
+        model_args.pgot_e8_reader_temperature
+    )
+    config.pgot_e8_clean_refinement = bool(model_args.pgot_e8_clean_refinement)
+    config.pgot_e8_inject_memory = bool(model_args.pgot_e8_inject_memory)
+    config.pgot_e8_reader_object_weight = float(
+        model_args.pgot_e8_reader_object_weight
+    )
+    config.pgot_e8_reader_background_weight = float(
+        model_args.pgot_e8_reader_background_weight
+    )
+    config.pgot_e8_causal_enable = bool(model_args.pgot_e8_causal_enable)
+    config.pgot_e8_causal_margin = float(model_args.pgot_e8_causal_margin)
+    config.pgot_e8_register_margin = float(model_args.pgot_e8_register_margin)
+    config.pgot_e8_need_weight = float(model_args.pgot_e8_need_weight)
+    config.pgot_e8_local_weight = float(model_args.pgot_e8_local_weight)
+    config.pgot_e8_register_bg_weight = float(model_args.pgot_e8_register_bg_weight)
+    config.pgot_e8_register_fg_weight = float(model_args.pgot_e8_register_fg_weight)
+    config.pgot_e8_causal_batch_probability = float(
+        model_args.pgot_e8_causal_batch_probability
+    )
+    config.pgot_e8_causal_ramp_steps = int(model_args.pgot_e8_causal_ramp_steps)
     config.pgot_v12_enable = bool(model_args.pgot_v12_enable)
     config.pgot_v12_layers = str(model_args.pgot_v12_layers)
     v12_ovt_temp = float(
@@ -516,6 +548,48 @@ def train():
     model.config.pgot_e7_causal_margin = float(model_args.pgot_e7_causal_margin)
     model.config.pgot_e7_causal_temperature = float(
         model_args.pgot_e7_causal_temperature
+    )
+    model.config.pgot_e8_visual_memory_enable = bool(
+        model_args.pgot_e8_visual_memory_enable
+    )
+    model.config.pgot_e8_layers = str(model_args.pgot_e8_layers)
+    model.config.pgot_e8_owner_temperature = float(
+        model_args.pgot_e8_owner_temperature
+    )
+    model.config.pgot_e8_owner_weight = float(model_args.pgot_e8_owner_weight)
+    model.config.pgot_e8_owner_bg_weight = float(model_args.pgot_e8_owner_bg_weight)
+    model.config.pgot_e8_reader_num_heads = int(
+        model_args.pgot_e8_reader_num_heads
+    )
+    model.config.pgot_e8_reader_temperature = float(
+        model_args.pgot_e8_reader_temperature
+    )
+    model.config.pgot_e8_clean_refinement = bool(
+        model_args.pgot_e8_clean_refinement
+    )
+    model.config.pgot_e8_inject_memory = bool(model_args.pgot_e8_inject_memory)
+    model.config.pgot_e8_reader_object_weight = float(
+        model_args.pgot_e8_reader_object_weight
+    )
+    model.config.pgot_e8_reader_background_weight = float(
+        model_args.pgot_e8_reader_background_weight
+    )
+    model.config.pgot_e8_causal_enable = bool(model_args.pgot_e8_causal_enable)
+    model.config.pgot_e8_causal_margin = float(model_args.pgot_e8_causal_margin)
+    model.config.pgot_e8_register_margin = float(model_args.pgot_e8_register_margin)
+    model.config.pgot_e8_need_weight = float(model_args.pgot_e8_need_weight)
+    model.config.pgot_e8_local_weight = float(model_args.pgot_e8_local_weight)
+    model.config.pgot_e8_register_bg_weight = float(
+        model_args.pgot_e8_register_bg_weight
+    )
+    model.config.pgot_e8_register_fg_weight = float(
+        model_args.pgot_e8_register_fg_weight
+    )
+    model.config.pgot_e8_causal_batch_probability = float(
+        model_args.pgot_e8_causal_batch_probability
+    )
+    model.config.pgot_e8_causal_ramp_steps = int(
+        model_args.pgot_e8_causal_ramp_steps
     )
     model.config.pgot_dataset_format = str(data_args.dataset_format)
     model.config.pgot_v12_enable = bool(model_args.pgot_v12_enable)

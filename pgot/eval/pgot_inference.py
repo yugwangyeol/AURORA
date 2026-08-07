@@ -56,6 +56,74 @@ def pgot_forward_eval(
     ovt_valid_mask = ovt_valid_mask.to(device, dtype=torch.bool)
     B, caption_len = caption_input_ids.shape
 
+    if bool(getattr(model.config, "pgot_e8_visual_memory_enable", False)):
+        if rae_access_mode != "baseline":
+            raise ValueError("E8 eval exposes only its typed visual-memory RAE route")
+        out = model._pgot_e8_forward_features(
+            images=images,
+            target_images=target_images,
+            caption_input_ids=caption_input_ids,
+            caption_attention_mask=caption_attention_mask,
+            ovt_positions_in_caption=ovt_positions_in_caption,
+            ovt_valid_mask=ovt_valid_mask,
+            output_hidden_states=bool(return_hidden_states),
+        )
+        hidden = out["hidden"]
+        img_hidden = out["img_hidden"]
+        ovt_hidden = gather_ovt_hidden_states(
+            hidden, out["ovt_abs_positions"], out["ovt_valid_mask"]
+        )
+        attn_temp = float(getattr(model.config, "pgot_attention_temperature", 1.0))
+        attn_ln = bool(getattr(model.config, "pgot_attention_use_layer_norm", True))
+        ovt_logits = compute_per_ovt_mask_logits(
+            ovt_hidden=ovt_hidden,
+            img_hidden=img_hidden,
+            temperature=attn_temp,
+            normalize_tokens=attn_ln,
+        )
+        register_hidden = out["register_states"]
+        reg_logits = compute_per_ovt_mask_logits(
+            ovt_hidden=register_hidden,
+            img_hidden=img_hidden,
+            temperature=attn_temp,
+            normalize_tokens=attn_ln,
+        )
+        result = {
+            "ovt_logits": ovt_logits,
+            "reg_logits": reg_logits,
+            "null_bg_logits": None,
+            "llm_qk_attn_maps": None,
+            "llm_attention_maps": None,
+            "llm_attention_void_maps": None,
+            "llm_attention_register_maps": None,
+            "llm_attention_source": "e8_competitive_visual_memory_writer",
+            "ovt_valid_mask": out["ovt_valid_mask"],
+            "rae_hidden": out["condition_hidden"],
+            "raw_rae_hidden": out["raw_rae_hidden"],
+            "ovt_hidden": ovt_hidden,
+            "register_hidden": register_hidden,
+            "img_hidden": img_hidden,
+            "gt_siglip": out["gt_siglip"],
+            "rae_access_mode": "typed_memory_only",
+            "hidden": hidden,
+            "attn_bias": out["attn_bias"],
+            "positions": out["positions"],
+            "ovt_abs_positions": out["ovt_abs_positions"],
+            "ovt_owner_logits": out["owner_logits"],
+            "ovt_object_probs": out["object_probs"],
+            "ovt_void_probs": out["register_probs"],
+            "ovt_object_valid": out["object_valid"],
+            "visual_memory": out["visual_memory"],
+            "semantic_slots": out["semantic_slots"],
+            "reader_attention": out["reader_attention"],
+            "e8_write_records": out["write_records"],
+            "v12_block_owner_records": None,
+        }
+        if return_hidden_states:
+            result["hidden_states"] = out["hidden_states"]
+            result["inputs_embeds"] = out["inputs_embeds"].detach()
+        return result
+
     if bool(getattr(model.config, "pgot_v14_enable", False)):
         if rae_access_mode != "baseline":
             raise ValueError("V14 eval currently supports only rae_access_mode='baseline'.")

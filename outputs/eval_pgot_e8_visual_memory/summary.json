@@ -1,0 +1,71 @@
+{
+  "protocol_version": "1.5",
+  "ckpt": "/home/jovyan/PGOT/checkpoints/pgot_e8_visual_memory/checkpoint-10000",
+  "checkpoint_lora_detected": true,
+  "readout": "ovt_owner",
+  "num_samples": 4720,
+  "fARI": 0.60225895744659,
+  "mBO": 0.5329122933471576,
+  "mIoU": 0.5789709683436648,
+  "active_count_mean": 5.152966101694915,
+  "by_object_count": {
+    "11+": {
+      "n": 590,
+      "fARI": 0.6823061293094388,
+      "mBO": 0.2955470889996169,
+      "mIoU": 0.3007998870654126
+    },
+    "1-3": {
+      "n": 2375,
+      "fARI": 0.49681479522225863,
+      "mBO": 0.6563340397228256,
+      "mIoU": 0.7192280100709514
+    },
+    "4-6": {
+      "n": 1044,
+      "fARI": 0.7217912884841481,
+      "mBO": 0.493084020334585,
+      "mIoU": 0.5360184413634269
+    },
+    "7-10": {
+      "n": 711,
+      "fARI": 0.7125406737342064,
+      "mBO": 0.3781733354068926,
+      "mIoU": 0.4043618291302069
+    }
+  },
+  "gt_source": "coco_instance",
+  "image_preprocess_mode": "coda_center_crop",
+  "coda_crop_size": 512,
+  "metric_resolution": 512,
+  "image_patch_grid": 32,
+  "image_patch_tokens": 1024,
+  "teacher_forced_caption": true,
+  "llm_attention_readout_requested": "auto",
+  "register_hard_gt_mask_training": false,
+  "register_eval_route": "unrestricted",
+  "register_hard_mask_used_in_eval": false,
+  "register_hard_gt_mask_used_in_eval": false,
+  "segmentation_forward": "unrestricted_discovery",
+  "reconstruction_forward": "unrestricted",
+  "recon_source": "diffusion",
+  "e6_coda_direct_bottleneck": false,
+  "e7_causal_ownership_bottleneck": false,
+  "e8_visual_memory_bottleneck": true,
+  "decoder_condition": "semantic keys + image-only visual-memory values",
+  "rae_standard_slot_attention_blocked": true,
+  "null_bg_tokens": 0,
+  "background_owner": "aggregate probability over registers",
+  "dit_ovt_cross_attn_disabled": false,
+  "coda_overlap_excluded": true,
+  "owner_source": "e8_competitive_visual_memory_writer",
+  "ovt_layers": "8,16,24,27",
+  "owner_temperature": 1.0,
+  "owner_weight": 1.0,
+  "void_tokens": 0,
+  "rFID": 23.44594955444336,
+  "recon_psnr": 10.787760794869923,
+  "recon_ssim": 0.23299640340264888,
+  "recon_mse": 0.0906589825873429,
+  "recon_mae": 0.23190023157650888
+}

@@ -45,6 +45,10 @@ from pgot.model.pgot_utils import (
 )
 from pgot.model.coda_direct import PGOTCODADirectBottleneck
 from pgot.model.sd_causal_ownership import PGOTE7SDCausalOwnership
+from pgot.model.visual_memory import (
+    PGOTE8TypedRAEReader,
+    PGOTE8VisualMemoryWriter,
+)
 
 
 class PGOTQwen2Config(ScaleRAEQwenConfig):
@@ -696,6 +700,45 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         else:
             self.pgot_e7_decoder = None
 
+        # E8: keep the Scale-RAE reconstruction path, but split every object
+        # slot into a Qwen semantic state and an image-only visual memory.  The
+        # reader is typed: semantic states are keys, visual memories are values.
+        self.pgot_e8_visual_memory_enable = bool(
+            getattr(self.config, "pgot_e8_visual_memory_enable", False)
+        )
+        if self.pgot_e8_visual_memory_enable:
+            if self.pgot_e6_enable or self.pgot_e7_enable:
+                raise ValueError("E8 visual memory is mutually exclusive with E6/E7")
+            if self.pgot_n_null_bg != 0:
+                raise ValueError(
+                    "E8 uses registers as aggregate background owners; set pgot_n_null_bg=0"
+                )
+            if self.pgot_n_register <= 0:
+                raise ValueError("E8 requires at least one background register")
+            self.pgot_e8_layers = _resolve_layer_spec(
+                str(getattr(self.config, "pgot_e8_layers", "21,24,27")),
+                int(getattr(self.config, "num_hidden_layers", 0)),
+            )
+            if not self.pgot_e8_layers:
+                raise ValueError("E8 requires at least one valid visual-write layer")
+            self.pgot_e8_writer = PGOTE8VisualMemoryWriter(
+                dim=D,
+                temperature=float(
+                    getattr(self.config, "pgot_e8_owner_temperature", 1.0)
+                ),
+            )
+            self.pgot_e8_reader = PGOTE8TypedRAEReader(
+                dim=D,
+                num_heads=int(getattr(self.config, "pgot_e8_reader_num_heads", 8)),
+                temperature=float(
+                    getattr(self.config, "pgot_e8_reader_temperature", 1.0)
+                ),
+            )
+        else:
+            self.pgot_e8_layers = []
+            self.pgot_e8_writer = None
+            self.pgot_e8_reader = None
+
         self.pgot_fvw_enable = bool(getattr(self.config, "pgot_fvw_enable", False))
         self.pgot_fvw_layers = _resolve_layer_spec(
             str(getattr(self.config, "pgot_fvw_layers", "0,8,16,24,27")),
@@ -817,6 +860,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             f"N_null_bg={self.pgot_n_null_bg}, "
             f"e6_coda_direct={self.pgot_e6_enable}, "
             f"e7_causal_ownership={self.pgot_e7_enable}, "
+            f"e8_visual_memory={self.pgot_e8_visual_memory_enable}, "
+            f"e8_layers={self.pgot_e8_layers}, "
             f"fvw={self.pgot_fvw_enable}, fvw_layers={self.pgot_fvw_layers}, "
             f"v12={self.pgot_v12_enable}, v12_layers={self.pgot_v12_layers}, "
             f"v14={self.pgot_v14_enable}, "
@@ -1352,6 +1397,515 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "layer_metrics": layer_metrics,
         }
 
+    def _pgot_e8_build_semantic_slots(
+        self,
+        *,
+        hidden_states: torch.Tensor,
+        positions: Dict[str, int],
+        ovt_abs_positions: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+    ) -> Dict[str, torch.Tensor]:
+        """Build {object OVT, background register} semantic owner slots."""
+        object_states, object_valid = self._pgot_merge_object_ovts(
+            hidden_states=hidden_states,
+            ovt_abs_positions=ovt_abs_positions,
+            ovt_valid_mask=ovt_valid_mask,
+        )
+        reg_s, reg_e = int(positions["reg_s"]), int(positions["reg_e"])
+        register_states = hidden_states[:, reg_s:reg_e, :]
+        register_valid = torch.ones(
+            register_states.shape[:2],
+            device=hidden_states.device,
+            dtype=torch.bool,
+        )
+        return {
+            "semantic_slots": torch.cat([object_states, register_states], dim=1),
+            "slot_valid": torch.cat([object_valid, register_valid], dim=1),
+            "object_states": object_states,
+            "object_valid": object_valid,
+            "register_states": register_states,
+            "register_valid": register_valid,
+        }
+
+    def _pgot_e8_scatter_injection(
+        self,
+        *,
+        hidden_states: torch.Tensor,
+        positions: Dict[str, int],
+        ovt_abs_positions: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        object_delta: torch.Tensor,
+        register_delta: torch.Tensor,
+    ) -> torch.Tensor:
+        """Inject memory residuals at inline OVT and register sequence rows."""
+        B, L, D = hidden_states.shape
+        repeated = self._pgot_repeat_object_ovts_to_tokens(
+            object_ovts=object_delta,
+            total_ovt_tokens=ovt_abs_positions.shape[1],
+        )
+        repeated = repeated.to(dtype=hidden_states.dtype)
+        repeated = repeated * ovt_valid_mask.unsqueeze(-1).to(repeated.dtype)
+        safe_pos = ovt_abs_positions.clamp(min=0, max=L - 1)
+        ovt_idx = safe_pos.unsqueeze(-1).expand(B, safe_pos.shape[1], D)
+        delta_full = torch.zeros_like(hidden_states).scatter(1, ovt_idx, repeated)
+
+        reg_s, reg_e = int(positions["reg_s"]), int(positions["reg_e"])
+        if reg_e > reg_s and register_delta.shape[1] > 0:
+            register_delta = register_delta.to(dtype=hidden_states.dtype)
+            reg_idx = torch.arange(reg_s, reg_e, device=hidden_states.device)
+            reg_idx = reg_idx.view(1, -1, 1).expand(B, reg_e - reg_s, D)
+            delta_full = delta_full.scatter(1, reg_idx, register_delta)
+        return hidden_states + delta_full
+
+    @staticmethod
+    def _pgot_e8_block_standard_rae_values(
+        attention_bias: torch.Tensor,
+        positions: Dict[str, int],
+    ) -> torch.Tensor:
+        """Make RAE rows self-only; the typed reader is their sole slot input."""
+        rae_s, rae_e = int(positions["rae_s"]), int(positions["rae_e"])
+        if rae_e <= rae_s:
+            return attention_bias
+        bias = attention_bias.clone()
+        bias[:, :, rae_s:rae_e, :] = float("-inf")
+        rows = torch.arange(rae_s, rae_e, device=bias.device)
+        bias[:, :, rows, rows] = 0.0
+        return bias
+
+    def _pgot_e8_forward_features(
+        self,
+        *,
+        images: torch.Tensor,
+        target_images: torch.Tensor,
+        caption_input_ids: torch.LongTensor,
+        caption_attention_mask: torch.Tensor,
+        ovt_positions_in_caption: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        output_hidden_states: bool = False,
+    ) -> Dict[str, torch.Tensor]:
+        """Run Qwen with iterative image-only memories and a typed RAE read."""
+        if not self.pgot_e8_visual_memory_enable:
+            raise RuntimeError("E8 visual-memory features requested while E8 is disabled")
+        if self.pgot_e8_writer is None or self.pgot_e8_reader is None:
+            raise RuntimeError("E8 writer/reader modules are missing")
+
+        seq = self._pgot_build_sequence_inputs(
+            images=images,
+            target_images=target_images,
+            caption_input_ids=caption_input_ids,
+            caption_attention_mask=caption_attention_mask,
+            ovt_positions_in_caption=ovt_positions_in_caption,
+            ovt_valid_mask=ovt_valid_mask,
+        )
+        seq["attn_bias"] = self._pgot_e8_block_standard_rae_values(
+            seq["attn_bias"], seq["positions"]
+        )
+
+        write_layers = set(int(x) for x in self.pgot_e8_layers)
+        clean_refinement = bool(
+            getattr(self.config, "pgot_e8_clean_refinement", False)
+        )
+        inject_memory = bool(
+            getattr(self.config, "pgot_e8_inject_memory", not clean_refinement)
+        )
+        visual_memory: Optional[torch.Tensor] = None
+        write_records: List[Dict[str, torch.Tensor]] = []
+
+        def hidden_state_postprocess_fn(
+            hidden_states: torch.Tensor, layer_idx: int
+        ) -> torch.Tensor:
+            nonlocal visual_memory
+            if int(layer_idx) not in write_layers:
+                return hidden_states
+
+            slots = self._pgot_e8_build_semantic_slots(
+                hidden_states=hidden_states,
+                positions=seq["positions"],
+                ovt_abs_positions=seq["ovt_abs_positions"],
+                ovt_valid_mask=seq["ovt_valid_mask"],
+            )
+            if visual_memory is None:
+                visual_memory = torch.zeros_like(slots["semantic_slots"])
+            if visual_memory.shape != slots["semantic_slots"].shape:
+                raise ValueError(
+                    "E8 slot shape changed between writer layers: "
+                    f"memory={tuple(visual_memory.shape)} "
+                    f"slots={tuple(slots['semantic_slots'].shape)}"
+                )
+
+            writer = self.pgot_e8_writer(
+                semantic_slots=slots["semantic_slots"],
+                visual_memory=visual_memory,
+                image_states=hidden_states[
+                    :, seq["positions"]["img_s"]:seq["positions"]["img_e"], :
+                ],
+                slot_valid=slots["slot_valid"],
+                clean_refinement=clean_refinement,
+                initialize_memory=len(write_records) == 0,
+            )
+            visual_memory = writer["visual_memory"]
+            K = slots["object_states"].shape[1]
+            if inject_memory:
+                injection = self.pgot_e8_writer.injection_delta(visual_memory)
+            else:
+                injection = torch.zeros_like(visual_memory)
+            write_records.append(
+                {
+                    "layer": hidden_states.new_tensor(float(layer_idx)),
+                    "owner_logits": writer["owner_logits"],
+                    "owner_probs": writer["owner_probs"],
+                    "object_probs": writer["owner_probs"][:, :K],
+                    "register_probs": writer["owner_probs"][:, K:],
+                    "memory_norm": visual_memory.float().norm(dim=-1).mean().detach(),
+                    "injection_norm": injection.float().norm(dim=-1).mean().detach(),
+                    "write_gate_mean": writer["write_gate_mean"],
+                    "write_strength": writer["write_strength"],
+                }
+            )
+            if not inject_memory:
+                return hidden_states
+            return self._pgot_e8_scatter_injection(
+                hidden_states=hidden_states,
+                positions=seq["positions"],
+                ovt_abs_positions=seq["ovt_abs_positions"],
+                ovt_valid_mask=seq["ovt_valid_mask"],
+                object_delta=injection[:, :K],
+                register_delta=injection[:, K:],
+            )
+
+        out = self.model(
+            inputs_embeds=seq["inputs_embeds"],
+            attention_bias=seq["attn_bias"],
+            use_cache=False,
+            output_hidden_states=output_hidden_states,
+            return_dict=True,
+            hidden_state_postprocess_fn=hidden_state_postprocess_fn,
+        )
+        if visual_memory is None or not write_records:
+            raise RuntimeError("E8 forward completed without a visual-memory write")
+
+        hidden = out.last_hidden_state
+        slots = self._pgot_e8_build_semantic_slots(
+            hidden_states=hidden,
+            positions=seq["positions"],
+            ovt_abs_positions=seq["ovt_abs_positions"],
+            ovt_valid_mask=seq["ovt_valid_mask"],
+        )
+        raw_rae_hidden = hidden[
+            :, seq["positions"]["rae_s"]:seq["positions"]["rae_e"], :
+        ]
+        reader = self.pgot_e8_reader(
+            rae_queries=raw_rae_hidden,
+            semantic_slots=slots["semantic_slots"],
+            visual_memory=visual_memory,
+            slot_valid=slots["slot_valid"],
+        )
+        final_write = write_records[-1]
+        K = slots["object_states"].shape[1]
+        seq.update(
+            {
+                "hidden": hidden,
+                "outputs": out,
+                "hidden_states": out.hidden_states if output_hidden_states else None,
+                "img_hidden": hidden[
+                    :, seq["positions"]["img_s"]:seq["positions"]["img_e"], :
+                ],
+                "raw_rae_hidden": raw_rae_hidden,
+                "condition_hidden": reader["condition_hidden"],
+                "reader_attention": reader["reader_attention"],
+                "reader_entropy": reader["reader_entropy"],
+                "reader_attention_heads": reader.get("reader_attention_heads"),
+                "semantic_slots": slots["semantic_slots"],
+                "visual_memory": visual_memory,
+                "slot_valid": slots["slot_valid"],
+                "object_states": slots["object_states"],
+                "object_valid": slots["object_valid"],
+                "register_states": slots["register_states"],
+                "owner_logits": final_write["owner_logits"],
+                "owner_probs": final_write["owner_probs"],
+                "object_probs": final_write["owner_probs"][:, :K],
+                "register_probs": final_write["owner_probs"][:, K:],
+                "write_records": write_records,
+            }
+        )
+        return seq
+
+    def _pgot_e8_object_masks(
+        self,
+        *,
+        gt_masks_per_ovt: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        object_count: int,
+        target_tokens: int,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Return area-resampled [B,K,Q] object masks and valid objects."""
+        B = gt_masks_per_ovt.shape[0]
+        n = max(int(self.pgot_n_ovt_per_object), 1)
+        K = min(int(object_count), gt_masks_per_ovt.shape[1] // n)
+        if K <= 0:
+            return (
+                gt_masks_per_ovt.new_zeros(B, 0, target_tokens),
+                ovt_valid_mask.new_zeros(B, 0),
+            )
+        masks = gt_masks_per_ovt[:, : K * n].float()
+        src_tokens = masks.shape[-1]
+        if src_tokens != target_tokens:
+            src_side = int(round(float(src_tokens) ** 0.5))
+            dst_side = int(round(float(target_tokens) ** 0.5))
+            if src_side * src_side != src_tokens or dst_side * dst_side != target_tokens:
+                raise ValueError(
+                    f"E8 masks require square grids, got {src_tokens} -> {target_tokens}"
+                )
+            masks = F.interpolate(
+                masks.reshape(B * K * n, 1, src_side, src_side),
+                size=(dst_side, dst_side),
+                mode="area",
+            ).reshape(B, K * n, target_tokens)
+        masks = masks.reshape(B, K, n, target_tokens).amax(dim=2).clamp(0.0, 1.0)
+        valid = (
+            ovt_valid_mask[:, : K * n]
+            .to(device=masks.device, dtype=torch.bool)
+            .reshape(B, K, n)
+            .any(dim=2)
+        )
+        valid = valid & (masks.sum(dim=-1) > 0.0)
+        masks = masks.masked_fill(~valid.unsqueeze(-1), 0.0)
+        return masks, valid
+
+    def _pgot_e8_reader_supervision(
+        self,
+        *,
+        reader_attention: torch.Tensor,
+        gt_masks_per_ovt: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        object_count: int,
+    ) -> Dict[str, torch.Tensor]:
+        """Training-only object/aggregate-background supervision for RAE routing."""
+        B, Q, S = reader_attention.shape
+        K = min(int(object_count), S)
+        zero = reader_attention.new_zeros(())
+        masks, valid = self._pgot_e8_object_masks(
+            gt_masks_per_ovt=gt_masks_per_ovt,
+            ovt_valid_mask=ovt_valid_mask,
+            object_count=K,
+            target_tokens=Q,
+        )
+        K = masks.shape[1]
+        if K <= 0:
+            return {
+                "object_loss": zero,
+                "background_loss": zero,
+                "matching_mass_on_fg": zero,
+                "register_mass_on_fg": zero,
+                "object_mass_on_bg": zero,
+            }
+
+        attn = reader_attention.float().clamp_min(1e-8)
+        area = masks.sum(dim=-1)
+        per_object = -(masks * attn[:, :, :K].transpose(1, 2).log()).sum(dim=-1)
+        per_object = per_object / area.clamp_min(1.0)
+        object_loss = per_object[valid].mean() if bool(valid.any()) else zero
+
+        union = masks.amax(dim=1)
+        bg = (1.0 - union).clamp(0.0, 1.0)
+        register_mass = attn[:, :, K:].sum(dim=-1).clamp_min(1e-8)
+        bg_area = bg.sum(dim=-1)
+        valid_bg = bg_area > 0.0
+        per_bg = -(bg * register_mass.log()).sum(dim=-1) / bg_area.clamp_min(1.0)
+        background_loss = per_bg[valid_bg].mean() if bool(valid_bg.any()) else zero
+
+        matching_mass = (
+            (masks * attn[:, :, :K].transpose(1, 2)).sum(dim=-1)
+            / area.clamp_min(1.0)
+        )
+        matching_mass_on_fg = matching_mass[valid].mean() if bool(valid.any()) else zero
+        fg_area = union.sum().clamp_min(1.0)
+        register_mass_on_fg = (union * register_mass).sum() / fg_area
+        object_mass = attn[:, :, :K].sum(dim=-1)
+        object_mass_on_bg = (bg * object_mass).sum() / bg.sum().clamp_min(1.0)
+        return {
+            "object_loss": object_loss,
+            "background_loss": background_loss,
+            "matching_mass_on_fg": matching_mass_on_fg.detach(),
+            "register_mass_on_fg": register_mass_on_fg.detach(),
+            "object_mass_on_bg": object_mass_on_bg.detach(),
+        }
+
+    def _pgot_e8_intervene_memory(
+        self,
+        *,
+        visual_memory: torch.Tensor,
+        object_valid: torch.Tensor,
+        ovt_category_ids: Optional[torch.Tensor],
+    ) -> Dict[str, torch.Tensor]:
+        """Replace one valid object memory per image; prefer same-category donors."""
+        B, S, D = visual_memory.shape
+        K = object_valid.shape[1]
+        device = visual_memory.device
+        selected = torch.zeros(B, device=device, dtype=torch.long)
+        selected_valid = torch.zeros(B, device=device, dtype=torch.bool)
+        modes = torch.full((B,), -1, device=device, dtype=torch.long)
+        same_category = torch.zeros(B, device=device, dtype=torch.bool)
+        ablated = visual_memory.clone()
+
+        categories = None
+        if ovt_category_ids is not None and K > 0:
+            n = max(int(self.pgot_n_ovt_per_object), 1)
+            raw = ovt_category_ids.to(device=device, dtype=torch.long)[:, : K * n]
+            if raw.shape[1] == K * n:
+                categories = raw.reshape(B, K, n)[:, :, 0]
+
+        for b in range(B):
+            valid_idx = torch.nonzero(object_valid[b], as_tuple=False).flatten()
+            if valid_idx.numel() == 0:
+                continue
+            k = int(valid_idx[torch.randint(valid_idx.numel(), (), device=device)].item())
+            selected[b] = k
+            selected_valid[b] = True
+            mode = int(torch.randint(3, (), device=device).item())
+            modes[b] = mode
+            source = visual_memory[b, k]
+            if mode == 0:
+                replacement = torch.zeros_like(source)
+            elif mode == 1:
+                scale = source.float().norm() / max(float(D) ** 0.5, 1.0)
+                replacement = torch.randn_like(source) * scale.to(source.dtype)
+            else:
+                candidates = []
+                source_cat = int(categories[b, k].item()) if categories is not None else -1
+                if categories is not None and source_cat >= 0:
+                    for db in range(B):
+                        for dk in torch.nonzero(object_valid[db], as_tuple=False).flatten().tolist():
+                            if (db != b or int(dk) != k) and int(categories[db, int(dk)].item()) == source_cat:
+                                candidates.append((db, int(dk), True))
+                if not candidates:
+                    for db in range(B):
+                        for dk in torch.nonzero(object_valid[db], as_tuple=False).flatten().tolist():
+                            if db != b or int(dk) != k:
+                                candidates.append((db, int(dk), False))
+                if candidates:
+                    choice = candidates[int(torch.randint(len(candidates), (), device=device).item())]
+                    replacement = visual_memory[choice[0], choice[1]].detach()
+                    same_category[b] = bool(choice[2])
+                else:
+                    scale = source.float().norm() / max(float(D) ** 0.5, 1.0)
+                    replacement = torch.randn_like(source) * scale.to(source.dtype)
+                    modes[b] = 1
+            ablated[b, k] = replacement.detach()
+
+        register_only = visual_memory.clone()
+        if K > 0:
+            register_only[:, :K] = 0.0
+        return {
+            "ablated_memory": ablated,
+            "register_only_memory": register_only,
+            "selected_object": selected,
+            "selected_valid": selected_valid,
+            "mode": modes,
+            "same_category": same_category,
+        }
+
+    @staticmethod
+    def _pgot_e8_area_mean(values: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        """Per-image channel/area normalized mean for [B,C,H,W] tensors."""
+        weighted = values * mask[:, None]
+        denom = mask.sum(dim=(1, 2)) * values.shape[1]
+        return weighted.sum(dim=(1, 2, 3)) / denom.clamp_min(1.0)
+
+    def _pgot_e8_paired_causal_loss(
+        self,
+        *,
+        full_condition: torch.Tensor,
+        ablated_condition: torch.Tensor,
+        register_condition: torch.Tensor,
+        target_features: torch.Tensor,
+        selected_mask: torch.Tensor,
+        foreground_mask: torch.Tensor,
+        selected_valid: torch.Tensor,
+    ) -> Dict[str, torch.Tensor]:
+        """One concatenated DiT call with identical RF timestep/noise per branch."""
+        full = self._captionslot_prepare_diffusion_condition(full_condition).float()
+        ablated = self._captionslot_prepare_diffusion_condition(ablated_condition).float()
+        register = self._captionslot_prepare_diffusion_condition(register_condition).float()
+        self.diff_head = self.diff_head.to(full.device)
+        self.set_diff_fp32()
+
+        target = target_features.to(device=full.device).float()
+        if getattr(self.diff_head, "normalize_data", False):
+            mean = self.diff_head.data_mean.to(target.device)
+            std = self.diff_head.data_std.to(target.device)
+            while mean.dim() < target.dim():
+                mean = mean.unsqueeze(0)
+                std = std.unsqueeze(0)
+            target = (target - mean) / std
+        else:
+            target = F.layer_norm(target, (target.shape[-1],))
+
+        B, L, C = target.shape
+        side = int(round(float(L) ** 0.5))
+        target_grid = target.view(B, side, side, C).permute(0, 3, 1, 2).contiguous()
+        t = self.diff_head.train_flow.get_timestep(target_grid)
+        x_end = self.diff_head.train_flow.get_x_end(target_grid.shape, target_grid.device)
+        alpha = self.diff_head.train_flow.get_alphas(t).view(B, 1, 1, 1)
+        sigma = self.diff_head.train_flow.get_sigmas(t).view(B, 1, 1, 1)
+        x_t = alpha * target_grid + sigma * x_end
+
+        conditions = torch.cat([full, ablated, register], dim=0)
+        targets = target_grid.repeat(3, 1, 1, 1)
+        timesteps = t.repeat(3)
+        noisy = x_t.repeat(3, 1, 1, 1)
+        ends = x_end.repeat(3, 1, 1, 1)
+        terms = self.diff_head.train_flow.training_losses(
+            self.diff_head.model,
+            targets,
+            timesteps,
+            model_kwargs={"y": conditions},
+            x_end=ends,
+            x_t=noisy,
+        )
+        mse_full, mse_ablated, mse_register = terms["mse_map"].chunk(3, dim=0)
+        pred_full, pred_ablated, _ = terms["model_pred"].chunk(3, dim=0)
+        global_full = terms["loss"][:B]
+
+        selected_error_full = self._pgot_e8_area_mean(mse_full, selected_mask)
+        selected_error_ablated = self._pgot_e8_area_mean(mse_ablated, selected_mask)
+        fg_error_full = self._pgot_e8_area_mean(mse_full, foreground_mask)
+        fg_error_register = self._pgot_e8_area_mean(mse_register, foreground_mask)
+        background_mask = (1.0 - foreground_mask).clamp(0.0, 1.0)
+        bg_error_register = self._pgot_e8_area_mean(mse_register, background_mask)
+        outside_consistency = self._pgot_e8_area_mean(
+            (pred_ablated - pred_full.detach()).square(),
+            (1.0 - selected_mask).clamp(0.0, 1.0),
+        )
+
+        valid = selected_valid.to(dtype=torch.bool)
+        zero = full.new_zeros(())
+        rho = float(getattr(self.config, "pgot_e8_causal_margin", 0.05))
+        rho_reg = float(getattr(self.config, "pgot_e8_register_margin", rho))
+        need_each = F.relu((1.0 + rho) * selected_error_full - selected_error_ablated.detach())
+        need = need_each[valid].mean() if bool(valid.any()) else zero
+        local = outside_consistency[valid].mean() if bool(valid.any()) else zero
+        reg_bg = bg_error_register.mean()
+        reg_fg_each = F.relu((1.0 + rho_reg) * fg_error_full - fg_error_register.detach())
+        valid_fg = foreground_mask.sum(dim=(1, 2)) > 0.0
+        reg_fg = reg_fg_each[valid_fg].mean() if bool(valid_fg.any()) else zero
+
+        ratio = selected_error_ablated / selected_error_full.clamp_min(1e-8)
+        reg_ratio = fg_error_register / fg_error_full.clamp_min(1e-8)
+        return {
+            "recon_loss": global_full.mean(),
+            "need_loss": need,
+            "local_loss": local,
+            "register_bg_loss": reg_bg,
+            "register_fg_loss": reg_fg,
+            "full_selected_error": selected_error_full[valid].mean().detach() if bool(valid.any()) else zero,
+            "ablated_selected_error": selected_error_ablated[valid].mean().detach() if bool(valid.any()) else zero,
+            "object_ablation_ratio": ratio[valid].mean().detach() if bool(valid.any()) else zero,
+            "register_fg_ratio": reg_ratio[valid_fg].mean().detach() if bool(valid_fg.any()) else zero,
+            "outside_consistency": local.detach(),
+            "timestep": t.mean().detach(),
+        }
+
     def _pgot_v12_build_ovt_states(
         self,
         hidden_states: torch.Tensor,
@@ -1698,6 +2252,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         owner_probs: torch.Tensor,
         gt_masks_per_ovt: torch.Tensor,
         ovt_valid_mask: torch.Tensor,
+        void_weight: Optional[float] = None,
     ) -> Dict[str, torch.Tensor]:
         B, S, P = owner_logits.shape
         n = max(int(self.pgot_n_ovt_per_object), 1)
@@ -1757,7 +2312,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             per_bg = -(bg_mask * void_log_prob).sum(dim=-1) / bg_area.clamp_min(1.0)
             void_loss = per_bg[valid_bg].mean() if bool(valid_bg.any()) else zero
 
-        void_w = float(getattr(self.config, "pgot_v14_void_weight", 0.5))
+        void_w = (
+            float(getattr(self.config, "pgot_v14_void_weight", 0.5))
+            if void_weight is None
+            else float(void_weight)
+        )
         loss = object_loss + void_w * void_loss
         if not torch.isfinite(loss):
             loss = zero
@@ -3951,6 +4510,21 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         Used for eval-time image reconstruction sampling. Mirrors the first 7
         steps of `_forward_pgot` (sections 1–7) but stops before any loss compute.
         """
+        if bool(getattr(self.config, "pgot_e8_visual_memory_enable", False)):
+            feats = self._pgot_e8_forward_features(
+                images=images,
+                target_images=target_images,
+                caption_input_ids=caption_input_ids,
+                caption_attention_mask=caption_attention_mask,
+                ovt_positions_in_caption=ovt_positions_in_caption,
+                ovt_valid_mask=ovt_valid_mask,
+                output_hidden_states=False,
+            )
+            return {
+                "rae_hidden": feats["condition_hidden"],
+                "gt_siglip": feats["gt_siglip"],
+            }
+
         if bool(getattr(self.config, "pgot_v14_enable", False)):
             feats = self._pgot_v14_forward_features(
                 images=images,
@@ -4160,6 +4734,296 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         if direct_latent is not None:
             result["direct_latent"] = direct_latent.detach()
         return result
+
+    def _forward_pgot_e8(
+        self,
+        images: torch.Tensor,
+        caption_input_ids: torch.LongTensor,
+        caption_attention_mask: torch.Tensor,
+        caption_labels: Optional[torch.LongTensor],
+        ovt_positions_in_caption: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        ovt_is_thing: Optional[torch.Tensor],
+        ovt_category_ids: Optional[torch.Tensor],
+        gt_masks_per_ovt: torch.Tensor,
+        gt_rae_masks_per_ovt: Optional[torch.Tensor],
+        target_images: torch.Tensor,
+        pgot_contrastive_weight: Optional[float] = None,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        """E8.1 clean routing plus optional E8.2 paired causal objective."""
+        del ovt_is_thing, pgot_contrastive_weight
+        seq = self._pgot_e8_forward_features(
+            images=images,
+            target_images=target_images,
+            caption_input_ids=caption_input_ids,
+            caption_attention_mask=caption_attention_mask,
+            ovt_positions_in_caption=ovt_positions_in_caption,
+            ovt_valid_mask=ovt_valid_mask,
+            output_hidden_states=False,
+        )
+        hidden = seq["hidden"]
+        condition_hidden = seq["condition_hidden"]
+        gt_siglip = seq["gt_siglip"]
+        B = hidden.shape[0]
+
+        caption_input_ids = caption_input_ids.to(hidden.device, dtype=torch.long)
+        caption_attention_mask = caption_attention_mask.to(hidden.device, dtype=torch.bool)
+        ovt_valid_mask = ovt_valid_mask.to(hidden.device, dtype=torch.bool)
+        gt_masks_per_ovt = gt_masks_per_ovt.to(hidden.device).float()
+        if gt_rae_masks_per_ovt is not None:
+            gt_rae_masks_per_ovt = gt_rae_masks_per_ovt.to(hidden.device).float()
+        if ovt_category_ids is not None:
+            ovt_category_ids = ovt_category_ids.to(hidden.device, dtype=torch.long)
+        if caption_labels is not None:
+            caption_labels = caption_labels.to(hidden.device, dtype=torch.long)
+
+        loss_lm = self._compute_lm_loss(
+            hidden=hidden,
+            positions=seq["positions"],
+            caption_input_ids=caption_input_ids,
+            caption_attention_mask=caption_attention_mask,
+            caption_labels=caption_labels,
+        )
+        owner_bg_w = float(getattr(self.config, "pgot_e8_owner_bg_weight", 0.5))
+        owner_stats_by_layer = []
+        for record in seq["write_records"]:
+            stats = self._pgot_v14_compute_route_loss(
+                owner_logits=record["owner_logits"],
+                owner_probs=record["owner_probs"],
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+                void_weight=owner_bg_w,
+            )
+            owner_stats_by_layer.append((int(record["layer"].item()), stats))
+        loss_owner = torch.stack(
+            [stats["loss"] for _, stats in owner_stats_by_layer]
+        ).mean()
+        owner_stats = owner_stats_by_layer[-1][1]
+
+        K = seq["object_valid"].shape[1]
+        reader_masks = (
+            gt_rae_masks_per_ovt
+            if gt_rae_masks_per_ovt is not None
+            else gt_masks_per_ovt
+        )
+        reader_stats = self._pgot_e8_reader_supervision(
+            reader_attention=seq["reader_attention"],
+            gt_masks_per_ovt=reader_masks,
+            ovt_valid_mask=ovt_valid_mask,
+            object_count=K,
+        )
+        reader_obj_w = float(
+            getattr(self.config, "pgot_e8_reader_object_weight", 0.0)
+        )
+        reader_bg_w = float(
+            getattr(self.config, "pgot_e8_reader_background_weight", 0.0)
+        )
+        loss_reader = (
+            reader_obj_w * reader_stats["object_loss"]
+            + reader_bg_w * reader_stats["background_loss"]
+        )
+
+        condition_for_diff = condition_hidden
+        cfg_drop_rate = float(getattr(self.config, "pgot_cfg_drop_rate", 0.0))
+        if self.training and cfg_drop_rate > 0.0:
+            drop_mask = (
+                torch.rand(B, device=condition_hidden.device) < cfg_drop_rate
+            ).view(B, 1, 1)
+            condition_for_diff = condition_hidden * (~drop_mask).to(
+                condition_hidden.dtype
+            )
+        causal_enabled = bool(getattr(self.config, "pgot_e8_causal_enable", False))
+        causal_active = causal_enabled and bool(
+            getattr(self.config, "pgot_e8_causal_active", True)
+        )
+        zero = hidden.new_zeros(())
+        causal_stats = {
+            "need_loss": zero,
+            "local_loss": zero,
+            "register_bg_loss": zero,
+            "register_fg_loss": zero,
+            "full_selected_error": zero,
+            "ablated_selected_error": zero,
+            "object_ablation_ratio": zero,
+            "register_fg_ratio": zero,
+            "outside_consistency": zero,
+            "timestep": zero,
+        }
+        intervention_stats = None
+        if causal_active:
+            intervention_stats = self._pgot_e8_intervene_memory(
+                visual_memory=seq["visual_memory"],
+                object_valid=seq["object_valid"],
+                ovt_category_ids=ovt_category_ids,
+            )
+            ablated_reader = self.pgot_e8_reader(
+                rae_queries=seq["raw_rae_hidden"],
+                semantic_slots=seq["semantic_slots"],
+                visual_memory=intervention_stats["ablated_memory"],
+                slot_valid=seq["slot_valid"],
+            )
+            register_reader = self.pgot_e8_reader(
+                rae_queries=seq["raw_rae_hidden"],
+                semantic_slots=seq["semantic_slots"],
+                visual_memory=intervention_stats["register_only_memory"],
+                slot_valid=seq["slot_valid"],
+            )
+            ablated_condition = ablated_reader["condition_hidden"]
+            register_condition = register_reader["condition_hidden"]
+            if self.training and cfg_drop_rate > 0.0:
+                # Use exactly the same CFG decision in all paired branches.
+                keep = (condition_for_diff != 0.0).any(dim=(1, 2), keepdim=True)
+                ablated_condition = ablated_condition * keep.to(ablated_condition.dtype)
+                register_condition = register_condition * keep.to(register_condition.dtype)
+
+            object_masks, _ = self._pgot_e8_object_masks(
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+                object_count=K,
+                target_tokens=gt_siglip.shape[1],
+            )
+            side = int(round(float(gt_siglip.shape[1]) ** 0.5))
+            gather_idx = intervention_stats["selected_object"].view(B, 1, 1)
+            gather_idx = gather_idx.expand(B, 1, object_masks.shape[-1])
+            selected_mask = object_masks.gather(1, gather_idx).squeeze(1)
+            selected_mask = selected_mask * intervention_stats["selected_valid"].unsqueeze(-1)
+            selected_mask = selected_mask.view(B, side, side)
+            foreground_mask = object_masks.amax(dim=1).view(B, side, side)
+            causal_stats = self._pgot_e8_paired_causal_loss(
+                full_condition=condition_for_diff,
+                ablated_condition=ablated_condition,
+                register_condition=register_condition,
+                target_features=gt_siglip,
+                selected_mask=selected_mask,
+                foreground_mask=foreground_mask,
+                selected_valid=intervention_stats["selected_valid"],
+            )
+            loss_recon = causal_stats["recon_loss"]
+        else:
+            loss_recon = self._captionslot_compute_diffusion_loss(
+                hidden=condition_for_diff,
+                target_features=gt_siglip,
+                slot_context=None,
+                slot_mask=None,
+            )
+
+        lm_w = float(getattr(self.config, "pgot_lm_loss_weight", 1.0))
+        recon_w = float(getattr(self.config, "pgot_recon_loss_weight", 1.0))
+        owner_w = float(getattr(self.config, "pgot_e8_owner_weight", 1.0))
+        causal_scale = float(
+            getattr(self.config, "pgot_e8_causal_weight_scale_effective", 1.0)
+        )
+        loss_causal = causal_scale * (
+            float(getattr(self.config, "pgot_e8_need_weight", 0.1)) * causal_stats["need_loss"]
+            + float(getattr(self.config, "pgot_e8_local_weight", 0.05)) * causal_stats["local_loss"]
+            + float(getattr(self.config, "pgot_e8_register_bg_weight", 0.1)) * causal_stats["register_bg_loss"]
+            + float(getattr(self.config, "pgot_e8_register_fg_weight", 0.1)) * causal_stats["register_fg_loss"]
+        )
+        loss_mask = owner_w * loss_owner + loss_reader + loss_causal
+        total_loss = lm_w * loss_lm + recon_w * loss_recon + loss_mask
+        if not torch.isfinite(total_loss):
+            total_loss = torch.nan_to_num(total_loss, nan=1e4, posinf=1e4, neginf=1e4)
+
+        n = max(int(self.pgot_n_ovt_per_object), 1)
+        K = ovt_valid_mask.shape[1] // n
+        n_objects_mean = (
+            ovt_valid_mask[:, : K * n]
+            .reshape(B, K, n)
+            .any(dim=2)
+            .float()
+            .sum(dim=1)
+            .mean()
+            if K > 0
+            else hidden.new_zeros(())
+        )
+        last_write = seq["write_records"][-1]
+        memory = seq["visual_memory"]
+        memory_valid = seq["slot_valid"].unsqueeze(-1).to(memory.dtype)
+        memory_rms = (
+            (memory.float().square() * memory_valid.float()).sum()
+            / memory_valid.float().sum().clamp_min(1.0)
+            / max(memory.shape[-1], 1)
+        ).sqrt()
+
+        self.pgot_loss_lm = loss_lm.detach()
+        self.pgot_loss_mask = loss_mask.detach()
+        self.pgot_loss_recon = loss_recon.detach()
+        self.pgot_loss_contrastive = hidden.new_zeros(())
+        self.pgot_n_objects_mean = n_objects_mean.detach()
+        self.pgot_loss_details = {
+            "loss_e8_owner": loss_owner.detach(),
+            "loss_e8_reader": loss_reader.detach(),
+            "loss_e8_reader_object": reader_stats["object_loss"].detach(),
+            "loss_e8_reader_background": reader_stats["background_loss"].detach(),
+            "e8_owner_weight": hidden.new_tensor(owner_w),
+            "e8_owner_fg_acc": owner_stats["fg_acc"],
+            "e8_owner_bg_acc": owner_stats["bg_acc"],
+            "e8_register_prob_on_fg": owner_stats["void_prob_on_fg"],
+            "e8_object_prob_on_bg": owner_stats["object_prob_on_bg"],
+            "e8_owner_entropy": owner_stats["entropy"],
+            "e8_visual_memory_rms": memory_rms.detach(),
+            "e8_visual_memory_norm": last_write["memory_norm"],
+            "e8_injection_norm": last_write["injection_norm"],
+            "e8_write_gate_mean": last_write["write_gate_mean"],
+            "e8_write_strength": last_write["write_strength"],
+            "e8_reader_entropy": seq["reader_entropy"],
+            "e8_reader_matching_mass_on_fg": reader_stats["matching_mass_on_fg"],
+            "e8_reader_register_mass_on_fg": reader_stats["register_mass_on_fg"],
+            "e8_reader_object_mass_on_bg": reader_stats["object_mass_on_bg"],
+            "e8_num_writes": hidden.new_tensor(float(len(seq["write_records"]))),
+            "e8_typed_reader_only": hidden.new_tensor(1.0),
+            "e8_clean_refinement": hidden.new_tensor(
+                float(bool(getattr(self.config, "pgot_e8_clean_refinement", False)))
+            ),
+            "e8_memory_injection_enabled": hidden.new_tensor(
+                float(bool(getattr(self.config, "pgot_e8_inject_memory", True)))
+            ),
+            "loss_e8_causal": loss_causal.detach(),
+            "loss_e8_need": causal_stats["need_loss"].detach(),
+            "loss_e8_local": causal_stats["local_loss"].detach(),
+            "loss_e8_register_bg": causal_stats["register_bg_loss"].detach(),
+            "loss_e8_register_fg": causal_stats["register_fg_loss"].detach(),
+            "e8_causal_active": hidden.new_tensor(float(causal_active)),
+            "e8_causal_weight_scale": hidden.new_tensor(causal_scale),
+            "e8_object_ablation_error_ratio": causal_stats["object_ablation_ratio"],
+            "e8_register_fg_error_ratio": causal_stats["register_fg_ratio"],
+            "e8_causal_full_selected_error": causal_stats["full_selected_error"],
+            "e8_causal_ablated_selected_error": causal_stats["ablated_selected_error"],
+            "e8_causal_outside_consistency": causal_stats["outside_consistency"],
+            "e8_causal_timestep": causal_stats["timestep"],
+        }
+        for layer_idx, stats in owner_stats_by_layer:
+            prefix = f"e8_owner_l{layer_idx:02d}"
+            self.pgot_loss_details[f"{prefix}_loss"] = stats["loss"].detach()
+            self.pgot_loss_details[f"{prefix}_fg_acc"] = stats["fg_acc"]
+            self.pgot_loss_details[f"{prefix}_bg_acc"] = stats["bg_acc"]
+            self.pgot_loss_details[f"{prefix}_register_prob_on_fg"] = stats[
+                "void_prob_on_fg"
+            ]
+            self.pgot_loss_details[f"{prefix}_object_prob_on_bg"] = stats[
+                "object_prob_on_bg"
+            ]
+        if intervention_stats is not None:
+            valid_intervention = intervention_stats["selected_valid"]
+            denom = valid_intervention.float().sum().clamp_min(1.0)
+            self.pgot_loss_details["e8_causal_zero_fraction"] = (
+                ((intervention_stats["mode"] == 0) & valid_intervention).float().sum() / denom
+            ).detach()
+            self.pgot_loss_details["e8_causal_noise_fraction"] = (
+                ((intervention_stats["mode"] == 1) & valid_intervention).float().sum() / denom
+            ).detach()
+            self.pgot_loss_details["e8_causal_donor_fraction"] = (
+                ((intervention_stats["mode"] == 2) & valid_intervention).float().sum() / denom
+            ).detach()
+            self.pgot_loss_details["e8_causal_same_category_fraction"] = (
+                (intervention_stats["same_category"] & valid_intervention).float().sum() / denom
+            ).detach()
+        return total_loss, {
+            "owner_logits": seq["owner_logits"].detach(),
+            "owner_probs": seq["owner_probs"].detach(),
+            "object_probs": seq["object_probs"].detach(),
+            "register_probs": seq["register_probs"].detach(),
+        }
 
     def _forward_pgot_v12(
         self,
@@ -4614,6 +5478,25 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         e6_enabled = bool(getattr(self.config, "pgot_e6_enable", False))
         e7_enabled = bool(getattr(self.config, "pgot_e7_enable", False))
         direct_sd_enabled = e6_enabled or e7_enabled
+        if bool(getattr(self.config, "pgot_e8_visual_memory_enable", False)):
+            if bool(getattr(self.config, "pgot_v12_enable", False)) or bool(
+                getattr(self.config, "pgot_v14_enable", False)
+            ):
+                raise ValueError("E8 is mutually exclusive with V12/V14 forward paths")
+            return self._forward_pgot_e8(
+                images=images,
+                caption_input_ids=caption_input_ids,
+                caption_attention_mask=caption_attention_mask,
+                caption_labels=caption_labels,
+                ovt_positions_in_caption=ovt_positions_in_caption,
+                ovt_valid_mask=ovt_valid_mask,
+                ovt_is_thing=ovt_is_thing,
+                ovt_category_ids=ovt_category_ids,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                gt_rae_masks_per_ovt=gt_rae_masks_per_ovt,
+                target_images=target_images,
+                pgot_contrastive_weight=pgot_contrastive_weight,
+            )
         if bool(getattr(self.config, "pgot_register_hard_gt_mask", False)) and (
             bool(getattr(self.config, "pgot_v14_enable", False))
             or bool(getattr(self.config, "pgot_v12_enable", False))

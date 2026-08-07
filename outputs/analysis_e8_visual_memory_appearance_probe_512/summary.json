@@ -1,0 +1,128 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_e8_visual_memory/checkpoint-10000",
+  "num_images": 511,
+  "num_objects": 2635,
+  "split_ratio": 0.8,
+  "probes_raw_target": {
+    "P0_mean_floor": {
+      "r2": 0.0,
+      "cosine": 0.5915646675376622,
+      "rel_l2": 0.8047824125817472,
+      "lambda": null
+    },
+    "P1_ovt_text_stream": {
+      "r2": 0.2335880048323712,
+      "cosine": 0.7101071777938196,
+      "rel_l2": 0.6997702945285222,
+      "lambda": 100000.0
+    },
+    "P1_ovt_slot0": {
+      "r2": 0.2335880048323712,
+      "cosine": 0.7101071777938196,
+      "rel_l2": 0.6997702945285222,
+      "lambda": 100000.0
+    },
+    "P1b_e8_visual_memory": {
+      "r2": 0.28087232955228203,
+      "cosine": 0.7330123582270198,
+      "rel_l2": 0.671176325977598,
+      "lambda": 100.0
+    },
+    "P2_llm_image_stream": {
+      "r2": 0.31771621744592804,
+      "cosine": 0.7494818870310145,
+      "rel_l2": 0.6517457803510557,
+      "lambda": 10000.0
+    },
+    "P3_word_only": {
+      "r2": 0.1910525471289698,
+      "cosine": 0.6893035096034026,
+      "rel_l2": 0.7203399191075148,
+      "lambda": 0.1
+    },
+    "P4_raw_siglip": {
+      "r2": 0.5142704678977362,
+      "cosine": 0.8331209163258453,
+      "rel_l2": 0.5425117460100752,
+      "lambda": 1000.0
+    }
+  },
+  "probes_instance_residual": {
+    "P0_mean_floor": {
+      "r2": 0.0,
+      "cosine": 0.0026756476141095525,
+      "rel_l2": 0.9999999999976071,
+      "lambda": null
+    },
+    "P1_ovt_text_stream": {
+      "r2": 0.06851830536398484,
+      "cosine": 0.28748930857280863,
+      "rel_l2": 0.9593524349492947,
+      "lambda": 100000.0
+    },
+    "P1_ovt_slot0": {
+      "r2": 0.06851830536398484,
+      "cosine": 0.28748930857280863,
+      "rel_l2": 0.9593524349492947,
+      "lambda": 100000.0
+    },
+    "P1b_e8_visual_memory": {
+      "r2": 0.11896659137997445,
+      "cosine": 0.36511395261236135,
+      "rel_l2": 0.9265896647102582,
+      "lambda": 100.0
+    },
+    "P2_llm_image_stream": {
+      "r2": 0.14444643245393562,
+      "cosine": 0.4078797965965057,
+      "rel_l2": 0.9116986617649128,
+      "lambda": 10000.0
+    },
+    "P4_raw_siglip": {
+      "r2": 0.3343029725136931,
+      "cosine": 0.6159277558814003,
+      "rel_l2": 0.7835032034949401,
+      "lambda": 100.0
+    }
+  },
+  "residual_variance_fraction": 0.8089474439620972,
+  "ovt_pair_cosine": {},
+  "effective_dim": {
+    "OVT_text_stream": {
+      "nominal_dim": 1536,
+      "participation_ratio": 72.8089243953634,
+      "dims_for_90pct_var": 476,
+      "dims_for_99pct_var": 1104
+    },
+    "LLM_image_stream": {
+      "nominal_dim": 1536,
+      "participation_ratio": 98.29941895129326,
+      "dims_for_90pct_var": 480,
+      "dims_for_99pct_var": 1113
+    },
+    "raw_siglip_pooled": {
+      "nominal_dim": 1152,
+      "participation_ratio": 86.23258117668392,
+      "dims_for_90pct_var": 324,
+      "dims_for_99pct_var": 831
+    },
+    "appearance_target": {
+      "nominal_dim": 1152,
+      "participation_ratio": 95.33503672110125,
+      "dims_for_90pct_var": 347,
+      "dims_for_99pct_var": 848
+    },
+    "E8_visual_memory": {
+      "nominal_dim": 1536,
+      "participation_ratio": 92.991307370952,
+      "dims_for_90pct_var": 377,
+      "dims_for_99pct_var": 1040
+    },
+    "OVT_slot0": {
+      "nominal_dim": 1536,
+      "participation_ratio": 72.8089243953634,
+      "dims_for_90pct_var": 476,
+      "dims_for_99pct_var": 1104
+    }
+  }
+}

@@ -206,6 +206,11 @@ class RectifiedFlow(GaussianDiffusion):
             'mse': mean_flat(mse_target),
             'loss': loss,
             't': t,
+            # Exposed for paired causal objectives.  Ordinary callers select
+            # only ``loss``, so these references are released immediately.
+            'model_pred': model_pred,
+            'target': target,
+            'mse_map': mse_target,
         }
         return terms
 
