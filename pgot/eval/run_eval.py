@@ -1300,6 +1300,15 @@ def main():
             summary["owner_weight"] = float(
                 getattr(model.config, "pgot_e8_owner_weight", 1.0)
             )
+            summary["reader_supervision_mode"] = str(
+                getattr(model.config, "pgot_e8_reader_supervision_mode", "gt")
+            )
+            summary["reader_object_weight"] = float(
+                getattr(model.config, "pgot_e8_reader_object_weight", 0.0)
+            )
+            summary["reader_background_weight"] = float(
+                getattr(model.config, "pgot_e8_reader_background_weight", 0.0)
+            )
         elif bool(getattr(model.config, "pgot_v14_enable", False)):
             summary["owner_source"] = "v14_ovt_bottleneck_route"
             summary["route_temperature"] = float(getattr(model.config, "pgot_v14_route_temperature", 1.0))

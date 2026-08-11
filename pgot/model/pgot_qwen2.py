@@ -1731,6 +1731,118 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "object_mass_on_bg": object_mass_on_bg.detach(),
         }
 
+    def _pgot_e8_reader_writer_supervision(
+        self,
+        *,
+        reader_attention: torch.Tensor,
+        writer_owner_probs: torch.Tensor,
+        object_count: int,
+    ) -> Dict[str, torch.Tensor]:
+        """Align Reader routing to the detached final Writer ownership map.
+
+        Writer ownership is predicted on the 32x32 image-patch grid whereas
+        Reader attention lives on the 16x16 RAE-query grid.  Area resampling
+        produces a soft target.  Object owners remain distinct; the four
+        symmetric registers are compared only through their aggregate
+        background mass.  Detaching the target prevents this self-distillation
+        loss from training Writer and Reader toward a joint trivial solution.
+        """
+        B, Q, S = reader_attention.shape
+        if writer_owner_probs.ndim != 3:
+            raise ValueError(
+                "E8 Writer ownership must have shape [B,S,P], got "
+                f"{tuple(writer_owner_probs.shape)}"
+            )
+        if writer_owner_probs.shape[:2] != (B, S):
+            raise ValueError(
+                "E8 Writer/Reader slot mismatch: "
+                f"writer={tuple(writer_owner_probs.shape)} "
+                f"reader={tuple(reader_attention.shape)}"
+            )
+        K = min(int(object_count), S)
+        zero = reader_attention.new_zeros(())
+        if K <= 0:
+            return {
+                "object_loss": zero,
+                "background_loss": zero,
+                "kl": zero,
+                "target_entropy": zero,
+                "matching_mass": zero,
+            }
+
+        P = writer_owner_probs.shape[-1]
+        target = writer_owner_probs.float()
+        if P != Q:
+            src_side = int(round(float(P) ** 0.5))
+            dst_side = int(round(float(Q) ** 0.5))
+            if src_side * src_side != P or dst_side * dst_side != Q:
+                raise ValueError(
+                    f"E8 Writer/Reader grids must be square, got {P} -> {Q}"
+                )
+            target = F.interpolate(
+                target.reshape(B * S, 1, src_side, src_side),
+                size=(dst_side, dst_side),
+                mode="area",
+            ).reshape(B, S, Q)
+        target = target.transpose(1, 2).detach().clamp_min(0.0)
+        target = target / target.sum(dim=-1, keepdim=True).clamp_min(1e-8)
+
+        prediction = reader_attention.float().clamp_min(1e-8)
+        target_object = target[:, :, :K]
+        prediction_object = prediction[:, :, :K]
+        object_area = target_object.sum(dim=1)
+        per_object = -(
+            target_object * prediction_object.log()
+        ).sum(dim=1) / object_area.clamp_min(1.0)
+        valid_object = object_area > 1e-8
+        object_loss = (
+            per_object[valid_object].mean() if bool(valid_object.any()) else zero
+        )
+
+        target_background = target[:, :, K:].sum(dim=-1)
+        prediction_background = prediction[:, :, K:].sum(dim=-1).clamp_min(1e-8)
+        background_area = target_background.sum(dim=-1)
+        valid_background = background_area > 1e-8
+        per_background = -(
+            target_background * prediction_background.log()
+        ).sum(dim=-1) / background_area.clamp_min(1.0)
+        background_loss = (
+            per_background[valid_background].mean()
+            if bool(valid_background.any())
+            else zero
+        )
+
+        target_compact = torch.cat(
+            [target_object, target_background.unsqueeze(-1)], dim=-1
+        )
+        prediction_compact = torch.cat(
+            [prediction_object, prediction_background.unsqueeze(-1)], dim=-1
+        )
+        target_compact = target_compact / target_compact.sum(
+            dim=-1, keepdim=True
+        ).clamp_min(1e-8)
+        prediction_compact = prediction_compact / prediction_compact.sum(
+            dim=-1, keepdim=True
+        ).clamp_min(1e-8)
+        kl = (
+            target_compact
+            * (
+                target_compact.clamp_min(1e-8).log()
+                - prediction_compact.clamp_min(1e-8).log()
+            )
+        ).sum(dim=-1).mean()
+        target_entropy = -(
+            target_compact * target_compact.clamp_min(1e-8).log()
+        ).sum(dim=-1).mean()
+        matching_mass = (target_compact * prediction_compact).sum(dim=-1).mean()
+        return {
+            "object_loss": object_loss,
+            "background_loss": background_loss,
+            "kl": kl.detach(),
+            "target_entropy": target_entropy.detach(),
+            "matching_mass": matching_mass.detach(),
+        }
+
     def _pgot_e8_intervene_memory(
         self,
         *,
@@ -4806,10 +4918,15 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             if gt_rae_masks_per_ovt is not None
             else gt_masks_per_ovt
         )
-        reader_stats = self._pgot_e8_reader_supervision(
+        reader_gt_stats = self._pgot_e8_reader_supervision(
             reader_attention=seq["reader_attention"],
             gt_masks_per_ovt=reader_masks,
             ovt_valid_mask=ovt_valid_mask,
+            object_count=K,
+        )
+        reader_writer_stats = self._pgot_e8_reader_writer_supervision(
+            reader_attention=seq["reader_attention"],
+            writer_owner_probs=seq["write_records"][-1]["owner_probs"],
             object_count=K,
         )
         reader_obj_w = float(
@@ -4818,9 +4935,26 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         reader_bg_w = float(
             getattr(self.config, "pgot_e8_reader_background_weight", 0.0)
         )
+        reader_mode = str(
+            getattr(self.config, "pgot_e8_reader_supervision_mode", "gt")
+        ).strip().lower()
+        if reader_mode == "gt":
+            reader_active_stats = reader_gt_stats
+        elif reader_mode == "writer":
+            reader_active_stats = reader_writer_stats
+        elif reader_mode == "none":
+            reader_active_stats = {
+                "object_loss": hidden.new_zeros(()),
+                "background_loss": hidden.new_zeros(()),
+            }
+        else:
+            raise ValueError(
+                "pgot_e8_reader_supervision_mode must be gt/writer/none, got "
+                f"{reader_mode!r}"
+            )
         loss_reader = (
-            reader_obj_w * reader_stats["object_loss"]
-            + reader_bg_w * reader_stats["background_loss"]
+            reader_obj_w * reader_active_stats["object_loss"]
+            + reader_bg_w * reader_active_stats["background_loss"]
         )
 
         condition_for_diff = condition_hidden
@@ -4953,8 +5087,38 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_loss_details = {
             "loss_e8_owner": loss_owner.detach(),
             "loss_e8_reader": loss_reader.detach(),
-            "loss_e8_reader_object": reader_stats["object_loss"].detach(),
-            "loss_e8_reader_background": reader_stats["background_loss"].detach(),
+            "loss_e8_reader_object": reader_active_stats["object_loss"].detach(),
+            "loss_e8_reader_background": reader_active_stats[
+                "background_loss"
+            ].detach(),
+            "loss_e8_reader_gt_object_diagnostic": reader_gt_stats[
+                "object_loss"
+            ].detach(),
+            "loss_e8_reader_gt_background_diagnostic": reader_gt_stats[
+                "background_loss"
+            ].detach(),
+            "loss_e8_reader_writer_object_diagnostic": reader_writer_stats[
+                "object_loss"
+            ].detach(),
+            "loss_e8_reader_writer_background_diagnostic": reader_writer_stats[
+                "background_loss"
+            ].detach(),
+            "e8_reader_writer_kl": reader_writer_stats["kl"],
+            "e8_reader_writer_target_entropy": reader_writer_stats[
+                "target_entropy"
+            ],
+            "e8_reader_writer_matching_mass": reader_writer_stats[
+                "matching_mass"
+            ],
+            "e8_reader_supervision_gt": hidden.new_tensor(
+                float(reader_mode == "gt")
+            ),
+            "e8_reader_supervision_writer": hidden.new_tensor(
+                float(reader_mode == "writer")
+            ),
+            "e8_reader_supervision_none": hidden.new_tensor(
+                float(reader_mode == "none")
+            ),
             "e8_owner_weight": hidden.new_tensor(owner_w),
             "e8_owner_fg_acc": owner_stats["fg_acc"],
             "e8_owner_bg_acc": owner_stats["bg_acc"],
@@ -4967,9 +5131,15 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "e8_write_gate_mean": last_write["write_gate_mean"],
             "e8_write_strength": last_write["write_strength"],
             "e8_reader_entropy": seq["reader_entropy"],
-            "e8_reader_matching_mass_on_fg": reader_stats["matching_mass_on_fg"],
-            "e8_reader_register_mass_on_fg": reader_stats["register_mass_on_fg"],
-            "e8_reader_object_mass_on_bg": reader_stats["object_mass_on_bg"],
+            "e8_reader_matching_mass_on_fg": reader_gt_stats[
+                "matching_mass_on_fg"
+            ],
+            "e8_reader_register_mass_on_fg": reader_gt_stats[
+                "register_mass_on_fg"
+            ],
+            "e8_reader_object_mass_on_bg": reader_gt_stats[
+                "object_mass_on_bg"
+            ],
             "e8_num_writes": hidden.new_tensor(float(len(seq["write_records"]))),
             "e8_typed_reader_only": hidden.new_tensor(1.0),
             "e8_clean_refinement": hidden.new_tensor(

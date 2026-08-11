@@ -214,6 +214,10 @@ class PGOTModelArguments:
     pgot_e8_reader_temperature: float = field(default=1.0)
     pgot_e8_clean_refinement: bool = field(default=False)
     pgot_e8_inject_memory: bool = field(default=True)
+    # Reader routing supervision: ``gt`` uses segmentation masks, ``writer``
+    # distils the detached final Writer ownership map, and ``none`` leaves the
+    # Reader to reconstruction gradients only.
+    pgot_e8_reader_supervision_mode: str = field(default="gt")
     pgot_e8_reader_object_weight: float = field(default=0.0)
     pgot_e8_reader_background_weight: float = field(default=0.0)
     # E8.2: paired full/object-ablated/register-only causal reconstruction.

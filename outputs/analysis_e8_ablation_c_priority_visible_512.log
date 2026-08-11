@@ -1,0 +1,535 @@
+2026-08-11 08:03:50 PID=547736 __init__.py:49 setup_logging() INFO → 'standard' logger initialized.
+2026-08-11 08:03:55 PID=547736 eval_recon_oracles.py:102 load_model_and_tokenizer() INFO → Loading model from: /home/jovyan/PGOT/checkpoints/pgot_e8_ablation_c_writer_none_reader_gt/checkpoint-10000
+2026-08-11 08:03:55 PID=547736 eval_recon_oracles.py:123 load_model_and_tokenizer() INFO → [LoRA] adapter checkpoint detected; bootstrap from /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B
+2026-08-11 08:04:43 PID=547736 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch16-512-interp1024
+2026-08-11 08:04:43 PID=547736 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch14-224-interp256
+[AURORA-INIT] diffusion_norm_stats_path = /home/jovyan/data/siglip2_bn_stats.pt
+[DEBUG] data_std: torch.Size([1152]), data_mean: torch.Size([1152])
+[AURORA-INIT] diff_head.normalize_data = True
+[PGOT] Initialised — D=1536, N_register=4, n_ovt_per_object=1, N_null_bg=0, e6_coda_direct=False, e7_causal_ownership=False, e8_visual_memory=True, e8_layers=[21, 24, 27], fvw=False, fvw_layers=[0, 8, 16, 24, 27], v12=False, v12_layers=[12, 16, 20, 24], v14=False, v14_router_depth=1, v21=False, latent_distill=False
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [01:45<01:45, 105.30s/it]Loading checkpoint shards: 100%|██████████| 2/2 [02:42<00:00, 77.10s/it] Loading checkpoint shards: 100%|██████████| 2/2 [02:42<00:00, 81.33s/it]
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B and are newly initialized: ['diff_head.data_mean', 'diff_head.data_std', 'pgot_e8_reader.key.weight', 'pgot_e8_reader.memory_norm.bias', 'pgot_e8_reader.memory_norm.weight', 'pgot_e8_reader.output.weight', 'pgot_e8_reader.output_norm.bias', 'pgot_e8_reader.output_norm.weight', 'pgot_e8_reader.query.weight', 'pgot_e8_reader.query_norm.bias', 'pgot_e8_reader.query_norm.weight', 'pgot_e8_reader.semantic_norm.bias', 'pgot_e8_reader.semantic_norm.weight', 'pgot_e8_reader.value.weight', 'pgot_e8_writer.fuse.weight', 'pgot_e8_writer.gate.bias', 'pgot_e8_writer.gate.weight', 'pgot_e8_writer.image_norm.bias', 'pgot_e8_writer.image_norm.weight', 'pgot_e8_writer.inject.weight', 'pgot_e8_writer.inject_logit', 'pgot_e8_writer.key.weight', 'pgot_e8_writer.memory_norm.bias', 'pgot_e8_writer.memory_norm.weight', 'pgot_e8_writer.memory_to_query.weight', 'pgot_e8_writer.query.weight', 'pgot_e8_writer.semantic_norm.bias', 'pgot_e8_writer.semantic_norm.weight', 'pgot_e8_writer.update_norm.bias', 'pgot_e8_writer.update_norm.weight', 'pgot_e8_writer.value.weight', 'pgot_e8_writer.write_logit', 'pgot_ovt_caption_norm.bias', 'pgot_ovt_caption_norm.weight', 'pgot_ovt_caption_projector.weight', 'pgot_register_embeddings']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B and are newly initialized because the shapes did not match:
+- model.embed_tokens.weight: found shape torch.Size([151667, 1536]) in the checkpoint and torch.Size([151671, 1536]) in the model instantiated
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/huggingface_hub/file_download.py:1142: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+2026-08-11 08:14:42 PID=547736 eval_recon_oracles.py:190 load_model_and_tokenizer() INFO → [LoRA] loaded checkpoint | missing=1 unexpected=0
+2026-08-11 08:14:46 PID=547736 eval_recon_oracles.py:93 patch_diffusion_steps() INFO → Patched RF inference_flow to 10 steps.
+2026-08-11 08:14:46 PID=547736 eval_recon_oracles.py:208 load_model_and_tokenizer() INFO → Model loaded on cuda.
+pretrain_adapter_and_vision_head is: None
+E8 priority responsibility analysis:   0%|          | 0/128 [00:00<?, ?it/s]E8 priority responsibility analysis:   1%|          | 1/128 [00:04<08:55,  4.22s/it]E8 priority responsibility analysis:   2%|▏         | 2/128 [00:06<06:13,  2.96s/it]E8 priority responsibility analysis:   2%|▏         | 3/128 [00:07<04:40,  2.24s/it]E8 priority responsibility analysis:   3%|▎         | 4/128 [00:08<03:50,  1.86s/it]E8 priority responsibility analysis:   4%|▍         | 5/128 [00:10<03:40,  1.79s/it]E8 priority responsibility analysis:   5%|▍         | 6/128 [00:11<03:19,  1.63s/it]E8 priority responsibility analysis:   5%|▌         | 7/128 [00:13<03:29,  1.73s/it]E8 priority responsibility analysis:   6%|▋         | 8/128 [00:15<03:32,  1.77s/it]E8 priority responsibility analysis:   7%|▋         | 9/128 [00:17<03:30,  1.77s/it]E8 priority responsibility analysis:   8%|▊         | 10/128 [00:19<03:21,  1.71s/it]E8 priority responsibility analysis:   9%|▊         | 11/128 [00:20<03:07,  1.60s/it]E8 priority responsibility analysis:   9%|▉         | 12/128 [00:22<03:09,  1.64s/it]E8 priority responsibility analysis:  10%|█         | 13/128 [00:23<02:52,  1.50s/it]E8 priority responsibility analysis:  11%|█         | 14/128 [00:24<02:44,  1.44s/it]E8 priority responsibility analysis:  12%|█▏        | 15/128 [00:26<02:42,  1.44s/it]E8 priority responsibility analysis:  12%|█▎        | 16/128 [00:27<02:37,  1.41s/it]E8 priority responsibility analysis:  13%|█▎        | 17/128 [00:28<02:32,  1.37s/it]E8 priority responsibility analysis:  14%|█▍        | 18/128 [00:30<02:30,  1.36s/it]E8 priority responsibility analysis:  15%|█▍        | 19/128 [00:31<02:27,  1.35s/it]E8 priority responsibility analysis:  16%|█▌        | 20/128 [00:32<02:27,  1.36s/it]E8 priority responsibility analysis:  16%|█▋        | 21/128 [00:33<02:19,  1.30s/it]E8 priority responsibility analysis:  17%|█▋        | 22/128 [00:36<02:45,  1.56s/it]E8 priority responsibility analysis:  18%|█▊        | 23/128 [00:37<02:41,  1.54s/it]E8 priority responsibility analysis:  19%|█▉        | 24/128 [00:38<02:34,  1.48s/it]E8 priority responsibility analysis:  20%|█▉        | 25/128 [00:40<02:29,  1.45s/it]E8 priority responsibility analysis:  20%|██        | 26/128 [00:41<02:25,  1.42s/it]E8 priority responsibility analysis:  21%|██        | 27/128 [00:42<02:14,  1.33s/it]E8 priority responsibility analysis:  22%|██▏       | 28/128 [00:44<02:14,  1.34s/it]E8 priority responsibility analysis:  23%|██▎       | 29/128 [00:45<02:07,  1.28s/it]E8 priority responsibility analysis:  23%|██▎       | 30/128 [00:46<02:03,  1.26s/it]E8 priority responsibility analysis:  24%|██▍       | 31/128 [00:47<02:03,  1.28s/it]E8 priority responsibility analysis:  25%|██▌       | 32/128 [00:49<02:04,  1.30s/it]E8 priority responsibility analysis:  26%|██▌       | 33/128 [00:50<02:12,  1.40s/it]E8 priority responsibility analysis:  27%|██▋       | 34/128 [00:51<01:59,  1.27s/it]E8 priority responsibility analysis:  27%|██▋       | 35/128 [00:53<01:57,  1.27s/it]E8 priority responsibility analysis:  28%|██▊       | 36/128 [00:54<01:53,  1.23s/it]E8 priority responsibility analysis:  29%|██▉       | 37/128 [00:55<02:02,  1.34s/it]E8 priority responsibility analysis:  30%|██▉       | 38/128 [00:57<02:03,  1.37s/it]E8 priority responsibility analysis:  30%|███       | 39/128 [00:58<02:05,  1.41s/it]E8 priority responsibility analysis:  31%|███▏      | 40/128 [00:59<01:55,  1.31s/it]E8 priority responsibility analysis:  32%|███▏      | 41/128 [01:00<01:51,  1.28s/it]E8 priority responsibility analysis:  33%|███▎      | 42/128 [01:02<01:51,  1.30s/it]E8 priority responsibility analysis:  34%|███▎      | 43/128 [01:03<01:42,  1.20s/it]E8 priority responsibility analysis:  34%|███▍      | 44/128 [01:04<01:44,  1.24s/it]E8 priority responsibility analysis:  35%|███▌      | 45/128 [01:05<01:45,  1.27s/it]E8 priority responsibility analysis:  36%|███▌      | 46/128 [01:07<01:46,  1.30s/it]E8 priority responsibility analysis:  37%|███▋      | 47/128 [01:09<01:58,  1.46s/it]E8 priority responsibility analysis:  38%|███▊      | 48/128 [01:10<01:53,  1.42s/it]E8 priority responsibility analysis:  38%|███▊      | 49/128 [01:11<01:49,  1.38s/it]E8 priority responsibility analysis:  39%|███▉      | 50/128 [01:13<01:45,  1.35s/it]E8 priority responsibility analysis:  40%|███▉      | 51/128 [01:14<01:41,  1.32s/it]E8 priority responsibility analysis:  41%|████      | 52/128 [01:15<01:38,  1.30s/it]E8 priority responsibility analysis:  41%|████▏     | 53/128 [01:16<01:36,  1.28s/it]E8 priority responsibility analysis:  42%|████▏     | 54/128 [01:18<01:37,  1.32s/it]E8 priority responsibility analysis:  43%|████▎     | 55/128 [01:19<01:36,  1.32s/it]E8 priority responsibility analysis:  44%|████▍     | 56/128 [01:21<01:41,  1.41s/it]E8 priority responsibility analysis:  45%|████▍     | 57/128 [01:22<01:39,  1.41s/it]E8 priority responsibility analysis:  45%|████▌     | 58/128 [01:23<01:36,  1.37s/it]E8 priority responsibility analysis:  46%|████▌     | 59/128 [01:25<01:32,  1.34s/it]E8 priority responsibility analysis:  47%|████▋     | 60/128 [01:26<01:27,  1.28s/it]E8 priority responsibility analysis:  48%|████▊     | 61/128 [01:27<01:26,  1.29s/it]E8 priority responsibility analysis:  48%|████▊     | 62/128 [01:28<01:24,  1.28s/it]E8 priority responsibility analysis:  49%|████▉     | 63/128 [01:30<01:23,  1.28s/it]E8 priority responsibility analysis:  50%|█████     | 64/128 [01:31<01:29,  1.40s/it]E8 priority responsibility analysis:  51%|█████     | 65/128 [01:33<01:25,  1.36s/it]E8 priority responsibility analysis:  52%|█████▏    | 66/128 [01:34<01:22,  1.34s/it]E8 priority responsibility analysis:  52%|█████▏    | 67/128 [01:35<01:24,  1.38s/it]E8 priority responsibility analysis:  53%|█████▎    | 68/128 [01:36<01:18,  1.31s/it]E8 priority responsibility analysis:  54%|█████▍    | 69/128 [01:38<01:21,  1.37s/it]E8 priority responsibility analysis:  55%|█████▍    | 70/128 [01:39<01:18,  1.36s/it]E8 priority responsibility analysis:  55%|█████▌    | 71/128 [01:40<01:13,  1.30s/it]E8 priority responsibility analysis:  56%|█████▋    | 72/128 [01:42<01:16,  1.37s/it]E8 priority responsibility analysis:  57%|█████▋    | 73/128 [01:43<01:15,  1.37s/it]E8 priority responsibility analysis:  58%|█████▊    | 74/128 [01:45<01:14,  1.37s/it]E8 priority responsibility analysis:  59%|█████▊    | 75/128 [01:46<01:10,  1.33s/it]E8 priority responsibility analysis:  59%|█████▉    | 76/128 [01:48<01:16,  1.47s/it]E8 priority responsibility analysis:  60%|██████    | 77/128 [01:49<01:15,  1.47s/it]E8 priority responsibility analysis:  61%|██████    | 78/128 [01:50<01:09,  1.40s/it]E8 priority responsibility analysis:  62%|██████▏   | 79/128 [01:52<01:08,  1.40s/it]E8 priority responsibility analysis:  62%|██████▎   | 80/128 [01:53<01:08,  1.44s/it]E8 priority responsibility analysis:  63%|██████▎   | 81/128 [01:55<01:09,  1.47s/it]E8 priority responsibility analysis:  64%|██████▍   | 82/128 [01:57<01:11,  1.56s/it]E8 priority responsibility analysis:  65%|██████▍   | 83/128 [01:58<01:12,  1.61s/it]E8 priority responsibility analysis:  66%|██████▌   | 84/128 [02:00<01:09,  1.57s/it]E8 priority responsibility analysis:  66%|██████▋   | 85/128 [02:01<01:02,  1.44s/it]E8 priority responsibility analysis:  67%|██████▋   | 86/128 [02:03<01:01,  1.46s/it]E8 priority responsibility analysis:  68%|██████▊   | 87/128 [02:05<01:05,  1.61s/it]E8 priority responsibility analysis:  69%|██████▉   | 88/128 [02:06<01:01,  1.55s/it]E8 priority responsibility analysis:  70%|██████▉   | 89/128 [02:07<00:59,  1.52s/it]E8 priority responsibility analysis:  70%|███████   | 90/128 [02:09<00:58,  1.54s/it]E8 priority responsibility analysis:  71%|███████   | 91/128 [02:10<00:56,  1.52s/it]E8 priority responsibility analysis:  72%|███████▏  | 92/128 [02:12<00:55,  1.54s/it]E8 priority responsibility analysis:  73%|███████▎  | 93/128 [02:13<00:50,  1.44s/it]E8 priority responsibility analysis:  73%|███████▎  | 94/128 [02:14<00:44,  1.31s/it]E8 priority responsibility analysis:  74%|███████▍  | 95/128 [02:16<00:42,  1.29s/it]E8 priority responsibility analysis:  75%|███████▌  | 96/128 [02:17<00:42,  1.34s/it]E8 priority responsibility analysis:  76%|███████▌  | 97/128 [02:19<00:44,  1.43s/it]E8 priority responsibility analysis:  77%|███████▋  | 98/128 [02:20<00:46,  1.55s/it]E8 priority responsibility analysis:  77%|███████▋  | 99/128 [02:22<00:43,  1.50s/it]E8 priority responsibility analysis:  78%|███████▊  | 100/128 [02:23<00:38,  1.38s/it]E8 priority responsibility analysis:  79%|███████▉  | 101/128 [02:24<00:38,  1.41s/it]E8 priority responsibility analysis:  80%|███████▉  | 102/128 [02:26<00:37,  1.46s/it]E8 priority responsibility analysis:  80%|████████  | 103/128 [02:28<00:38,  1.54s/it]E8 priority responsibility analysis:  81%|████████▏ | 104/128 [02:29<00:37,  1.57s/it]E8 priority responsibility analysis:  82%|████████▏ | 105/128 [02:31<00:33,  1.45s/it]E8 priority responsibility analysis:  83%|████████▎ | 106/128 [02:32<00:31,  1.44s/it]E8 priority responsibility analysis:  84%|████████▎ | 107/128 [02:33<00:30,  1.46s/it]E8 priority responsibility analysis:  84%|████████▍ | 108/128 [02:35<00:28,  1.43s/it]E8 priority responsibility analysis:  85%|████████▌ | 109/128 [02:36<00:28,  1.49s/it]E8 priority responsibility analysis:  86%|████████▌ | 110/128 [02:38<00:28,  1.56s/it]E8 priority responsibility analysis:  87%|████████▋ | 111/128 [02:40<00:28,  1.65s/it]E8 priority responsibility analysis:  88%|████████▊ | 112/128 [02:41<00:25,  1.58s/it]E8 priority responsibility analysis:  88%|████████▊ | 113/128 [02:43<00:22,  1.48s/it]E8 priority responsibility analysis:  89%|████████▉ | 114/128 [02:44<00:20,  1.47s/it]E8 priority responsibility analysis:  90%|████████▉ | 115/128 [02:46<00:19,  1.47s/it]E8 priority responsibility analysis:  91%|█████████ | 116/128 [02:47<00:17,  1.46s/it]E8 priority responsibility analysis:  91%|█████████▏| 117/128 [02:49<00:16,  1.54s/it]E8 priority responsibility analysis:  92%|█████████▏| 118/128 [02:50<00:15,  1.52s/it]E8 priority responsibility analysis:  93%|█████████▎| 119/128 [02:51<00:12,  1.43s/it]E8 priority responsibility analysis:  94%|█████████▍| 120/128 [02:53<00:11,  1.49s/it]E8 priority responsibility analysis:  95%|█████████▍| 121/128 [02:55<00:11,  1.64s/it]E8 priority responsibility analysis:  95%|█████████▌| 122/128 [02:56<00:09,  1.54s/it]E8 priority responsibility analysis:  96%|█████████▌| 123/128 [02:58<00:07,  1.55s/it]E8 priority responsibility analysis:  97%|█████████▋| 124/128 [02:59<00:05,  1.48s/it]E8 priority responsibility analysis:  98%|█████████▊| 125/128 [03:01<00:04,  1.45s/it]E8 priority responsibility analysis:  98%|█████████▊| 126/128 [03:02<00:02,  1.38s/it]E8 priority responsibility analysis:  99%|█████████▉| 127/128 [03:03<00:01,  1.28s/it]E8 priority responsibility analysis: 100%|██████████| 128/128 [03:05<00:00,  1.47s/it]E8 priority responsibility analysis: 100%|██████████| 128/128 [03:07<00:00,  1.47s/it]
+2026-08-11 08:18:00 PID=547736 diagnose_e8_responsibility.py:426 _run_appearance_probes() INFO → Fitting appearance probe: direct_self (dim=1536)
+2026-08-11 08:18:00 PID=547736 diagnose_e8_responsibility.py:426 _run_appearance_probes() INFO → Fitting appearance probe: direct_other_mean (dim=1536)
+2026-08-11 08:18:00 PID=547736 diagnose_e8_responsibility.py:426 _run_appearance_probes() INFO → Fitting appearance probe: direct_register_flat (dim=6144)
+2026-08-11 08:18:01 PID=547736 diagnose_e8_responsibility.py:426 _run_appearance_probes() INFO → Fitting appearance probe: direct_nonself (dim=7680)
+2026-08-11 08:18:01 PID=547736 diagnose_e8_responsibility.py:426 _run_appearance_probes() INFO → Fitting appearance probe: direct_all (dim=9216)
+2026-08-11 08:18:01 PID=547736 diagnose_e8_responsibility.py:426 _run_appearance_probes() INFO → Fitting appearance probe: routed_self (dim=1536)
+2026-08-11 08:18:02 PID=547736 diagnose_e8_responsibility.py:426 _run_appearance_probes() INFO → Fitting appearance probe: routed_other (dim=1536)
+2026-08-11 08:18:02 PID=547736 diagnose_e8_responsibility.py:426 _run_appearance_probes() INFO → Fitting appearance probe: routed_register (dim=1536)
+2026-08-11 08:18:02 PID=547736 diagnose_e8_responsibility.py:426 _run_appearance_probes() INFO → Fitting appearance probe: routed_nonself (dim=3072)
+2026-08-11 08:18:03 PID=547736 diagnose_e8_responsibility.py:426 _run_appearance_probes() INFO → Fitting appearance probe: routed_all_concat (dim=4608)
+2026-08-11 08:18:03 PID=547736 diagnose_e8_responsibility.py:426 _run_appearance_probes() INFO → Fitting appearance probe: routed_sum (dim=1536)
+2026-08-11 08:18:04 PID=547736 category.py:224 update() INFO → Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-08-11 08:18:04 PID=547736 category.py:224 update() INFO → Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-08-11 08:18:04 PID=547736 category.py:224 update() INFO → Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-08-11 08:18:04 PID=547736 category.py:224 update() INFO → Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-08-11 08:18:04 PID=547736 diagnose_e8_responsibility.py:729 run() INFO → Wrote priority analysis to /home/jovyan/PGOT/outputs/analysis_e8_ablation_c_priority_visible_512
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_e8_ablation_c_writer_none_reader_gt/checkpoint-10000",
+  "num_images": 512,
+  "num_model_object_slots": 3204,
+  "num_visible_gt_objects": 2857,
+  "num_cropped_out_object_slots": 347,
+  "protocol": {
+    "causal": "zero one object memory; identical RF timestep/noise; compare every GT object and background",
+    "writer": "named slot IoU plus permutation-invariant Hungarian oracle IoU",
+    "appearance": "image-disjoint 70/10/20 train/validation/test ridge on word-residual target"
+  },
+  "writer_by_layer": {
+    "21": {
+      "named_hard_iou": {
+        "count": 512,
+        "mean": 0.30339936154723546,
+        "median": 0.29687284491956234,
+        "std": 0.06835244694725721,
+        "p10": 0.21591823073104024,
+        "p90": 0.40124985538423075
+      },
+      "oracle_hard_iou": {
+        "count": 512,
+        "mean": 0.3129078549982296,
+        "median": 0.30269424989819527,
+        "std": 0.06370725980661592,
+        "p10": 0.2418324701488018,
+        "p90": 0.4044301815330983
+      },
+      "oracle_minus_named": {
+        "count": 512,
+        "mean": 0.009508493450994138,
+        "median": 0.004069683142006397,
+        "std": 0.015055304596704585,
+        "p10": 0.0,
+        "p90": 0.02503180280327803
+      },
+      "named_soft_iou_per_object": {
+        "count": 512,
+        "mean": 0.26886173915187006,
+        "median": 0.25870036441802713,
+        "std": 0.06057183404347652,
+        "p10": 0.19478555706534686,
+        "p90": 0.35624649908587147
+      },
+      "target_probability_inside": {
+        "count": 512,
+        "mean": 0.48052717740584006,
+        "median": 0.48617573718598794,
+        "std": 0.08104314923914867,
+        "p10": 0.3727423425316869,
+        "p90": 0.5853057986366453
+      },
+      "target_probability_outside": {
+        "count": 512,
+        "mean": 0.0538735385371372,
+        "median": 0.051030121993971986,
+        "std": 0.017269891574050487,
+        "p10": 0.033013290836100564,
+        "p90": 0.07929362809156389
+      }
+    },
+    "24": {
+      "named_hard_iou": {
+        "count": 512,
+        "mean": 0.2897064154029749,
+        "median": 0.28789214324206114,
+        "std": 0.06482994655184891,
+        "p10": 0.20685345754027368,
+        "p90": 0.385902013629675
+      },
+      "oracle_hard_iou": {
+        "count": 512,
+        "mean": 0.30265586309440096,
+        "median": 0.29661686059989734,
+        "std": 0.05783932000759966,
+        "p10": 0.23210554206743836,
+        "p90": 0.39425193928182134
+      },
+      "oracle_minus_named": {
+        "count": 512,
+        "mean": 0.01294944769142603,
+        "median": 0.010179130360484123,
+        "std": 0.015681955358840174,
+        "p10": 0.0,
+        "p90": 0.028584624454379096
+      },
+      "named_soft_iou_per_object": {
+        "count": 512,
+        "mean": 0.2591764007291124,
+        "median": 0.25365616632329074,
+        "std": 0.06000915115018792,
+        "p10": 0.19279199702840313,
+        "p90": 0.34025121699856675
+      },
+      "target_probability_inside": {
+        "count": 512,
+        "mean": 0.5099858989283018,
+        "median": 0.5108338928183711,
+        "std": 0.08661632547826104,
+        "p10": 0.41029610013441464,
+        "p90": 0.6196498339943807
+      },
+      "target_probability_outside": {
+        "count": 512,
+        "mean": 0.08419331011257322,
+        "median": 0.07972130565692417,
+        "std": 0.02800524129345172,
+        "p10": 0.053039681774365424,
+        "p90": 0.11711220501593368
+      }
+    },
+    "27": {
+      "named_hard_iou": {
+        "count": 512,
+        "mean": 0.3083494269139919,
+        "median": 0.3039735034108162,
+        "std": 0.06593959753991437,
+        "p10": 0.2273216949775815,
+        "p90": 0.3947704900056125
+      },
+      "oracle_hard_iou": {
+        "count": 512,
+        "mean": 0.3184014621710958,
+        "median": 0.3117380030453205,
+        "std": 0.06009857606162048,
+        "p10": 0.24985742028802632,
+        "p90": 0.39635539725422875
+      },
+      "oracle_minus_named": {
+        "count": 512,
+        "mean": 0.010052035257103853,
+        "median": 0.00423445925116539,
+        "std": 0.016458420667390623,
+        "p10": 0.0,
+        "p90": 0.027255522087216388
+      },
+      "named_soft_iou_per_object": {
+        "count": 512,
+        "mean": 0.2711916012171632,
+        "median": 0.2665362944814286,
+        "std": 0.05951055167593418,
+        "p10": 0.19687004444451162,
+        "p90": 0.34807892087847003
+      },
+      "target_probability_inside": {
+        "count": 512,
+        "mean": 0.4768341500913401,
+        "median": 0.48377453531399106,
+        "std": 0.08714249590116678,
+        "p10": 0.3610194769074206,
+        "p90": 0.5894097920635155
+      },
+      "target_probability_outside": {
+        "count": 512,
+        "mean": 0.06817755181643853,
+        "median": 0.06341756069294907,
+        "std": 0.02422638293788942,
+        "p10": 0.0415861969927656,
+        "p90": 0.10072038628380091
+      }
+    }
+  },
+  "writer_transitions": {
+    "21_to_24": {
+      "hard_assignment_consistency_all": {
+        "count": 128,
+        "mean": 0.5556583404541016,
+        "median": 0.5595703125,
+        "std": 0.06477271279971106,
+        "p10": 0.472119140625,
+        "p90": 0.6434326171875
+      },
+      "hard_assignment_consistency_fg": {
+        "count": 128,
+        "mean": 0.5721452781435801,
+        "median": 0.5694107227027416,
+        "std": 0.08089537749888492,
+        "p10": 0.4743910633027554,
+        "p90": 0.670327166467905
+      },
+      "hard_assignment_consistency_bg": {
+        "count": 128,
+        "mean": 0.5580950323055731,
+        "median": 0.5602201651781797,
+        "std": 0.10391518809494461,
+        "p10": 0.4355349883437157,
+        "p90": 0.6742049887776375
+      },
+      "probability_l1": 0.01574713301670272
+    },
+    "24_to_27": {
+      "hard_assignment_consistency_all": {
+        "count": 128,
+        "mean": 0.6218624114990234,
+        "median": 0.6182861328125,
+        "std": 0.05382528348977892,
+        "p10": 0.548291015625,
+        "p90": 0.6898193359375
+      },
+      "hard_assignment_consistency_fg": {
+        "count": 128,
+        "mean": 0.6346701401344035,
+        "median": 0.6351382955908775,
+        "std": 0.0678570248852341,
+        "p10": 0.5464577004313469,
+        "p90": 0.7174051269888878
+      },
+      "hard_assignment_consistency_bg": {
+        "count": 128,
+        "mean": 0.6115042324333142,
+        "median": 0.6106831803917885,
+        "std": 0.1185121741176041,
+        "p10": 0.4715565991898378,
+        "p90": 0.7551480675737062
+      },
+      "probability_l1": 0.013353895727050258
+    }
+  },
+  "causal_influence": {
+    "num_interventions": 2857,
+    "num_multi_object_interventions": 2843,
+    "diagonal_influence": {
+      "count": 2857,
+      "mean": 0.029932710029831576,
+      "median": 0.004682638216763735,
+      "std": 0.07981165119742087,
+      "p10": 0.00017045041313394906,
+      "p90": 0.07106477469205864
+    },
+    "other_object_mean_influence": {
+      "count": 2857,
+      "mean": 0.0033896687390555643,
+      "median": 0.0005858033109689131,
+      "std": 0.008830479812980198,
+      "p10": 6.122879040049156e-05,
+      "p90": 0.008690843670628966
+    },
+    "other_object_max_influence": {
+      "count": 2857,
+      "mean": 0.009133625551362393,
+      "median": 0.0016585711855441332,
+      "std": 0.024065178848156052,
+      "p10": 0.00016915661981329325,
+      "p90": 0.024075738713145257
+    },
+    "background_influence": {
+      "count": 2857,
+      "mean": 0.006275932400097029,
+      "median": 0.0010076765902340412,
+      "std": 0.01716384832348948,
+      "p10": 8.534404041711242e-05,
+      "p90": 0.01586839109659196
+    },
+    "diag_over_other_mean": {
+      "count": 2857,
+      "mean": 164569138.1817389,
+      "median": 7.069618617627193,
+      "std": 3913934403.0118146,
+      "p10": 0.8364373769231029,
+      "p90": 31.318872290450198
+    },
+    "diag_over_background": {
+      "count": 2857,
+      "mean": 7.525260525166308,
+      "median": 4.143627109420255,
+      "std": 10.772579332850613,
+      "p10": 0.6813757596530008,
+      "p90": 17.537541602225104
+    },
+    "offdiag_over_diag": {
+      "count": 2857,
+      "mean": 0.9619750004616773,
+      "median": 0.14145034606345347,
+      "std": 6.799579439725106,
+      "p10": 0.03192962991191488,
+      "p90": 1.1955473408157304
+    },
+    "background_over_diag": {
+      "count": 2857,
+      "mean": 1.0929003808557092,
+      "median": 0.24133445737107181,
+      "std": 5.535817288611144,
+      "p10": 0.05702055698139087,
+      "p90": 1.4676189845391752
+    },
+    "diagonal_share_of_selected_other_background": {
+      "count": 2857,
+      "mean": 0.6477546055062655,
+      "median": 0.7050953672803861,
+      "std": 0.2381642987490061,
+      "p10": 0.25806335737293884,
+      "p90": 0.9002133643952872
+    },
+    "global_sum_diag_over_other_mean": 8.830570871114519,
+    "global_sum_diag_over_background": 4.769444302709315,
+    "multi_object_only": {
+      "diagonal_influence": {
+        "count": 2843,
+        "mean": 0.029914730413773887,
+        "median": 0.0046767727471888065,
+        "std": 0.07994581930061771,
+        "p10": 0.0001699726970400661,
+        "p90": 0.07034621238708498
+      },
+      "other_object_mean_influence": {
+        "count": 2843,
+        "mean": 0.003406360741287987,
+        "median": 0.0005930537099629873,
+        "std": 0.008848983253884545,
+        "p10": 6.486891021874422e-05,
+        "p90": 0.008699867368476201
+      },
+      "other_object_max_influence": {
+        "count": 2843,
+        "mean": 0.009178602954710643,
+        "median": 0.0016720269341021776,
+        "std": 0.02411580126997422,
+        "p10": 0.0001802126644179225,
+        "p90": 0.02411665506660939
+      },
+      "background_influence": {
+        "count": 2843,
+        "mean": 0.006222113827138564,
+        "median": 0.0010028253309428692,
+        "std": 0.01712891973724018,
+        "p10": 8.454429917037486e-05,
+        "p90": 0.0154972363263369
+      },
+      "diag_over_other_mean": {
+        "count": 2843,
+        "mean": 13.688210190503222,
+        "median": 7.019515862274339,
+        "std": 24.557490023374772,
+        "p10": 0.835554871276962,
+        "p90": 30.444321017527248
+      },
+      "diag_over_background": {
+        "count": 2843,
+        "mean": 7.54905169294444,
+        "median": 4.167175151476912,
+        "std": 10.792676804606975,
+        "p10": 0.6813636786997768,
+        "p90": 17.55383616600734
+      },
+      "offdiag_over_diag": {
+        "count": 2843,
+        "mean": 0.9667121267390123,
+        "median": 0.14245996727130378,
+        "std": 6.815964794915311,
+        "p10": 0.03284684933634326,
+        "p90": 1.1968095033809683
+      },
+      "background_over_diag": {
+        "count": 2843,
+        "mean": 1.0949883322563272,
+        "median": 0.23997071484878293,
+        "std": 5.549201032240792,
+        "p10": 0.05696760510067804,
+        "p90": 1.4676450060012447
+      }
+    },
+    "selected_region_dominant_fraction": 0.7094854742737137,
+    "selected_region_dominant_fraction_multi_object": 0.709110094970102
+  },
+  "appearance_information": {
+    "split": {
+      "train_images": 358,
+      "validation_images": 51,
+      "test_images": 103,
+      "train_objects": 1983,
+      "validation_objects": 256,
+      "test_objects": 618
+    },
+    "num_objects": 2857,
+    "word_probe": {
+      "r2": 0.1533001454905618,
+      "cosine": 0.7021046057136449,
+      "rel_l2": 0.7072875014077348,
+      "lambda": 10000.0,
+      "validation_r2": 0.17568598138230251
+    },
+    "instance_residual_variance_fraction": 0.8466999530792236,
+    "probes_instance_residual": {
+      "direct_self": {
+        "r2": 0.15566619774481116,
+        "cosine": 0.42886985009617373,
+        "rel_l2": 0.9052744418255116,
+        "lambda": 10000.0,
+        "validation_r2": 0.15756539044686724
+      },
+      "direct_other_mean": {
+        "r2": 0.07349788420917325,
+        "cosine": 0.2979541427146202,
+        "rel_l2": 0.9517218767067199,
+        "lambda": 10000.0,
+        "validation_r2": 0.0646892178267684
+      },
+      "direct_register_flat": {
+        "r2": 0.05273655281182066,
+        "cosine": 0.2723318988222457,
+        "rel_l2": 0.9639957504357153,
+        "lambda": 10000.0,
+        "validation_r2": 0.034459194611220045
+      },
+      "direct_nonself": {
+        "r2": 0.05459991518751939,
+        "cosine": 0.2799744824660923,
+        "rel_l2": 0.9623868290327346,
+        "lambda": 10000.0,
+        "validation_r2": 0.036375444995325634
+      },
+      "direct_all": {
+        "r2": 0.1432457603984577,
+        "cosine": 0.4050820085237249,
+        "rel_l2": 0.9139561007993476,
+        "lambda": 10000.0,
+        "validation_r2": 0.12874503079363087
+      },
+      "routed_self": {
+        "r2": 0.12386513943848054,
+        "cosine": 0.3905054830442488,
+        "rel_l2": 0.9243127535876154,
+        "lambda": 10000.0,
+        "validation_r2": 0.13576750700336282
+      },
+      "routed_other": {
+        "r2": 0.0631166744334758,
+        "cosine": 0.27977390972980976,
+        "rel_l2": 0.9645238315556688,
+        "lambda": 10000.0,
+        "validation_r2": 0.04407797573088068
+      },
+      "routed_register": {
+        "r2": 0.057985017971812325,
+        "cosine": 0.2922661399665641,
+        "rel_l2": 0.955958739687023,
+        "lambda": 10000.0,
+        "validation_r2": 0.06151867217195928
+      },
+      "routed_nonself": {
+        "r2": 0.09189543584368964,
+        "cosine": 0.34071242573664157,
+        "rel_l2": 0.9398908511150614,
+        "lambda": 10000.0,
+        "validation_r2": 0.07637703850909672
+      },
+      "routed_all_concat": {
+        "r2": 0.16196627910012695,
+        "cosine": 0.4303048212644352,
+        "rel_l2": 0.8998349354412172,
+        "lambda": 10000.0,
+        "validation_r2": 0.15277803530818945
+      },
+      "routed_sum": {
+        "r2": 0.1627311932231199,
+        "cosine": 0.43453008928164333,
+        "rel_l2": 0.9010962388392293,
+        "lambda": 10000.0,
+        "validation_r2": 0.1614261986897868
+      },
+      "direct_unique_self_delta_r2": {
+        "r2": 0.08864584521093832
+      },
+      "routed_unique_self_delta_r2": {
+        "r2": 0.07007084325643731
+      }
+    },
+    "reader_mass_on_target_region": {
+      "self": {
+        "count": 2857,
+        "mean": 0.4250224258980763,
+        "median": 0.4154282808303833,
+        "std": 0.2671450615760991,
+        "p10": 0.04440822154283524,
+        "p90": 0.7922115445137023
+      },
+      "other_objects": {
+        "count": 2857,
+        "mean": 0.31409842160744966,
+        "median": 0.241789311170578,
+        "std": 0.25602494369673223,
+        "p10": 0.045200522243976596,
+        "p90": 0.7414691329002381
+      },
+      "registers": {
+        "count": 2857,
+        "mean": 0.260879161172668,
+        "median": 0.1933586448431015,
+        "std": 0.20913467695143234,
+        "p10": 0.03956326767802239,
+        "p90": 0.5841559767723083
+      }
+    }
+  }
+}

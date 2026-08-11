@@ -296,6 +296,9 @@ def train():
     )
     config.pgot_e8_clean_refinement = bool(model_args.pgot_e8_clean_refinement)
     config.pgot_e8_inject_memory = bool(model_args.pgot_e8_inject_memory)
+    config.pgot_e8_reader_supervision_mode = str(
+        model_args.pgot_e8_reader_supervision_mode
+    )
     config.pgot_e8_reader_object_weight = float(
         model_args.pgot_e8_reader_object_weight
     )
@@ -568,6 +571,9 @@ def train():
         model_args.pgot_e8_clean_refinement
     )
     model.config.pgot_e8_inject_memory = bool(model_args.pgot_e8_inject_memory)
+    model.config.pgot_e8_reader_supervision_mode = str(
+        model_args.pgot_e8_reader_supervision_mode
+    )
     model.config.pgot_e8_reader_object_weight = float(
         model_args.pgot_e8_reader_object_weight
     )

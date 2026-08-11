@@ -1,0 +1,119 @@
+2026-08-11 06:40:50 PID=535925 __init__.py:49 setup_logging() INFO → 'standard' logger initialized.
+2026-08-11 06:41:03 PID=535925 eval_recon_oracles.py:102 load_model_and_tokenizer() INFO → Loading model from: /home/jovyan/PGOT/checkpoints/pgot_e8_ablation_a_writer_gt_reader_writer/checkpoint-10000
+2026-08-11 06:41:03 PID=535925 eval_recon_oracles.py:123 load_model_and_tokenizer() INFO → [LoRA] adapter checkpoint detected; bootstrap from /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B
+2026-08-11 06:41:46 PID=535925 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch16-512-interp1024
+2026-08-11 06:41:46 PID=535925 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch14-224-interp256
+[AURORA-INIT] diffusion_norm_stats_path = /home/jovyan/data/siglip2_bn_stats.pt
+[DEBUG] data_std: torch.Size([1152]), data_mean: torch.Size([1152])
+[AURORA-INIT] diff_head.normalize_data = True
+[PGOT] Initialised — D=1536, N_register=4, n_ovt_per_object=1, N_null_bg=0, e6_coda_direct=False, e7_causal_ownership=False, e8_visual_memory=True, e8_layers=[21, 24, 27], fvw=False, fvw_layers=[0, 8, 16, 24, 27], v12=False, v12_layers=[12, 16, 20, 24], v14=False, v14_router_depth=1, v21=False, latent_distill=False
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [02:05<02:05, 125.11s/it]Loading checkpoint shards: 100%|██████████| 2/2 [03:19<00:00, 95.32s/it] Loading checkpoint shards: 100%|██████████| 2/2 [03:19<00:00, 99.79s/it]
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B and are newly initialized: ['diff_head.data_mean', 'diff_head.data_std', 'pgot_e8_reader.key.weight', 'pgot_e8_reader.memory_norm.bias', 'pgot_e8_reader.memory_norm.weight', 'pgot_e8_reader.output.weight', 'pgot_e8_reader.output_norm.bias', 'pgot_e8_reader.output_norm.weight', 'pgot_e8_reader.query.weight', 'pgot_e8_reader.query_norm.bias', 'pgot_e8_reader.query_norm.weight', 'pgot_e8_reader.semantic_norm.bias', 'pgot_e8_reader.semantic_norm.weight', 'pgot_e8_reader.value.weight', 'pgot_e8_writer.fuse.weight', 'pgot_e8_writer.gate.bias', 'pgot_e8_writer.gate.weight', 'pgot_e8_writer.image_norm.bias', 'pgot_e8_writer.image_norm.weight', 'pgot_e8_writer.inject.weight', 'pgot_e8_writer.inject_logit', 'pgot_e8_writer.key.weight', 'pgot_e8_writer.memory_norm.bias', 'pgot_e8_writer.memory_norm.weight', 'pgot_e8_writer.memory_to_query.weight', 'pgot_e8_writer.query.weight', 'pgot_e8_writer.semantic_norm.bias', 'pgot_e8_writer.semantic_norm.weight', 'pgot_e8_writer.update_norm.bias', 'pgot_e8_writer.update_norm.weight', 'pgot_e8_writer.value.weight', 'pgot_e8_writer.write_logit', 'pgot_ovt_caption_norm.bias', 'pgot_ovt_caption_norm.weight', 'pgot_ovt_caption_projector.weight', 'pgot_register_embeddings']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/data/Scale-RAE-Qwen1.5B_DiT2.4B and are newly initialized because the shapes did not match:
+- model.embed_tokens.weight: found shape torch.Size([151667, 1536]) in the checkpoint and torch.Size([151671, 1536]) in the model instantiated
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/huggingface_hub/file_download.py:1142: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+2026-08-11 06:53:59 PID=535925 eval_recon_oracles.py:190 load_model_and_tokenizer() INFO → [LoRA] loaded checkpoint | missing=1 unexpected=0
+2026-08-11 06:54:03 PID=535925 eval_recon_oracles.py:93 patch_diffusion_steps() INFO → Patched RF inference_flow to 10 steps.
+2026-08-11 06:54:03 PID=535925 eval_recon_oracles.py:208 load_model_and_tokenizer() INFO → Model loaded on cuda.
+pretrain_adapter_and_vision_head is: None
+E8 causal diagnostic:   0%|          | 0/128 [00:00<?, ?it/s]E8 causal diagnostic:   1%|          | 1/128 [00:04<08:59,  4.25s/it]E8 causal diagnostic:   2%|▏         | 2/128 [00:05<05:00,  2.39s/it]E8 causal diagnostic:   2%|▏         | 3/128 [00:06<03:49,  1.84s/it]E8 causal diagnostic:   3%|▎         | 4/128 [00:07<03:11,  1.55s/it]E8 causal diagnostic:   4%|▍         | 5/128 [00:08<02:50,  1.39s/it]E8 causal diagnostic:   5%|▍         | 6/128 [00:09<02:38,  1.30s/it]E8 causal diagnostic:   5%|▌         | 7/128 [00:11<02:37,  1.31s/it]E8 causal diagnostic:   6%|▋         | 8/128 [00:12<02:28,  1.24s/it]E8 causal diagnostic:   7%|▋         | 9/128 [00:13<02:24,  1.21s/it]E8 causal diagnostic:   8%|▊         | 10/128 [00:14<02:17,  1.17s/it]E8 causal diagnostic:   9%|▊         | 11/128 [00:15<02:17,  1.17s/it]E8 causal diagnostic:   9%|▉         | 12/128 [00:16<02:15,  1.17s/it]E8 causal diagnostic:  10%|█         | 13/128 [00:17<02:13,  1.16s/it]E8 causal diagnostic:  11%|█         | 14/128 [00:19<02:11,  1.15s/it]E8 causal diagnostic:  12%|█▏        | 15/128 [00:20<02:10,  1.15s/it]E8 causal diagnostic:  12%|█▎        | 16/128 [00:21<02:12,  1.18s/it]E8 causal diagnostic:  13%|█▎        | 17/128 [00:22<02:08,  1.16s/it]E8 causal diagnostic:  14%|█▍        | 18/128 [00:23<02:05,  1.14s/it]E8 causal diagnostic:  15%|█▍        | 19/128 [00:24<02:04,  1.14s/it]E8 causal diagnostic:  16%|█▌        | 20/128 [00:25<02:02,  1.13s/it]E8 causal diagnostic:  16%|█▋        | 21/128 [00:27<02:02,  1.14s/it]E8 causal diagnostic:  17%|█▋        | 22/128 [00:28<02:00,  1.14s/it]E8 causal diagnostic:  18%|█▊        | 23/128 [00:29<02:02,  1.16s/it]E8 causal diagnostic:  19%|█▉        | 24/128 [00:30<02:00,  1.16s/it]E8 causal diagnostic:  20%|█▉        | 25/128 [00:31<01:57,  1.14s/it]E8 causal diagnostic:  20%|██        | 26/128 [00:32<01:56,  1.15s/it]E8 causal diagnostic:  21%|██        | 27/128 [00:33<01:52,  1.12s/it]E8 causal diagnostic:  22%|██▏       | 28/128 [00:35<01:51,  1.12s/it]E8 causal diagnostic:  23%|██▎       | 29/128 [00:36<01:51,  1.13s/it]E8 causal diagnostic:  23%|██▎       | 30/128 [00:37<01:54,  1.16s/it]E8 causal diagnostic:  24%|██▍       | 31/128 [00:38<01:54,  1.18s/it]E8 causal diagnostic:  25%|██▌       | 32/128 [00:39<01:50,  1.15s/it]E8 causal diagnostic:  26%|██▌       | 33/128 [00:40<01:51,  1.17s/it]E8 causal diagnostic:  27%|██▋       | 34/128 [00:42<01:48,  1.15s/it]E8 causal diagnostic:  27%|██▋       | 35/128 [00:43<01:47,  1.15s/it]E8 causal diagnostic:  28%|██▊       | 36/128 [00:44<01:43,  1.13s/it]E8 causal diagnostic:  29%|██▉       | 37/128 [00:45<01:41,  1.12s/it]E8 causal diagnostic:  30%|██▉       | 38/128 [00:46<01:40,  1.12s/it]E8 causal diagnostic:  30%|███       | 39/128 [00:47<01:40,  1.13s/it]E8 causal diagnostic:  31%|███▏      | 40/128 [00:48<01:39,  1.13s/it]E8 causal diagnostic:  32%|███▏      | 41/128 [00:49<01:36,  1.11s/it]E8 causal diagnostic:  33%|███▎      | 42/128 [00:50<01:34,  1.10s/it]E8 causal diagnostic:  34%|███▎      | 43/128 [00:52<01:37,  1.15s/it]E8 causal diagnostic:  34%|███▍      | 44/128 [00:53<01:42,  1.22s/it]E8 causal diagnostic:  35%|███▌      | 45/128 [00:54<01:41,  1.22s/it]E8 causal diagnostic:  36%|███▌      | 46/128 [00:55<01:36,  1.18s/it]E8 causal diagnostic:  37%|███▋      | 47/128 [00:57<01:35,  1.18s/it]E8 causal diagnostic:  38%|███▊      | 48/128 [00:58<01:31,  1.14s/it]E8 causal diagnostic:  38%|███▊      | 49/128 [00:59<01:29,  1.13s/it]E8 causal diagnostic:  39%|███▉      | 50/128 [01:00<01:26,  1.11s/it]E8 causal diagnostic:  40%|███▉      | 51/128 [01:01<01:26,  1.12s/it]E8 causal diagnostic:  41%|████      | 52/128 [01:02<01:24,  1.11s/it]E8 causal diagnostic:  41%|████▏     | 53/128 [01:03<01:23,  1.11s/it]E8 causal diagnostic:  42%|████▏     | 54/128 [01:04<01:22,  1.12s/it]E8 causal diagnostic:  43%|████▎     | 55/128 [01:05<01:21,  1.12s/it]E8 causal diagnostic:  44%|████▍     | 56/128 [01:07<01:21,  1.13s/it]E8 causal diagnostic:  45%|████▍     | 57/128 [01:08<01:24,  1.18s/it]E8 causal diagnostic:  45%|████▌     | 58/128 [01:09<01:23,  1.19s/it]E8 causal diagnostic:  46%|████▌     | 59/128 [01:10<01:20,  1.17s/it]E8 causal diagnostic:  47%|████▋     | 60/128 [01:11<01:21,  1.20s/it]E8 causal diagnostic:  48%|████▊     | 61/128 [01:13<01:20,  1.19s/it]E8 causal diagnostic:  48%|████▊     | 62/128 [01:14<01:18,  1.19s/it]E8 causal diagnostic:  49%|████▉     | 63/128 [01:15<01:16,  1.17s/it]E8 causal diagnostic:  50%|█████     | 64/128 [01:16<01:14,  1.16s/it]E8 causal diagnostic:  51%|█████     | 65/128 [01:17<01:12,  1.15s/it]E8 causal diagnostic:  52%|█████▏    | 66/128 [01:18<01:12,  1.16s/it]E8 causal diagnostic:  52%|█████▏    | 67/128 [01:20<01:12,  1.19s/it]E8 causal diagnostic:  53%|█████▎    | 68/128 [01:21<01:10,  1.18s/it]E8 causal diagnostic:  54%|█████▍    | 69/128 [01:22<01:08,  1.16s/it]E8 causal diagnostic:  55%|█████▍    | 70/128 [01:23<01:10,  1.21s/it]E8 causal diagnostic:  55%|█████▌    | 71/128 [01:25<01:12,  1.27s/it]E8 causal diagnostic:  56%|█████▋    | 72/128 [01:26<01:08,  1.22s/it]E8 causal diagnostic:  57%|█████▋    | 73/128 [01:27<01:05,  1.20s/it]E8 causal diagnostic:  58%|█████▊    | 74/128 [01:28<01:04,  1.20s/it]E8 causal diagnostic:  59%|█████▊    | 75/128 [01:29<01:03,  1.20s/it]E8 causal diagnostic:  59%|█████▉    | 76/128 [01:31<01:02,  1.20s/it]E8 causal diagnostic:  60%|██████    | 77/128 [01:32<01:02,  1.22s/it]E8 causal diagnostic:  61%|██████    | 78/128 [01:33<01:02,  1.24s/it]E8 causal diagnostic:  62%|██████▏   | 79/128 [01:34<00:59,  1.22s/it]E8 causal diagnostic:  62%|██████▎   | 80/128 [01:36<00:58,  1.22s/it]E8 causal diagnostic:  63%|██████▎   | 81/128 [01:37<00:59,  1.27s/it]E8 causal diagnostic:  64%|██████▍   | 82/128 [01:38<00:57,  1.25s/it]E8 causal diagnostic:  65%|██████▍   | 83/128 [01:39<00:56,  1.25s/it]E8 causal diagnostic:  66%|██████▌   | 84/128 [01:41<00:54,  1.24s/it]E8 causal diagnostic:  66%|██████▋   | 85/128 [01:42<00:51,  1.20s/it]E8 causal diagnostic:  67%|██████▋   | 86/128 [01:43<00:50,  1.21s/it]E8 causal diagnostic:  68%|██████▊   | 87/128 [01:44<00:49,  1.20s/it]E8 causal diagnostic:  69%|██████▉   | 88/128 [01:45<00:47,  1.19s/it]E8 causal diagnostic:  70%|██████▉   | 89/128 [01:46<00:45,  1.18s/it]E8 causal diagnostic:  70%|███████   | 90/128 [01:48<00:44,  1.17s/it]E8 causal diagnostic:  71%|███████   | 91/128 [01:49<00:42,  1.15s/it]E8 causal diagnostic:  72%|███████▏  | 92/128 [01:50<00:40,  1.12s/it]E8 causal diagnostic:  73%|███████▎  | 93/128 [01:51<00:38,  1.10s/it]E8 causal diagnostic:  73%|███████▎  | 94/128 [01:52<00:37,  1.10s/it]E8 causal diagnostic:  74%|███████▍  | 95/128 [01:53<00:36,  1.11s/it]E8 causal diagnostic:  75%|███████▌  | 96/128 [01:54<00:35,  1.11s/it]E8 causal diagnostic:  76%|███████▌  | 97/128 [01:55<00:34,  1.10s/it]E8 causal diagnostic:  77%|███████▋  | 98/128 [01:56<00:33,  1.11s/it]E8 causal diagnostic:  77%|███████▋  | 99/128 [01:57<00:31,  1.10s/it]E8 causal diagnostic:  78%|███████▊  | 100/128 [01:59<00:35,  1.27s/it]E8 causal diagnostic:  79%|███████▉  | 101/128 [02:02<00:44,  1.66s/it]E8 causal diagnostic:  80%|███████▉  | 102/128 [02:03<00:38,  1.49s/it]E8 causal diagnostic:  80%|████████  | 103/128 [02:04<00:35,  1.41s/it]E8 causal diagnostic:  81%|████████▏ | 104/128 [02:05<00:31,  1.32s/it]E8 causal diagnostic:  82%|████████▏ | 105/128 [02:06<00:29,  1.27s/it]E8 causal diagnostic:  83%|████████▎ | 106/128 [02:07<00:27,  1.24s/it]E8 causal diagnostic:  84%|████████▎ | 107/128 [02:08<00:25,  1.20s/it]E8 causal diagnostic:  84%|████████▍ | 108/128 [02:10<00:23,  1.18s/it]E8 causal diagnostic:  85%|████████▌ | 109/128 [02:11<00:22,  1.16s/it]E8 causal diagnostic:  86%|████████▌ | 110/128 [02:12<00:20,  1.14s/it]E8 causal diagnostic:  87%|████████▋ | 111/128 [02:13<00:19,  1.13s/it]E8 causal diagnostic:  88%|████████▊ | 112/128 [02:14<00:17,  1.11s/it]E8 causal diagnostic:  88%|████████▊ | 113/128 [02:15<00:17,  1.14s/it]E8 causal diagnostic:  89%|████████▉ | 114/128 [02:16<00:15,  1.13s/it]E8 causal diagnostic:  90%|████████▉ | 115/128 [02:17<00:14,  1.14s/it]E8 causal diagnostic:  91%|█████████ | 116/128 [02:19<00:13,  1.13s/it]E8 causal diagnostic:  91%|█████████▏| 117/128 [02:20<00:12,  1.18s/it]E8 causal diagnostic:  92%|█████████▏| 118/128 [02:21<00:11,  1.19s/it]E8 causal diagnostic:  93%|█████████▎| 119/128 [02:22<00:10,  1.18s/it]E8 causal diagnostic:  94%|█████████▍| 120/128 [02:23<00:09,  1.15s/it]E8 causal diagnostic:  95%|█████████▍| 121/128 [02:24<00:08,  1.15s/it]E8 causal diagnostic:  95%|█████████▌| 122/128 [02:26<00:07,  1.18s/it]E8 causal diagnostic:  96%|█████████▌| 123/128 [02:27<00:06,  1.20s/it]E8 causal diagnostic:  97%|█████████▋| 124/128 [02:28<00:04,  1.18s/it]E8 causal diagnostic:  98%|█████████▊| 125/128 [02:29<00:03,  1.17s/it]E8 causal diagnostic:  98%|█████████▊| 126/128 [02:30<00:02,  1.19s/it]E8 causal diagnostic:  99%|█████████▉| 127/128 [02:32<00:01,  1.24s/it]E8 causal diagnostic: 100%|██████████| 128/128 [02:33<00:00,  1.20s/it]E8 causal diagnostic: 100%|██████████| 128/128 [02:33<00:00,  1.20s/it]
+2026-08-11 06:56:38 PID=535925 diagnose_e8_visual_memory.py:282 run() INFO → Wrote /home/jovyan/PGOT/outputs/analysis_e8_ablation_a_causal_512/summary.json
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_e8_ablation_a_writer_gt_reader_writer/checkpoint-10000",
+  "num_samples": 512,
+  "fixed_noise_seed_base": 123,
+  "diffusion_training_loss": {
+    "baseline": 0.6117052303161472,
+    "object_memory_only": 0.658736360957846,
+    "register_memory_only": 0.6430966083426028,
+    "all_memory_zero": 0.6958367838524282
+  },
+  "diffusion_training_loss_delta_vs_baseline": {
+    "object_memory_only": 0.04703113064169884,
+    "register_memory_only": 0.03139137802645564,
+    "all_memory_zero": 0.08413155353628099
+  },
+  "condition_change_vs_baseline": {
+    "object_memory_only": {
+      "relative_l2": 0.519118377706036,
+      "cosine": 0.8631268455646932
+    },
+    "register_memory_only": {
+      "relative_l2": 0.38228336453903466,
+      "cosine": 0.9257901539094746
+    },
+    "all_memory_zero": {
+      "relative_l2": 0.5711599667556584,
+      "cosine": 0.833399027120322
+    }
+  },
+  "reader_object_attention_binding": {
+    "inside_mean": 0.39866444245442395,
+    "outside_mean": 0.03455466949242526,
+    "inside_outside_ratio": 17.71307187466849,
+    "auroc": 0.8966969615304436,
+    "top_gt_area_precision": 0.39505216316608704,
+    "center_of_mass_distance_normalized": 0.1415824055400226,
+    "foreground_query_fraction": 0.07794407594821298
+  },
+  "single_object_memory_zero_binding": {
+    "inside_mean": 10.95833596582646,
+    "outside_mean": 0.9401284672121533,
+    "inside_outside_ratio": 16.11914891937213,
+    "auroc": 0.896835119928281,
+    "top_gt_area_precision": 0.3862154839919061,
+    "center_of_mass_distance_normalized": 0.14260155822136483,
+    "foreground_query_fraction": 0.07794407594821298
+  },
+  "reader_register_attention_on_gt_foreground": 0.22461588126324744,
+  "reader_object_attention_on_gt_background": 0.15853814482412273,
+  "memory": {
+    "object_norm": {
+      "mean": 42.63551357555876,
+      "std": 2.0154177981987633,
+      "count": 2742
+    },
+    "register_norm": {
+      "mean": 37.38336743786931,
+      "std": 1.369842731564571,
+      "count": 2048
+    },
+    "object_pair_cosine": {
+      "mean": 0.31123125634779814,
+      "std": 0.2488737084482467,
+      "count": 11790
+    }
+  },
+  "reader_recompute_max_abs_error": 0.0,
+  "num_object_binding_records": 2742,
+  "writer_ownership_by_layer": {
+    "21": {
+      "loss": 1.447416677721776,
+      "fg_acc": 0.8264554138295352,
+      "bg_acc": 0.9207095480524004,
+      "register_prob_on_fg": 0.0949761085503269,
+      "object_prob_on_bg": 0.07980716858583037,
+      "entropy": 0.6614623598288745
+    },
+    "24": {
+      "loss": 1.8360511183273047,
+      "fg_acc": 0.8221960060764104,
+      "bg_acc": 0.9263229020871222,
+      "register_prob_on_fg": 0.09446621291863266,
+      "object_prob_on_bg": 0.07331233304284979,
+      "entropy": 0.554564788704738
+    },
+    "27": {
+      "loss": 1.9211596414679661,
+      "fg_acc": 0.8242027843371034,
+      "bg_acc": 0.9261810090392828,
+      "register_prob_on_fg": 0.08988685836084187,
+      "object_prob_on_bg": 0.07285112561658025,
+      "entropy": 0.5150704840198159
+    }
+  }
+}

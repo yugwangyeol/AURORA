@@ -1,0 +1,86 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_e8_ablation_a_writer_gt_reader_writer/checkpoint-10000",
+  "num_images_seen": 512,
+  "num_images_with_same_category_swap": 498,
+  "paired_protocol": "same semantic keys/registers/timestep/noise; one visual memory changed",
+  "metrics": {
+    "full_selected_mse": {
+      "mean": 0.5449365714796816,
+      "median": 0.5121136605739594,
+      "std": 0.2304059080777544,
+      "count": 498
+    },
+    "swap_delta_localization_ratio": {
+      "mean": 12.452278087274676,
+      "median": 8.159395217895508,
+      "std": 15.017222480671386,
+      "count": 498
+    },
+    "swap_prediction_delta_inside": {
+      "mean": 0.047792449542888076,
+      "median": 0.00960062351077795,
+      "std": 0.09203318242560701,
+      "count": 498
+    },
+    "swap_prediction_delta_outside": {
+      "mean": 0.007876409962043422,
+      "median": 0.0009856944670900702,
+      "std": 0.019142748974869287,
+      "count": 498
+    },
+    "swap_selected_error_delta": {
+      "mean": 0.04891991278672793,
+      "median": 0.008135795593261719,
+      "std": 0.10024300433214502,
+      "count": 498
+    },
+    "swap_selected_error_ratio": {
+      "mean": 1.0527197414240586,
+      "median": 1.016403094717826,
+      "std": 0.2123596152286164,
+      "count": 498
+    },
+    "swap_selected_mse": {
+      "mean": 0.5938564842664095,
+      "median": 0.5381143093109131,
+      "std": 0.28055696752776366,
+      "count": 498
+    },
+    "zero_delta_localization_ratio": {
+      "mean": 12.02623445472594,
+      "median": 8.076424598693848,
+      "std": 12.780645319114733,
+      "count": 498
+    },
+    "zero_prediction_delta_inside": {
+      "mean": 0.04372304286363237,
+      "median": 0.007757771294564009,
+      "std": 0.08606614338810838,
+      "count": 498
+    },
+    "zero_prediction_delta_outside": {
+      "mean": 0.005866252782486772,
+      "median": 0.0007772616227157414,
+      "std": 0.011490064727731288,
+      "count": 498
+    },
+    "zero_selected_error_delta": {
+      "mean": 0.04965637275672342,
+      "median": 0.007363989949226379,
+      "std": 0.10600559741812561,
+      "count": 498
+    },
+    "zero_selected_error_ratio": {
+      "mean": 1.0543784451064016,
+      "median": 1.0155035033681075,
+      "std": 0.22699863480539445,
+      "count": 498
+    },
+    "zero_selected_mse": {
+      "mean": 0.594592944296249,
+      "median": 0.5374016165733337,
+      "std": 0.28256302680645684,
+      "count": 498
+    }
+  }
+}
