@@ -22,9 +22,23 @@ case "$(realpath -m "${CAUSAL_OUTPUT_DIR}")" in
     "${PROJECT_ROOT}/checkpoints/"*smoke*) ;;
     *) echo "Refusing unsafe smoke causal checkpoint path: ${CAUSAL_OUTPUT_DIR}" >&2; exit 1 ;;
 esac
-cleanup_smoke() { rm -rf "${OUTPUT_DIR}" "${CAUSAL_OUTPUT_DIR}" "${EVAL_OUTPUT_DIR}"; }
-trap cleanup_smoke EXIT
-rm -rf "${OUTPUT_DIR}" "${CAUSAL_OUTPUT_DIR}" "${EVAL_OUTPUT_DIR}"
+cleanup_smoke() {
+    local path
+    for path in "${OUTPUT_DIR}" "${CAUSAL_OUTPUT_DIR}" "${EVAL_OUTPUT_DIR}"; do
+        if [[ -e "${path}" ]]; then
+            rm -rf -- "${path}"
+        fi
+    done
+}
+preserve_failed_smoke() {
+    local status=$?
+    if (( status != 0 )); then
+        echo "Smoke failed; outputs were preserved for diagnosis." >&2
+    fi
+    return "${status}"
+}
+trap preserve_failed_smoke EXIT
+cleanup_smoke
 mkdir -p "${OUTPUT_DIR}" "${CAUSAL_OUTPUT_DIR}" "${EVAL_OUTPUT_DIR}"
 
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1}"
@@ -38,6 +52,7 @@ PER_DEVICE_EVAL_BATCH_SIZE=1 MAX_STEPS=1 SAVE_STEPS=1 EVAL_STEPS=1 \
 LOGGING_STEPS=1 EVAL_NUM_IMAGES=1 PGOT_EVAL_LOG_RECON_IMAGES=1 \
 DATALOADER_NUM_WORKERS=1 TRAIN_JSONL="${TRAIN_JSONL}" VAL_JSONL="${VAL_JSONL}" \
 OUTPUT_DIR="${OUTPUT_DIR}" REPORT_TO=wandb WANDB_NAME=pgot_smoke_e8_visual_memory \
+E8_READER_SUPERVISION_MODE=writer \
 bash "${PROJECT_ROOT}/scripts/train_pgot_e8_visual_memory.sh" \
     2>&1 | tee "${OUTPUT_DIR}/smoke_train.log"
 
@@ -98,8 +113,13 @@ test -f "${CAUSAL_OUTPUT_DIR}/checkpoint-1/trainer_state.json"
 grep -q '"pgot_e8_causal_enable": true' "${CAUSAL_OUTPUT_DIR}/checkpoint-1/config.json"
 grep -q 'loss_e8_causal' "${CAUSAL_OUTPUT_DIR}/smoke_train.log"
 grep -q 'e8_object_ablation_error_ratio' "${CAUSAL_OUTPUT_DIR}/smoke_train.log"
+grep -q 'loss_e8_need_weighted' "${CAUSAL_OUTPUT_DIR}/smoke_train.log"
+grep -q 'e8_need_margin_satisfied' "${CAUSAL_OUTPUT_DIR}/smoke_train.log"
 grep -q 'e8_causal_active' "${CAUSAL_OUTPUT_DIR}/smoke_train.log"
 grep -q 'eval_loss' "${CAUSAL_OUTPUT_DIR}/smoke_train.log"
+grep -q '\[PGOT/LoRA\] reloaded checkpoint adapter weights' "${CAUSAL_OUTPUT_DIR}/smoke_train.log"
+grep -q 'missing_lora=0 unexpected=0' "${CAUSAL_OUTPUT_DIR}/smoke_train.log"
+grep -q '"pgot_e8_reader_supervision_mode": "writer"' "${CAUSAL_OUTPUT_DIR}/checkpoint-1/config.json"
 
 CAUSAL_WANDB_RUN_DIR="$(find "${CAUSAL_OUTPUT_DIR}/wandb" -maxdepth 3 -type d -name 'offline-run-*' | head -n 1)"
 test -n "${CAUSAL_WANDB_RUN_DIR}"
@@ -121,7 +141,7 @@ grep -q '"rae_standard_slot_attention_blocked": true' "${EVAL_OUTPUT_DIR}/summar
 grep -q '"owner_source": "e8_competitive_visual_memory_writer"' "${EVAL_OUTPUT_DIR}/summary.json"
 grep -q '"recon_mse"' "${EVAL_OUTPUT_DIR}/summary.json"
 
-rm -rf "${OUTPUT_DIR}" "${CAUSAL_OUTPUT_DIR}" "${EVAL_OUTPUT_DIR}"
+cleanup_smoke
 test ! -e "${OUTPUT_DIR}"
 test ! -e "${CAUSAL_OUTPUT_DIR}"
 test ! -e "${EVAL_OUTPUT_DIR}"

@@ -2004,6 +2004,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
 
         ratio = selected_error_ablated / selected_error_full.clamp_min(1e-8)
         reg_ratio = fg_error_register / fg_error_full.clamp_min(1e-8)
+        need_satisfied = ratio >= (1.0 + rho)
+        register_satisfied = reg_ratio >= (1.0 + rho_reg)
         return {
             "recon_loss": global_full.mean(),
             "need_loss": need,
@@ -2014,6 +2016,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "ablated_selected_error": selected_error_ablated[valid].mean().detach() if bool(valid.any()) else zero,
             "object_ablation_ratio": ratio[valid].mean().detach() if bool(valid.any()) else zero,
             "register_fg_ratio": reg_ratio[valid_fg].mean().detach() if bool(valid_fg.any()) else zero,
+            "need_margin_satisfied": need_satisfied[valid].float().mean().detach() if bool(valid.any()) else zero,
+            "register_margin_satisfied": register_satisfied[valid_fg].float().mean().detach() if bool(valid_fg.any()) else zero,
+            "selected_mask_fraction": selected_mask[valid].float().mean().detach() if bool(valid.any()) else zero,
+            "foreground_mask_fraction": foreground_mask[valid_fg].float().mean().detach() if bool(valid_fg.any()) else zero,
             "outside_consistency": local.detach(),
             "timestep": t.mean().detach(),
         }
@@ -4980,6 +4986,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "ablated_selected_error": zero,
             "object_ablation_ratio": zero,
             "register_fg_ratio": zero,
+            "need_margin_satisfied": zero,
+            "register_margin_satisfied": zero,
+            "selected_mask_fraction": zero,
+            "foreground_mask_fraction": zero,
             "outside_consistency": zero,
             "timestep": zero,
         }
@@ -5047,11 +5057,31 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         causal_scale = float(
             getattr(self.config, "pgot_e8_causal_weight_scale_effective", 1.0)
         )
-        loss_causal = causal_scale * (
-            float(getattr(self.config, "pgot_e8_need_weight", 0.1)) * causal_stats["need_loss"]
-            + float(getattr(self.config, "pgot_e8_local_weight", 0.05)) * causal_stats["local_loss"]
-            + float(getattr(self.config, "pgot_e8_register_bg_weight", 0.1)) * causal_stats["register_bg_loss"]
-            + float(getattr(self.config, "pgot_e8_register_fg_weight", 0.1)) * causal_stats["register_fg_loss"]
+        need_weight = causal_scale * float(
+            getattr(self.config, "pgot_e8_need_weight", 0.1)
+        )
+        local_weight = causal_scale * float(
+            getattr(self.config, "pgot_e8_local_weight", 0.05)
+        )
+        register_bg_weight = causal_scale * float(
+            getattr(self.config, "pgot_e8_register_bg_weight", 0.1)
+        )
+        register_fg_weight = causal_scale * float(
+            getattr(self.config, "pgot_e8_register_fg_weight", 0.1)
+        )
+        loss_need_weighted = need_weight * causal_stats["need_loss"]
+        loss_local_weighted = local_weight * causal_stats["local_loss"]
+        loss_register_bg_weighted = (
+            register_bg_weight * causal_stats["register_bg_loss"]
+        )
+        loss_register_fg_weighted = (
+            register_fg_weight * causal_stats["register_fg_loss"]
+        )
+        loss_causal = (
+            loss_need_weighted
+            + loss_local_weighted
+            + loss_register_bg_weighted
+            + loss_register_fg_weighted
         )
         loss_mask = owner_w * loss_owner + loss_reader + loss_causal
         total_loss = lm_w * loss_lm + recon_w * loss_recon + loss_mask
@@ -5153,10 +5183,34 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "loss_e8_local": causal_stats["local_loss"].detach(),
             "loss_e8_register_bg": causal_stats["register_bg_loss"].detach(),
             "loss_e8_register_fg": causal_stats["register_fg_loss"].detach(),
+            "loss_e8_need_weighted": loss_need_weighted.detach(),
+            "loss_e8_local_weighted": loss_local_weighted.detach(),
+            "loss_e8_register_bg_weighted": loss_register_bg_weighted.detach(),
+            "loss_e8_register_fg_weighted": loss_register_fg_weighted.detach(),
             "e8_causal_active": hidden.new_tensor(float(causal_active)),
             "e8_causal_weight_scale": hidden.new_tensor(causal_scale),
+            "e8_need_weight_effective": hidden.new_tensor(need_weight),
+            "e8_local_weight_effective": hidden.new_tensor(local_weight),
+            "e8_register_bg_weight_effective": hidden.new_tensor(
+                register_bg_weight
+            ),
+            "e8_register_fg_weight_effective": hidden.new_tensor(
+                register_fg_weight
+            ),
             "e8_object_ablation_error_ratio": causal_stats["object_ablation_ratio"],
             "e8_register_fg_error_ratio": causal_stats["register_fg_ratio"],
+            "e8_need_margin_satisfied": causal_stats[
+                "need_margin_satisfied"
+            ],
+            "e8_register_margin_satisfied": causal_stats[
+                "register_margin_satisfied"
+            ],
+            "e8_causal_selected_mask_fraction": causal_stats[
+                "selected_mask_fraction"
+            ],
+            "e8_causal_foreground_mask_fraction": causal_stats[
+                "foreground_mask_fraction"
+            ],
             "e8_causal_full_selected_error": causal_stats["full_selected_error"],
             "e8_causal_ablated_selected_error": causal_stats["ablated_selected_error"],
             "e8_causal_outside_consistency": causal_stats["outside_consistency"],

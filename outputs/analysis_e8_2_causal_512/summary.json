@@ -1,0 +1,95 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_e8_2_paired_causal/checkpoint-10000",
+  "num_samples": 512,
+  "fixed_noise_seed_base": 123,
+  "diffusion_training_loss": {
+    "baseline": 0.6001002839766443,
+    "object_memory_only": 0.6369720303919166,
+    "register_memory_only": 0.6194505344610661,
+    "all_memory_zero": 0.6841864155139774
+  },
+  "diffusion_training_loss_delta_vs_baseline": {
+    "object_memory_only": 0.036871746415272355,
+    "register_memory_only": 0.01935025048442185,
+    "all_memory_zero": 0.08408613153733313
+  },
+  "condition_change_vs_baseline": {
+    "object_memory_only": {
+      "relative_l2": 0.47469668253324926,
+      "cosine": 0.8869448564946651
+    },
+    "register_memory_only": {
+      "relative_l2": 0.35561101348139346,
+      "cosine": 0.9359603826887906
+    },
+    "all_memory_zero": {
+      "relative_l2": 0.6203221408650279,
+      "cosine": 0.8082035188563168
+    }
+  },
+  "reader_object_attention_binding": {
+    "inside_mean": 0.41110792790997225,
+    "outside_mean": 0.026377560126742607,
+    "inside_outside_ratio": 28.935489387433517,
+    "auroc": 0.8980179986561272,
+    "top_gt_area_precision": 0.43632916347303696,
+    "center_of_mass_distance_normalized": 0.13582757015218028,
+    "foreground_query_fraction": 0.07794407594821298
+  },
+  "single_object_memory_zero_binding": {
+    "inside_mean": 11.598377182230276,
+    "outside_mean": 0.7562835844380361,
+    "inside_outside_ratio": 25.90364670231781,
+    "auroc": 0.8992575007736456,
+    "top_gt_area_precision": 0.43520496101244294,
+    "center_of_mass_distance_normalized": 0.13619224301673183,
+    "foreground_query_fraction": 0.07794407594821298
+  },
+  "reader_register_attention_on_gt_foreground": 0.22882501054518728,
+  "reader_object_attention_on_gt_background": 0.11604975063888597,
+  "memory": {
+    "object_norm": {
+      "mean": 45.41609008254838,
+      "std": 1.3865155823589421,
+      "count": 2742
+    },
+    "register_norm": {
+      "mean": 42.63083635829389,
+      "std": 1.3197303846851147,
+      "count": 2048
+    },
+    "object_pair_cosine": {
+      "mean": 0.2611203125454207,
+      "std": 0.2308964032190461,
+      "count": 11790
+    }
+  },
+  "reader_recompute_max_abs_error": 0.0,
+  "num_object_binding_records": 2742,
+  "writer_ownership_by_layer": {
+    "21": {
+      "loss": 1.8497034113388509,
+      "fg_acc": 0.8200586214661598,
+      "bg_acc": 0.9391091279685497,
+      "register_prob_on_fg": 0.1016537895629881,
+      "object_prob_on_bg": 0.06229324813466519,
+      "entropy": 0.509531632065773
+    },
+    "24": {
+      "loss": 2.3809844814240932,
+      "fg_acc": 0.8206663148012012,
+      "bg_acc": 0.9417985873296857,
+      "register_prob_on_fg": 0.09482582606869983,
+      "object_prob_on_bg": 0.05903361216041958,
+      "entropy": 0.41254763421602547
+    },
+    "27": {
+      "loss": 2.5396584005793557,
+      "fg_acc": 0.8246759274043143,
+      "bg_acc": 0.9424476223066449,
+      "register_prob_on_fg": 0.08589119311363902,
+      "object_prob_on_bg": 0.05820437704096548,
+      "entropy": 0.3501760008512065
+    }
+  }
+}

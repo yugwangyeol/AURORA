@@ -1,0 +1,128 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_e8_2_paired_causal/checkpoint-10000",
+  "num_images": 511,
+  "num_objects": 2635,
+  "split_ratio": 0.8,
+  "probes_raw_target": {
+    "P0_mean_floor": {
+      "r2": 0.0,
+      "cosine": 0.5915646675376622,
+      "rel_l2": 0.8047824125817472,
+      "lambda": null
+    },
+    "P1_ovt_text_stream": {
+      "r2": 0.22466651602722132,
+      "cosine": 0.7061775461124508,
+      "rel_l2": 0.7023561390070203,
+      "lambda": 10000.0
+    },
+    "P1_ovt_slot0": {
+      "r2": 0.22466651602722132,
+      "cosine": 0.7061775461124508,
+      "rel_l2": 0.7023561390070203,
+      "lambda": 10000.0
+    },
+    "P1b_e8_visual_memory": {
+      "r2": 0.26602092196441984,
+      "cosine": 0.7276317059155534,
+      "rel_l2": 0.6778056733035617,
+      "lambda": 10000.0
+    },
+    "P2_llm_image_stream": {
+      "r2": 0.33162368929682395,
+      "cosine": 0.7542471002244231,
+      "rel_l2": 0.6469281908815179,
+      "lambda": 10000.0
+    },
+    "P3_word_only": {
+      "r2": 0.19090840337567172,
+      "cosine": 0.6892458800468593,
+      "rel_l2": 0.7204053084130797,
+      "lambda": 0.1
+    },
+    "P4_raw_siglip": {
+      "r2": 0.5142704678977362,
+      "cosine": 0.8331209163258453,
+      "rel_l2": 0.5425117460100752,
+      "lambda": 1000.0
+    }
+  },
+  "probes_instance_residual": {
+    "P0_mean_floor": {
+      "r2": 0.0,
+      "cosine": -0.00030537730259683004,
+      "rel_l2": 0.9999999999992566,
+      "lambda": null
+    },
+    "P1_ovt_text_stream": {
+      "r2": 0.058447043671788323,
+      "cosine": 0.27174220972430146,
+      "rel_l2": 0.96384238754944,
+      "lambda": 10000.0
+    },
+    "P1_ovt_slot0": {
+      "r2": 0.058447043671788323,
+      "cosine": 0.27174220972430146,
+      "rel_l2": 0.96384238754944,
+      "lambda": 10000.0
+    },
+    "P1b_e8_visual_memory": {
+      "r2": 0.11198216110159687,
+      "cosine": 0.36177403354769133,
+      "rel_l2": 0.9297878426887787,
+      "lambda": 10000.0
+    },
+    "P2_llm_image_stream": {
+      "r2": 0.162266272592118,
+      "cosine": 0.4227493113674091,
+      "rel_l2": 0.9036403372210566,
+      "lambda": 10000.0
+    },
+    "P4_raw_siglip": {
+      "r2": 0.3347394009555228,
+      "cosine": 0.6162911733184816,
+      "rel_l2": 0.7831939185600197,
+      "lambda": 100.0
+    }
+  },
+  "residual_variance_fraction": 0.8090916872024536,
+  "ovt_pair_cosine": {},
+  "effective_dim": {
+    "OVT_text_stream": {
+      "nominal_dim": 1536,
+      "participation_ratio": 26.874354920350427,
+      "dims_for_90pct_var": 302,
+      "dims_for_99pct_var": 987
+    },
+    "LLM_image_stream": {
+      "nominal_dim": 1536,
+      "participation_ratio": 49.47535754695412,
+      "dims_for_90pct_var": 362,
+      "dims_for_99pct_var": 1013
+    },
+    "raw_siglip_pooled": {
+      "nominal_dim": 1152,
+      "participation_ratio": 86.23258117668392,
+      "dims_for_90pct_var": 324,
+      "dims_for_99pct_var": 831
+    },
+    "appearance_target": {
+      "nominal_dim": 1152,
+      "participation_ratio": 95.33503672110125,
+      "dims_for_90pct_var": 347,
+      "dims_for_99pct_var": 848
+    },
+    "E8_visual_memory": {
+      "nominal_dim": 1536,
+      "participation_ratio": 143.86176621505453,
+      "dims_for_90pct_var": 368,
+      "dims_for_99pct_var": 1053
+    },
+    "OVT_slot0": {
+      "nominal_dim": 1536,
+      "participation_ratio": 26.874354920350427,
+      "dims_for_90pct_var": 302,
+      "dims_for_99pct_var": 987
+    }
+  }
+}
