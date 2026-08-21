@@ -48,6 +48,7 @@ from pgot.model.sd_causal_ownership import PGOTE7SDCausalOwnership
 from pgot.model.visual_memory import (
     PGOTE8TypedRAEReader,
     PGOTE8VisualMemoryWriter,
+    PGOTE9UnifiedSlotWriter,
 )
 
 
@@ -706,6 +707,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_e8_visual_memory_enable = bool(
             getattr(self.config, "pgot_e8_visual_memory_enable", False)
         )
+        self.pgot_e8_update_mode = str(
+            getattr(self.config, "pgot_e8_update_mode", "separate_memory")
+        ).strip().lower()
         if self.pgot_e8_visual_memory_enable:
             if self.pgot_e6_enable or self.pgot_e7_enable:
                 raise ValueError("E8 visual memory is mutually exclusive with E6/E7")
@@ -721,12 +725,33 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             )
             if not self.pgot_e8_layers:
                 raise ValueError("E8 requires at least one valid visual-write layer")
-            self.pgot_e8_writer = PGOTE8VisualMemoryWriter(
-                dim=D,
-                temperature=float(
-                    getattr(self.config, "pgot_e8_owner_temperature", 1.0)
-                ),
-            )
+            if self.pgot_e8_update_mode == "separate_memory":
+                self.pgot_e8_writer = PGOTE8VisualMemoryWriter(
+                    dim=D,
+                    temperature=float(
+                        getattr(self.config, "pgot_e8_owner_temperature", 1.0)
+                    ),
+                )
+                self.pgot_e9_writer = None
+            elif self.pgot_e8_update_mode == "unified_gru":
+                self.pgot_e8_writer = None
+                self.pgot_e9_writer = PGOTE9UnifiedSlotWriter(
+                    dim=D,
+                    temperature=float(
+                        getattr(self.config, "pgot_e8_owner_temperature", 1.0)
+                    ),
+                    update_dim=int(
+                        getattr(self.config, "pgot_e9_update_dim", 512)
+                    ),
+                    mlp_ratio=float(
+                        getattr(self.config, "pgot_e9_mlp_ratio", 2.0)
+                    ),
+                )
+            else:
+                raise ValueError(
+                    "pgot_e8_update_mode must be separate_memory/unified_gru, got "
+                    f"{self.pgot_e8_update_mode!r}"
+                )
             self.pgot_e8_reader = PGOTE8TypedRAEReader(
                 dim=D,
                 num_heads=int(getattr(self.config, "pgot_e8_reader_num_heads", 8)),
@@ -737,6 +762,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         else:
             self.pgot_e8_layers = []
             self.pgot_e8_writer = None
+            self.pgot_e9_writer = None
             self.pgot_e8_reader = None
 
         self.pgot_fvw_enable = bool(getattr(self.config, "pgot_fvw_enable", False))
@@ -861,6 +887,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             f"e6_coda_direct={self.pgot_e6_enable}, "
             f"e7_causal_ownership={self.pgot_e7_enable}, "
             f"e8_visual_memory={self.pgot_e8_visual_memory_enable}, "
+            f"e8_update_mode={self.pgot_e8_update_mode}, "
             f"e8_layers={self.pgot_e8_layers}, "
             f"fvw={self.pgot_fvw_enable}, fvw_layers={self.pgot_fvw_layers}, "
             f"v12={self.pgot_v12_enable}, v12_layers={self.pgot_v12_layers}, "
@@ -1486,8 +1513,15 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         """Run Qwen with iterative image-only memories and a typed RAE read."""
         if not self.pgot_e8_visual_memory_enable:
             raise RuntimeError("E8 visual-memory features requested while E8 is disabled")
-        if self.pgot_e8_writer is None or self.pgot_e8_reader is None:
-            raise RuntimeError("E8 writer/reader modules are missing")
+        if self.pgot_e8_reader is None:
+            raise RuntimeError("E8/E9 reader module is missing")
+        update_mode = str(
+            getattr(self.config, "pgot_e8_update_mode", "separate_memory")
+        ).strip().lower()
+        if update_mode == "separate_memory" and self.pgot_e8_writer is None:
+            raise RuntimeError("E8 separate-memory writer module is missing")
+        if update_mode == "unified_gru" and self.pgot_e9_writer is None:
+            raise RuntimeError("E9 unified-GRU writer module is missing")
 
         seq = self._pgot_build_sequence_inputs(
             images=images,
@@ -1509,12 +1543,14 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             getattr(self.config, "pgot_e8_inject_memory", not clean_refinement)
         )
         visual_memory: Optional[torch.Tensor] = None
+        reader_semantic_slots: Optional[torch.Tensor] = None
+        final_unified_slots: Optional[torch.Tensor] = None
         write_records: List[Dict[str, torch.Tensor]] = []
 
         def hidden_state_postprocess_fn(
             hidden_states: torch.Tensor, layer_idx: int
         ) -> torch.Tensor:
-            nonlocal visual_memory
+            nonlocal visual_memory, reader_semantic_slots, final_unified_slots
             if int(layer_idx) not in write_layers:
                 return hidden_states
 
@@ -1524,31 +1560,48 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 ovt_abs_positions=seq["ovt_abs_positions"],
                 ovt_valid_mask=seq["ovt_valid_mask"],
             )
-            if visual_memory is None:
-                visual_memory = torch.zeros_like(slots["semantic_slots"])
-            if visual_memory.shape != slots["semantic_slots"].shape:
-                raise ValueError(
-                    "E8 slot shape changed between writer layers: "
-                    f"memory={tuple(visual_memory.shape)} "
-                    f"slots={tuple(slots['semantic_slots'].shape)}"
-                )
-
-            writer = self.pgot_e8_writer(
-                semantic_slots=slots["semantic_slots"],
-                visual_memory=visual_memory,
-                image_states=hidden_states[
-                    :, seq["positions"]["img_s"]:seq["positions"]["img_e"], :
-                ],
-                slot_valid=slots["slot_valid"],
-                clean_refinement=clean_refinement,
-                initialize_memory=len(write_records) == 0,
-            )
-            visual_memory = writer["visual_memory"]
             K = slots["object_states"].shape[1]
-            if inject_memory:
-                injection = self.pgot_e8_writer.injection_delta(visual_memory)
+            image_states = hidden_states[
+                :, seq["positions"]["img_s"]:seq["positions"]["img_e"], :
+            ]
+            if update_mode == "unified_gru":
+                writer = self.pgot_e9_writer(
+                    slot_states=slots["semantic_slots"],
+                    image_states=image_states,
+                    slot_valid=slots["slot_valid"],
+                )
+                # The updated slot is scattered back into the same OVT/register
+                # rows.  Reader values use only this image-conditioned residual,
+                # preventing the semantic state itself from bypassing the visual
+                # bottleneck.
+                reader_semantic_slots = slots["semantic_slots"]
+                final_unified_slots = writer["updated_slots"]
+                visual_memory = writer["write_delta"]
+                injection = writer["write_delta"]
             else:
-                injection = torch.zeros_like(visual_memory)
+                if visual_memory is None:
+                    visual_memory = torch.zeros_like(slots["semantic_slots"])
+                if visual_memory.shape != slots["semantic_slots"].shape:
+                    raise ValueError(
+                        "E8 slot shape changed between writer layers: "
+                        f"memory={tuple(visual_memory.shape)} "
+                        f"slots={tuple(slots['semantic_slots'].shape)}"
+                    )
+                writer = self.pgot_e8_writer(
+                    semantic_slots=slots["semantic_slots"],
+                    visual_memory=visual_memory,
+                    image_states=image_states,
+                    slot_valid=slots["slot_valid"],
+                    clean_refinement=clean_refinement,
+                    initialize_memory=len(write_records) == 0,
+                )
+                visual_memory = writer["visual_memory"]
+                reader_semantic_slots = None
+                final_unified_slots = None
+                if inject_memory:
+                    injection = self.pgot_e8_writer.injection_delta(visual_memory)
+                else:
+                    injection = torch.zeros_like(visual_memory)
             write_records.append(
                 {
                     "layer": hidden_states.new_tensor(float(layer_idx)),
@@ -1560,9 +1613,18 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                     "injection_norm": injection.float().norm(dim=-1).mean().detach(),
                     "write_gate_mean": writer["write_gate_mean"],
                     "write_strength": writer["write_strength"],
+                    "retain_gate_mean": writer.get(
+                        "retain_gate_mean", hidden_states.new_zeros(())
+                    ),
+                    "reset_gate_mean": writer.get(
+                        "reset_gate_mean", hidden_states.new_zeros(())
+                    ),
+                    "mlp_strength": writer.get(
+                        "mlp_strength", hidden_states.new_zeros(())
+                    ),
                 }
             )
-            if not inject_memory:
+            if update_mode == "separate_memory" and not inject_memory:
                 return hidden_states
             return self._pgot_e8_scatter_injection(
                 hidden_states=hidden_states,
@@ -1585,7 +1647,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             raise RuntimeError("E8 forward completed without a visual-memory write")
 
         hidden = out.last_hidden_state
-        slots = self._pgot_e8_build_semantic_slots(
+        final_slots = self._pgot_e8_build_semantic_slots(
             hidden_states=hidden,
             positions=seq["positions"],
             ovt_abs_positions=seq["ovt_abs_positions"],
@@ -1594,14 +1656,27 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         raw_rae_hidden = hidden[
             :, seq["positions"]["rae_s"]:seq["positions"]["rae_e"], :
         ]
+        if update_mode == "unified_gru":
+            if reader_semantic_slots is None or final_unified_slots is None:
+                raise RuntimeError("E9 forward completed without unified slot states")
+            semantic_slots = reader_semantic_slots
+            slot_valid = final_slots["slot_valid"]
+            K = final_slots["object_states"].shape[1]
+            object_states = semantic_slots[:, :K]
+            register_states = semantic_slots[:, K:]
+        else:
+            semantic_slots = final_slots["semantic_slots"]
+            slot_valid = final_slots["slot_valid"]
+            K = final_slots["object_states"].shape[1]
+            object_states = final_slots["object_states"]
+            register_states = final_slots["register_states"]
         reader = self.pgot_e8_reader(
             rae_queries=raw_rae_hidden,
-            semantic_slots=slots["semantic_slots"],
+            semantic_slots=semantic_slots,
             visual_memory=visual_memory,
-            slot_valid=slots["slot_valid"],
+            slot_valid=slot_valid,
         )
         final_write = write_records[-1]
-        K = slots["object_states"].shape[1]
         seq.update(
             {
                 "hidden": hidden,
@@ -1615,12 +1690,18 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 "reader_attention": reader["reader_attention"],
                 "reader_entropy": reader["reader_entropy"],
                 "reader_attention_heads": reader.get("reader_attention_heads"),
-                "semantic_slots": slots["semantic_slots"],
+                "semantic_slots": semantic_slots,
                 "visual_memory": visual_memory,
-                "slot_valid": slots["slot_valid"],
-                "object_states": slots["object_states"],
-                "object_valid": slots["object_valid"],
-                "register_states": slots["register_states"],
+                "slot_valid": slot_valid,
+                "object_states": object_states,
+                "object_valid": final_slots["object_valid"],
+                "register_states": register_states,
+                "unified_slots": (
+                    final_unified_slots
+                    if final_unified_slots is not None
+                    else final_slots["semantic_slots"]
+                ),
+                "update_mode": update_mode,
                 "owner_logits": final_write["owner_logits"],
                 "owner_probs": final_write["owner_probs"],
                 "object_probs": final_write["owner_probs"][:, :K],
@@ -5160,6 +5241,12 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "e8_injection_norm": last_write["injection_norm"],
             "e8_write_gate_mean": last_write["write_gate_mean"],
             "e8_write_strength": last_write["write_strength"],
+            "e9_gru_retain_gate_mean": last_write["retain_gate_mean"],
+            "e9_gru_reset_gate_mean": last_write["reset_gate_mean"],
+            "e9_mlp_strength": last_write["mlp_strength"],
+            "e9_unified_gru_enabled": hidden.new_tensor(
+                float(seq["update_mode"] == "unified_gru")
+            ),
             "e8_reader_entropy": seq["reader_entropy"],
             "e8_reader_matching_mass_on_fg": reader_gt_stats[
                 "matching_mass_on_fg"
@@ -5176,7 +5263,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 float(bool(getattr(self.config, "pgot_e8_clean_refinement", False)))
             ),
             "e8_memory_injection_enabled": hidden.new_tensor(
-                float(bool(getattr(self.config, "pgot_e8_inject_memory", True)))
+                float(
+                    seq["update_mode"] == "unified_gru"
+                    or bool(getattr(self.config, "pgot_e8_inject_memory", True))
+                )
             ),
             "loss_e8_causal": loss_causal.detach(),
             "loss_e8_need": causal_stats["need_loss"].detach(),

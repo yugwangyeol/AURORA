@@ -1,0 +1,95 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_e9_unified_gru/checkpoint-10000",
+  "num_samples": 512,
+  "fixed_noise_seed_base": 123,
+  "diffusion_training_loss": {
+    "baseline": 0.6040499396622181,
+    "object_memory_only": 0.6323875586967915,
+    "register_memory_only": 0.6235159202478826,
+    "all_memory_zero": 0.6762154011521488
+  },
+  "diffusion_training_loss_delta_vs_baseline": {
+    "object_memory_only": 0.028337619034573436,
+    "register_memory_only": 0.01946598058566451,
+    "all_memory_zero": 0.07216546148993075
+  },
+  "condition_change_vs_baseline": {
+    "object_memory_only": {
+      "relative_l2": 0.49758436949923635,
+      "cosine": 0.8756383950822055
+    },
+    "register_memory_only": {
+      "relative_l2": 0.3757435214938596,
+      "cosine": 0.9284776775166392
+    },
+    "all_memory_zero": {
+      "relative_l2": 0.6615552613511682,
+      "cosine": 0.7821158757433295
+    }
+  },
+  "reader_object_attention_binding": {
+    "inside_mean": 0.43747154254541304,
+    "outside_mean": 0.02979964772879994,
+    "inside_outside_ratio": 25.859227633933937,
+    "auroc": 0.8948176017320897,
+    "top_gt_area_precision": 0.45931627896983235,
+    "center_of_mass_distance_normalized": 0.13626028099210247,
+    "foreground_query_fraction": 0.07794407594821298
+  },
+  "single_object_memory_zero_binding": {
+    "inside_mean": 12.017676000470251,
+    "outside_mean": 0.80248712530505,
+    "inside_outside_ratio": 24.15998474580487,
+    "auroc": 0.8949723251153356,
+    "top_gt_area_precision": 0.4545657240264634,
+    "center_of_mass_distance_normalized": 0.1367584725032322,
+    "foreground_query_fraction": 0.07794407594821298
+  },
+  "reader_register_attention_on_gt_foreground": 0.18984672197536245,
+  "reader_object_attention_on_gt_background": 0.14012947443798923,
+  "memory": {
+    "object_norm": {
+      "mean": 1.2717643069316662,
+      "std": 0.10003265556964518,
+      "count": 2742
+    },
+    "register_norm": {
+      "mean": 1.1223932474968024,
+      "std": 0.05188856182040454,
+      "count": 2048
+    },
+    "object_pair_cosine": {
+      "mean": 0.41458373608507915,
+      "std": 0.24569880077838166,
+      "count": 11790
+    }
+  },
+  "reader_recompute_max_abs_error": 0.0,
+  "num_object_binding_records": 2742,
+  "writer_ownership_by_layer": {
+    "21": {
+      "loss": 2.125898863421753,
+      "fg_acc": 0.8330908315256238,
+      "bg_acc": 0.9323825524188578,
+      "register_prob_on_fg": 0.08209041746158618,
+      "object_prob_on_bg": 0.06751427658309694,
+      "entropy": 0.5365905733779073
+    },
+    "24": {
+      "loss": 2.2026352827670053,
+      "fg_acc": 0.83468560827896,
+      "bg_acc": 0.9349942128174007,
+      "register_prob_on_fg": 0.07957598174107261,
+      "object_prob_on_bg": 0.06566263180866372,
+      "entropy": 0.4690623574424535
+    },
+    "27": {
+      "loss": 2.228010233142413,
+      "fg_acc": 0.833847543457523,
+      "bg_acc": 0.9314725296571851,
+      "register_prob_on_fg": 0.07333225540060084,
+      "object_prob_on_bg": 0.06997644722287077,
+      "entropy": 0.39136823848821223
+    }
+  }
+}

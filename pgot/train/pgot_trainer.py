@@ -214,6 +214,11 @@ class PGOTModelArguments:
     pgot_e8_reader_temperature: float = field(default=1.0)
     pgot_e8_clean_refinement: bool = field(default=False)
     pgot_e8_inject_memory: bool = field(default=True)
+    # E9-A reuses the E8 loss/eval path but updates the actual OVT/register
+    # hidden states with Slot-style attention + an explicit FP32 GRU.
+    pgot_e8_update_mode: str = field(default="separate_memory")
+    pgot_e9_update_dim: int = field(default=512)
+    pgot_e9_mlp_ratio: float = field(default=2.0)
     # Reader routing supervision: ``gt`` uses segmentation masks, ``writer``
     # distils the detached final Writer ownership map, and ``none`` leaves the
     # Reader to reconstruction gradients only.
@@ -493,7 +498,7 @@ def freeze_for_pgot(
             n_trainable += p.numel()
 
     # E8 competitive image-only writer and typed semantic-key/visual-value reader.
-    for module_name in ("pgot_e8_writer", "pgot_e8_reader"):
+    for module_name in ("pgot_e8_writer", "pgot_e9_writer", "pgot_e8_reader"):
         module = getattr(model, module_name, None)
         if module is not None:
             for p in module.parameters():
@@ -816,7 +821,9 @@ class PGOTTrainer(Trainer):
                      if p.requires_grad and "pgot_v14_router" in n}
         e8_names = {n for n, p in opt_model.named_parameters()
                     if p.requires_grad and (
-                        "pgot_e8_writer" in n or "pgot_e8_reader" in n
+                        "pgot_e8_writer" in n
+                        or "pgot_e9_writer" in n
+                        or "pgot_e8_reader" in n
                     )}
         v21_names = {n for n, p in opt_model.named_parameters()
                      if p.requires_grad and "pgot_v21_router" in n}

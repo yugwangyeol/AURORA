@@ -1145,13 +1145,22 @@ def main():
     )
     summary["e8_visual_memory_bottleneck"] = e8_enabled
     if e8_enabled:
-        summary["decoder_condition"] = "semantic keys + image-only visual-memory values"
+        update_mode = str(
+            getattr(model.config, "pgot_e8_update_mode", "separate_memory")
+        )
+        summary["e8_update_mode"] = update_mode
+        summary["decoder_condition"] = (
+            "pre-update semantic keys + unified OVT visual-update residual values"
+            if update_mode == "unified_gru"
+            else "semantic keys + image-only visual-memory values"
+        )
         summary["rae_standard_slot_attention_blocked"] = True
         summary["e8_clean_refinement"] = bool(
             getattr(model.config, "pgot_e8_clean_refinement", False)
         )
         summary["e8_memory_injection_enabled"] = bool(
-            getattr(model.config, "pgot_e8_inject_memory", True)
+            update_mode == "unified_gru"
+            or getattr(model.config, "pgot_e8_inject_memory", True)
         )
         summary["e8_reader_object_weight"] = float(
             getattr(model.config, "pgot_e8_reader_object_weight", 0.0)
@@ -1164,6 +1173,14 @@ def main():
         )
         summary["null_bg_tokens"] = int(getattr(model.config, "pgot_n_null_bg", 0))
         summary["background_owner"] = "aggregate probability over registers"
+        if update_mode == "unified_gru":
+            summary["e9_unified_ovt_update"] = True
+            summary["e9_update_dim"] = int(
+                getattr(model.config, "pgot_e9_update_dim", 512)
+            )
+            summary["e9_mlp_ratio"] = float(
+                getattr(model.config, "pgot_e9_mlp_ratio", 2.0)
+            )
     if e6_enabled:
         summary["reconstruction_decoder"] = "CODA Stable-Diffusion v1.5"
         summary["decoder_condition"] = "final OVT + background registers only"
@@ -1292,7 +1309,12 @@ def main():
         summary["void_tokens"] = int(getattr(model.config, "pgot_n_null_bg", 0))
     if args.readout == "ovt_owner":
         if e8_enabled:
-            summary["owner_source"] = "e8_competitive_visual_memory_writer"
+            summary["owner_source"] = (
+                "e9_unified_ovt_gru_writer"
+                if str(getattr(model.config, "pgot_e8_update_mode", ""))
+                == "unified_gru"
+                else "e8_competitive_visual_memory_writer"
+            )
             summary["ovt_layers"] = str(getattr(model.config, "pgot_e8_layers", ""))
             summary["owner_temperature"] = float(
                 getattr(model.config, "pgot_e8_owner_temperature", 1.0)

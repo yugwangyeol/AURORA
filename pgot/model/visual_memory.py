@@ -158,6 +158,142 @@ class PGOTE8VisualMemoryWriter(nn.Module):
         ).to(dtype=stream_dtype)
 
 
+class PGOTE9UnifiedSlotWriter(nn.Module):
+    """Slot-style visual update applied directly to in-MLLM OVT states.
+
+    Object OVTs and background registers compete for every image patch.  The
+    resulting per-slot visual update is recurrently fused into the *same* slot
+    hidden state with an explicitly-FP32 GRU.  There is no separately carried
+    visual-memory tensor in this writer.
+
+    ``update_dim`` keeps the recurrent update affordable for a wide Qwen
+    hidden state while preserving a full-width OVT in the language model.
+    """
+
+    def __init__(
+        self,
+        dim: int,
+        temperature: float = 1.0,
+        update_dim: int = 512,
+        mlp_ratio: float = 2.0,
+    ) -> None:
+        super().__init__()
+        self.dim = int(dim)
+        self.update_dim = int(update_dim)
+        if self.update_dim <= 0:
+            raise ValueError("E9 update_dim must be positive")
+        self.temperature = float(temperature)
+
+        U = self.update_dim
+        hidden = max(int(round(U * float(mlp_ratio))), U)
+        self.slot_norm = nn.LayerNorm(self.dim)
+        self.image_norm = nn.LayerNorm(self.dim)
+        self.query = nn.Linear(self.dim, U, bias=False)
+        self.key = nn.Linear(self.dim, U, bias=False)
+        self.value = nn.Linear(self.dim, U, bias=False)
+        self.slot_down = nn.Linear(self.dim, U, bias=False)
+        self.update_norm = nn.LayerNorm(U)
+
+        # An explicit GRU cell is used instead of nn.GRUCell so all gate math
+        # is visibly performed in FP32 and does not enter a fused low-precision
+        # kernel.  z follows the PyTorch convention: z=1 retains the old state.
+        self.gru_x_gates = nn.Linear(U, 2 * U)
+        self.gru_h_gates = nn.Linear(U, 2 * U, bias=False)
+        self.gru_x_candidate = nn.Linear(U, U)
+        self.gru_h_candidate = nn.Linear(U, U, bias=False)
+        self.slot_up = nn.Linear(U, self.dim, bias=False)
+        # Kept as a standalone parameter so Hugging Face's missing-Linear-key
+        # initialization cannot erase the intended retention prior when E9 is
+        # bootstrapped from an E8 checkpoint.
+        self.retain_bias = nn.Parameter(torch.tensor(1.3862944))
+
+        self.mlp_norm = nn.LayerNorm(self.dim)
+        self.mlp = nn.Sequential(
+            nn.Linear(self.dim, hidden),
+            nn.GELU(),
+            nn.Linear(hidden, self.dim),
+        )
+        self.write_logit = nn.Parameter(torch.tensor(-2.1972246))  # sigmoid=0.1
+        self.mlp_logit = nn.Parameter(torch.tensor(-2.9444390))  # sigmoid=0.05
+
+        # The attention path is active from step one, but starts conservatively.
+        nn.init.zeros_(self.gru_x_gates.bias)
+
+    def forward(
+        self,
+        *,
+        slot_states: torch.Tensor,
+        image_states: torch.Tensor,
+        slot_valid: torch.Tensor,
+    ) -> Dict[str, torch.Tensor]:
+        if slot_states.ndim != 3 or image_states.ndim != 3:
+            raise ValueError("E9 writer expects [B,S,D] slots and [B,P,D] images")
+        if slot_states.shape[0] != image_states.shape[0]:
+            raise ValueError("E9 writer batch mismatch")
+        if slot_states.shape[-1] != self.dim or image_states.shape[-1] != self.dim:
+            raise ValueError(f"E9 writer expects hidden dim {self.dim}")
+        if slot_valid.shape != slot_states.shape[:2]:
+            raise ValueError("E9 slot_valid must have shape [B,S]")
+
+        stream_dtype = slot_states.dtype
+        # Whole E9 experiments are launched in FP32.  These casts additionally
+        # protect the recurrent cell if the module is inspected under autocast.
+        slots = slot_states.float()
+        images = image_states.float()
+        slot_n = self.slot_norm(slots)
+        image_n = self.image_norm(images)
+        query = self.query(slot_n)
+        key = self.key(image_n)
+        logits = torch.einsum("bsu,bpu->bsp", query, key)
+        logits = logits / math.sqrt(float(self.update_dim))
+        logits = logits / max(float(self.temperature), 1e-6)
+        logits = logits.masked_fill(~slot_valid.unsqueeze(-1), -1e4)
+
+        # Slot Attention normalization: patches first choose a slot, then each
+        # slot receives a normalized weighted mean of its selected values.
+        owner_probs = F.softmax(logits, dim=1, dtype=torch.float32)
+        owner_probs = owner_probs * slot_valid.unsqueeze(-1).float()
+        owner_probs = owner_probs / owner_probs.sum(dim=1, keepdim=True).clamp_min(1e-6)
+        write_weights = owner_probs / owner_probs.sum(dim=-1, keepdim=True).clamp_min(1e-6)
+        values = self.value(image_n)
+        visual_update = torch.einsum("bsp,bpu->bsu", write_weights, values)
+        visual_update = self.update_norm(visual_update)
+
+        old_low = self.slot_down(slot_n)
+        x_reset, x_update = self.gru_x_gates(visual_update).chunk(2, dim=-1)
+        h_reset, h_update = self.gru_h_gates(old_low).chunk(2, dim=-1)
+        reset_gate = torch.sigmoid(x_reset + h_reset)
+        update_gate = torch.sigmoid(x_update + h_update + self.retain_bias.float())
+        candidate = torch.tanh(
+            self.gru_x_candidate(visual_update)
+            + reset_gate * self.gru_h_candidate(old_low)
+        )
+        recurrent = (1.0 - update_gate) * candidate + update_gate * old_low
+
+        write_strength = torch.sigmoid(self.write_logit)
+        recurrent_delta = self.slot_up(recurrent - old_low)
+        slot_mid = slots + write_strength * recurrent_delta
+        mlp_strength = torch.sigmoid(self.mlp_logit)
+        updated = slot_mid + mlp_strength * self.mlp(self.mlp_norm(slot_mid))
+        updated = torch.where(torch.isfinite(updated), updated, slots)
+        updated = torch.where(slot_valid.unsqueeze(-1), updated, slots)
+        write_delta = updated - slots
+
+        return {
+            "updated_slots": updated.to(dtype=stream_dtype),
+            "write_delta": write_delta.to(dtype=stream_dtype),
+            "owner_logits": logits,
+            "owner_probs": owner_probs,
+            "write_weights": write_weights,
+            "write_update": visual_update,
+            "write_gate_mean": (1.0 - update_gate).mean().detach(),
+            "retain_gate_mean": update_gate.mean().detach(),
+            "reset_gate_mean": reset_gate.mean().detach(),
+            "write_strength": write_strength.detach(),
+            "mlp_strength": mlp_strength.detach(),
+        }
+
+
 class PGOTE8TypedRAEReader(nn.Module):
     """RAE reader with semantic keys and image-only visual-memory values."""
 

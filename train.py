@@ -296,6 +296,9 @@ def train():
     )
     config.pgot_e8_clean_refinement = bool(model_args.pgot_e8_clean_refinement)
     config.pgot_e8_inject_memory = bool(model_args.pgot_e8_inject_memory)
+    config.pgot_e8_update_mode = str(model_args.pgot_e8_update_mode)
+    config.pgot_e9_update_dim = int(model_args.pgot_e9_update_dim)
+    config.pgot_e9_mlp_ratio = float(model_args.pgot_e9_mlp_ratio)
     config.pgot_e8_reader_supervision_mode = str(
         model_args.pgot_e8_reader_supervision_mode
     )

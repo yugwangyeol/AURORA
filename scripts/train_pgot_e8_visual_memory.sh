@@ -46,7 +46,12 @@ fi
 echo "E8 model: ${MODEL_PATH}"
 echo "E8 output: ${OUTPUT_DIR}"
 echo "E8 writer layers: ${E8_LAYERS:-21,24,27}"
-echo "E8 clean refinement: enabled; memory-to-Qwen injection disabled"
+echo "E8/E9 update mode: ${E8_UPDATE_MODE:-separate_memory}"
+if [[ "${E8_UPDATE_MODE:-separate_memory}" == unified_gru ]]; then
+    echo "E9 update: OVT/register hidden states updated in-place; Reader Value=last visual residual"
+else
+    echo "E8 clean refinement: enabled; memory-to-Qwen injection disabled"
+fi
 echo "E8 supervision: writer_weight=${E8_OWNER_WEIGHT:-1.0}; reader_mode=${E8_READER_SUPERVISION_MODE:-gt}"
 echo "E8.2 paired causal: ${E8_CAUSAL_ENABLE:-False}"
 echo "E8 background: ${E8_N_REGISTER:-4} competitive registers; NULL_BG disabled"
@@ -78,6 +83,9 @@ echo "E8 background: ${E8_N_REGISTER:-4} competitive registers; NULL_BG disabled
     --pgot_e8_reader_num_heads "${E8_READER_HEADS:-8}" \
     --pgot_e8_reader_temperature "${E8_READER_TEMPERATURE:-1.0}" \
     --pgot_e8_clean_refinement True --pgot_e8_inject_memory False \
+    --pgot_e8_update_mode "${E8_UPDATE_MODE:-separate_memory}" \
+    --pgot_e9_update_dim "${E9_UPDATE_DIM:-512}" \
+    --pgot_e9_mlp_ratio "${E9_MLP_RATIO:-2.0}" \
     --pgot_e8_reader_supervision_mode "${E8_READER_SUPERVISION_MODE:-gt}" \
     --pgot_e8_reader_object_weight "${E8_READER_OBJECT_WEIGHT:-0.5}" \
     --pgot_e8_reader_background_weight "${E8_READER_BACKGROUND_WEIGHT:-0.25}" \
