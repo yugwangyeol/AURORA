@@ -1,8 +1,8 @@
-"""Paired zero/same-category-swap causal diagnostic for PGOT E8 memory.
+"""Paired zero/same-category-swap causal diagnostic for PGOT E8/E9 memory.
 
-The semantic key and every other slot stay fixed.  Only one object's visual
-memory is zeroed or replaced by a memory from the same category in a previous
-image.  All three DiT branches share the exact RF timestep and noise.
+For E8/E9, the semantic key stays fixed while one visual value is changed.
+For E9.1 ``final_ovt``, the intervened final token supplies both key and value.
+All three DiT branches share the exact RF timestep and noise.
 """
 
 from __future__ import annotations
@@ -42,9 +42,14 @@ def _reader_condition(model, out, memory: torch.Tensor) -> torch.Tensor:
         ],
         dim=1,
     )
+    semantic_slots = (
+        memory
+        if str(getattr(model.config, "pgot_e8_update_mode", "")) == "final_ovt"
+        else out["semantic_slots"]
+    )
     return model.pgot_e8_reader(
         rae_queries=out["raw_rae_hidden"],
-        semantic_slots=out["semantic_slots"],
+        semantic_slots=semantic_slots,
         visual_memory=memory,
         slot_valid=slot_valid,
     )["condition_hidden"]

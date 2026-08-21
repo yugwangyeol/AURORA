@@ -733,7 +733,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                     ),
                 )
                 self.pgot_e9_writer = None
-            elif self.pgot_e8_update_mode == "unified_gru":
+            elif self.pgot_e8_update_mode in {"unified_gru", "final_ovt"}:
                 self.pgot_e8_writer = None
                 self.pgot_e9_writer = PGOTE9UnifiedSlotWriter(
                     dim=D,
@@ -749,7 +749,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 )
             else:
                 raise ValueError(
-                    "pgot_e8_update_mode must be separate_memory/unified_gru, got "
+                    "pgot_e8_update_mode must be "
+                    "separate_memory/unified_gru/final_ovt, got "
                     f"{self.pgot_e8_update_mode!r}"
                 )
             self.pgot_e8_reader = PGOTE8TypedRAEReader(
@@ -1520,7 +1521,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         ).strip().lower()
         if update_mode == "separate_memory" and self.pgot_e8_writer is None:
             raise RuntimeError("E8 separate-memory writer module is missing")
-        if update_mode == "unified_gru" and self.pgot_e9_writer is None:
+        unified_update = update_mode in {"unified_gru", "final_ovt"}
+        final_ovt_bottleneck = update_mode == "final_ovt"
+        if unified_update and self.pgot_e9_writer is None:
             raise RuntimeError("E9 unified-GRU writer module is missing")
 
         seq = self._pgot_build_sequence_inputs(
@@ -1564,7 +1567,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             image_states = hidden_states[
                 :, seq["positions"]["img_s"]:seq["positions"]["img_e"], :
             ]
-            if update_mode == "unified_gru":
+            if unified_update:
                 writer = self.pgot_e9_writer(
                     slot_states=slots["semantic_slots"],
                     image_states=image_states,
@@ -1664,6 +1667,19 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             K = final_slots["object_states"].shape[1]
             object_states = semantic_slots[:, :K]
             register_states = semantic_slots[:, K:]
+        elif final_ovt_bottleneck:
+            if final_unified_slots is None:
+                raise RuntimeError("E9.1 forward completed without unified slot states")
+            # The last write happens before the final Qwen block (layers
+            # 20/23/26 in the E9.1 recipe).  Read the post-layer-27 states so
+            # the exact final OVT/register tokens are the only reconstruction
+            # carriers.  Reader keys and values deliberately share this state.
+            semantic_slots = final_slots["semantic_slots"]
+            visual_memory = semantic_slots
+            slot_valid = final_slots["slot_valid"]
+            K = final_slots["object_states"].shape[1]
+            object_states = final_slots["object_states"]
+            register_states = final_slots["register_states"]
         else:
             semantic_slots = final_slots["semantic_slots"]
             slot_valid = final_slots["slot_valid"]
@@ -1697,9 +1713,13 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 "object_valid": final_slots["object_valid"],
                 "register_states": register_states,
                 "unified_slots": (
-                    final_unified_slots
-                    if final_unified_slots is not None
-                    else final_slots["semantic_slots"]
+                    semantic_slots
+                    if final_ovt_bottleneck
+                    else (
+                        final_unified_slots
+                        if final_unified_slots is not None
+                        else final_slots["semantic_slots"]
+                    )
                 ),
                 "update_mode": update_mode,
                 "owner_logits": final_write["owner_logits"],
@@ -5081,15 +5101,29 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 object_valid=seq["object_valid"],
                 ovt_category_ids=ovt_category_ids,
             )
+            # E9.1 intervenes on the final unified token itself.  Therefore a
+            # zero/swap changes both its routing key and reconstruction value;
+            # retaining the original key would leave a semantic bypass around
+            # the token-level intervention.
+            causal_semantic_ablated = (
+                intervention_stats["ablated_memory"]
+                if seq["update_mode"] == "final_ovt"
+                else seq["semantic_slots"]
+            )
+            causal_semantic_register = (
+                intervention_stats["register_only_memory"]
+                if seq["update_mode"] == "final_ovt"
+                else seq["semantic_slots"]
+            )
             ablated_reader = self.pgot_e8_reader(
                 rae_queries=seq["raw_rae_hidden"],
-                semantic_slots=seq["semantic_slots"],
+                semantic_slots=causal_semantic_ablated,
                 visual_memory=intervention_stats["ablated_memory"],
                 slot_valid=seq["slot_valid"],
             )
             register_reader = self.pgot_e8_reader(
                 rae_queries=seq["raw_rae_hidden"],
-                semantic_slots=seq["semantic_slots"],
+                semantic_slots=causal_semantic_register,
                 visual_memory=intervention_stats["register_only_memory"],
                 slot_valid=seq["slot_valid"],
             )
@@ -5245,7 +5279,16 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "e9_gru_reset_gate_mean": last_write["reset_gate_mean"],
             "e9_mlp_strength": last_write["mlp_strength"],
             "e9_unified_gru_enabled": hidden.new_tensor(
-                float(seq["update_mode"] == "unified_gru")
+                float(seq["update_mode"] in {"unified_gru", "final_ovt"})
+            ),
+            "e9_final_ovt_bottleneck_enabled": hidden.new_tensor(
+                float(seq["update_mode"] == "final_ovt")
+            ),
+            "e9_reader_key_value_max_diff": (
+                seq["semantic_slots"].float() - seq["visual_memory"].float()
+            ).abs().max().detach(),
+            "e9_causal_intervenes_reader_keys": hidden.new_tensor(
+                float(seq["update_mode"] == "final_ovt" and causal_active)
             ),
             "e8_reader_entropy": seq["reader_entropy"],
             "e8_reader_matching_mass_on_fg": reader_gt_stats[
@@ -5264,7 +5307,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             ),
             "e8_memory_injection_enabled": hidden.new_tensor(
                 float(
-                    seq["update_mode"] == "unified_gru"
+                    seq["update_mode"] in {"unified_gru", "final_ovt"}
                     or bool(getattr(self.config, "pgot_e8_inject_memory", True))
                 )
             ),

@@ -214,8 +214,9 @@ class PGOTModelArguments:
     pgot_e8_reader_temperature: float = field(default=1.0)
     pgot_e8_clean_refinement: bool = field(default=False)
     pgot_e8_inject_memory: bool = field(default=True)
-    # E9-A reuses the E8 loss/eval path but updates the actual OVT/register
-    # hidden states with Slot-style attention + an explicit FP32 GRU.
+    # E9/E9.1 reuse the E8 loss/eval path but update the actual OVT/register
+    # hidden states with Slot-style attention + an explicit FP32 GRU.  E9.1's
+    # ``final_ovt`` mode also makes the final unified states the Reader K/V.
     pgot_e8_update_mode: str = field(default="separate_memory")
     pgot_e9_update_dim: int = field(default=512)
     pgot_e9_mlp_ratio: float = field(default=2.0)

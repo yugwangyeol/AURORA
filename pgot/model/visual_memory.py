@@ -1,10 +1,11 @@
-"""Object-semantic / image-appearance memory blocks for PGOT E8.
+"""Object-semantic / image-appearance memory blocks for PGOT E8/E9.
 
 The writer uses object OVT states and background-register states only as
 queries.  Values are projected exclusively from the MLLM image-token stream.
 The reader then uses the final semantic states as keys and the accumulated
 image-only memories as values, so semantic text cannot become reconstruction
-content through this path.
+content through this path.  E9.1 instead supplies the same final unified OVT
+state as both key and value, making that token the explicit bottleneck.
 """
 
 from __future__ import annotations

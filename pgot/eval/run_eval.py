@@ -1149,17 +1149,24 @@ def main():
             getattr(model.config, "pgot_e8_update_mode", "separate_memory")
         )
         summary["e8_update_mode"] = update_mode
-        summary["decoder_condition"] = (
-            "pre-update semantic keys + unified OVT visual-update residual values"
-            if update_mode == "unified_gru"
-            else "semantic keys + image-only visual-memory values"
-        )
+        if update_mode == "final_ovt":
+            summary["decoder_condition"] = (
+                "post-final-layer unified OVT/register states as Reader keys and values"
+            )
+        elif update_mode == "unified_gru":
+            summary["decoder_condition"] = (
+                "pre-update semantic keys + unified OVT visual-update residual values"
+            )
+        else:
+            summary["decoder_condition"] = (
+                "semantic keys + image-only visual-memory values"
+            )
         summary["rae_standard_slot_attention_blocked"] = True
         summary["e8_clean_refinement"] = bool(
             getattr(model.config, "pgot_e8_clean_refinement", False)
         )
         summary["e8_memory_injection_enabled"] = bool(
-            update_mode == "unified_gru"
+            update_mode in {"unified_gru", "final_ovt"}
             or getattr(model.config, "pgot_e8_inject_memory", True)
         )
         summary["e8_reader_object_weight"] = float(
@@ -1173,13 +1180,19 @@ def main():
         )
         summary["null_bg_tokens"] = int(getattr(model.config, "pgot_n_null_bg", 0))
         summary["background_owner"] = "aggregate probability over registers"
-        if update_mode == "unified_gru":
+        if update_mode in {"unified_gru", "final_ovt"}:
             summary["e9_unified_ovt_update"] = True
             summary["e9_update_dim"] = int(
                 getattr(model.config, "pgot_e9_update_dim", 512)
             )
             summary["e9_mlp_ratio"] = float(
                 getattr(model.config, "pgot_e9_mlp_ratio", 2.0)
+            )
+            summary["e9_final_ovt_bottleneck"] = update_mode == "final_ovt"
+            summary["causal_intervention_target"] = (
+                "final Reader key/value OVT"
+                if update_mode == "final_ovt"
+                else "Reader visual residual value only"
             )
     if e6_enabled:
         summary["reconstruction_decoder"] = "CODA Stable-Diffusion v1.5"
@@ -1309,11 +1322,15 @@ def main():
         summary["void_tokens"] = int(getattr(model.config, "pgot_n_null_bg", 0))
     if args.readout == "ovt_owner":
         if e8_enabled:
+            e8_mode = str(getattr(model.config, "pgot_e8_update_mode", ""))
             summary["owner_source"] = (
-                "e9_unified_ovt_gru_writer"
-                if str(getattr(model.config, "pgot_e8_update_mode", ""))
-                == "unified_gru"
-                else "e8_competitive_visual_memory_writer"
+                "e9_final_ovt_gru_writer"
+                if e8_mode == "final_ovt"
+                else (
+                    "e9_unified_ovt_gru_writer"
+                    if e8_mode == "unified_gru"
+                    else "e8_competitive_visual_memory_writer"
+                )
             )
             summary["ovt_layers"] = str(getattr(model.config, "pgot_e8_layers", ""))
             summary["owner_temperature"] = float(

@@ -47,7 +47,9 @@ echo "E8 model: ${MODEL_PATH}"
 echo "E8 output: ${OUTPUT_DIR}"
 echo "E8 writer layers: ${E8_LAYERS:-21,24,27}"
 echo "E8/E9 update mode: ${E8_UPDATE_MODE:-separate_memory}"
-if [[ "${E8_UPDATE_MODE:-separate_memory}" == unified_gru ]]; then
+if [[ "${E8_UPDATE_MODE:-separate_memory}" == final_ovt ]]; then
+    echo "E9.1 update: final post-Qwen OVT/register states are Reader K/V and causal targets"
+elif [[ "${E8_UPDATE_MODE:-separate_memory}" == unified_gru ]]; then
     echo "E9 update: OVT/register hidden states updated in-place; Reader Value=last visual residual"
 else
     echo "E8 clean refinement: enabled; memory-to-Qwen injection disabled"

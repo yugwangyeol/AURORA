@@ -96,7 +96,12 @@ def pgot_forward_eval(
             "llm_attention_maps": None,
             "llm_attention_void_maps": None,
             "llm_attention_register_maps": None,
-            "llm_attention_source": "e8_competitive_visual_memory_writer",
+            "llm_attention_source": (
+                "e9_final_ovt_gru_writer"
+                if str(getattr(model.config, "pgot_e8_update_mode", ""))
+                == "final_ovt"
+                else "e8_competitive_visual_memory_writer"
+            ),
             "ovt_valid_mask": out["ovt_valid_mask"],
             "rae_hidden": out["condition_hidden"],
             "raw_rae_hidden": out["raw_rae_hidden"],

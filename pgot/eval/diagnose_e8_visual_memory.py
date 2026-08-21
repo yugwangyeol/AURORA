@@ -44,9 +44,14 @@ def _reader_condition(model, out, memory: torch.Tensor) -> torch.Tensor:
         ],
         dim=1,
     )
+    semantic_slots = (
+        memory
+        if str(getattr(model.config, "pgot_e8_update_mode", "")) == "final_ovt"
+        else out["semantic_slots"]
+    )
     return model.pgot_e8_reader(
         rae_queries=out["raw_rae_hidden"],
-        semantic_slots=out["semantic_slots"],
+        semantic_slots=semantic_slots,
         visual_memory=memory,
         slot_valid=slot_valid,
     )["condition_hidden"]
