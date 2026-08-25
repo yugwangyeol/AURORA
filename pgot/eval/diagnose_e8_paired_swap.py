@@ -27,7 +27,13 @@ from pgot.eval.pgot_inference import pgot_forward_eval
 log = logging.getLogger("pgot.diagnose_e8_paired_swap")
 
 
-def _reader_condition(model, out, memory: torch.Tensor) -> torch.Tensor:
+def _reader_condition(
+    model,
+    out,
+    memory: torch.Tensor,
+    *,
+    semantic_slots: torch.Tensor | None = None,
+) -> torch.Tensor:
     object_valid = out["ovt_object_valid"].bool()
     n_register = memory.shape[1] - object_valid.shape[1]
     slot_valid = torch.cat(
@@ -42,11 +48,12 @@ def _reader_condition(model, out, memory: torch.Tensor) -> torch.Tensor:
         ],
         dim=1,
     )
-    semantic_slots = (
-        memory
-        if str(getattr(model.config, "pgot_e8_update_mode", "")) == "final_ovt"
-        else out["semantic_slots"]
-    )
+    if semantic_slots is None:
+        semantic_slots = (
+            memory
+            if str(getattr(model.config, "pgot_e8_update_mode", "")) == "final_ovt"
+            else out["semantic_slots"]
+        )
     return model.pgot_e8_reader(
         rae_queries=out["raw_rae_hidden"],
         semantic_slots=semantic_slots,
@@ -191,47 +198,92 @@ def run(args) -> None:
             sigma = flow.get_sigmas(timestep).view(batch_size, 1, 1, 1)
             x_t = alpha * target_grid + sigma * x_end
 
+            branch_conditions = {
+                "full": full_condition,
+                "zero": zero_condition,
+                "swap": swap_condition,
+            }
+            if args.decompose_final_ovt_kv:
+                if str(getattr(model.config, "pgot_e8_update_mode", "")) != "final_ovt":
+                    raise ValueError(
+                        "--decompose_final_ovt_kv requires an E9.1 final_ovt checkpoint"
+                    )
+                branch_conditions["swap_key_only"] = (
+                    model._captionslot_prepare_diffusion_condition(
+                        _reader_condition(
+                            model,
+                            out,
+                            memory,
+                            semantic_slots=swap_memory,
+                        )
+                    ).float()
+                )
+                branch_conditions["swap_value_only"] = (
+                    model._captionslot_prepare_diffusion_condition(
+                        _reader_condition(
+                            model,
+                            out,
+                            swap_memory,
+                            semantic_slots=memory,
+                        )
+                    ).float()
+                )
+
             terms = flow.training_losses(
                 model.diff_head.model,
-                target_grid.repeat(3, 1, 1, 1),
-                timestep.repeat(3),
+                target_grid.repeat(len(branch_conditions), 1, 1, 1),
+                timestep.repeat(len(branch_conditions)),
                 model_kwargs={
-                    "y": torch.cat([full_condition, zero_condition, swap_condition], dim=0)
+                    "y": torch.cat(list(branch_conditions.values()), dim=0)
                 },
-                x_end=x_end.repeat(3, 1, 1, 1),
-                x_t=x_t.repeat(3, 1, 1, 1),
+                x_end=x_end.repeat(len(branch_conditions), 1, 1, 1),
+                x_t=x_t.repeat(len(branch_conditions), 1, 1, 1),
             )
-            mse_full, mse_zero, mse_swap = terms["mse_map"].chunk(3, dim=0)
-            pred_full, pred_zero, pred_swap = terms["model_pred"].chunk(3, dim=0)
+            mse_by_branch = dict(
+                zip(
+                    branch_conditions,
+                    terms["mse_map"].chunk(len(branch_conditions), dim=0),
+                )
+            )
+            pred_by_branch = dict(
+                zip(
+                    branch_conditions,
+                    terms["model_pred"].chunk(len(branch_conditions), dim=0),
+                )
+            )
+            mse_full = mse_by_branch["full"]
+            pred_full = pred_by_branch["full"]
             outside = (1.0 - selected_masks).clamp(0.0, 1.0)
 
             full_inside = _area_mean(mse_full, selected_masks)
-            zero_inside = _area_mean(mse_zero, selected_masks)
-            swap_inside = _area_mean(mse_swap, selected_masks)
-            zero_delta_in = _area_mean((pred_zero - pred_full).square(), selected_masks)
-            zero_delta_out = _area_mean((pred_zero - pred_full).square(), outside)
-            swap_delta_in = _area_mean((pred_swap - pred_full).square(), selected_masks)
-            swap_delta_out = _area_mean((pred_swap - pred_full).square(), outside)
+            branch_metrics = {}
+            for name, mse_map in mse_by_branch.items():
+                if name == "full":
+                    continue
+                pred = pred_by_branch[name]
+                branch_metrics[name] = {
+                    "inside": _area_mean(mse_map, selected_masks),
+                    "delta_in": _area_mean((pred - pred_full).square(), selected_masks),
+                    "delta_out": _area_mean((pred - pred_full).square(), outside),
+                }
 
             for b in torch.nonzero(selected_valid, as_tuple=False).flatten().tolist():
                 base = max(float(full_inside[b]), 1e-8)
                 rows["full_selected_mse"].append(float(full_inside[b]))
-                rows["zero_selected_mse"].append(float(zero_inside[b]))
-                rows["swap_selected_mse"].append(float(swap_inside[b]))
-                rows["zero_selected_error_ratio"].append(float(zero_inside[b]) / base)
-                rows["swap_selected_error_ratio"].append(float(swap_inside[b]) / base)
-                rows["zero_selected_error_delta"].append(float(zero_inside[b] - full_inside[b]))
-                rows["swap_selected_error_delta"].append(float(swap_inside[b] - full_inside[b]))
-                rows["zero_prediction_delta_inside"].append(float(zero_delta_in[b]))
-                rows["zero_prediction_delta_outside"].append(float(zero_delta_out[b]))
-                rows["swap_prediction_delta_inside"].append(float(swap_delta_in[b]))
-                rows["swap_prediction_delta_outside"].append(float(swap_delta_out[b]))
-                rows["zero_delta_localization_ratio"].append(
-                    float(zero_delta_in[b] / zero_delta_out[b].clamp_min(1e-8))
-                )
-                rows["swap_delta_localization_ratio"].append(
-                    float(swap_delta_in[b] / swap_delta_out[b].clamp_min(1e-8))
-                )
+                for name, metric in branch_metrics.items():
+                    inside = metric["inside"]
+                    delta_in = metric["delta_in"]
+                    delta_out = metric["delta_out"]
+                    rows[f"{name}_selected_mse"].append(float(inside[b]))
+                    rows[f"{name}_selected_error_ratio"].append(float(inside[b]) / base)
+                    rows[f"{name}_selected_error_delta"].append(
+                        float(inside[b] - full_inside[b])
+                    )
+                    rows[f"{name}_prediction_delta_inside"].append(float(delta_in[b]))
+                    rows[f"{name}_prediction_delta_outside"].append(float(delta_out[b]))
+                    rows[f"{name}_delta_localization_ratio"].append(
+                        float(delta_in[b] / delta_out[b].clamp_min(1e-8))
+                    )
             images_with_swap += int(selected_valid.sum())
 
         # Add current-image memories only after interventions are selected.
@@ -248,7 +300,12 @@ def run(args) -> None:
         "model_path": args.model_path,
         "num_images_seen": images_seen,
         "num_images_with_same_category_swap": images_with_swap,
-        "paired_protocol": "same semantic keys/registers/timestep/noise; one visual memory changed",
+        "paired_protocol": (
+            "same-category donor/registers/timestep/noise; one final OVT key+value changed"
+            if str(getattr(model.config, "pgot_e8_update_mode", "")) == "final_ovt"
+            else "same semantic keys/registers/timestep/noise; one visual memory changed"
+        ),
+        "final_ovt_kv_decomposition": bool(args.decompose_final_ovt_kv),
         "metrics": {key: _summary(values) for key, values in sorted(rows.items())},
     }
     output = Path(args.output_dir)
@@ -276,6 +333,11 @@ def main() -> None:
     parser.add_argument("--diffusion_inference_steps", type=int, default=10)
     parser.add_argument("--seed", type=int, default=123)
     parser.add_argument("--max_donors_per_category", type=int, default=32)
+    parser.add_argument(
+        "--decompose_final_ovt_kv",
+        action="store_true",
+        help="Also compare same-category final-OVT key-only and value-only swaps.",
+    )
     run(parser.parse_args())
 
 

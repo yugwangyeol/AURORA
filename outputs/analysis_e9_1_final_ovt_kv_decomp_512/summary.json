@@ -1,0 +1,159 @@
+{
+  "model_path": "checkpoints/pgot_e9_1_final_ovt/checkpoint-10000",
+  "num_images_seen": 512,
+  "num_images_with_same_category_swap": 498,
+  "paired_protocol": "same-category donor/registers/timestep/noise; one final OVT key+value changed",
+  "final_ovt_kv_decomposition": true,
+  "metrics": {
+    "full_selected_mse": {
+      "mean": 0.5323492422939304,
+      "median": 0.506860613822937,
+      "std": 0.21948968464796256,
+      "count": 498
+    },
+    "swap_delta_localization_ratio": {
+      "mean": 7.707554256640764,
+      "median": 4.890637159347534,
+      "std": 9.828933028417223,
+      "count": 498
+    },
+    "swap_key_only_delta_localization_ratio": {
+      "mean": 7.1810314452470125,
+      "median": 4.165343284606934,
+      "std": 10.023034241955324,
+      "count": 498
+    },
+    "swap_key_only_prediction_delta_inside": {
+      "mean": 0.06419999267795007,
+      "median": 0.012768362648785114,
+      "std": 0.12708594784391458,
+      "count": 498
+    },
+    "swap_key_only_prediction_delta_outside": {
+      "mean": 0.014215128766697734,
+      "median": 0.0029334420105442405,
+      "std": 0.024236683898380455,
+      "count": 498
+    },
+    "swap_key_only_selected_error_delta": {
+      "mean": 0.05780857425916147,
+      "median": 0.006117701530456543,
+      "std": 0.13984375138800437,
+      "count": 498
+    },
+    "swap_key_only_selected_error_ratio": {
+      "mean": 1.0894528155215406,
+      "median": 1.01360430354207,
+      "std": 0.5213067491735193,
+      "count": 498
+    },
+    "swap_key_only_selected_mse": {
+      "mean": 0.590157816612936,
+      "median": 0.5334468483924866,
+      "std": 0.28171632572358535,
+      "count": 498
+    },
+    "swap_prediction_delta_inside": {
+      "mean": 0.07418501725186274,
+      "median": 0.017909612506628036,
+      "std": 0.13356748036212893,
+      "count": 498
+    },
+    "swap_prediction_delta_outside": {
+      "mean": 0.01718146042828109,
+      "median": 0.003642521216534078,
+      "std": 0.02847477525729909,
+      "count": 498
+    },
+    "swap_selected_error_delta": {
+      "mean": 0.06623945962712469,
+      "median": 0.009931951761245728,
+      "std": 0.14392659112823455,
+      "count": 498
+    },
+    "swap_selected_error_ratio": {
+      "mean": 1.1039800755544844,
+      "median": 1.021301511351448,
+      "std": 0.5266544156583407,
+      "count": 498
+    },
+    "swap_selected_mse": {
+      "mean": 0.5985887019808991,
+      "median": 0.545224517583847,
+      "std": 0.28689112932278116,
+      "count": 498
+    },
+    "swap_value_only_delta_localization_ratio": {
+      "mean": 15.172870021560286,
+      "median": 9.274299621582031,
+      "std": 18.203873604739762,
+      "count": 498
+    },
+    "swap_value_only_prediction_delta_inside": {
+      "mean": 0.06789664861689489,
+      "median": 0.018801853992044926,
+      "std": 0.11777671860411514,
+      "count": 498
+    },
+    "swap_value_only_prediction_delta_outside": {
+      "mean": 0.010689743979740061,
+      "median": 0.0017391961300745606,
+      "std": 0.02479242809694641,
+      "count": 498
+    },
+    "swap_value_only_selected_error_delta": {
+      "mean": 0.05940492102599527,
+      "median": 0.011506438255310059,
+      "std": 0.12118581228406862,
+      "count": 498
+    },
+    "swap_value_only_selected_error_ratio": {
+      "mean": 1.082453949261744,
+      "median": 1.024852747450843,
+      "std": 0.3535850285673752,
+      "count": 498
+    },
+    "swap_value_only_selected_mse": {
+      "mean": 0.5917541633199257,
+      "median": 0.5427891910076141,
+      "std": 0.2796210685006545,
+      "count": 498
+    },
+    "zero_delta_localization_ratio": {
+      "mean": 15.288136888463724,
+      "median": 8.726518630981445,
+      "std": 21.942201021629668,
+      "count": 498
+    },
+    "zero_prediction_delta_inside": {
+      "mean": 0.07096432534748086,
+      "median": 0.01454137871041894,
+      "std": 0.13559705064719155,
+      "count": 498
+    },
+    "zero_prediction_delta_outside": {
+      "mean": 0.009639635719032782,
+      "median": 0.0014150600763969123,
+      "std": 0.019149013736213884,
+      "count": 498
+    },
+    "zero_selected_error_delta": {
+      "mean": 0.06503610984687824,
+      "median": 0.008143961429595947,
+      "std": 0.147336440344754,
+      "count": 498
+    },
+    "zero_selected_error_ratio": {
+      "mean": 1.102383945662134,
+      "median": 1.018871969539017,
+      "std": 0.5259527874533462,
+      "count": 498
+    },
+    "zero_selected_mse": {
+      "mean": 0.5973853522006527,
+      "median": 0.5408168733119965,
+      "std": 0.28770107947119566,
+      "count": 498
+    }
+  }
+}

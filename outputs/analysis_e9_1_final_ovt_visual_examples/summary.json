@@ -1,0 +1,69 @@
+{
+  "model_path": "checkpoints/pgot_e9_1_final_ovt/checkpoint-10000",
+  "protocol": "same semantic keys/registers/noise; memory-only global ablations and one-object same-category swap",
+  "records": [
+    {
+      "target_sample_index": 1,
+      "target_image_id": 285,
+      "target_object_index": 0,
+      "donor_sample_index": 193,
+      "donor_image_id": 20247,
+      "donor_object_index": 0,
+      "category": "bear",
+      "fixed_noise_seed": 123,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.6064895391464233,
+        "object_only": 0.7321307063102722,
+        "register_only": 1.0404990911483765,
+        "all_zero": 1.0769606828689575,
+        "selected_zero": 1.0404990911483765,
+        "same_category_swap": 0.9194743037223816
+      },
+      "grid": "outputs/analysis_e9_1_final_ovt_visual_examples/sample1_obj0_bear_memory_grid.png"
+    },
+    {
+      "target_sample_index": 500,
+      "target_image_id": 58705,
+      "target_object_index": 0,
+      "donor_sample_index": 5,
+      "donor_image_id": 785,
+      "donor_object_index": 0,
+      "category": "person",
+      "fixed_noise_seed": 124,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.9539678692817688,
+        "object_only": 1.106745958328247,
+        "register_only": 1.2591463327407837,
+        "all_zero": 1.3421913385391235,
+        "selected_zero": 1.0839564800262451,
+        "same_category_swap": 1.117737054824829
+      },
+      "grid": "outputs/analysis_e9_1_final_ovt_visual_examples/sample500_obj0_person_memory_grid.png"
+    },
+    {
+      "target_sample_index": 1407,
+      "target_image_id": 171298,
+      "target_object_index": 0,
+      "donor_sample_index": 17,
+      "donor_image_id": 1584,
+      "donor_object_index": 0,
+      "category": "bus",
+      "fixed_noise_seed": 125,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.9918144345283508,
+        "object_only": 1.0488516092300415,
+        "register_only": 1.1963081359863281,
+        "all_zero": 1.2300869226455688,
+        "selected_zero": 1.127909779548645,
+        "same_category_swap": 1.1766412258148193
+      },
+      "grid": "outputs/analysis_e9_1_final_ovt_visual_examples/sample1407_obj0_bus_memory_grid.png"
+    }
+  ]
+}
