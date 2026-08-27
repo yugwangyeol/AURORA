@@ -118,7 +118,15 @@ def run(args):
     reader_register_on_fg = []
     reader_object_on_bg = []
     condition_stats = {key: [] for key in loss_sums if key != "baseline"}
-    memory_stats = {"object_norm": [], "register_norm": [], "object_pair_cosine": []}
+    memory_stats = {
+        "object_norm": [],
+        "register_norm": [],
+        # Keep this historical name comparable across E8/E10/E11 by comparing
+        # owner-level representations.  E11 first averages its J memories.
+        "object_pair_cosine": [],
+        # E11-specific: similarity among the J memories under the same owner.
+        "within_owner_memory_pair_cosine": [],
+    }
     exact_reader_max_error = 0.0
     writer_layer_sums = {}
     writer_layer_counts = {}
@@ -213,16 +221,44 @@ def run(args):
             valid_indices = valid[b].nonzero(as_tuple=False).flatten().tolist()
             obj_mem = memory[b, :k_objects][valid[b]]
             if obj_mem.numel():
-                memory_stats["object_norm"].extend(obj_mem.norm(dim=-1).cpu().tolist())
+                memory_stats["object_norm"].extend(
+                    obj_mem.reshape(-1, obj_mem.shape[-1]).norm(dim=-1).cpu().tolist()
+                )
             if n_register > 0:
                 memory_stats["register_norm"].extend(
-                    memory[b, k_objects:].norm(dim=-1).cpu().tolist()
+                    memory[b, k_objects:]
+                    .reshape(-1, memory.shape[-1])
+                    .norm(dim=-1)
+                    .cpu()
+                    .tolist()
                 )
-            if obj_mem.shape[0] > 1:
-                normed = F.normalize(obj_mem, dim=-1)
+            owner_mem = obj_mem.mean(dim=-2) if obj_mem.ndim == 3 else obj_mem
+            if owner_mem.shape[0] > 1:
+                normed = F.normalize(owner_mem, dim=-1)
                 pair = normed @ normed.T
                 tri = torch.triu_indices(pair.shape[0], pair.shape[1], offset=1)
                 memory_stats["object_pair_cosine"].extend(pair[tri[0], tri[1]].cpu().tolist())
+            if memory.ndim == 4 and memory.shape[2] > 1:
+                all_owner_mem = memory[b][
+                    torch.cat(
+                        [
+                            valid[b],
+                            torch.ones(
+                                n_register,
+                                device=valid.device,
+                                dtype=torch.bool,
+                            ),
+                        ]
+                    )
+                ]
+                normed = F.normalize(all_owner_mem, dim=-1)
+                pair = torch.einsum("sjd,skd->sjk", normed, normed)
+                tri = torch.triu_indices(
+                    memory.shape[2], memory.shape[2], offset=1, device=pair.device
+                )
+                memory_stats["within_owner_memory_pair_cosine"].extend(
+                    pair[:, tri[0], tri[1]].flatten().cpu().tolist()
+                )
 
             for k in valid_indices:
                 reader_binding.append(

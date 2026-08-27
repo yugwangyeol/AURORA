@@ -122,7 +122,9 @@ def cache_features(args, model, loader, device) -> Dict[str, torch.Tensor]:
     X_img: List[torch.Tensor] = []      # (D,)          mask-pooled LLM image stream
     X_word: List[torch.Tensor] = []     # (D,)          frozen phrase embedding (no image)
     X_raw: List[torch.Tensor] = []      # (C_raw,)      mask-pooled RAW SigLIP patches
-    X_visual_memory: List[torch.Tensor] = []  # (D,) E8 image-only object memory
+    X_visual_memory: List[torch.Tensor] = []  # (J*D,) E8/E11 image-only object memory
+    X_visual_memory_mean: List[torch.Tensor] = []
+    X_visual_memory_slots: List[List[torch.Tensor]] = []
     Y_app: List[torch.Tensor] = []      # (C,)          mask-pooled GT SigLIP target
     img_ids: List[int] = []             # sample index -> for a leakage-free split
 
@@ -158,6 +160,9 @@ def cache_features(args, model, loader, device) -> Dict[str, torch.Tensor]:
         side_r = int(round(raw_feats.shape[1] ** 0.5))
         K = masks.shape[1] // n_ovt
         visual_memory = out.get("visual_memory")
+        if visual_memory is not None and not X_visual_memory_slots:
+            memory_count = visual_memory.shape[2] if visual_memory.ndim == 4 else 1
+            X_visual_memory_slots = [[] for _ in range(memory_count)]
 
         for b in range(B):
             for k in range(K):
@@ -190,10 +195,16 @@ def cache_features(args, model, loader, device) -> Dict[str, torch.Tensor]:
                 X_raw.append(pool_with_mask(raw_feats[b].to(device), m_r).cpu())
                 X_word.append(word_embeddings(model, caption_ids, ovt_pos, k, n_ovt, b))
                 if visual_memory is not None:
-                    # E8 orders slots as K object memories followed by registers.
-                    # Each object has one memory slot even when an older model uses
-                    # multiple inline OVT tokens per object.
-                    X_visual_memory.append(visual_memory[b, k].float().cpu())
+                    # E8/E10: [D]. E11: [J,D].  Concatenation tests the full
+                    # capacity increase; the mean and individual memories show
+                    # whether the gain is distributed or collapses to one ID.
+                    object_memory = visual_memory[b, k].float()
+                    if object_memory.ndim == 1:
+                        object_memory = object_memory.unsqueeze(0)
+                    X_visual_memory.append(object_memory.flatten().cpu())
+                    X_visual_memory_mean.append(object_memory.mean(dim=0).cpu())
+                    for j in range(object_memory.shape[0]):
+                        X_visual_memory_slots[j].append(object_memory[j].cpu())
                 img_ids.append(sample_idx * B + b)
 
     if not Y_app:
@@ -215,6 +226,10 @@ def cache_features(args, model, loader, device) -> Dict[str, torch.Tensor]:
         if len(X_visual_memory) != len(Y_app):
             raise RuntimeError("E8 visual-memory/object target count mismatch")
         out["X_visual_memory"] = torch.stack(X_visual_memory).float()
+        out["X_visual_memory_mean"] = torch.stack(X_visual_memory_mean).float()
+        for j, xs in enumerate(X_visual_memory_slots):
+            if xs:
+                out[f"X_visual_memory_slot{j}"] = torch.stack(xs).float()
     if ovt_pair_cosines:
         out["ovt_pair_cosine"] = torch.stack(ovt_pair_cosines).float()
     return out
@@ -245,32 +260,48 @@ def ridge_probe(
     ym = Y_tr.mean(dim=0, keepdim=True)
     Xc, Yc = X_tr - xm, Y_tr - ym
 
-    d = Xc.shape[1]
-    G = Xc.T @ Xc
-    XtY = Xc.T @ Yc
-    eye = torch.eye(d, device=device, dtype=torch.float64)
-
     # Floor: always predict the train mean.
     sse_mean = ((Y_te - ym) ** 2).sum()
 
     best = {"r2": -float("inf")}
     best_W = None
+    best_alpha = None
+    d = Xc.shape[1]
+    use_dual = d > Xc.shape[0]
+    if use_dual:
+        G = Xc @ Xc.T
+        eye = torch.eye(Xc.shape[0], device=device, dtype=torch.float64)
+    else:
+        G = Xc.T @ Xc
+        XtY = Xc.T @ Yc
+        eye = torch.eye(d, device=device, dtype=torch.float64)
     for lam in lambdas:
         try:
-            W = torch.linalg.solve(G + lam * eye, XtY)
+            if use_dual:
+                alpha = torch.linalg.solve(G + lam * eye, Yc)
+                pred = ((X_te - xm) @ Xc.T) @ alpha + ym
+            else:
+                W = torch.linalg.solve(G + lam * eye, XtY)
+                pred = (X_te - xm) @ W + ym
         except RuntimeError:
             continue
-        pred = (X_te - xm) @ W + ym
         sse = ((Y_te - pred) ** 2).sum()
         r2 = float(1.0 - sse / sse_mean)
         cos = float(F.cosine_similarity(pred, Y_te, dim=-1).mean())
         rel_l2 = float(((pred - Y_te).norm(dim=-1) / Y_te.norm(dim=-1).clamp_min(1e-8)).mean())
         if r2 > best["r2"]:
             best = {"r2": r2, "cosine": cos, "rel_l2": rel_l2, "lambda": float(lam)}
-            best_W = W
+            if use_dual:
+                best_alpha = alpha
+            else:
+                best_W = W
     if not return_pred_all:
         return best
-    pred_all = (X - xm) @ best_W + ym
+    pred_all = (
+        ((X - xm) @ Xc.T) @ best_alpha + ym
+        if use_dual
+        else (X - xm) @ best_W + ym
+    )
     return best, pred_all.float().cpu()
 
 
@@ -377,6 +408,11 @@ def main():
             probe_keys.append((f"P1_ovt_slot{j}", key))
     if "X_visual_memory" in cache:
         probe_keys.append(("P1b_e8_visual_memory", "X_visual_memory"))
+        probe_keys.append(("P1c_e8_visual_memory_mean", "X_visual_memory_mean"))
+        for j in range(len([k for k in cache if k.startswith("X_visual_memory_slot")])):
+            key = f"X_visual_memory_slot{j}"
+            if key in cache:
+                probe_keys.append((f"P1d_e8_visual_memory_slot{j}", key))
     probe_keys.extend([
         ("P2_llm_image_stream", "X_img"),
         ("P3_word_only", "X_word"),
@@ -410,6 +446,13 @@ def main():
     }
     if "X_visual_memory" in cache:
         dims["E8_visual_memory"] = effective_dim(cache["X_visual_memory"], device)
+        dims["E8_visual_memory_mean"] = effective_dim(
+            cache["X_visual_memory_mean"], device
+        )
+        for j in range(len([k for k in cache if k.startswith("X_visual_memory_slot")])):
+            key = f"X_visual_memory_slot{j}"
+            if key in cache:
+                dims[f"E8_visual_memory_slot{j}"] = effective_dim(cache[key], device)
     for j in range(int(args.n_ovt_per_object)):
         key = f"X_ovt_slot{j}"
         if key in cache:

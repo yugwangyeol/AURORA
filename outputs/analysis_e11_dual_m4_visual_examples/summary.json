@@ -1,0 +1,69 @@
+{
+  "model_path": "/tmp/pgot_e11_analysis_cache/e11",
+  "protocol": "same semantic keys/registers/noise; memory-only global ablations and one-object same-category swap",
+  "records": [
+    {
+      "target_sample_index": 1,
+      "target_image_id": 285,
+      "target_object_index": 0,
+      "donor_sample_index": 193,
+      "donor_image_id": 20247,
+      "donor_object_index": 0,
+      "category": "bear",
+      "fixed_noise_seed": 123,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.5239320397377014,
+        "object_only": 0.5916202068328857,
+        "register_only": 0.7192873358726501,
+        "all_zero": 1.058169960975647,
+        "selected_zero": 0.7192873358726501,
+        "same_category_swap": 0.9328644871711731
+      },
+      "grid": "outputs/analysis_e11_dual_m4_visual_examples/sample1_obj0_bear_memory_grid.png"
+    },
+    {
+      "target_sample_index": 500,
+      "target_image_id": 58705,
+      "target_object_index": 0,
+      "donor_sample_index": 5,
+      "donor_image_id": 785,
+      "donor_object_index": 0,
+      "category": "person",
+      "fixed_noise_seed": 124,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.896041989326477,
+        "object_only": 0.9703265428543091,
+        "register_only": 1.0049443244934082,
+        "all_zero": 1.32926344871521,
+        "selected_zero": 0.930881917476654,
+        "same_category_swap": 1.0878660678863525
+      },
+      "grid": "outputs/analysis_e11_dual_m4_visual_examples/sample500_obj0_person_memory_grid.png"
+    },
+    {
+      "target_sample_index": 1407,
+      "target_image_id": 171298,
+      "target_object_index": 0,
+      "donor_sample_index": 17,
+      "donor_image_id": 1584,
+      "donor_object_index": 0,
+      "category": "bus",
+      "fixed_noise_seed": 125,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.8713446259498596,
+        "object_only": 0.9288234710693359,
+        "register_only": 1.0040298700332642,
+        "all_zero": 1.251006007194519,
+        "selected_zero": 0.9575235843658447,
+        "same_category_swap": 1.1360993385314941
+      },
+      "grid": "outputs/analysis_e11_dual_m4_visual_examples/sample1407_obj0_bus_memory_grid.png"
+    }
+  ]
+}

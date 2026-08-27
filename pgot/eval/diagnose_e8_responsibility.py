@@ -617,10 +617,22 @@ def run(args) -> dict:
         target_side = int(round(math.sqrt(target.shape[1])))
         query_count = out["reader_attention"].shape[1]
         query_masks = _resize_masks(masks, query_count).flatten(2)
-        attention = out["reader_attention"].float()
+        owner_attention = out["reader_attention"].float()
+        memory_attention = out.get("reader_memory_attention")
+        if memory_attention is None:
+            memory_attention = owner_attention.unsqueeze(-1)
+        else:
+            memory_attention = memory_attention.float().reshape(
+                batch_size,
+                owner_attention.shape[1],
+                memory.shape[1],
+                memory.shape[2] if memory.ndim == 4 else 1,
+            )
         value_memory = model.pgot_e8_reader.value(
             model.pgot_e8_reader.memory_norm(memory)
         ).float()
+        if value_memory.ndim == 3:
+            value_memory = value_memory.unsqueeze(2)
         register_start = object_count
         register_flat = memory[:, register_start:].flatten(1)
 
@@ -643,29 +655,38 @@ def run(args) -> dict:
                     )
                 )
                 cache["img_ids"].append(image_offset + b)
-                cache["direct_self"].append(memory[b, k].cpu())
+                self_memory = memory[b, k]
+                cache["direct_self"].append(self_memory.flatten().cpu())
                 # Non-self includes every object slot actually exposed to the
                 # Reader, including captioned slots whose GT mask left the crop.
                 other_indices = [j for j in model_object_indices if j != k]
                 cache["direct_other_mean"].append(
-                    _mean_or_zero(memory[b, other_indices], dim=0).cpu()
+                    _mean_or_zero(memory[b, other_indices], dim=0).flatten().cpu()
                 )
                 cache["direct_register_flat"].append(register_flat[b].cpu())
 
                 qmask = query_masks[b, k]
-                slot_weight = (attention[b] * qmask[:, None]).sum(dim=0) / qmask.sum().clamp_min(1e-8)
-                self_contribution = slot_weight[k] * value_memory[b, k]
+                slot_weight = (
+                    memory_attention[b] * qmask[:, None, None]
+                ).sum(dim=0) / qmask.sum().clamp_min(1e-8)
+                self_contribution = (
+                    slot_weight[k, :, None] * value_memory[b, k]
+                ).sum(dim=0)
                 other_contribution = (
-                    (slot_weight[other_indices, None] * value_memory[b, other_indices]).sum(dim=0)
+                    (
+                        slot_weight[other_indices, :, None]
+                        * value_memory[b, other_indices]
+                    ).sum(dim=(0, 1))
                     if other_indices else value_memory.new_zeros(value_memory.shape[-1])
                 )
                 register_contribution = (
-                    slot_weight[register_start:, None] * value_memory[b, register_start:]
-                ).sum(dim=0)
+                    slot_weight[register_start:, :, None]
+                    * value_memory[b, register_start:]
+                ).sum(dim=(0, 1))
                 cache["routed_self"].append(self_contribution.cpu())
                 cache["routed_other"].append(other_contribution.cpu())
                 cache["routed_register"].append(register_contribution.cpu())
-                cache["reader_mass_self"].append(slot_weight[k].reshape(1).cpu())
+                cache["reader_mass_self"].append(slot_weight[k].sum().reshape(1).cpu())
                 cache["reader_mass_other"].append(slot_weight[other_indices].sum().reshape(1).cpu())
                 cache["reader_mass_register"].append(slot_weight[register_start:].sum().reshape(1).cpu())
         image_offset += batch_size

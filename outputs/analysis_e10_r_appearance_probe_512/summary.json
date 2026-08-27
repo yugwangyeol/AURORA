@@ -1,0 +1,128 @@
+{
+  "model_path": "/tmp/pgot_e10_cache.4fuMNp/e10",
+  "num_images": 511,
+  "num_objects": 2635,
+  "split_ratio": 0.8,
+  "probes_raw_target": {
+    "P0_mean_floor": {
+      "r2": 0.0,
+      "cosine": 0.5915646675376622,
+      "rel_l2": 0.8047824125817472,
+      "lambda": null
+    },
+    "P1_ovt_text_stream": {
+      "r2": 0.22230733998483565,
+      "cosine": 0.7048385272713136,
+      "rel_l2": 0.7039360960598098,
+      "lambda": 10000.0
+    },
+    "P1_ovt_slot0": {
+      "r2": 0.22230733998483565,
+      "cosine": 0.7048385272713136,
+      "rel_l2": 0.7039360960598098,
+      "lambda": 10000.0
+    },
+    "P1b_e8_visual_memory": {
+      "r2": 0.39387041678203005,
+      "cosine": 0.7854397049656028,
+      "rel_l2": 0.6063763436150263,
+      "lambda": 1000.0
+    },
+    "P2_llm_image_stream": {
+      "r2": 0.3229045207694604,
+      "cosine": 0.7503726188078529,
+      "rel_l2": 0.6519274472710371,
+      "lambda": 10000.0
+    },
+    "P3_word_only": {
+      "r2": 0.19081882540897743,
+      "cosine": 0.6892026051514151,
+      "rel_l2": 0.7204570287659033,
+      "lambda": 0.1
+    },
+    "P4_raw_siglip": {
+      "r2": 0.5142704678977362,
+      "cosine": 0.8331209163258453,
+      "rel_l2": 0.5425117460100752,
+      "lambda": 1000.0
+    }
+  },
+  "probes_instance_residual": {
+    "P0_mean_floor": {
+      "r2": 0.0,
+      "cosine": -0.005150930319363172,
+      "rel_l2": 1.000000000004711,
+      "lambda": null
+    },
+    "P1_ovt_text_stream": {
+      "r2": 0.05888011375709046,
+      "cosine": 0.2553128436704306,
+      "rel_l2": 0.9664002571842422,
+      "lambda": 100000.0
+    },
+    "P1_ovt_slot0": {
+      "r2": 0.05888011375709046,
+      "cosine": 0.2553128436704306,
+      "rel_l2": 0.9664002571842422,
+      "lambda": 100000.0
+    },
+    "P1b_e8_visual_memory": {
+      "r2": 0.2129571894979777,
+      "cosine": 0.49151550937489935,
+      "rel_l2": 0.8643511631495828,
+      "lambda": 1000.0
+    },
+    "P2_llm_image_stream": {
+      "r2": 0.1581823874092515,
+      "cosine": 0.4169707136105786,
+      "rel_l2": 0.9067676075031351,
+      "lambda": 10000.0
+    },
+    "P4_raw_siglip": {
+      "r2": 0.33516079787793596,
+      "cosine": 0.6166763597696042,
+      "rel_l2": 0.7828670907244462,
+      "lambda": 100.0
+    }
+  },
+  "residual_variance_fraction": 0.8091812133789062,
+  "ovt_pair_cosine": {},
+  "effective_dim": {
+    "OVT_text_stream": {
+      "nominal_dim": 1536,
+      "participation_ratio": 31.410993949970987,
+      "dims_for_90pct_var": 325,
+      "dims_for_99pct_var": 1011
+    },
+    "LLM_image_stream": {
+      "nominal_dim": 1536,
+      "participation_ratio": 42.94093566280108,
+      "dims_for_90pct_var": 340,
+      "dims_for_99pct_var": 992
+    },
+    "raw_siglip_pooled": {
+      "nominal_dim": 1152,
+      "participation_ratio": 86.23258117668392,
+      "dims_for_90pct_var": 324,
+      "dims_for_99pct_var": 831
+    },
+    "appearance_target": {
+      "nominal_dim": 1152,
+      "participation_ratio": 95.33503672110125,
+      "dims_for_90pct_var": 347,
+      "dims_for_99pct_var": 848
+    },
+    "E8_visual_memory": {
+      "nominal_dim": 1536,
+      "participation_ratio": 102.89226715704044,
+      "dims_for_90pct_var": 258,
+      "dims_for_99pct_var": 886
+    },
+    "OVT_slot0": {
+      "nominal_dim": 1536,
+      "participation_ratio": 31.410993949970987,
+      "dims_for_90pct_var": 325,
+      "dims_for_99pct_var": 1011
+    }
+  }
+}

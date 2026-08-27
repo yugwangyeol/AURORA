@@ -1,0 +1,218 @@
+{
+  "model_path": "/tmp/pgot_e11_analysis_cache/e11",
+  "num_images": 511,
+  "num_objects": 2635,
+  "split_ratio": 0.8,
+  "probes_raw_target": {
+    "P0_mean_floor": {
+      "r2": 0.0,
+      "cosine": 0.5915646675376622,
+      "rel_l2": 0.8047824125817472,
+      "lambda": null
+    },
+    "P1_ovt_text_stream": {
+      "r2": 0.21936021032697395,
+      "cosine": 0.70319766117943,
+      "rel_l2": 0.7057785949616453,
+      "lambda": 10000.0
+    },
+    "P1_ovt_slot0": {
+      "r2": 0.21936021032697395,
+      "cosine": 0.70319766117943,
+      "rel_l2": 0.7057785949616453,
+      "lambda": 10000.0
+    },
+    "P1b_e8_visual_memory": {
+      "r2": 0.3861054846857701,
+      "cosine": 0.7807319243291714,
+      "rel_l2": 0.6124501003959559,
+      "lambda": 10000.0
+    },
+    "P1c_e8_visual_memory_mean": {
+      "r2": 0.3809672228363534,
+      "cosine": 0.7791841056913386,
+      "rel_l2": 0.6156621606991781,
+      "lambda": 1000.0
+    },
+    "P1d_e8_visual_memory_slot0": {
+      "r2": 0.34008447077537607,
+      "cosine": 0.7605527537996635,
+      "rel_l2": 0.6420222176256193,
+      "lambda": 1000.0
+    },
+    "P1d_e8_visual_memory_slot1": {
+      "r2": 0.36176272312828206,
+      "cosine": 0.7704276265559874,
+      "rel_l2": 0.6288587377254995,
+      "lambda": 1000.0
+    },
+    "P1d_e8_visual_memory_slot2": {
+      "r2": 0.3555374545395351,
+      "cosine": 0.768871956361843,
+      "rel_l2": 0.6306076289725193,
+      "lambda": 1000.0
+    },
+    "P1d_e8_visual_memory_slot3": {
+      "r2": 0.34511722901166486,
+      "cosine": 0.7637615926390763,
+      "rel_l2": 0.6376537485663858,
+      "lambda": 1000.0
+    },
+    "P2_llm_image_stream": {
+      "r2": 0.3191598739305328,
+      "cosine": 0.7485734856983042,
+      "rel_l2": 0.65398785780387,
+      "lambda": 10000.0
+    },
+    "P3_word_only": {
+      "r2": 0.1907334020574335,
+      "cosine": 0.6891618370171233,
+      "rel_l2": 0.7205058547304619,
+      "lambda": 0.1
+    },
+    "P4_raw_siglip": {
+      "r2": 0.5142704678977362,
+      "cosine": 0.8331209163258453,
+      "rel_l2": 0.5425117460100752,
+      "lambda": 1000.0
+    }
+  },
+  "probes_instance_residual": {
+    "P0_mean_floor": {
+      "r2": 0.0,
+      "cosine": -0.00025385020457833536,
+      "rel_l2": 1.0000000000003335,
+      "lambda": null
+    },
+    "P1_ovt_text_stream": {
+      "r2": 0.05828095262542321,
+      "cosine": 0.25385575188391785,
+      "rel_l2": 0.9667203466238095,
+      "lambda": 100000.0
+    },
+    "P1_ovt_slot0": {
+      "r2": 0.05828095262542321,
+      "cosine": 0.25385575188391785,
+      "rel_l2": 0.9667203466238095,
+      "lambda": 100000.0
+    },
+    "P1b_e8_visual_memory": {
+      "r2": 0.2093914488539229,
+      "cosine": 0.483026602049774,
+      "rel_l2": 0.8682689108260365,
+      "lambda": 10000.0
+    },
+    "P1c_e8_visual_memory_mean": {
+      "r2": 0.2018249829085481,
+      "cosine": 0.479805644533138,
+      "rel_l2": 0.873424353511004,
+      "lambda": 1000.0
+    },
+    "P1d_e8_visual_memory_slot0": {
+      "r2": 0.16881402691710357,
+      "cosine": 0.44479713351109995,
+      "rel_l2": 0.897429156959744,
+      "lambda": 10000.0
+    },
+    "P1d_e8_visual_memory_slot1": {
+      "r2": 0.18245844837554603,
+      "cosine": 0.4599905853142564,
+      "rel_l2": 0.8883914014467801,
+      "lambda": 1000.0
+    },
+    "P1d_e8_visual_memory_slot2": {
+      "r2": 0.1791397634829468,
+      "cosine": 0.458853830357154,
+      "rel_l2": 0.8881888558228926,
+      "lambda": 1000.0
+    },
+    "P1d_e8_visual_memory_slot3": {
+      "r2": 0.17347440679263426,
+      "cosine": 0.45457077813343294,
+      "rel_l2": 0.8927260327665086,
+      "lambda": 10000.0
+    },
+    "P2_llm_image_stream": {
+      "r2": 0.1558720104778909,
+      "cosine": 0.41348653778077565,
+      "rel_l2": 0.9083736682719045,
+      "lambda": 10000.0
+    },
+    "P4_raw_siglip": {
+      "r2": 0.3355407631518045,
+      "cosine": 0.6170229830603441,
+      "rel_l2": 0.7825721735384273,
+      "lambda": 100.0
+    }
+  },
+  "residual_variance_fraction": 0.8092665672302246,
+  "ovt_pair_cosine": {},
+  "effective_dim": {
+    "OVT_text_stream": {
+      "nominal_dim": 1536,
+      "participation_ratio": 32.51572252167011,
+      "dims_for_90pct_var": 329,
+      "dims_for_99pct_var": 1014
+    },
+    "LLM_image_stream": {
+      "nominal_dim": 1536,
+      "participation_ratio": 41.655864101600116,
+      "dims_for_90pct_var": 335,
+      "dims_for_99pct_var": 990
+    },
+    "raw_siglip_pooled": {
+      "nominal_dim": 1152,
+      "participation_ratio": 86.23258117668392,
+      "dims_for_90pct_var": 324,
+      "dims_for_99pct_var": 831
+    },
+    "appearance_target": {
+      "nominal_dim": 1152,
+      "participation_ratio": 95.33503672110125,
+      "dims_for_90pct_var": 347,
+      "dims_for_99pct_var": 848
+    },
+    "E8_visual_memory": {
+      "nominal_dim": 6144,
+      "participation_ratio": 143.24890607677398,
+      "dims_for_90pct_var": 502,
+      "dims_for_99pct_var": 1623
+    },
+    "E8_visual_memory_mean": {
+      "nominal_dim": 1536,
+      "participation_ratio": 120.44911284393618,
+      "dims_for_90pct_var": 299,
+      "dims_for_99pct_var": 942
+    },
+    "E8_visual_memory_slot0": {
+      "nominal_dim": 1536,
+      "participation_ratio": 132.99800452822598,
+      "dims_for_90pct_var": 339,
+      "dims_for_99pct_var": 1003
+    },
+    "E8_visual_memory_slot1": {
+      "nominal_dim": 1536,
+      "participation_ratio": 130.84830416142475,
+      "dims_for_90pct_var": 320,
+      "dims_for_99pct_var": 975
+    },
+    "E8_visual_memory_slot2": {
+      "nominal_dim": 1536,
+      "participation_ratio": 128.67703962238934,
+      "dims_for_90pct_var": 316,
+      "dims_for_99pct_var": 969
+    },
+    "E8_visual_memory_slot3": {
+      "nominal_dim": 1536,
+      "participation_ratio": 133.17726333741373,
+      "dims_for_90pct_var": 345,
+      "dims_for_99pct_var": 1009
+    },
+    "OVT_slot0": {
+      "nominal_dim": 1536,
+      "participation_ratio": 32.51572252167011,
+      "dims_for_90pct_var": 329,
+      "dims_for_99pct_var": 1014
+    }
+  }
+}

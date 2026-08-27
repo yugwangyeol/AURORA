@@ -203,6 +203,21 @@ def run(args) -> None:
                 "zero": zero_condition,
                 "swap": swap_condition,
             }
+            # E11-specific diagnostic: remove one of the J memories while
+            # keeping the other memories under the selected semantic owner.
+            # This distinguishes genuine multi-memory use from a single-ID
+            # shortcut hidden by the whole-owner ablation above.
+            if memory.ndim == 4 and memory.shape[2] > 1:
+                for memory_id in range(memory.shape[2]):
+                    single_zero = memory.clone()
+                    # Advanced indexing returns a copy, so assignment is
+                    # required for the intervention to reach single_zero.
+                    single_zero[batch_indices, selected, memory_id] = 0.0
+                    branch_conditions[f"zero_memory_{memory_id}"] = (
+                        model._captionslot_prepare_diffusion_condition(
+                            _reader_condition(model, out, single_zero)
+                        ).float()
+                    )
             if args.decompose_final_ovt_kv:
                 if str(getattr(model.config, "pgot_e8_update_mode", "")) != "final_ovt":
                     raise ValueError(

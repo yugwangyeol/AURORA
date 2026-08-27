@@ -121,6 +121,7 @@ def pgot_forward_eval(
             "visual_memory": out["visual_memory"],
             "semantic_slots": out["semantic_slots"],
             "reader_attention": out["reader_attention"],
+            "reader_memory_attention": out.get("reader_memory_attention"),
             "e8_write_records": out["write_records"],
             "v12_block_owner_records": None,
         }

@@ -343,6 +343,28 @@ def main():
         help="Ablation: keep the checkpoint architecture but do not pass OVT/void slot context to DiT during rFID.",
     )
     p.add_argument(
+        "--latent_splice",
+        choices=["none", "background_gt", "object_gt", "full_gt"],
+        default="none",
+        help=(
+            "Inference-only oracle for rFID gap decomposition: after DiT "
+            "sampling, replace the selected region's SigLIP latent tokens "
+            "with the GT encoder-B features before pixel decoding. "
+            "background_gt: GT on tokens outside every object mask; "
+            "object_gt: GT on tokens inside object masks; "
+            "full_gt: GT everywhere (control; should match the O0 decoder floor)."
+        ),
+    )
+    p.add_argument(
+        "--latent_splice_fg_threshold",
+        type=float,
+        default=0.5,
+        help=(
+            "RAE-grid GT mask area fraction above which a latent token counts "
+            "as object (foreground) for --latent_splice."
+        ),
+    )
+    p.add_argument(
         "--register_eval_route",
         choices=["unrestricted", "oracle_gt", "predicted_ovt"],
         default="unrestricted",
@@ -617,10 +639,20 @@ def main():
     fid_acc = None
     rae_decoder = None
     recon_psnr_list, recon_ssim_list, recon_mse_list, recon_mae_list = [], [], [], []
+    splice_gt_fraction_list = []
+    splice_latent_mse_fg_list, splice_latent_mse_bg_list = [], []
 
     e6_enabled = bool(getattr(model.config, "pgot_e6_enable", False))
     e7_enabled = bool(getattr(model.config, "pgot_e7_enable", False))
     direct_sd_enabled = e6_enabled or e7_enabled
+    if args.latent_splice != "none":
+        if not args.compute_rfid:
+            p.error("--latent_splice requires --compute_rfid")
+        if direct_sd_enabled:
+            p.error(
+                "--latent_splice needs the Scale-RAE latent path; "
+                "E6/E7 checkpoints reconstruct through SD and have no DiT latents"
+            )
     if args.readout == "e6_decoder" and not e6_enabled:
         p.error("--readout e6_decoder requires a pgot_e6_enable checkpoint")
     if args.readout == "e7_owner" and not e7_enabled:
@@ -1043,6 +1075,71 @@ def main():
                         slot_context=recon_out.get("slot_context"),
                         slot_mask=recon_out.get("slot_mask"),
                     )
+                if args.latent_splice != "none" and not direct_sd_enabled:
+                    # Inference-only oracle: swap the selected region's sampled
+                    # latents for GT encoder-B features. gt_siglip and the
+                    # denormalized diff_head samples share the pixel-decoder
+                    # input space, so a token-wise mix is well-defined.
+                    gt_latent = recon_out["gt_siglip"].to(
+                        device=generated_latent.device, dtype=generated_latent.dtype
+                    )
+                    if gt_latent.shape != generated_latent.shape:
+                        raise ValueError(
+                            "latent splice shape mismatch: "
+                            f"gt={tuple(gt_latent.shape)} pred={tuple(generated_latent.shape)}"
+                        )
+                    n_latent_tokens = generated_latent.shape[1]
+                    if args.latent_splice == "full_gt":
+                        take_gt = torch.ones(
+                            generated_latent.shape[:2],
+                            device=generated_latent.device,
+                            dtype=torch.bool,
+                        )
+                    else:
+                        rae_masks = (
+                            batch["gt_rae_masks_per_ovt"]
+                            .to(generated_latent.device)
+                            .float()
+                        )
+                        if rae_masks.shape[-1] != n_latent_tokens:
+                            raise ValueError(
+                                f"gt_rae_masks_per_ovt has {rae_masks.shape[-1]} "
+                                f"tokens but the latent grid has {n_latent_tokens}"
+                            )
+                        splice_valid = (
+                            batch["ovt_valid_mask"]
+                            .to(generated_latent.device)
+                            .bool()
+                        )
+                        rae_masks = rae_masks * splice_valid.unsqueeze(-1).float()
+                        splice_fg = rae_masks.amax(dim=1) > float(
+                            args.latent_splice_fg_threshold
+                        )
+                        take_gt = (
+                            ~splice_fg
+                            if args.latent_splice == "background_gt"
+                            else splice_fg
+                        )
+                        latent_err = (
+                            (generated_latent.float() - gt_latent.float())
+                            .pow(2)
+                            .mean(dim=-1)
+                        )
+                        for b_idx in range(latent_err.shape[0]):
+                            if splice_fg[b_idx].any():
+                                splice_latent_mse_fg_list.append(
+                                    float(latent_err[b_idx][splice_fg[b_idx]].mean())
+                                )
+                            if (~splice_fg[b_idx]).any():
+                                splice_latent_mse_bg_list.append(
+                                    float(latent_err[b_idx][~splice_fg[b_idx]].mean())
+                                )
+                    splice_gt_fraction_list.extend(
+                        take_gt.float().mean(dim=1).cpu().tolist()
+                    )
+                    generated_latent = torch.where(
+                        take_gt.unsqueeze(-1), gt_latent, generated_latent
+                    )
                 if not direct_sd_enabled:
                     recon_images = decode_to_image(rae_decoder, generated_latent, device)
                     # Real image: denormalize target_images (SigLIP decoder target).
@@ -1138,6 +1235,12 @@ def main():
                 args.register_eval_pred_dilation
             )
     summary["recon_source"] = args.recon_source
+    summary["latent_splice"] = args.latent_splice
+    if args.latent_splice != "none":
+        summary["latent_splice_fg_threshold"] = float(args.latent_splice_fg_threshold)
+        summary["latent_splice_gt_token_fraction"] = _mean(splice_gt_fraction_list)
+        summary["latent_splice_pred_latent_mse_fg"] = _mean(splice_latent_mse_fg_list)
+        summary["latent_splice_pred_latent_mse_bg"] = _mean(splice_latent_mse_bg_list)
     summary["e6_coda_direct_bottleneck"] = e6_enabled
     summary["e7_causal_ownership_bottleneck"] = e7_enabled
     e8_enabled = bool(
@@ -1149,6 +1252,30 @@ def main():
             getattr(model.config, "pgot_e8_update_mode", "separate_memory")
         )
         summary["e8_update_mode"] = update_mode
+        summary["e10_raw_value_enabled"] = bool(
+            getattr(model.config, "pgot_e10_raw_value_enable", False)
+        )
+        summary["e11_dual_m4_enabled"] = bool(
+            getattr(model.config, "pgot_e11_dual_m4_enable", False)
+        )
+        summary["e11_memories_per_owner"] = int(
+            getattr(model.config, "pgot_e11_memories_per_owner", 1)
+            if summary["e11_dual_m4_enabled"]
+            else 1
+        )
+        summary["object_semantic_owners_per_object"] = 1
+        summary["background_semantic_registers"] = int(
+            getattr(model.config, "pgot_n_register", 0)
+        )
+        summary["background_visual_memories"] = (
+            summary["background_semantic_registers"]
+            * summary["e11_memories_per_owner"]
+        )
+        summary["visual_memory_value_source"] = (
+            "frozen source SigLIP pre-projector patches"
+            if summary["e10_raw_value_enabled"]
+            else "Qwen image-token hidden states"
+        )
         if update_mode == "final_ovt":
             summary["decoder_condition"] = (
                 "post-final-layer unified OVT/register states as Reader keys and values"
@@ -1159,7 +1286,9 @@ def main():
             )
         else:
             summary["decoder_condition"] = (
-                "semantic keys + image-only visual-memory values"
+                "semantic owner + memory-ID keys and image-only visual-memory values"
+                if summary["e11_dual_m4_enabled"]
+                else "semantic keys + image-only visual-memory values"
             )
         summary["rae_standard_slot_attention_blocked"] = True
         summary["e8_clean_refinement"] = bool(

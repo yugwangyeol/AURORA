@@ -710,6 +710,23 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_e8_update_mode = str(
             getattr(self.config, "pgot_e8_update_mode", "separate_memory")
         ).strip().lower()
+        self.pgot_e10_raw_value_enable = bool(
+            getattr(self.config, "pgot_e10_raw_value_enable", False)
+        )
+        self.pgot_e11_dual_m4_enable = bool(
+            getattr(self.config, "pgot_e11_dual_m4_enable", False)
+        )
+        self.pgot_e11_memories_per_owner = int(
+            getattr(
+                self.config,
+                "pgot_e11_memories_per_owner",
+                4 if self.pgot_e11_dual_m4_enable else 1,
+            )
+        )
+        if self.pgot_e11_memories_per_owner <= 0:
+            raise ValueError("E11 memories per owner must be positive")
+        if not self.pgot_e11_dual_m4_enable:
+            self.pgot_e11_memories_per_owner = 1
         if self.pgot_e8_visual_memory_enable:
             if self.pgot_e6_enable or self.pgot_e7_enable:
                 raise ValueError("E8 visual memory is mutually exclusive with E6/E7")
@@ -719,6 +736,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 )
             if self.pgot_n_register <= 0:
                 raise ValueError("E8 requires at least one background register")
+            if self.pgot_e11_dual_m4_enable:
+                if self.pgot_e8_update_mode != "separate_memory":
+                    raise ValueError("E11 Dual-M4 requires separate_memory mode")
+                if not self.pgot_e10_raw_value_enable:
+                    raise ValueError("E11 Dual-M4 requires E10 raw SigLIP values")
             self.pgot_e8_layers = _resolve_layer_spec(
                 str(getattr(self.config, "pgot_e8_layers", "21,24,27")),
                 int(getattr(self.config, "num_hidden_layers", 0)),
@@ -731,6 +753,12 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                     temperature=float(
                         getattr(self.config, "pgot_e8_owner_temperature", 1.0)
                     ),
+                    raw_value_dim=(
+                        int(getattr(self.config, "mm_hidden_size", 0))
+                        if self.pgot_e10_raw_value_enable
+                        else None
+                    ),
+                    memories_per_owner=self.pgot_e11_memories_per_owner,
                 )
                 self.pgot_e9_writer = None
             elif self.pgot_e8_update_mode in {"unified_gru", "final_ovt"}:
@@ -759,6 +787,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 temperature=float(
                     getattr(self.config, "pgot_e8_reader_temperature", 1.0)
                 ),
+                memories_per_owner=self.pgot_e11_memories_per_owner,
             )
         else:
             self.pgot_e8_layers = []
@@ -890,6 +919,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             f"e8_visual_memory={self.pgot_e8_visual_memory_enable}, "
             f"e8_update_mode={self.pgot_e8_update_mode}, "
             f"e8_layers={self.pgot_e8_layers}, "
+            f"e11_dual_m4={self.pgot_e11_dual_m4_enable}, "
+            f"memories_per_owner={self.pgot_e11_memories_per_owner}, "
             f"fvw={self.pgot_fvw_enable}, fvw_layers={self.pgot_fvw_layers}, "
             f"v12={self.pgot_v12_enable}, v12_layers={self.pgot_v12_layers}, "
             f"v14={self.pgot_v14_enable}, "
@@ -1097,7 +1128,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             ovt_valid_mask = ovt_valid_mask.to(model_device, dtype=torch.bool)
         B, caption_len = caption_input_ids.shape
 
-        _, img_features, gt_siglip = self._encode_images_aurora(
+        raw_img_features, img_features, gt_siglip = self._encode_images_aurora(
             images,
             target_images=target_images,
         )
@@ -1202,6 +1233,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "ovt_positions_in_caption": ovt_positions_in_caption,
             "ovt_valid_mask": ovt_valid_mask,
             "img_features": img_features,
+            "raw_img_features": raw_img_features,
             "gt_siglip": gt_siglip,
             "positions": positions,
             "inputs_embeds": inputs_embeds,
@@ -1583,8 +1615,26 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 injection = writer["write_delta"]
             else:
                 if visual_memory is None:
-                    visual_memory = torch.zeros_like(slots["semantic_slots"])
-                if visual_memory.shape != slots["semantic_slots"].shape:
+                    if self.pgot_e11_dual_m4_enable:
+                        visual_memory = torch.zeros(
+                            *slots["semantic_slots"].shape[:2],
+                            self.pgot_e11_memories_per_owner,
+                            slots["semantic_slots"].shape[-1],
+                            device=slots["semantic_slots"].device,
+                            dtype=slots["semantic_slots"].dtype,
+                        )
+                    else:
+                        visual_memory = torch.zeros_like(slots["semantic_slots"])
+                memory_owner_shape = (
+                    visual_memory.shape[:2]
+                    if visual_memory.ndim == 4
+                    else visual_memory.shape[:2]
+                )
+                if (
+                    memory_owner_shape != slots["semantic_slots"].shape[:2]
+                    or visual_memory.shape[-1]
+                    != slots["semantic_slots"].shape[-1]
+                ):
                     raise ValueError(
                         "E8 slot shape changed between writer layers: "
                         f"memory={tuple(visual_memory.shape)} "
@@ -1594,6 +1644,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                     semantic_slots=slots["semantic_slots"],
                     visual_memory=visual_memory,
                     image_states=image_states,
+                    raw_value_states=(
+                        seq["raw_img_features"]
+                        if self.pgot_e10_raw_value_enable
+                        else None
+                    ),
                     slot_valid=slots["slot_valid"],
                     clean_refinement=clean_refinement,
                     initialize_memory=len(write_records) == 0,
@@ -1603,8 +1658,28 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 final_unified_slots = None
                 if inject_memory:
                     injection = self.pgot_e8_writer.injection_delta(visual_memory)
+                    if injection.ndim == 4:
+                        injection = injection.mean(dim=2)
                 else:
-                    injection = torch.zeros_like(visual_memory)
+                    injection = torch.zeros_like(slots["semantic_slots"])
+            utilization = writer.get("memory_utilization")
+            object_utilization_entropy = hidden_states.new_zeros(())
+            register_utilization_entropy = hidden_states.new_zeros(())
+            if utilization is not None and utilization.shape[2] > 1:
+                utilization_entropy = -(
+                    utilization.float()
+                    * utilization.float().clamp_min(1e-8).log()
+                ).sum(dim=-1) / math.log(float(utilization.shape[2]))
+                object_valid = slots["slot_valid"][:, :K]
+                register_valid = slots["slot_valid"][:, K:]
+                if bool(object_valid.any()):
+                    object_utilization_entropy = utilization_entropy[:, :K][
+                        object_valid
+                    ].mean().detach()
+                if bool(register_valid.any()):
+                    register_utilization_entropy = utilization_entropy[:, K:][
+                        register_valid
+                    ].mean().detach()
             write_records.append(
                 {
                     "layer": hidden_states.new_tensor(float(layer_idx)),
@@ -1625,6 +1700,31 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                     "mlp_strength": writer.get(
                         "mlp_strength", hidden_states.new_zeros(())
                     ),
+                    "raw_value_enabled": writer.get(
+                        "raw_value_enabled", hidden_states.new_zeros(())
+                    ),
+                    "memory_probs": (
+                        writer["memory_probs"].detach()
+                        if "memory_probs" in writer
+                        else None
+                    ),
+                    "memory_utilization": (
+                        utilization.detach() if utilization is not None else None
+                    ),
+                    "memory_utilization_entropy": writer.get(
+                        "memory_utilization_entropy", hidden_states.new_zeros(())
+                    ),
+                    "memory_assignment_entropy": writer.get(
+                        "memory_assignment_entropy", hidden_states.new_zeros(())
+                    ),
+                    "memory_utilization_min": writer.get(
+                        "memory_utilization_min", hidden_states.new_zeros(())
+                    ),
+                    "memory_utilization_max": writer.get(
+                        "memory_utilization_max", hidden_states.new_zeros(())
+                    ),
+                    "object_memory_utilization_entropy": object_utilization_entropy,
+                    "register_memory_utilization_entropy": register_utilization_entropy,
                 }
             )
             if update_mode == "separate_memory" and not inject_memory:
@@ -1703,7 +1803,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 ],
                 "raw_rae_hidden": raw_rae_hidden,
                 "condition_hidden": reader["condition_hidden"],
-                "reader_attention": reader["reader_attention"],
+                # Keep the historical owner-level shape for supervision,
+                # segmentation diagnostics, and existing E8/E10 analyses.
+                "reader_attention": reader["reader_owner_attention"],
+                "reader_memory_attention": reader["reader_attention"],
                 "reader_entropy": reader["reader_entropy"],
                 "reader_attention_heads": reader.get("reader_attention_heads"),
                 "semantic_slots": semantic_slots,
@@ -5077,6 +5180,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         causal_active = causal_enabled and bool(
             getattr(self.config, "pgot_e8_causal_active", True)
         )
+        if causal_active and self.pgot_e11_dual_m4_enable:
+            raise ValueError(
+                "E11 Dual-M4 intentionally excludes causal training in its "
+                "first controlled run"
+            )
         zero = hidden.new_zeros(())
         causal_stats = {
             "need_loss": zero,
@@ -5217,11 +5325,12 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         )
         last_write = seq["write_records"][-1]
         memory = seq["visual_memory"]
-        memory_valid = seq["slot_valid"].unsqueeze(-1).to(memory.dtype)
+        memory_valid = seq["slot_valid"].to(memory.dtype)
+        while memory_valid.ndim < memory.ndim:
+            memory_valid = memory_valid.unsqueeze(-1)
         memory_rms = (
             (memory.float().square() * memory_valid.float()).sum()
-            / memory_valid.float().sum().clamp_min(1.0)
-            / max(memory.shape[-1], 1)
+            / memory_valid.float().expand_as(memory).sum().clamp_min(1.0)
         ).sqrt()
 
         self.pgot_loss_lm = loss_lm.detach()
@@ -5275,6 +5384,27 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "e8_injection_norm": last_write["injection_norm"],
             "e8_write_gate_mean": last_write["write_gate_mean"],
             "e8_write_strength": last_write["write_strength"],
+            "e10_raw_value_enabled": last_write["raw_value_enabled"],
+            "e11_dual_m4_enabled": hidden.new_tensor(
+                float(self.pgot_e11_dual_m4_enable)
+            ),
+            "e11_memories_per_owner": hidden.new_tensor(
+                float(self.pgot_e11_memories_per_owner)
+            ),
+            "e11_memory_utilization_entropy": last_write[
+                "memory_utilization_entropy"
+            ],
+            "e11_memory_assignment_entropy": last_write[
+                "memory_assignment_entropy"
+            ],
+            "e11_memory_utilization_min": last_write["memory_utilization_min"],
+            "e11_memory_utilization_max": last_write["memory_utilization_max"],
+            "e11_object_memory_utilization_entropy": last_write[
+                "object_memory_utilization_entropy"
+            ],
+            "e11_register_memory_utilization_entropy": last_write[
+                "register_memory_utilization_entropy"
+            ],
             "e9_gru_retain_gate_mean": last_write["retain_gate_mean"],
             "e9_gru_reset_gate_mean": last_write["reset_gate_mean"],
             "e9_mlp_strength": last_write["mlp_strength"],
@@ -5285,7 +5415,12 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 float(seq["update_mode"] == "final_ovt")
             ),
             "e9_reader_key_value_max_diff": (
-                seq["semantic_slots"].float() - seq["visual_memory"].float()
+                (
+                    seq["semantic_slots"].float().unsqueeze(2)
+                    if seq["visual_memory"].ndim == 4
+                    else seq["semantic_slots"].float()
+                )
+                - seq["visual_memory"].float()
             ).abs().max().detach(),
             "e9_causal_intervenes_reader_keys": hidden.new_tensor(
                 float(seq["update_mode"] == "final_ovt" and causal_active)

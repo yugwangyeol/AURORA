@@ -112,6 +112,13 @@ def train():
     )
 
     config = AutoConfig.from_pretrained(model_args.model_name_or_path)
+    # Keep the source-checkpoint architecture before CLI overrides.  HF's
+    # missing-key initializer zeros standalone Parameters that do not exist in
+    # E10-R, so the first E11 run must explicitly restore its deterministic
+    # memory-ID symmetry breakers after from_pretrained().
+    source_checkpoint_is_e11 = bool(
+        getattr(config, "pgot_e11_dual_m4_enable", False)
+    )
     # ScaleRAE base fields
     config.vision_loss = model_args.vision_loss
     config.vision_loss_mode = model_args.vision_loss_mode
@@ -297,6 +304,15 @@ def train():
     config.pgot_e8_clean_refinement = bool(model_args.pgot_e8_clean_refinement)
     config.pgot_e8_inject_memory = bool(model_args.pgot_e8_inject_memory)
     config.pgot_e8_update_mode = str(model_args.pgot_e8_update_mode)
+    config.pgot_e10_raw_value_enable = bool(
+        model_args.pgot_e10_raw_value_enable
+    )
+    config.pgot_e11_dual_m4_enable = bool(
+        model_args.pgot_e11_dual_m4_enable
+    )
+    config.pgot_e11_memories_per_owner = int(
+        model_args.pgot_e11_memories_per_owner
+    )
     config.pgot_e9_update_dim = int(model_args.pgot_e9_update_dim)
     config.pgot_e9_mlp_ratio = float(model_args.pgot_e9_mlp_ratio)
     config.pgot_e8_reader_supervision_mode = str(
@@ -392,6 +408,26 @@ def train():
         ignore_mismatched_sizes=True,
     )
     model.config.use_cache = False
+    if bool(model_args.pgot_e11_dual_m4_enable) and not source_checkpoint_is_e11:
+        with torch.no_grad():
+            for seed, parameter in (
+                (1104, model.pgot_e8_writer.memory_id_embeddings),
+                (1105, model.pgot_e8_reader.memory_key_embeddings),
+            ):
+                generator = torch.Generator(device="cpu")
+                generator.manual_seed(seed)
+                initialized = torch.randn(
+                    tuple(parameter.shape),
+                    generator=generator,
+                    dtype=torch.float32,
+                    device="cpu",
+                )
+                parameter.copy_(
+                    initialized.to(device=parameter.device, dtype=parameter.dtype)
+                )
+        logger.info(
+            "[PGOT/E11] deterministically initialized four-memory Writer/Reader IDs"
+        )
 
     # Copy mask/CFG hyperparameters from ModelArguments onto the model config so
     # _forward_pgot (which reads self.config via getattr) uses the CLI-provided values
@@ -574,6 +610,15 @@ def train():
         model_args.pgot_e8_clean_refinement
     )
     model.config.pgot_e8_inject_memory = bool(model_args.pgot_e8_inject_memory)
+    model.config.pgot_e10_raw_value_enable = bool(
+        model_args.pgot_e10_raw_value_enable
+    )
+    model.config.pgot_e11_dual_m4_enable = bool(
+        model_args.pgot_e11_dual_m4_enable
+    )
+    model.config.pgot_e11_memories_per_owner = int(
+        model_args.pgot_e11_memories_per_owner
+    )
     model.config.pgot_e8_reader_supervision_mode = str(
         model_args.pgot_e8_reader_supervision_mode
     )

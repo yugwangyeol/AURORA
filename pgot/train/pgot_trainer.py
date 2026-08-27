@@ -218,6 +218,13 @@ class PGOTModelArguments:
     # hidden states with Slot-style attention + an explicit FP32 GRU.  E9.1's
     # ``final_ovt`` mode also makes the final unified states the Reader K/V.
     pgot_e8_update_mode: str = field(default="separate_memory")
+    # E10-R: preserve E8.2 routing but write values from frozen source
+    # SigLIP patches before the multimodal projector / Qwen mixing.
+    pgot_e10_raw_value_enable: bool = field(default=False)
+    # E11 Dual-M4: preserve one semantic owner per object/register while
+    # expanding only the image-only visual memory carried by each owner.
+    pgot_e11_dual_m4_enable: bool = field(default=False)
+    pgot_e11_memories_per_owner: int = field(default=4)
     pgot_e9_update_dim: int = field(default=512)
     pgot_e9_mlp_ratio: float = field(default=2.0)
     # Reader routing supervision: ``gt`` uses segmentation masks, ``writer``
