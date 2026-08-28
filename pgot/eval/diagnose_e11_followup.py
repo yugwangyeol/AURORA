@@ -158,6 +158,8 @@ def _reader_output(
         semantic_slots=semantic_slots,
         visual_memory=memory,
         slot_valid=slot_valid,
+        memory_centroids=out.get("memory_centroids"),
+        object_count=k_objects,
     )
 
 

@@ -229,6 +229,11 @@ def _causal_influence(
             "ovt_object_valid": out["ovt_object_valid"][source_b],
             "raw_rae_hidden": out["raw_rae_hidden"][source_b],
             "semantic_slots": out["semantic_slots"][source_b],
+            "memory_centroids": (
+                out["memory_centroids"][source_b]
+                if out.get("memory_centroids") is not None
+                else None
+            ),
         }
         condition = model._captionslot_prepare_diffusion_condition(
             _reader_condition(model, row_out, ablated_memory)

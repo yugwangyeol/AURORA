@@ -49,6 +49,7 @@ echo "E8 writer layers: ${E8_LAYERS:-21,24,27}"
 echo "E8/E9 update mode: ${E8_UPDATE_MODE:-separate_memory}"
 echo "E10 raw source-SigLIP values: ${E10_RAW_VALUE_ENABLE:-False}"
 echo "E11 Dual-M4: ${E11_DUAL_M4_ENABLE:-False}; memories/owner=${E11_MEMORIES_PER_OWNER:-4}"
+echo "E12 centroid-aware Reader: ${E12_CENTROID_READER_ENABLE:-False}; gate_init=${E12_CENTROID_GATE_INIT:-0.0}"
 if [[ "${E8_UPDATE_MODE:-separate_memory}" == final_ovt ]]; then
     echo "E9.1 update: final post-Qwen OVT/register states are Reader K/V and causal targets"
 elif [[ "${E8_UPDATE_MODE:-separate_memory}" == unified_gru ]]; then
@@ -91,6 +92,8 @@ echo "E8 background: ${E8_N_REGISTER:-4} competitive registers; NULL_BG disabled
     --pgot_e10_raw_value_enable "${E10_RAW_VALUE_ENABLE:-False}" \
     --pgot_e11_dual_m4_enable "${E11_DUAL_M4_ENABLE:-False}" \
     --pgot_e11_memories_per_owner "${E11_MEMORIES_PER_OWNER:-4}" \
+    --pgot_e12_centroid_reader_enable "${E12_CENTROID_READER_ENABLE:-False}" \
+    --pgot_e12_centroid_gate_init "${E12_CENTROID_GATE_INIT:-0.0}" \
     --pgot_e9_update_dim "${E9_UPDATE_DIM:-512}" \
     --pgot_e9_mlp_ratio "${E9_MLP_RATIO:-2.0}" \
     --pgot_e8_reader_supervision_mode "${E8_READER_SUPERVISION_MODE:-gt}" \

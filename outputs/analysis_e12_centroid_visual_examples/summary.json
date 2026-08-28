@@ -1,0 +1,69 @@
+{
+  "model_path": "/tmp/pgot_e12_analysis_cache/e12",
+  "protocol": "same semantic keys/registers/noise; memory-only global ablations and one-object same-category swap",
+  "records": [
+    {
+      "target_sample_index": 1,
+      "target_image_id": 285,
+      "target_object_index": 0,
+      "donor_sample_index": 193,
+      "donor_image_id": 20247,
+      "donor_object_index": 0,
+      "category": "bear",
+      "fixed_noise_seed": 123,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.5200473666191101,
+        "object_only": 0.6035079956054688,
+        "register_only": 0.8339192271232605,
+        "all_zero": 1.1560245752334595,
+        "selected_zero": 0.8339192271232605,
+        "same_category_swap": 0.9286508560180664
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_e12_centroid_visual_examples/sample1_obj0_bear_memory_grid.png"
+    },
+    {
+      "target_sample_index": 500,
+      "target_image_id": 58705,
+      "target_object_index": 0,
+      "donor_sample_index": 5,
+      "donor_image_id": 785,
+      "donor_object_index": 0,
+      "category": "person",
+      "fixed_noise_seed": 124,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.884183406829834,
+        "object_only": 0.9823411107063293,
+        "register_only": 1.0388611555099487,
+        "all_zero": 1.3382318019866943,
+        "selected_zero": 0.9258759617805481,
+        "same_category_swap": 1.0999910831451416
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_e12_centroid_visual_examples/sample500_obj0_person_memory_grid.png"
+    },
+    {
+      "target_sample_index": 1407,
+      "target_image_id": 171298,
+      "target_object_index": 0,
+      "donor_sample_index": 17,
+      "donor_image_id": 1584,
+      "donor_object_index": 0,
+      "category": "bus",
+      "fixed_noise_seed": 125,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.8719006776809692,
+        "object_only": 0.91817307472229,
+        "register_only": 1.029887080192566,
+        "all_zero": 1.2514415979385376,
+        "selected_zero": 0.9694951176643372,
+        "same_category_swap": 1.154469609260559
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_e12_centroid_visual_examples/sample1407_obj0_bus_memory_grid.png"
+    }
+  ]
+}

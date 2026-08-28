@@ -11,6 +11,7 @@ Usage:
 
 import json
 import logging
+import math
 import os
 import sys
 
@@ -118,6 +119,9 @@ def train():
     # memory-ID symmetry breakers after from_pretrained().
     source_checkpoint_is_e11 = bool(
         getattr(config, "pgot_e11_dual_m4_enable", False)
+    )
+    source_checkpoint_is_e12 = bool(
+        getattr(config, "pgot_e12_centroid_reader_enable", False)
     )
     # ScaleRAE base fields
     config.vision_loss = model_args.vision_loss
@@ -313,6 +317,12 @@ def train():
     config.pgot_e11_memories_per_owner = int(
         model_args.pgot_e11_memories_per_owner
     )
+    config.pgot_e12_centroid_reader_enable = bool(
+        model_args.pgot_e12_centroid_reader_enable
+    )
+    config.pgot_e12_centroid_gate_init = float(
+        model_args.pgot_e12_centroid_gate_init
+    )
     config.pgot_e9_update_dim = int(model_args.pgot_e9_update_dim)
     config.pgot_e9_mlp_ratio = float(model_args.pgot_e9_mlp_ratio)
     config.pgot_e8_reader_supervision_mode = str(
@@ -427,6 +437,38 @@ def train():
                 )
         logger.info(
             "[PGOT/E11] deterministically initialized four-memory Writer/Reader IDs"
+        )
+    if bool(model_args.pgot_e12_centroid_reader_enable) and not source_checkpoint_is_e12:
+        # The E11 source checkpoint does not contain E12's positional path.
+        # Initialize it explicitly so separate launches start from the same
+        # gate-zero E11 function and the same Fourier-feature projector.
+        reader = model.pgot_e8_reader
+        with torch.no_grad():
+            generator = torch.Generator(device="cpu")
+            generator.manual_seed(1201)
+            fan_out, fan_in = reader.centroid_position_projector.weight.shape
+            bound = math.sqrt(6.0 / float(fan_in + fan_out))
+            initialized = torch.empty(
+                tuple(reader.centroid_position_projector.weight.shape),
+                dtype=torch.float32,
+                device="cpu",
+            ).uniform_(-bound, bound, generator=generator)
+            reader.centroid_position_projector.weight.copy_(
+                initialized.to(
+                    device=reader.centroid_position_projector.weight.device,
+                    dtype=reader.centroid_position_projector.weight.dtype,
+                )
+            )
+            reader.centroid_position_norm.weight.fill_(1.0)
+            reader.centroid_position_norm.bias.zero_()
+            reader.centroid_object_gate.fill_(
+                float(model_args.pgot_e12_centroid_gate_init)
+            )
+            reader.centroid_register_gate.fill_(
+                float(model_args.pgot_e12_centroid_gate_init)
+            )
+        logger.info(
+            "[PGOT/E12] deterministically initialized centroid Reader at gate zero"
         )
 
     # Copy mask/CFG hyperparameters from ModelArguments onto the model config so
@@ -618,6 +660,12 @@ def train():
     )
     model.config.pgot_e11_memories_per_owner = int(
         model_args.pgot_e11_memories_per_owner
+    )
+    model.config.pgot_e12_centroid_reader_enable = bool(
+        model_args.pgot_e12_centroid_reader_enable
+    )
+    model.config.pgot_e12_centroid_gate_init = float(
+        model_args.pgot_e12_centroid_gate_init
     )
     model.config.pgot_e8_reader_supervision_mode = str(
         model_args.pgot_e8_reader_supervision_mode

@@ -1258,6 +1258,16 @@ def main():
         summary["e11_dual_m4_enabled"] = bool(
             getattr(model.config, "pgot_e11_dual_m4_enable", False)
         )
+        summary["e12_centroid_reader_enabled"] = bool(
+            getattr(model.config, "pgot_e12_centroid_reader_enable", False)
+        )
+        if summary["e12_centroid_reader_enabled"]:
+            summary["e12_centroid_object_gate"] = float(
+                torch.tanh(model.pgot_e8_reader.centroid_object_gate).detach()
+            )
+            summary["e12_centroid_register_gate"] = float(
+                torch.tanh(model.pgot_e8_reader.centroid_register_gate).detach()
+            )
         summary["e11_memories_per_owner"] = int(
             getattr(model.config, "pgot_e11_memories_per_owner", 1)
             if summary["e11_dual_m4_enabled"]
@@ -1285,11 +1295,17 @@ def main():
                 "pre-update semantic keys + unified OVT visual-update residual values"
             )
         else:
-            summary["decoder_condition"] = (
-                "semantic owner + memory-ID keys and image-only visual-memory values"
-                if summary["e11_dual_m4_enabled"]
-                else "semantic keys + image-only visual-memory values"
-            )
+            if summary["e12_centroid_reader_enabled"]:
+                summary["decoder_condition"] = (
+                    "semantic owner + memory-ID + predicted-centroid keys and "
+                    "image-only visual-memory values"
+                )
+            else:
+                summary["decoder_condition"] = (
+                    "semantic owner + memory-ID keys and image-only visual-memory values"
+                    if summary["e11_dual_m4_enabled"]
+                    else "semantic keys + image-only visual-memory values"
+                )
         summary["rae_standard_slot_attention_blocked"] = True
         summary["e8_clean_refinement"] = bool(
             getattr(model.config, "pgot_e8_clean_refinement", False)

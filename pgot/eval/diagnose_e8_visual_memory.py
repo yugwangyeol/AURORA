@@ -54,6 +54,8 @@ def _reader_condition(model, out, memory: torch.Tensor) -> torch.Tensor:
         semantic_slots=semantic_slots,
         visual_memory=memory,
         slot_valid=slot_valid,
+        memory_centroids=out.get("memory_centroids"),
+        object_count=object_valid.shape[1],
     )["condition_hidden"]
 
 
@@ -273,6 +275,11 @@ def run(args):
                     "ovt_object_valid": out["ovt_object_valid"][b : b + 1],
                     "raw_rae_hidden": out["raw_rae_hidden"][b : b + 1],
                     "semantic_slots": out["semantic_slots"][b : b + 1],
+                    "memory_centroids": (
+                        out["memory_centroids"][b : b + 1]
+                        if out.get("memory_centroids") is not None
+                        else None
+                    ),
                 }
                 ablated = _reader_condition(model, single_out, ablated_memory).float()
                 delta_map = (

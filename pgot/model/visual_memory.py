@@ -197,6 +197,32 @@ class PGOTE8VisualMemoryWriter(nn.Module):
         write_weights = joint_mass / joint_mass.sum(
             dim=-1, keepdim=True
         ).clamp_min(1e-6)
+        patch_count = write_weights.shape[-1]
+        patch_side = int(round(math.sqrt(float(patch_count))))
+        if patch_side * patch_side != patch_count:
+            raise ValueError(
+                "E8/E11 visual-memory centroids require a square patch grid, "
+                f"got P={patch_count}"
+            )
+        coordinate_axis = torch.linspace(
+            -1.0,
+            1.0,
+            patch_side,
+            device=write_weights.device,
+            dtype=torch.float32,
+        )
+        coordinate_y, coordinate_x = torch.meshgrid(
+            coordinate_axis, coordinate_axis, indexing="ij"
+        )
+        patch_coordinates = torch.stack(
+            [coordinate_x.flatten(), coordinate_y.flatten()], dim=-1
+        )
+        # E12 uses the differentiable center of the patches that each visual
+        # memory actually wrote.  No GT mask, fixed quadrant, or part label is
+        # involved; the final Reader receives the Writer's own dynamic route.
+        memory_centroids = torch.einsum(
+            "bsjp,pd->bsjd", write_weights.float(), patch_coordinates
+        ).to(dtype=module_dtype)
         if raw_value_states is None:
             values = self.value(image_n)
         else:
@@ -279,6 +305,7 @@ class PGOTE8VisualMemoryWriter(nn.Module):
             "memory_logits": memory_logits,
             "memory_probs": memory_probs,
             "write_weights": write_weights,
+            "memory_centroids": memory_centroids,
             "write_update": update_out,
             "memory_utilization": memory_utilization,
             "memory_utilization_entropy": (
@@ -459,6 +486,8 @@ class PGOTE8TypedRAEReader(nn.Module):
         num_heads: int = 8,
         temperature: float = 1.0,
         memories_per_owner: int = 1,
+        centroid_position_enable: bool = False,
+        centroid_gate_init: float = 0.0,
     ) -> None:
         super().__init__()
         self.dim = int(dim)
@@ -470,6 +499,7 @@ class PGOTE8TypedRAEReader(nn.Module):
         self.head_dim = self.dim // self.num_heads
         self.temperature = float(temperature)
         self.memories_per_owner = int(memories_per_owner)
+        self.centroid_position_enable = bool(centroid_position_enable)
         if self.memories_per_owner <= 0:
             raise ValueError("memories_per_owner must be positive")
 
@@ -495,6 +525,30 @@ class PGOTE8TypedRAEReader(nn.Module):
                 std=1.0,
             )
 
+        # E12: expose where each visual memory actually read from to the typed
+        # Reader.  Fourier features give a smooth 2-D code; separate object and
+        # register gates let the two typed paths adopt position independently.
+        # Both gates start at zero, so loading E11 initially reproduces its key
+        # computation exactly while retaining a gradient into each gate.
+        self.centroid_feature_dim = 14
+        if self.centroid_position_enable:
+            self.centroid_position_projector = nn.Linear(
+                self.centroid_feature_dim, self.dim, bias=False
+            )
+            self.centroid_position_norm = nn.LayerNorm(self.dim)
+            self.centroid_object_gate = nn.Parameter(
+                torch.tensor(float(centroid_gate_init))
+            )
+            self.centroid_register_gate = nn.Parameter(
+                torch.tensor(float(centroid_gate_init))
+            )
+            nn.init.xavier_uniform_(self.centroid_position_projector.weight)
+        else:
+            self.centroid_position_projector = None
+            self.centroid_position_norm = None
+            self.register_parameter("centroid_object_gate", None)
+            self.register_parameter("centroid_register_gate", None)
+
         for layer in (self.query, self.key, self.value, self.output):
             nn.init.eye_(layer.weight)
 
@@ -505,6 +559,8 @@ class PGOTE8TypedRAEReader(nn.Module):
         semantic_slots: torch.Tensor,
         visual_memory: torch.Tensor,
         slot_valid: torch.Tensor,
+        memory_centroids: torch.Tensor | None = None,
+        object_count: int | None = None,
     ) -> Dict[str, torch.Tensor]:
         if slot_valid.shape != semantic_slots.shape[:2]:
             raise ValueError("E8 reader slot_valid must have shape [B,S]")
@@ -537,6 +593,62 @@ class PGOTE8TypedRAEReader(nn.Module):
         key = semantic_key + self.memory_key_embeddings[None, None].to(
             semantic_key.dtype
         )
+        zero = semantic_key.new_zeros(())
+        centroid_position_rms = zero
+        centroid_mean_radius = zero
+        object_gate_value = zero
+        register_gate_value = zero
+        if self.centroid_position_enable:
+            if memory_centroids is None:
+                raise ValueError(
+                    "E12 centroid-aware Reader requires memory_centroids"
+                )
+            if memory_centroids.shape != (B, S, J, 2):
+                raise ValueError(
+                    "E12 memory centroids must have shape [B,S,J,2], got "
+                    f"{tuple(memory_centroids.shape)}"
+                )
+            if object_count is None or not 0 <= int(object_count) <= S:
+                raise ValueError(
+                    f"E12 Reader requires object_count in [0,{S}], got {object_count}"
+                )
+            coordinates = memory_centroids.to(
+                device=semantic_key.device, dtype=module_dtype
+            ).clamp(-1.0, 1.0)
+            features = [coordinates]
+            for frequency in (1.0, 2.0, 4.0):
+                phase = math.pi * frequency * coordinates
+                features.extend([phase.sin(), phase.cos()])
+            centroid_features = torch.cat(features, dim=-1)
+            centroid_position = self.centroid_position_norm(
+                self.centroid_position_projector(centroid_features)
+            )
+            object_gate_value = torch.tanh(self.centroid_object_gate).to(
+                dtype=module_dtype
+            )
+            register_gate_value = torch.tanh(self.centroid_register_gate).to(
+                dtype=module_dtype
+            )
+            owner_is_object = (
+                torch.arange(S, device=semantic_key.device) < int(object_count)
+            ).view(1, S, 1, 1)
+            owner_gate = torch.where(
+                owner_is_object, object_gate_value, register_gate_value
+            )
+            centroid_delta = owner_gate * centroid_position
+            key = key + centroid_delta
+            valid_position = slot_valid[:, :, None, None].to(
+                centroid_delta.dtype
+            )
+            centroid_position_rms = (
+                (centroid_delta.float().square() * valid_position.float()).sum()
+                / valid_position.float().expand_as(centroid_delta).sum().clamp_min(1.0)
+            ).sqrt()
+            valid_centroid = slot_valid[:, :, None].to(coordinates.dtype)
+            centroid_mean_radius = (
+                coordinates.float().square().sum(dim=-1).sqrt()
+                * valid_centroid.float()
+            ).sum() / valid_centroid.float().expand(B, S, J).sum().clamp_min(1.0)
         key = key.reshape(B, S * J, H, Dh)
         logits = torch.einsum("bqhd,bthd->bhqt", query.float(), key.float())
         logits = logits / math.sqrt(float(Dh))
@@ -563,6 +675,13 @@ class PGOTE8TypedRAEReader(nn.Module):
                 B, Q, S, J
             ).sum(dim=-1),
             "reader_attention_heads": attention,
+            "centroid_position_enabled": zero.new_tensor(
+                float(self.centroid_position_enable)
+            ),
+            "centroid_object_gate": object_gate_value.detach(),
+            "centroid_register_gate": register_gate_value.detach(),
+            "centroid_position_rms": centroid_position_rms.detach(),
+            "centroid_mean_radius": centroid_mean_radius.detach(),
             "reader_entropy": (
                 -(attention.float().clamp_min(1e-8).log() * attention.float()).sum(dim=-1)
             ).mean().detach(),

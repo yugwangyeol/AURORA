@@ -59,6 +59,8 @@ def _reader_condition(
         semantic_slots=semantic_slots,
         visual_memory=memory,
         slot_valid=slot_valid,
+        memory_centroids=out.get("memory_centroids"),
+        object_count=object_valid.shape[1],
     )["condition_hidden"]
 
 

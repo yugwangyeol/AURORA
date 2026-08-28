@@ -1,0 +1,231 @@
+{
+  "model_path": "/tmp/pgot_e12_analysis_cache/e12",
+  "num_images_seen": 512,
+  "num_images_with_same_category_swap": 498,
+  "paired_protocol": "same semantic keys/registers/timestep/noise; one visual memory changed",
+  "final_ovt_kv_decomposition": false,
+  "metrics": {
+    "full_selected_mse": {
+      "mean": 0.5024865891739546,
+      "median": 0.4892064779996872,
+      "std": 0.19986449289934016,
+      "count": 498
+    },
+    "swap_delta_localization_ratio": {
+      "mean": 19.950493853019335,
+      "median": 12.326088905334473,
+      "std": 23.75601201574809,
+      "count": 498
+    },
+    "swap_prediction_delta_inside": {
+      "mean": 0.14409520824170408,
+      "median": 0.05958922952413559,
+      "std": 0.19188884884981247,
+      "count": 498
+    },
+    "swap_prediction_delta_outside": {
+      "mean": 0.016822321411553962,
+      "median": 0.00419084238819778,
+      "std": 0.033316300906946504,
+      "count": 498
+    },
+    "swap_selected_error_delta": {
+      "mean": 0.1274979064113883,
+      "median": 0.0396886020898819,
+      "std": 0.18376099220713304,
+      "count": 498
+    },
+    "swap_selected_error_ratio": {
+      "mean": 1.2211848404375771,
+      "median": 1.096261744562669,
+      "std": 0.3944906655752778,
+      "count": 498
+    },
+    "swap_selected_mse": {
+      "mean": 0.629984495645187,
+      "median": 0.5563976466655731,
+      "std": 0.30815031111964164,
+      "count": 498
+    },
+    "zero_delta_localization_ratio": {
+      "mean": 19.604794621527436,
+      "median": 11.022324085235596,
+      "std": 26.309225895056063,
+      "count": 498
+    },
+    "zero_memory_0_delta_localization_ratio": {
+      "mean": 14.140867781602585,
+      "median": 4.9455437660217285,
+      "std": 23.881533639920985,
+      "count": 498
+    },
+    "zero_memory_0_prediction_delta_inside": {
+      "mean": 0.005980295759512512,
+      "median": 0.00020545529696391895,
+      "std": 0.021778594729220054,
+      "count": 498
+    },
+    "zero_memory_0_prediction_delta_outside": {
+      "mean": 0.0006323834965685958,
+      "median": 5.898386734770611e-05,
+      "std": 0.002178520655703338,
+      "count": 498
+    },
+    "zero_memory_0_selected_error_delta": {
+      "mean": 0.004163373740442307,
+      "median": 6.124377250671387e-05,
+      "std": 0.022291942168130897,
+      "count": 498
+    },
+    "zero_memory_0_selected_error_ratio": {
+      "mean": 0.9871132152969089,
+      "median": 1.000144584232582,
+      "std": 0.15754285217360278,
+      "count": 498
+    },
+    "zero_memory_0_selected_mse": {
+      "mean": 0.506649962914397,
+      "median": 0.4910178631544113,
+      "std": 0.20185429241488417,
+      "count": 498
+    },
+    "zero_memory_1_delta_localization_ratio": {
+      "mean": 14.403523989145206,
+      "median": 6.001724720001221,
+      "std": 21.70400085770189,
+      "count": 498
+    },
+    "zero_memory_1_prediction_delta_inside": {
+      "mean": 0.008891171121429531,
+      "median": 0.0018553961417637765,
+      "std": 0.0250918896256966,
+      "count": 498
+    },
+    "zero_memory_1_prediction_delta_outside": {
+      "mean": 0.0011352825463431912,
+      "median": 0.000227120028284844,
+      "std": 0.0032467016911555857,
+      "count": 498
+    },
+    "zero_memory_1_selected_error_delta": {
+      "mean": 0.005709187886920799,
+      "median": 0.0004103928804397583,
+      "std": 0.028625176861440664,
+      "count": 498
+    },
+    "zero_memory_1_selected_error_ratio": {
+      "mean": 0.9919820209231717,
+      "median": 1.00084652964598,
+      "std": 0.17925700129759803,
+      "count": 498
+    },
+    "zero_memory_1_selected_mse": {
+      "mean": 0.5081957770907974,
+      "median": 0.49492812156677246,
+      "std": 0.20166875211572435,
+      "count": 498
+    },
+    "zero_memory_2_delta_localization_ratio": {
+      "mean": 14.793049728003215,
+      "median": 7.65803074836731,
+      "std": 21.794119825313203,
+      "count": 498
+    },
+    "zero_memory_2_prediction_delta_inside": {
+      "mean": 0.01845609143792106,
+      "median": 0.0035331579856574535,
+      "std": 0.04998110952422877,
+      "count": 498
+    },
+    "zero_memory_2_prediction_delta_outside": {
+      "mean": 0.002110782498329465,
+      "median": 0.0003143477806588635,
+      "std": 0.004486004063848856,
+      "count": 498
+    },
+    "zero_memory_2_selected_error_delta": {
+      "mean": 0.012184717808382577,
+      "median": 0.0006295889616012573,
+      "std": 0.05222444842392288,
+      "count": 498
+    },
+    "zero_memory_2_selected_error_ratio": {
+      "mean": 1.0014202271939183,
+      "median": 1.0013576619563196,
+      "std": 0.17887748840436,
+      "count": 498
+    },
+    "zero_memory_2_selected_mse": {
+      "mean": 0.5146713069823372,
+      "median": 0.4957295209169388,
+      "std": 0.20963783843481096,
+      "count": 498
+    },
+    "zero_memory_3_delta_localization_ratio": {
+      "mean": 13.508884739304657,
+      "median": 6.044543981552124,
+      "std": 24.070538103199315,
+      "count": 498
+    },
+    "zero_memory_3_prediction_delta_inside": {
+      "mean": 0.00951404009645755,
+      "median": 0.0012737876968458295,
+      "std": 0.019415546613814498,
+      "count": 498
+    },
+    "zero_memory_3_prediction_delta_outside": {
+      "mean": 0.0011558744055817421,
+      "median": 0.00015257880295393988,
+      "std": 0.0033114386093580504,
+      "count": 498
+    },
+    "zero_memory_3_selected_error_delta": {
+      "mean": 0.007842005122019106,
+      "median": 8.249282836914062e-05,
+      "std": 0.030723255486574657,
+      "count": 498
+    },
+    "zero_memory_3_selected_error_ratio": {
+      "mean": 0.9929711003793941,
+      "median": 1.000218336463572,
+      "std": 0.1593079204395589,
+      "count": 498
+    },
+    "zero_memory_3_selected_mse": {
+      "mean": 0.5103285942959738,
+      "median": 0.4939872920513153,
+      "std": 0.2052636757800257,
+      "count": 498
+    },
+    "zero_prediction_delta_inside": {
+      "mean": 0.07175340726395353,
+      "median": 0.025675218552350998,
+      "std": 0.11875278190576438,
+      "count": 498
+    },
+    "zero_prediction_delta_outside": {
+      "mean": 0.00761788565565356,
+      "median": 0.002082572318613529,
+      "std": 0.01442646524597957,
+      "count": 498
+    },
+    "zero_selected_error_delta": {
+      "mean": 0.05550861979524294,
+      "median": 0.0135207399725914,
+      "std": 0.12324935281660526,
+      "count": 498
+    },
+    "zero_selected_error_ratio": {
+      "mean": 1.0935326399359888,
+      "median": 1.030085638238767,
+      "std": 0.34035305316935716,
+      "count": 498
+    },
+    "zero_selected_mse": {
+      "mean": 0.5579952088794315,
+      "median": 0.5183932185173035,
+      "std": 0.24824447439661676,
+      "count": 498
+    }
+  }
+}

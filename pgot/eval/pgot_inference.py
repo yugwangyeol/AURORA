@@ -122,6 +122,12 @@ def pgot_forward_eval(
             "semantic_slots": out["semantic_slots"],
             "reader_attention": out["reader_attention"],
             "reader_memory_attention": out.get("reader_memory_attention"),
+            "memory_centroids": out.get("memory_centroids"),
+            "centroid_position_enabled": out.get("centroid_position_enabled"),
+            "centroid_object_gate": out.get("centroid_object_gate"),
+            "centroid_register_gate": out.get("centroid_register_gate"),
+            "centroid_position_rms": out.get("centroid_position_rms"),
+            "centroid_mean_radius": out.get("centroid_mean_radius"),
             "e8_write_records": out["write_records"],
             "v12_block_owner_records": None,
         }

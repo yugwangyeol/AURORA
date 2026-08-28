@@ -716,6 +716,12 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_e11_dual_m4_enable = bool(
             getattr(self.config, "pgot_e11_dual_m4_enable", False)
         )
+        self.pgot_e12_centroid_reader_enable = bool(
+            getattr(self.config, "pgot_e12_centroid_reader_enable", False)
+        )
+        self.pgot_e12_centroid_gate_init = float(
+            getattr(self.config, "pgot_e12_centroid_gate_init", 0.0)
+        )
         self.pgot_e11_memories_per_owner = int(
             getattr(
                 self.config,
@@ -741,6 +747,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                     raise ValueError("E11 Dual-M4 requires separate_memory mode")
                 if not self.pgot_e10_raw_value_enable:
                     raise ValueError("E11 Dual-M4 requires E10 raw SigLIP values")
+            if self.pgot_e12_centroid_reader_enable:
+                if not self.pgot_e11_dual_m4_enable:
+                    raise ValueError("E12 centroid Reader requires E11 Dual-M4")
+                if self.pgot_e8_update_mode != "separate_memory":
+                    raise ValueError("E12 centroid Reader requires separate_memory mode")
             self.pgot_e8_layers = _resolve_layer_spec(
                 str(getattr(self.config, "pgot_e8_layers", "21,24,27")),
                 int(getattr(self.config, "num_hidden_layers", 0)),
@@ -788,6 +799,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                     getattr(self.config, "pgot_e8_reader_temperature", 1.0)
                 ),
                 memories_per_owner=self.pgot_e11_memories_per_owner,
+                centroid_position_enable=self.pgot_e12_centroid_reader_enable,
+                centroid_gate_init=self.pgot_e12_centroid_gate_init,
             )
         else:
             self.pgot_e8_layers = []
@@ -921,6 +934,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             f"e8_layers={self.pgot_e8_layers}, "
             f"e11_dual_m4={self.pgot_e11_dual_m4_enable}, "
             f"memories_per_owner={self.pgot_e11_memories_per_owner}, "
+            f"e12_centroid_reader={self.pgot_e12_centroid_reader_enable}, "
             f"fvw={self.pgot_fvw_enable}, fvw_layers={self.pgot_fvw_layers}, "
             f"v12={self.pgot_v12_enable}, v12_layers={self.pgot_v12_layers}, "
             f"v14={self.pgot_v14_enable}, "
@@ -1708,6 +1722,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                         if "memory_probs" in writer
                         else None
                     ),
+                    # Keep this differentiable: E12 reconstruction gradients
+                    # should be able to reward useful Writer partitions.
+                    "memory_centroids": writer.get("memory_centroids"),
                     "memory_utilization": (
                         utilization.detach() if utilization is not None else None
                     ),
@@ -1791,6 +1808,12 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             semantic_slots=semantic_slots,
             visual_memory=visual_memory,
             slot_valid=slot_valid,
+            memory_centroids=(
+                write_records[-1]["memory_centroids"]
+                if self.pgot_e12_centroid_reader_enable
+                else None
+            ),
+            object_count=K,
         )
         final_write = write_records[-1]
         seq.update(
@@ -1809,6 +1832,12 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 "reader_memory_attention": reader["reader_attention"],
                 "reader_entropy": reader["reader_entropy"],
                 "reader_attention_heads": reader.get("reader_attention_heads"),
+                "memory_centroids": final_write.get("memory_centroids"),
+                "centroid_position_enabled": reader["centroid_position_enabled"],
+                "centroid_object_gate": reader["centroid_object_gate"],
+                "centroid_register_gate": reader["centroid_register_gate"],
+                "centroid_position_rms": reader["centroid_position_rms"],
+                "centroid_mean_radius": reader["centroid_mean_radius"],
                 "semantic_slots": semantic_slots,
                 "visual_memory": visual_memory,
                 "slot_valid": slot_valid,
@@ -5228,12 +5257,16 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 semantic_slots=causal_semantic_ablated,
                 visual_memory=intervention_stats["ablated_memory"],
                 slot_valid=seq["slot_valid"],
+                memory_centroids=seq.get("memory_centroids"),
+                object_count=K,
             )
             register_reader = self.pgot_e8_reader(
                 rae_queries=seq["raw_rae_hidden"],
                 semantic_slots=causal_semantic_register,
                 visual_memory=intervention_stats["register_only_memory"],
                 slot_valid=seq["slot_valid"],
+                memory_centroids=seq.get("memory_centroids"),
+                object_count=K,
             )
             ablated_condition = ablated_reader["condition_hidden"]
             register_condition = register_reader["condition_hidden"]
@@ -5405,6 +5438,13 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "e11_register_memory_utilization_entropy": last_write[
                 "register_memory_utilization_entropy"
             ],
+            "e12_centroid_reader_enabled": hidden.new_tensor(
+                float(self.pgot_e12_centroid_reader_enable)
+            ),
+            "e12_centroid_object_gate": seq["centroid_object_gate"],
+            "e12_centroid_register_gate": seq["centroid_register_gate"],
+            "e12_centroid_position_rms": seq["centroid_position_rms"],
+            "e12_centroid_mean_radius": seq["centroid_mean_radius"],
             "e9_gru_retain_gate_mean": last_write["retain_gate_mean"],
             "e9_gru_reset_gate_mean": last_write["reset_gate_mean"],
             "e9_mlp_strength": last_write["mlp_strength"],

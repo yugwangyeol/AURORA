@@ -225,6 +225,11 @@ class PGOTModelArguments:
     # expanding only the image-only visual memory carried by each owner.
     pgot_e11_dual_m4_enable: bool = field(default=False)
     pgot_e11_memories_per_owner: int = field(default=4)
+    # E12: pass each memory's predicted Writer centroid into the typed Reader
+    # key.  This adds no GT part/position supervision and leaves Writer routing
+    # unconstrained.
+    pgot_e12_centroid_reader_enable: bool = field(default=False)
+    pgot_e12_centroid_gate_init: float = field(default=0.0)
     pgot_e9_update_dim: int = field(default=512)
     pgot_e9_mlp_ratio: float = field(default=2.0)
     # Reader routing supervision: ``gt`` uses segmentation masks, ``writer``
