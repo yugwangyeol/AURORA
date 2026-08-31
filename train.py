@@ -120,6 +120,23 @@ def train():
     source_checkpoint_is_e11 = bool(
         getattr(config, "pgot_e11_dual_m4_enable", False)
     )
+    source_legacy_memories = int(
+        getattr(config, "pgot_e11_memories_per_owner", 1)
+    )
+    source_object_memories = int(
+        getattr(
+            config,
+            "pgot_e11_object_memories_per_owner",
+            source_legacy_memories,
+        )
+    )
+    source_register_memories = int(
+        getattr(
+            config,
+            "pgot_e11_register_memories_per_owner",
+            source_legacy_memories,
+        )
+    )
     source_checkpoint_is_e12 = bool(
         getattr(config, "pgot_e12_centroid_reader_enable", False)
     )
@@ -317,6 +334,19 @@ def train():
     config.pgot_e11_memories_per_owner = int(
         model_args.pgot_e11_memories_per_owner
     )
+    config.pgot_e11_object_memories_per_owner = int(
+        model_args.pgot_e11_object_memories_per_owner
+        if model_args.pgot_e11_object_memories_per_owner > 0
+        else model_args.pgot_e11_memories_per_owner
+    )
+    config.pgot_e11_register_memories_per_owner = int(
+        model_args.pgot_e11_register_memories_per_owner
+        if model_args.pgot_e11_register_memories_per_owner > 0
+        else model_args.pgot_e11_memories_per_owner
+    )
+    config.pgot_e11_query_separation_enable = bool(
+        model_args.pgot_e11_query_separation_enable
+    )
     config.pgot_e12_centroid_reader_enable = bool(
         model_args.pgot_e12_centroid_reader_enable
     )
@@ -418,12 +448,32 @@ def train():
         ignore_mismatched_sizes=True,
     )
     model.config.use_cache = False
-    if bool(model_args.pgot_e11_dual_m4_enable) and not source_checkpoint_is_e11:
+    target_max_memories = max(
+        int(config.pgot_e11_object_memories_per_owner),
+        int(config.pgot_e11_register_memories_per_owner),
+    )
+    source_max_memories = max(
+        source_object_memories,
+        source_register_memories,
+    )
+    if bool(model_args.pgot_e11_dual_m4_enable) and (
+        not source_checkpoint_is_e11
+        or target_max_memories != source_max_memories
+    ):
         with torch.no_grad():
-            for seed, parameter in (
-                (1104, model.pgot_e8_writer.memory_id_embeddings),
-                (1105, model.pgot_e8_reader.memory_key_embeddings),
-            ):
+            named_parameters = (
+                (
+                    1104,
+                    "pgot_e8_writer.memory_id_embeddings",
+                    model.pgot_e8_writer.memory_id_embeddings,
+                ),
+                (
+                    1105,
+                    "pgot_e8_reader.memory_key_embeddings",
+                    model.pgot_e8_reader.memory_key_embeddings,
+                ),
+            )
+            for seed, parameter_name, parameter in named_parameters:
                 generator = torch.Generator(device="cpu")
                 generator.manual_seed(seed)
                 initialized = torch.randn(
@@ -435,8 +485,45 @@ def train():
                 parameter.copy_(
                     initialized.to(device=parameter.device, dtype=parameter.dtype)
                 )
+                if source_checkpoint_is_e11:
+                    try:
+                        import glob
+                        from safetensors import safe_open
+
+                        source_tensor = None
+                        for shard_file in sorted(
+                            glob.glob(
+                                os.path.join(
+                                    model_args.model_name_or_path,
+                                    "*.safetensors",
+                                )
+                            )
+                        ):
+                            with safe_open(
+                                shard_file, framework="pt", device="cpu"
+                            ) as sf:
+                                if parameter_name in sf.keys():
+                                    source_tensor = sf.get_tensor(parameter_name)
+                                    break
+                        if source_tensor is None:
+                            raise KeyError(parameter_name)
+                        rows = min(source_tensor.shape[0], parameter.shape[0])
+                        parameter[:rows].copy_(
+                            source_tensor[:rows].to(
+                                device=parameter.device,
+                                dtype=parameter.dtype,
+                            )
+                        )
+                    except Exception as exc:
+                        raise RuntimeError(
+                            "Could not expand E11 memory IDs from source "
+                            f"checkpoint for {parameter_name}"
+                        ) from exc
         logger.info(
-            "[PGOT/E11] deterministically initialized four-memory Writer/Reader IDs"
+            "[PGOT/E11] initialized expanded Writer/Reader memory IDs "
+            "source_max=%d target_max=%d",
+            source_max_memories,
+            target_max_memories,
         )
     if bool(model_args.pgot_e12_centroid_reader_enable) and not source_checkpoint_is_e12:
         # The E11 source checkpoint does not contain E12's positional path.
@@ -660,6 +747,15 @@ def train():
     )
     model.config.pgot_e11_memories_per_owner = int(
         model_args.pgot_e11_memories_per_owner
+    )
+    model.config.pgot_e11_object_memories_per_owner = int(
+        config.pgot_e11_object_memories_per_owner
+    )
+    model.config.pgot_e11_register_memories_per_owner = int(
+        config.pgot_e11_register_memories_per_owner
+    )
+    model.config.pgot_e11_query_separation_enable = bool(
+        model_args.pgot_e11_query_separation_enable
     )
     model.config.pgot_e12_centroid_reader_enable = bool(
         model_args.pgot_e12_centroid_reader_enable

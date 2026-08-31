@@ -93,6 +93,37 @@ def _forward(model, batch: dict) -> dict:
     )
 
 
+def _reader_condition_with_semantics(
+    model,
+    out: dict,
+    memory: torch.Tensor,
+    semantic_slots: torch.Tensor,
+) -> torch.Tensor:
+    """Read visual values with an explicitly intervened semantic owner state."""
+    object_valid = out["ovt_object_valid"].bool()
+    n_register = memory.shape[1] - object_valid.shape[1]
+    slot_valid = torch.cat(
+        [
+            object_valid,
+            torch.ones(
+                object_valid.shape[0],
+                n_register,
+                device=object_valid.device,
+                dtype=torch.bool,
+            ),
+        ],
+        dim=1,
+    )
+    return model.pgot_e8_reader(
+        rae_queries=out["raw_rae_hidden"],
+        semantic_slots=semantic_slots,
+        visual_memory=memory,
+        slot_valid=slot_valid,
+        memory_centroids=out.get("memory_centroids"),
+        object_count=object_valid.shape[1],
+    )["condition_hidden"]
+
+
 @torch.no_grad()
 def run(args: argparse.Namespace) -> dict:
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -178,6 +209,10 @@ def run(args: argparse.Namespace) -> dict:
         selected_zero[:, target_object] = 0
         selected_swap = memory.clone()
         selected_swap[:, target_object] = donor_memory[:, donor_object]
+        bundle_semantics = target_out["semantic_slots"].float().clone()
+        bundle_semantics[:, target_object] = donor_out["semantic_slots"].float()[
+            :, donor_object
+        ]
 
         conditions = {
             "full": target_out["rae_hidden"].float(),
@@ -186,6 +221,12 @@ def run(args: argparse.Namespace) -> dict:
             "all_zero": _reader_condition(model, target_out, all_zero).float(),
             "selected_zero": _reader_condition(model, target_out, selected_zero).float(),
             "same_category_swap": _reader_condition(model, target_out, selected_swap).float(),
+            "same_category_bundle_swap": _reader_condition_with_semantics(
+                model,
+                target_out,
+                selected_swap,
+                bundle_semantics,
+            ).float(),
         }
 
         losses = {
@@ -220,6 +261,12 @@ def run(args: argparse.Namespace) -> dict:
             (30, 100, 255),
         )
         difference = (decoded["same_category_swap"] - decoded["full"]).abs().mul(4.0).clamp(0, 1)
+        bundle_difference = (
+            decoded["same_category_bundle_swap"] - decoded["full"]
+        ).abs().mul(4.0).clamp(0, 1)
+        semantic_effect = (
+            decoded["same_category_bundle_swap"] - decoded["same_category_swap"]
+        ).abs().mul(4.0).clamp(0, 1)
         category = str(target_segment["category"])
         tiles = [
             _label(target_pil, f"target source | {category} #{target_object} (red)"),
@@ -231,6 +278,12 @@ def run(args: argparse.Namespace) -> dict:
             _label(_to_pil(decoded["selected_zero"]), f"selected {category} memory zero | {losses['selected_zero']:.4f}"),
             _label(_to_pil(decoded["same_category_swap"]), f"same-category memory swap | {losses['same_category_swap']:.4f}"),
             _label(_to_pil(difference), "|swap - full| x4"),
+            _label(
+                _to_pil(decoded["same_category_bundle_swap"]),
+                f"semantic + memory bundle swap | {losses['same_category_bundle_swap']:.4f}",
+            ),
+            _label(_to_pil(bundle_difference), "|bundle swap - full| x4"),
+            _label(_to_pil(semantic_effect), "|bundle swap - memory swap| x4"),
         ]
         output_path = output_dir / (
             f"sample{target_index}_obj{target_object}_{category.replace(' ', '_')}_memory_grid.png"
@@ -257,7 +310,7 @@ def run(args: argparse.Namespace) -> dict:
         "model_path": args.model_path,
         "protocol": (
             "same semantic keys/registers/noise; memory-only global ablations and "
-            "one-object same-category swap"
+            "one-object same-category memory-only and semantic+memory bundle swaps"
         ),
         "records": records,
     }

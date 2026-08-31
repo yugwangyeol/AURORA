@@ -163,13 +163,22 @@ def _reader_output(
     )
 
 
-def _top_n_memory(memory: torch.Tensor, utilization: torch.Tensor, n: int) -> torch.Tensor:
+def _top_n_memory(
+    memory: torch.Tensor,
+    utilization: torch.Tensor,
+    memory_valid: torch.Tensor,
+    n: int,
+) -> torch.Tensor:
     if memory.ndim != 4:
         raise ValueError("Memory-count ablation requires [B,S,J,D] Dual-M4 memory")
+    if memory_valid.shape != memory.shape[:3]:
+        raise ValueError("Memory validity must have shape [B,S,J]")
     n = min(max(int(n), 1), memory.shape[2])
-    top = utilization.float().topk(n, dim=-1).indices
+    ranked = utilization.float().masked_fill(~memory_valid, float("-inf"))
+    top = ranked.topk(n, dim=-1).indices
     keep = torch.zeros_like(utilization, dtype=torch.bool)
     keep.scatter_(-1, top, True)
+    keep &= memory_valid
     return memory * keep.unsqueeze(-1).to(memory.dtype)
 
 
@@ -263,6 +272,7 @@ def _pool_features(features: torch.Tensor, masks: torch.Tensor) -> torch.Tensor:
 def _record_spatial_statistics(
     record: dict,
     valid: torch.Tensor,
+    memory_valid: torch.Tensor,
     k_objects: int,
     rows: dict[str, list[float]],
     centroids_by_kind: dict[str, dict[int, list[list[float]]]],
@@ -288,21 +298,35 @@ def _record_spatial_statistics(
             if slot < k_objects and not bool(valid[b, slot]):
                 continue
             kind = "object" if slot < k_objects else "register"
-            weights = write_weights[b, slot]
+            valid_ids = torch.nonzero(
+                memory_valid[b, slot], as_tuple=False
+            ).flatten()
+            if valid_ids.numel() == 0:
+                continue
+            weights = write_weights[b, slot, valid_ids]
             normed = F.normalize(weights, dim=-1)
             cosine = normed @ normed.T
-            triangle = torch.triu_indices(memories, memories, offset=1, device=owner.device)
+            triangle = torch.triu_indices(
+                valid_ids.numel(), valid_ids.numel(), offset=1, device=owner.device
+            )
             rows[f"{kind}_write_weight_pair_cosine"].extend(
                 cosine[triangle[0], triangle[1]].cpu().tolist()
             )
-            distance = torch.cdist(centroids[b, slot], centroids[b, slot])
+            valid_centroids = centroids[b, slot, valid_ids]
+            distance = torch.cdist(valid_centroids, valid_centroids)
             rows[f"{kind}_centroid_pair_distance"].extend(
                 distance[triangle[0], triangle[1]].cpu().tolist()
             )
-            entropy = -(utilization[b, slot] * utilization[b, slot].clamp_min(1e-8).log()).sum()
-            entropy = entropy / math.log(float(memories))
+            valid_utilization = utilization[b, slot, valid_ids]
+            entropy = -(
+                valid_utilization * valid_utilization.clamp_min(1e-8).log()
+            ).sum()
+            if valid_ids.numel() > 1:
+                entropy = entropy / math.log(float(valid_ids.numel()))
+            else:
+                entropy = entropy.new_zeros(())
             rows[f"{kind}_utilization_entropy"].append(float(entropy))
-            for memory_id in range(memories):
+            for memory_id in valid_ids.tolist():
                 centroids_by_kind[kind][memory_id].append(
                     centroids[b, slot, memory_id].cpu().tolist()
                 )
@@ -313,6 +337,7 @@ def _save_assignment_visuals(
     batch: dict,
     record: dict,
     valid: torch.Tensor,
+    memory_valid: torch.Tensor,
     k_objects: int,
     target_processor,
     output_dir: Path,
@@ -343,7 +368,10 @@ def _save_assignment_visuals(
                 break
             tiles = [_label(source, f"source | {kind} owner {slot}")]
             tiles.append(_label(_heat_overlay(source, owner[b, slot]), "owner mass"))
-            for memory_id in range(memory_probs.shape[2]):
+            valid_ids = torch.nonzero(
+                memory_valid[b, slot], as_tuple=False
+            ).flatten().tolist()
+            for memory_id in valid_ids:
                 joint = owner[b, slot] * memory_probs[b, slot, memory_id]
                 use = (
                     float(utilization[b, slot, memory_id])
@@ -417,27 +445,110 @@ def run(args: argparse.Namespace) -> dict:
         register_count = memory.shape[1] - k_objects
         final_record = out["e8_write_records"][-1]
         utilization = final_record["memory_utilization"].float()
+        memory_valid = final_record.get("memory_valid")
+        if memory_valid is None:
+            slot_valid = torch.cat(
+                [
+                    valid,
+                    torch.ones(
+                        batch_size,
+                        register_count,
+                        device=valid.device,
+                        dtype=torch.bool,
+                    ),
+                ],
+                dim=1,
+            )
+            object_capacity_cfg = int(
+                getattr(
+                    model.config,
+                    "pgot_e11_object_memories_per_owner",
+                    memory.shape[2],
+                )
+                or memory.shape[2]
+            )
+            register_capacity_cfg = int(
+                getattr(
+                    model.config,
+                    "pgot_e11_register_memories_per_owner",
+                    memory.shape[2],
+                )
+                or memory.shape[2]
+            )
+            memory_ids = torch.arange(memory.shape[2], device=memory.device)
+            owner_counts = torch.cat(
+                [
+                    torch.full(
+                        (k_objects,),
+                        object_capacity_cfg,
+                        device=memory.device,
+                        dtype=torch.long,
+                    ),
+                    torch.full(
+                        (register_count,),
+                        register_capacity_cfg,
+                        device=memory.device,
+                        dtype=torch.long,
+                    ),
+                ]
+            )
+            memory_valid = slot_valid.unsqueeze(-1) & (
+                memory_ids[None, None, :] < owner_counts[None, :, None]
+            )
+        else:
+            memory_valid = memory_valid.bool()
         masks = _object_masks(batch, k_objects, out["gt_siglip"].shape[1], device)
         foreground = masks.amax(dim=1)
 
+        if args.spatial_only:
+            _record_spatial_statistics(
+                final_record,
+                valid,
+                memory_valid,
+                k_objects,
+                spatial_rows,
+                centroids_by_kind,
+            )
+            if len(visual_paths) < args.max_visualizations:
+                new_paths, visual_index = _save_assignment_visuals(
+                    batch=batch,
+                    record=final_record,
+                    valid=valid,
+                    memory_valid=memory_valid,
+                    k_objects=k_objects,
+                    target_processor=target_processor,
+                    output_dir=visual_dir,
+                    start_index=visual_index,
+                    remaining=args.max_visualizations - len(visual_paths),
+                )
+                visual_paths.extend(new_paths)
+            samples_seen += batch_size
+            continue
+
         conditions: dict[str, torch.Tensor] = {"full": out["rae_hidden"].float()}
-        for count in range(1, memory.shape[2] + 1):
-            top_memory = _top_n_memory(memory, utilization, count)
+        object_capacity = int(memory_valid[:, :k_objects].sum(dim=-1).max())
+        register_capacity = int(memory_valid[:, k_objects:].sum(dim=-1).max())
+        all_counts = sorted({1, 2, 4, 8, object_capacity, register_capacity})
+        all_counts = [count for count in all_counts if count <= memory.shape[2]]
+        for count in all_counts:
+            top_memory = _top_n_memory(memory, utilization, memory_valid, count)
             conditions[f"keep_top_{count}_all_owners"] = _reader_output(
                 model, out, top_memory
             )["condition_hidden"].float()
 
-            object_limited = memory.clone()
-            object_limited[:, :k_objects] = top_memory[:, :k_objects]
-            conditions[f"keep_top_{count}_object_owners"] = _reader_output(
-                model, out, object_limited
-            )["condition_hidden"].float()
+            if count <= object_capacity:
+                object_limited = memory.clone()
+                object_limited[:, :k_objects] = top_memory[:, :k_objects]
+                conditions[f"keep_top_{count}_object_owners"] = _reader_output(
+                    model, out, object_limited
+                )["condition_hidden"].float()
 
-            register_limited = memory.clone()
-            register_limited[:, k_objects:] = top_memory[:, k_objects:]
-            conditions[f"keep_top_{count}_register_owners"] = _reader_output(
-                model, out, register_limited
-            )["condition_hidden"].float()
+            if count <= register_capacity:
+                register_limited = memory.clone()
+                register_limited[:, k_objects:] = top_memory[:, k_objects:]
+                conditions[f"keep_top_{count}_register_owners"] = _reader_output(
+                    model, out, register_limited
+                )["condition_hidden"].float()
 
         register_only = memory.clone()
         register_only[:, :k_objects] = 0
@@ -499,6 +610,7 @@ def run(args: argparse.Namespace) -> dict:
         _record_spatial_statistics(
             final_record,
             valid,
+            memory_valid,
             k_objects,
             spatial_rows,
             centroids_by_kind,
@@ -508,6 +620,7 @@ def run(args: argparse.Namespace) -> dict:
                 batch=batch,
                 record=final_record,
                 valid=valid,
+                memory_valid=memory_valid,
                 k_objects=k_objects,
                 target_processor=target_processor,
                 output_dir=visual_dir,
@@ -710,6 +823,11 @@ def main() -> None:
     parser.add_argument("--transfer_max_pairs", type=int, default=64)
     parser.add_argument("--max_donors_per_category", type=int, default=32)
     parser.add_argument("--max_visualizations", type=int, default=12)
+    parser.add_argument(
+        "--spatial_only",
+        action="store_true",
+        help="Only recompute heterogeneous-memory spatial statistics/visuals.",
+    )
     args = parser.parse_args()
     logging.basicConfig(
         level=logging.INFO,

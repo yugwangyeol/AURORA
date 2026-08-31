@@ -18,6 +18,46 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+def _build_memory_valid_mask(
+    *,
+    slot_valid: torch.Tensor,
+    object_count: int,
+    object_memories_per_owner: int,
+    register_memories_per_owner: int,
+    max_memories_per_owner: int,
+) -> torch.Tensor:
+    """Return [B,S,Jmax] validity for heterogeneous object/register memory."""
+    if slot_valid.ndim != 2:
+        raise ValueError("memory validity expects slot_valid [B,S]")
+    B, S = slot_valid.shape
+    K = int(object_count)
+    if not 0 <= K <= S:
+        raise ValueError(f"object_count must be in [0,{S}], got {K}")
+    owner_is_object = torch.arange(S, device=slot_valid.device) < K
+    counts = torch.where(
+        owner_is_object,
+        torch.full(
+            (S,),
+            int(object_memories_per_owner),
+            device=slot_valid.device,
+            dtype=torch.long,
+        ),
+        torch.full(
+            (S,),
+            int(register_memories_per_owner),
+            device=slot_valid.device,
+            dtype=torch.long,
+        ),
+    )
+    memory_index = torch.arange(
+        int(max_memories_per_owner), device=slot_valid.device
+    )
+    return (
+        slot_valid[:, :, None]
+        & (memory_index[None, None, :] < counts[None, :, None])
+    ).expand(B, -1, -1)
+
+
 class PGOTE8VisualMemoryWriter(nn.Module):
     """Competitive patch ownership followed by a gated image-only write."""
 
@@ -27,13 +67,35 @@ class PGOTE8VisualMemoryWriter(nn.Module):
         temperature: float = 1.0,
         raw_value_dim: int | None = None,
         memories_per_owner: int = 1,
+        object_memories_per_owner: int | None = None,
+        register_memories_per_owner: int | None = None,
+        query_separation: bool = False,
     ) -> None:
         super().__init__()
         self.dim = int(dim)
         self.temperature = float(temperature)
-        self.memories_per_owner = int(memories_per_owner)
+        self.object_memories_per_owner = int(
+            memories_per_owner
+            if object_memories_per_owner is None
+            else object_memories_per_owner
+        )
+        self.register_memories_per_owner = int(
+            memories_per_owner
+            if register_memories_per_owner is None
+            else register_memories_per_owner
+        )
+        self.memories_per_owner = max(
+            self.object_memories_per_owner,
+            self.register_memories_per_owner,
+        )
+        self.query_separation = bool(query_separation)
         if self.memories_per_owner <= 0:
             raise ValueError("memories_per_owner must be positive")
+        if (
+            self.object_memories_per_owner <= 0
+            or self.register_memories_per_owner <= 0
+        ):
+            raise ValueError("object/register memory counts must be positive")
         self.raw_value_dim = (
             int(raw_value_dim) if raw_value_dim is not None else None
         )
@@ -101,6 +163,7 @@ class PGOTE8VisualMemoryWriter(nn.Module):
         image_states: torch.Tensor,
         raw_value_states: torch.Tensor | None = None,
         slot_valid: torch.Tensor,
+        object_count: int | None = None,
         clean_refinement: bool = False,
         initialize_memory: bool = False,
     ) -> Dict[str, torch.Tensor]:
@@ -128,6 +191,15 @@ class PGOTE8VisualMemoryWriter(nn.Module):
             raise ValueError(f"E8 writer expects hidden dim {self.dim}")
         if slot_valid.shape != semantic_slots.shape[:2]:
             raise ValueError("E8 slot_valid must have shape [B,S]")
+        if object_count is None:
+            object_count = semantic_slots.shape[1]
+        memory_valid = _build_memory_valid_mask(
+            slot_valid=slot_valid,
+            object_count=int(object_count),
+            object_memories_per_owner=self.object_memories_per_owner,
+            register_memories_per_owner=self.register_memories_per_owner,
+            max_memories_per_owner=self.memories_per_owner,
+        )
         if raw_value_states is not None:
             if self.raw_value is None or self.raw_value_norm is None:
                 raise ValueError(
@@ -159,8 +231,14 @@ class PGOTE8VisualMemoryWriter(nn.Module):
         # Owner routing remains exactly one query per object/register.  The
         # mean memory only carries the previous visual state into that query;
         # it does not create additional semantic owners.
-        owner_memory_n = memory_n.mean(dim=2)
-        query = self.query(semantic_n) + self.memory_to_query(owner_memory_n)
+        owner_memory_n = (
+            memory_n * memory_valid.unsqueeze(-1).to(memory_n.dtype)
+        ).sum(dim=2) / memory_valid.sum(dim=2, keepdim=True).clamp_min(1).to(
+            memory_n.dtype
+        )
+        query = self.query(semantic_n)
+        if not self.query_separation:
+            query = query + self.memory_to_query(owner_memory_n)
         image_n = self.image_norm(image_work)
         key = self.key(image_n)
 
@@ -177,18 +255,25 @@ class PGOTE8VisualMemoryWriter(nn.Module):
         # Inside each semantic owner, J visual memories compete for its owned
         # patches.  The softmax is over J, while the owner softmax above stays
         # over semantic owners.  For J=1 this reduces exactly to E10-R.
-        memory_query = (
-            self.query(semantic_n).unsqueeze(2)
-            + self.memory_to_query(memory_n)
-            + self.memory_id_embeddings[None, None].to(memory_n.dtype)
-        )
+        memory_query = self.memory_to_query(memory_n)
+        if not self.query_separation:
+            memory_query = memory_query + self.query(semantic_n).unsqueeze(2)
+        memory_query = memory_query + self.memory_id_embeddings[
+            None, None
+        ].to(memory_n.dtype)
         memory_logits = torch.einsum(
             "bsjd,bpd->bsjp", memory_query.float(), key.float()
         )
         memory_logits = memory_logits / math.sqrt(float(self.dim))
         memory_logits = memory_logits / max(float(self.temperature), 1e-6)
+        memory_logits = memory_logits.masked_fill(
+            ~memory_valid.unsqueeze(-1), -1e4
+        )
         memory_probs = F.softmax(memory_logits, dim=2)
-        memory_probs = memory_probs * slot_valid[:, :, None, None].float()
+        memory_probs = memory_probs * memory_valid.unsqueeze(-1).float()
+        memory_probs = memory_probs / memory_probs.sum(
+            dim=2, keepdim=True
+        ).clamp_min(1e-6)
 
         joint_mass = owner_probs.unsqueeze(2) * memory_probs
         # Normalize over patches independently for every visual memory.  This
@@ -261,7 +346,7 @@ class PGOTE8VisualMemoryWriter(nn.Module):
             write_strength = torch.sigmoid(self.write_logit).to(candidate.dtype)
             new_memory = memory_work + write_strength * gate * candidate
         new_memory = torch.where(
-            slot_valid[:, :, None, None], new_memory, torch.zeros_like(new_memory)
+            memory_valid.unsqueeze(-1), new_memory, torch.zeros_like(new_memory)
         )
         new_memory = torch.where(torch.isfinite(new_memory), new_memory, memory_work)
         new_memory = new_memory.to(dtype=stream_dtype)
@@ -272,20 +357,24 @@ class PGOTE8VisualMemoryWriter(nn.Module):
             memory_utilization
             * memory_utilization.clamp_min(1e-8).log()
         ).sum(dim=-1)
-        if self.memories_per_owner > 1:
-            utilization_entropy = utilization_entropy / math.log(
-                float(self.memories_per_owner)
-            )
-        valid_utilization = memory_utilization[slot_valid]
+        valid_counts = memory_valid.sum(dim=-1).clamp_min(1).float()
+        entropy_denom = valid_counts.log().clamp_min(1.0)
+        utilization_entropy = torch.where(
+            valid_counts > 1,
+            utilization_entropy / entropy_denom,
+            torch.zeros_like(utilization_entropy),
+        )
+        valid_utilization = memory_utilization[memory_valid]
         valid_entropy = utilization_entropy[slot_valid]
         assignment_entropy = -(
             memory_probs
             * memory_probs.clamp_min(1e-8).log()
         ).sum(dim=2)
-        if self.memories_per_owner > 1:
-            assignment_entropy = assignment_entropy / math.log(
-                float(self.memories_per_owner)
-            )
+        assignment_entropy = torch.where(
+            valid_counts.unsqueeze(-1) > 1,
+            assignment_entropy / entropy_denom.unsqueeze(-1),
+            torch.zeros_like(assignment_entropy),
+        )
         assignment_entropy = (
             (assignment_entropy * owner_probs).sum()
             / owner_probs.sum().clamp_min(1e-6)
@@ -304,6 +393,7 @@ class PGOTE8VisualMemoryWriter(nn.Module):
             "owner_probs": owner_probs,
             "memory_logits": memory_logits,
             "memory_probs": memory_probs,
+            "memory_valid": memory_valid,
             "write_weights": write_weights,
             "memory_centroids": memory_centroids,
             "write_update": update_out,
@@ -486,6 +576,8 @@ class PGOTE8TypedRAEReader(nn.Module):
         num_heads: int = 8,
         temperature: float = 1.0,
         memories_per_owner: int = 1,
+        object_memories_per_owner: int | None = None,
+        register_memories_per_owner: int | None = None,
         centroid_position_enable: bool = False,
         centroid_gate_init: float = 0.0,
     ) -> None:
@@ -498,10 +590,28 @@ class PGOTE8TypedRAEReader(nn.Module):
             )
         self.head_dim = self.dim // self.num_heads
         self.temperature = float(temperature)
-        self.memories_per_owner = int(memories_per_owner)
+        self.object_memories_per_owner = int(
+            memories_per_owner
+            if object_memories_per_owner is None
+            else object_memories_per_owner
+        )
+        self.register_memories_per_owner = int(
+            memories_per_owner
+            if register_memories_per_owner is None
+            else register_memories_per_owner
+        )
+        self.memories_per_owner = max(
+            self.object_memories_per_owner,
+            self.register_memories_per_owner,
+        )
         self.centroid_position_enable = bool(centroid_position_enable)
         if self.memories_per_owner <= 0:
             raise ValueError("memories_per_owner must be positive")
+        if (
+            self.object_memories_per_owner <= 0
+            or self.register_memories_per_owner <= 0
+        ):
+            raise ValueError("object/register memory counts must be positive")
 
         self.query_norm = nn.LayerNorm(self.dim)
         self.semantic_norm = nn.LayerNorm(self.dim)
@@ -581,6 +691,15 @@ class PGOTE8TypedRAEReader(nn.Module):
         S = semantic_slots.shape[1]
         J = visual_memory.shape[2]
         H, Dh = self.num_heads, self.head_dim
+        if object_count is None:
+            object_count = S
+        memory_valid_3d = _build_memory_valid_mask(
+            slot_valid=slot_valid,
+            object_count=int(object_count),
+            object_memories_per_owner=self.object_memories_per_owner,
+            register_memories_per_owner=self.register_memories_per_owner,
+            max_memories_per_owner=self.memories_per_owner,
+        )
 
         stream_dtype = rae_queries.dtype
         module_dtype = self.query_norm.weight.dtype
@@ -653,7 +772,7 @@ class PGOTE8TypedRAEReader(nn.Module):
         logits = torch.einsum("bqhd,bthd->bhqt", query.float(), key.float())
         logits = logits / math.sqrt(float(Dh))
         logits = logits / max(float(self.temperature), 1e-6)
-        memory_valid = slot_valid.unsqueeze(-1).expand(B, S, J).reshape(B, S * J)
+        memory_valid = memory_valid_3d.reshape(B, S * J)
         logits = logits.masked_fill(~memory_valid[:, None, None, :], -1e4)
 
         attention = F.softmax(logits, dim=-1)

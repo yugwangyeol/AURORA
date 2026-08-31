@@ -162,6 +162,16 @@ def cache_features(args, model, loader, device) -> Dict[str, torch.Tensor]:
         visual_memory = out.get("visual_memory")
         if visual_memory is not None and not X_visual_memory_slots:
             memory_count = visual_memory.shape[2] if visual_memory.ndim == 4 else 1
+            if visual_memory.ndim == 4:
+                configured_object_count = int(
+                    getattr(
+                        model.config,
+                        "pgot_e11_object_memories_per_owner",
+                        memory_count,
+                    )
+                    or memory_count
+                )
+                memory_count = min(memory_count, configured_object_count)
             X_visual_memory_slots = [[] for _ in range(memory_count)]
 
         for b in range(B):
@@ -201,6 +211,7 @@ def cache_features(args, model, loader, device) -> Dict[str, torch.Tensor]:
                     object_memory = visual_memory[b, k].float()
                     if object_memory.ndim == 1:
                         object_memory = object_memory.unsqueeze(0)
+                    object_memory = object_memory[: len(X_visual_memory_slots)]
                     X_visual_memory.append(object_memory.flatten().cpu())
                     X_visual_memory_mean.append(object_memory.mean(dim=0).cpu())
                     for j in range(object_memory.shape[0]):

@@ -147,6 +147,56 @@ def run(args):
         valid = out["ovt_object_valid"].bool()
         batch_size, k_objects = valid.shape
         n_register = memory.shape[1] - k_objects
+        memory_for_stats = memory.unsqueeze(2) if memory.ndim == 3 else memory
+        final_record = out["e8_write_records"][-1]
+        memory_valid = final_record.get("memory_valid")
+        if memory_valid is None:
+            slot_valid = torch.cat(
+                [
+                    valid,
+                    torch.ones(
+                        batch_size,
+                        n_register,
+                        device=valid.device,
+                        dtype=torch.bool,
+                    ),
+                ],
+                dim=1,
+            )
+            object_capacity = int(
+                getattr(
+                    model.config,
+                    "pgot_e11_object_memories_per_owner",
+                    memory_for_stats.shape[2],
+                )
+                or memory_for_stats.shape[2]
+            )
+            register_capacity = int(
+                getattr(
+                    model.config,
+                    "pgot_e11_register_memories_per_owner",
+                    memory_for_stats.shape[2],
+                )
+                or memory_for_stats.shape[2]
+            )
+            owner_counts = torch.cat(
+                [
+                    torch.full(
+                        (k_objects,), object_capacity, device=memory.device
+                    ),
+                    torch.full(
+                        (n_register,), register_capacity, device=memory.device
+                    ),
+                ]
+            ).long()
+            memory_ids = torch.arange(
+                memory_for_stats.shape[2], device=memory.device
+            )
+            memory_valid = slot_valid.unsqueeze(-1) & (
+                memory_ids[None, None, :] < owner_counts[None, :, None]
+            )
+        else:
+            memory_valid = memory_valid.bool()
 
         for record in out["e8_write_records"]:
             layer = str(int(record["layer"].item()))
@@ -221,46 +271,56 @@ def run(args):
             if bool((~fg_union[b]).any()):
                 reader_object_on_bg.append(float(total_object_attention[b][~fg_union[b]].mean()))
             valid_indices = valid[b].nonzero(as_tuple=False).flatten().tolist()
-            obj_mem = memory[b, :k_objects][valid[b]]
-            if obj_mem.numel():
+            object_memory_values = memory_for_stats[b, :k_objects][
+                memory_valid[b, :k_objects]
+            ]
+            if object_memory_values.numel():
                 memory_stats["object_norm"].extend(
-                    obj_mem.reshape(-1, obj_mem.shape[-1]).norm(dim=-1).cpu().tolist()
+                    object_memory_values.norm(dim=-1).cpu().tolist()
                 )
             if n_register > 0:
+                register_memory_values = memory_for_stats[b, k_objects:][
+                    memory_valid[b, k_objects:]
+                ]
                 memory_stats["register_norm"].extend(
-                    memory[b, k_objects:]
-                    .reshape(-1, memory.shape[-1])
-                    .norm(dim=-1)
-                    .cpu()
-                    .tolist()
+                    register_memory_values.norm(dim=-1).cpu().tolist()
                 )
-            owner_mem = obj_mem.mean(dim=-2) if obj_mem.ndim == 3 else obj_mem
+            owner_mem = []
+            for owner_id in valid_indices:
+                ids = memory_valid[b, owner_id]
+                owner_mem.append(memory_for_stats[b, owner_id, ids].mean(dim=0))
+            owner_mem = (
+                torch.stack(owner_mem)
+                if owner_mem
+                else memory.new_zeros((0, memory.shape[-1]))
+            )
             if owner_mem.shape[0] > 1:
                 normed = F.normalize(owner_mem, dim=-1)
                 pair = normed @ normed.T
                 tri = torch.triu_indices(pair.shape[0], pair.shape[1], offset=1)
                 memory_stats["object_pair_cosine"].extend(pair[tri[0], tri[1]].cpu().tolist())
             if memory.ndim == 4 and memory.shape[2] > 1:
-                all_owner_mem = memory[b][
-                    torch.cat(
-                        [
-                            valid[b],
-                            torch.ones(
-                                n_register,
-                                device=valid.device,
-                                dtype=torch.bool,
-                            ),
-                        ]
+                owner_valid = torch.cat(
+                    [
+                        valid[b],
+                        torch.ones(n_register, device=valid.device, dtype=torch.bool),
+                    ]
+                )
+                for owner_id in torch.nonzero(
+                    owner_valid, as_tuple=False
+                ).flatten().tolist():
+                    ids = memory_valid[b, owner_id]
+                    current = memory_for_stats[b, owner_id, ids]
+                    if current.shape[0] <= 1:
+                        continue
+                    normed = F.normalize(current, dim=-1)
+                    pair = normed @ normed.T
+                    tri = torch.triu_indices(
+                        current.shape[0], current.shape[0], offset=1, device=pair.device
                     )
-                ]
-                normed = F.normalize(all_owner_mem, dim=-1)
-                pair = torch.einsum("sjd,skd->sjk", normed, normed)
-                tri = torch.triu_indices(
-                    memory.shape[2], memory.shape[2], offset=1, device=pair.device
-                )
-                memory_stats["within_owner_memory_pair_cosine"].extend(
-                    pair[:, tri[0], tri[1]].flatten().cpu().tolist()
-                )
+                    memory_stats["within_owner_memory_pair_cosine"].extend(
+                        pair[tri[0], tri[1]].cpu().tolist()
+                    )
 
             for k in valid_indices:
                 reader_binding.append(

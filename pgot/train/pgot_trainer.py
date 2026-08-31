@@ -225,6 +225,12 @@ class PGOTModelArguments:
     # expanding only the image-only visual memory carried by each owner.
     pgot_e11_dual_m4_enable: bool = field(default=False)
     pgot_e11_memories_per_owner: int = field(default=4)
+    # E11 capacity variants may allocate different image-only memory counts
+    # below object and background-register semantic owners. Zero preserves the
+    # legacy uniform pgot_e11_memories_per_owner setting.
+    pgot_e11_object_memories_per_owner: int = field(default=0)
+    pgot_e11_register_memories_per_owner: int = field(default=0)
+    pgot_e11_query_separation_enable: bool = field(default=False)
     # E12: pass each memory's predicted Writer centroid into the typed Reader
     # key.  This adds no GT part/position supervision and leaves Writer routing
     # unconstrained.

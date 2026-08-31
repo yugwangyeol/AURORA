@@ -729,10 +729,40 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 4 if self.pgot_e11_dual_m4_enable else 1,
             )
         )
+        self.pgot_e11_object_memories_per_owner = int(
+            getattr(
+                self.config,
+                "pgot_e11_object_memories_per_owner",
+                self.pgot_e11_memories_per_owner,
+            )
+        )
+        self.pgot_e11_register_memories_per_owner = int(
+            getattr(
+                self.config,
+                "pgot_e11_register_memories_per_owner",
+                self.pgot_e11_memories_per_owner,
+            )
+        )
+        self.pgot_e11_query_separation_enable = bool(
+            getattr(self.config, "pgot_e11_query_separation_enable", False)
+        )
         if self.pgot_e11_memories_per_owner <= 0:
             raise ValueError("E11 memories per owner must be positive")
         if not self.pgot_e11_dual_m4_enable:
             self.pgot_e11_memories_per_owner = 1
+            self.pgot_e11_object_memories_per_owner = 1
+            self.pgot_e11_register_memories_per_owner = 1
+            self.pgot_e11_query_separation_enable = False
+        else:
+            if (
+                self.pgot_e11_object_memories_per_owner <= 0
+                or self.pgot_e11_register_memories_per_owner <= 0
+            ):
+                raise ValueError("E11 object/register memory counts must be positive")
+            self.pgot_e11_memories_per_owner = max(
+                self.pgot_e11_object_memories_per_owner,
+                self.pgot_e11_register_memories_per_owner,
+            )
         if self.pgot_e8_visual_memory_enable:
             if self.pgot_e6_enable or self.pgot_e7_enable:
                 raise ValueError("E8 visual memory is mutually exclusive with E6/E7")
@@ -770,6 +800,13 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                         else None
                     ),
                     memories_per_owner=self.pgot_e11_memories_per_owner,
+                    object_memories_per_owner=(
+                        self.pgot_e11_object_memories_per_owner
+                    ),
+                    register_memories_per_owner=(
+                        self.pgot_e11_register_memories_per_owner
+                    ),
+                    query_separation=self.pgot_e11_query_separation_enable,
                 )
                 self.pgot_e9_writer = None
             elif self.pgot_e8_update_mode in {"unified_gru", "final_ovt"}:
@@ -799,6 +836,12 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                     getattr(self.config, "pgot_e8_reader_temperature", 1.0)
                 ),
                 memories_per_owner=self.pgot_e11_memories_per_owner,
+                object_memories_per_owner=(
+                    self.pgot_e11_object_memories_per_owner
+                ),
+                register_memories_per_owner=(
+                    self.pgot_e11_register_memories_per_owner
+                ),
                 centroid_position_enable=self.pgot_e12_centroid_reader_enable,
                 centroid_gate_init=self.pgot_e12_centroid_gate_init,
             )
@@ -934,6 +977,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             f"e8_layers={self.pgot_e8_layers}, "
             f"e11_dual_m4={self.pgot_e11_dual_m4_enable}, "
             f"memories_per_owner={self.pgot_e11_memories_per_owner}, "
+            f"object_memories={self.pgot_e11_object_memories_per_owner}, "
+            f"register_memories={self.pgot_e11_register_memories_per_owner}, "
+            f"query_separation={self.pgot_e11_query_separation_enable}, "
             f"e12_centroid_reader={self.pgot_e12_centroid_reader_enable}, "
             f"fvw={self.pgot_fvw_enable}, fvw_layers={self.pgot_fvw_layers}, "
             f"v12={self.pgot_v12_enable}, v12_layers={self.pgot_v12_layers}, "
@@ -1664,6 +1710,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                         else None
                     ),
                     slot_valid=slots["slot_valid"],
+                    object_count=K,
                     clean_refinement=clean_refinement,
                     initialize_memory=len(write_records) == 0,
                 )
@@ -1683,7 +1730,20 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 utilization_entropy = -(
                     utilization.float()
                     * utilization.float().clamp_min(1e-8).log()
-                ).sum(dim=-1) / math.log(float(utilization.shape[2]))
+                ).sum(dim=-1)
+                memory_valid = writer.get("memory_valid")
+                if memory_valid is None:
+                    valid_counts = torch.full_like(
+                        utilization_entropy,
+                        float(utilization.shape[2]),
+                    )
+                else:
+                    valid_counts = memory_valid.sum(dim=-1).float().clamp_min(1.0)
+                utilization_entropy = torch.where(
+                    valid_counts > 1,
+                    utilization_entropy / valid_counts.log().clamp_min(1.0),
+                    torch.zeros_like(utilization_entropy),
+                )
                 object_valid = slots["slot_valid"][:, :K]
                 register_valid = slots["slot_valid"][:, K:]
                 if bool(object_valid.any()):
@@ -5423,6 +5483,15 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             ),
             "e11_memories_per_owner": hidden.new_tensor(
                 float(self.pgot_e11_memories_per_owner)
+            ),
+            "e11_object_memories_per_owner": hidden.new_tensor(
+                float(self.pgot_e11_object_memories_per_owner)
+            ),
+            "e11_register_memories_per_owner": hidden.new_tensor(
+                float(self.pgot_e11_register_memories_per_owner)
+            ),
+            "e11_query_separation_enabled": hidden.new_tensor(
+                float(self.pgot_e11_query_separation_enable)
             ),
             "e11_memory_utilization_entropy": last_write[
                 "memory_utilization_entropy"

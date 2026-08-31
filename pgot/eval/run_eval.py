@@ -1269,9 +1269,41 @@ def main():
                 torch.tanh(model.pgot_e8_reader.centroid_register_gate).detach()
             )
         summary["e11_memories_per_owner"] = int(
-            getattr(model.config, "pgot_e11_memories_per_owner", 1)
+            max(
+                int(
+                    getattr(
+                        model.config,
+                        "pgot_e11_object_memories_per_owner",
+                        getattr(model.config, "pgot_e11_memories_per_owner", 1),
+                    )
+                ),
+                int(
+                    getattr(
+                        model.config,
+                        "pgot_e11_register_memories_per_owner",
+                        getattr(model.config, "pgot_e11_memories_per_owner", 1),
+                    )
+                ),
+            )
             if summary["e11_dual_m4_enabled"]
             else 1
+        )
+        summary["e11_object_memories_per_owner"] = int(
+            getattr(
+                model.config,
+                "pgot_e11_object_memories_per_owner",
+                summary["e11_memories_per_owner"],
+            )
+        )
+        summary["e11_register_memories_per_owner"] = int(
+            getattr(
+                model.config,
+                "pgot_e11_register_memories_per_owner",
+                summary["e11_memories_per_owner"],
+            )
+        )
+        summary["e11_query_separation_enabled"] = bool(
+            getattr(model.config, "pgot_e11_query_separation_enable", False)
         )
         summary["object_semantic_owners_per_object"] = 1
         summary["background_semantic_registers"] = int(
@@ -1279,7 +1311,7 @@ def main():
         )
         summary["background_visual_memories"] = (
             summary["background_semantic_registers"]
-            * summary["e11_memories_per_owner"]
+            * summary["e11_register_memories_per_owner"]
         )
         summary["visual_memory_value_source"] = (
             "frozen source SigLIP pre-projector patches"

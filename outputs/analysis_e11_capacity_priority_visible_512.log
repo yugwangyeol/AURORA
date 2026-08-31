@@ -1,0 +1,539 @@
+2026-08-31 03:44:50 PID=1184755 __init__.py:49 setup_logging() INFO → 'standard' logger initialized.
+2026-08-31 03:45:04 PID=1184755 eval_recon_oracles.py:102 load_model_and_tokenizer() INFO → Loading model from: /home/jovyan/PGOT/checkpoints/pgot_e11_capacity/checkpoint-10000
+2026-08-31 03:45:04 PID=1184755 eval_recon_oracles.py:123 load_model_and_tokenizer() INFO → [LoRA] adapter checkpoint detected; bootstrap from /home/jovyan/PGOT/checkpoints/pgot_e11_dual_m4/checkpoint-10000
+2026-08-31 03:45:46 PID=1184755 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch16-512-interp1024
+2026-08-31 03:45:46 PID=1184755 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch14-224-interp256
+[AURORA-INIT] diffusion_norm_stats_path = /home/jovyan/data/siglip2_bn_stats.pt
+[DEBUG] data_std: torch.Size([1152]), data_mean: torch.Size([1152])
+[AURORA-INIT] diff_head.normalize_data = True
+[PGOT] Initialised — D=1536, N_register=4, n_ovt_per_object=1, N_null_bg=0, e6_coda_direct=False, e7_causal_ownership=False, e8_visual_memory=True, e8_update_mode=separate_memory, e8_layers=[21, 24, 27], e11_dual_m4=True, memories_per_owner=16, object_memories=8, register_memories=16, query_separation=False, e12_centroid_reader=False, fvw=False, fvw_layers=[0, 8, 16, 24, 27], v12=False, v12_layers=[12, 16, 20, 24], v14=False, v14_router_depth=1, v21=False, latent_distill=False
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:40<02:00, 40.28s/it]Loading checkpoint shards:  50%|█████     | 2/4 [01:26<01:27, 43.78s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [02:11<00:44, 44.41s/it]Loading checkpoint shards: 100%|██████████| 4/4 [02:24<00:00, 32.10s/it]Loading checkpoint shards: 100%|██████████| 4/4 [02:24<00:00, 36.23s/it]
+Some weights of the model checkpoint at /home/jovyan/PGOT/checkpoints/pgot_e11_dual_m4/checkpoint-10000 were not used when initializing PGOTQwen2ForCausalLM: ['model.layers.0.self_attn.k_proj.base_layer.bias', 'model.layers.0.self_attn.k_proj.base_layer.weight', 'model.layers.0.self_attn.k_proj.lora_A.default.weight', 'model.layers.0.self_attn.k_proj.lora_B.default.weight', 'model.layers.0.self_attn.o_proj.base_layer.weight', 'model.layers.0.self_attn.o_proj.lora_A.default.weight', 'model.layers.0.self_attn.o_proj.lora_B.default.weight', 'model.layers.0.self_attn.q_proj.base_layer.bias', 'model.layers.0.self_attn.q_proj.base_layer.weight', 'model.layers.0.self_attn.q_proj.lora_A.default.weight', 'model.layers.0.self_attn.q_proj.lora_B.default.weight', 'model.layers.0.self_attn.v_proj.base_layer.bias', 'model.layers.0.self_attn.v_proj.base_layer.weight', 'model.layers.0.self_attn.v_proj.lora_A.default.weight', 'model.layers.0.self_attn.v_proj.lora_B.default.weight', 'model.layers.1.self_attn.k_proj.base_layer.bias', 'model.layers.1.self_attn.k_proj.base_layer.weight', 'model.layers.1.self_attn.k_proj.lora_A.default.weight', 'model.layers.1.self_attn.k_proj.lora_B.default.weight', 'model.layers.1.self_attn.o_proj.base_layer.weight', 'model.layers.1.self_attn.o_proj.lora_A.default.weight', 'model.layers.1.self_attn.o_proj.lora_B.default.weight', 'model.layers.1.self_attn.q_proj.base_layer.bias', 'model.layers.1.self_attn.q_proj.base_layer.weight', 'model.layers.1.self_attn.q_proj.lora_A.default.weight', 'model.layers.1.self_attn.q_proj.lora_B.default.weight', 'model.layers.1.self_attn.v_proj.base_layer.bias', 'model.layers.1.self_attn.v_proj.base_layer.weight', 'model.layers.1.self_attn.v_proj.lora_A.default.weight', 'model.layers.1.self_attn.v_proj.lora_B.default.weight', 'model.layers.10.self_attn.k_proj.base_layer.bias', 'model.layers.10.self_attn.k_proj.base_layer.weight', 'model.layers.10.self_attn.k_proj.lora_A.default.weight', 'model.layers.10.self_attn.k_proj.lora_B.default.weight', 'model.layers.10.self_attn.o_proj.base_layer.weight', 'model.layers.10.self_attn.o_proj.lora_A.default.weight', 'model.layers.10.self_attn.o_proj.lora_B.default.weight', 'model.layers.10.self_attn.q_proj.base_layer.bias', 'model.layers.10.self_attn.q_proj.base_layer.weight', 'model.layers.10.self_attn.q_proj.lora_A.default.weight', 'model.layers.10.self_attn.q_proj.lora_B.default.weight', 'model.layers.10.self_attn.v_proj.base_layer.bias', 'model.layers.10.self_attn.v_proj.base_layer.weight', 'model.layers.10.self_attn.v_proj.lora_A.default.weight', 'model.layers.10.self_attn.v_proj.lora_B.default.weight', 'model.layers.11.self_attn.k_proj.base_layer.bias', 'model.layers.11.self_attn.k_proj.base_layer.weight', 'model.layers.11.self_attn.k_proj.lora_A.default.weight', 'model.layers.11.self_attn.k_proj.lora_B.default.weight', 'model.layers.11.self_attn.o_proj.base_layer.weight', 'model.layers.11.self_attn.o_proj.lora_A.default.weight', 'model.layers.11.self_attn.o_proj.lora_B.default.weight', 'model.layers.11.self_attn.q_proj.base_layer.bias', 'model.layers.11.self_attn.q_proj.base_layer.weight', 'model.layers.11.self_attn.q_proj.lora_A.default.weight', 'model.layers.11.self_attn.q_proj.lora_B.default.weight', 'model.layers.11.self_attn.v_proj.base_layer.bias', 'model.layers.11.self_attn.v_proj.base_layer.weight', 'model.layers.11.self_attn.v_proj.lora_A.default.weight', 'model.layers.11.self_attn.v_proj.lora_B.default.weight', 'model.layers.12.self_attn.k_proj.base_layer.bias', 'model.layers.12.self_attn.k_proj.base_layer.weight', 'model.layers.12.self_attn.k_proj.lora_A.default.weight', 'model.layers.12.self_attn.k_proj.lora_B.default.weight', 'model.layers.12.self_attn.o_proj.base_layer.weight', 'model.layers.12.self_attn.o_proj.lora_A.default.weight', 'model.layers.12.self_attn.o_proj.lora_B.default.weight', 'model.layers.12.self_attn.q_proj.base_layer.bias', 'model.layers.12.self_attn.q_proj.base_layer.weight', 'model.layers.12.self_attn.q_proj.lora_A.default.weight', 'model.layers.12.self_attn.q_proj.lora_B.default.weight', 'model.layers.12.self_attn.v_proj.base_layer.bias', 'model.layers.12.self_attn.v_proj.base_layer.weight', 'model.layers.12.self_attn.v_proj.lora_A.default.weight', 'model.layers.12.self_attn.v_proj.lora_B.default.weight', 'model.layers.13.self_attn.k_proj.base_layer.bias', 'model.layers.13.self_attn.k_proj.base_layer.weight', 'model.layers.13.self_attn.k_proj.lora_A.default.weight', 'model.layers.13.self_attn.k_proj.lora_B.default.weight', 'model.layers.13.self_attn.o_proj.base_layer.weight', 'model.layers.13.self_attn.o_proj.lora_A.default.weight', 'model.layers.13.self_attn.o_proj.lora_B.default.weight', 'model.layers.13.self_attn.q_proj.base_layer.bias', 'model.layers.13.self_attn.q_proj.base_layer.weight', 'model.layers.13.self_attn.q_proj.lora_A.default.weight', 'model.layers.13.self_attn.q_proj.lora_B.default.weight', 'model.layers.13.self_attn.v_proj.base_layer.bias', 'model.layers.13.self_attn.v_proj.base_layer.weight', 'model.layers.13.self_attn.v_proj.lora_A.default.weight', 'model.layers.13.self_attn.v_proj.lora_B.default.weight', 'model.layers.14.self_attn.k_proj.base_layer.bias', 'model.layers.14.self_attn.k_proj.base_layer.weight', 'model.layers.14.self_attn.k_proj.lora_A.default.weight', 'model.layers.14.self_attn.k_proj.lora_B.default.weight', 'model.layers.14.self_attn.o_proj.base_layer.weight', 'model.layers.14.self_attn.o_proj.lora_A.default.weight', 'model.layers.14.self_attn.o_proj.lora_B.default.weight', 'model.layers.14.self_attn.q_proj.base_layer.bias', 'model.layers.14.self_attn.q_proj.base_layer.weight', 'model.layers.14.self_attn.q_proj.lora_A.default.weight', 'model.layers.14.self_attn.q_proj.lora_B.default.weight', 'model.layers.14.self_attn.v_proj.base_layer.bias', 'model.layers.14.self_attn.v_proj.base_layer.weight', 'model.layers.14.self_attn.v_proj.lora_A.default.weight', 'model.layers.14.self_attn.v_proj.lora_B.default.weight', 'model.layers.15.self_attn.k_proj.base_layer.bias', 'model.layers.15.self_attn.k_proj.base_layer.weight', 'model.layers.15.self_attn.k_proj.lora_A.default.weight', 'model.layers.15.self_attn.k_proj.lora_B.default.weight', 'model.layers.15.self_attn.o_proj.base_layer.weight', 'model.layers.15.self_attn.o_proj.lora_A.default.weight', 'model.layers.15.self_attn.o_proj.lora_B.default.weight', 'model.layers.15.self_attn.q_proj.base_layer.bias', 'model.layers.15.self_attn.q_proj.base_layer.weight', 'model.layers.15.self_attn.q_proj.lora_A.default.weight', 'model.layers.15.self_attn.q_proj.lora_B.default.weight', 'model.layers.15.self_attn.v_proj.base_layer.bias', 'model.layers.15.self_attn.v_proj.base_layer.weight', 'model.layers.15.self_attn.v_proj.lora_A.default.weight', 'model.layers.15.self_attn.v_proj.lora_B.default.weight', 'model.layers.16.self_attn.k_proj.base_layer.bias', 'model.layers.16.self_attn.k_proj.base_layer.weight', 'model.layers.16.self_attn.k_proj.lora_A.default.weight', 'model.layers.16.self_attn.k_proj.lora_B.default.weight', 'model.layers.16.self_attn.o_proj.base_layer.weight', 'model.layers.16.self_attn.o_proj.lora_A.default.weight', 'model.layers.16.self_attn.o_proj.lora_B.default.weight', 'model.layers.16.self_attn.q_proj.base_layer.bias', 'model.layers.16.self_attn.q_proj.base_layer.weight', 'model.layers.16.self_attn.q_proj.lora_A.default.weight', 'model.layers.16.self_attn.q_proj.lora_B.default.weight', 'model.layers.16.self_attn.v_proj.base_layer.bias', 'model.layers.16.self_attn.v_proj.base_layer.weight', 'model.layers.16.self_attn.v_proj.lora_A.default.weight', 'model.layers.16.self_attn.v_proj.lora_B.default.weight', 'model.layers.17.self_attn.k_proj.base_layer.bias', 'model.layers.17.self_attn.k_proj.base_layer.weight', 'model.layers.17.self_attn.k_proj.lora_A.default.weight', 'model.layers.17.self_attn.k_proj.lora_B.default.weight', 'model.layers.17.self_attn.o_proj.base_layer.weight', 'model.layers.17.self_attn.o_proj.lora_A.default.weight', 'model.layers.17.self_attn.o_proj.lora_B.default.weight', 'model.layers.17.self_attn.q_proj.base_layer.bias', 'model.layers.17.self_attn.q_proj.base_layer.weight', 'model.layers.17.self_attn.q_proj.lora_A.default.weight', 'model.layers.17.self_attn.q_proj.lora_B.default.weight', 'model.layers.17.self_attn.v_proj.base_layer.bias', 'model.layers.17.self_attn.v_proj.base_layer.weight', 'model.layers.17.self_attn.v_proj.lora_A.default.weight', 'model.layers.17.self_attn.v_proj.lora_B.default.weight', 'model.layers.18.self_attn.k_proj.base_layer.bias', 'model.layers.18.self_attn.k_proj.base_layer.weight', 'model.layers.18.self_attn.k_proj.lora_A.default.weight', 'model.layers.18.self_attn.k_proj.lora_B.default.weight', 'model.layers.18.self_attn.o_proj.base_layer.weight', 'model.layers.18.self_attn.o_proj.lora_A.default.weight', 'model.layers.18.self_attn.o_proj.lora_B.default.weight', 'model.layers.18.self_attn.q_proj.base_layer.bias', 'model.layers.18.self_attn.q_proj.base_layer.weight', 'model.layers.18.self_attn.q_proj.lora_A.default.weight', 'model.layers.18.self_attn.q_proj.lora_B.default.weight', 'model.layers.18.self_attn.v_proj.base_layer.bias', 'model.layers.18.self_attn.v_proj.base_layer.weight', 'model.layers.18.self_attn.v_proj.lora_A.default.weight', 'model.layers.18.self_attn.v_proj.lora_B.default.weight', 'model.layers.19.self_attn.k_proj.base_layer.bias', 'model.layers.19.self_attn.k_proj.base_layer.weight', 'model.layers.19.self_attn.k_proj.lora_A.default.weight', 'model.layers.19.self_attn.k_proj.lora_B.default.weight', 'model.layers.19.self_attn.o_proj.base_layer.weight', 'model.layers.19.self_attn.o_proj.lora_A.default.weight', 'model.layers.19.self_attn.o_proj.lora_B.default.weight', 'model.layers.19.self_attn.q_proj.base_layer.bias', 'model.layers.19.self_attn.q_proj.base_layer.weight', 'model.layers.19.self_attn.q_proj.lora_A.default.weight', 'model.layers.19.self_attn.q_proj.lora_B.default.weight', 'model.layers.19.self_attn.v_proj.base_layer.bias', 'model.layers.19.self_attn.v_proj.base_layer.weight', 'model.layers.19.self_attn.v_proj.lora_A.default.weight', 'model.layers.19.self_attn.v_proj.lora_B.default.weight', 'model.layers.2.self_attn.k_proj.base_layer.bias', 'model.layers.2.self_attn.k_proj.base_layer.weight', 'model.layers.2.self_attn.k_proj.lora_A.default.weight', 'model.layers.2.self_attn.k_proj.lora_B.default.weight', 'model.layers.2.self_attn.o_proj.base_layer.weight', 'model.layers.2.self_attn.o_proj.lora_A.default.weight', 'model.layers.2.self_attn.o_proj.lora_B.default.weight', 'model.layers.2.self_attn.q_proj.base_layer.bias', 'model.layers.2.self_attn.q_proj.base_layer.weight', 'model.layers.2.self_attn.q_proj.lora_A.default.weight', 'model.layers.2.self_attn.q_proj.lora_B.default.weight', 'model.layers.2.self_attn.v_proj.base_layer.bias', 'model.layers.2.self_attn.v_proj.base_layer.weight', 'model.layers.2.self_attn.v_proj.lora_A.default.weight', 'model.layers.2.self_attn.v_proj.lora_B.default.weight', 'model.layers.20.self_attn.k_proj.base_layer.bias', 'model.layers.20.self_attn.k_proj.base_layer.weight', 'model.layers.20.self_attn.k_proj.lora_A.default.weight', 'model.layers.20.self_attn.k_proj.lora_B.default.weight', 'model.layers.20.self_attn.o_proj.base_layer.weight', 'model.layers.20.self_attn.o_proj.lora_A.default.weight', 'model.layers.20.self_attn.o_proj.lora_B.default.weight', 'model.layers.20.self_attn.q_proj.base_layer.bias', 'model.layers.20.self_attn.q_proj.base_layer.weight', 'model.layers.20.self_attn.q_proj.lora_A.default.weight', 'model.layers.20.self_attn.q_proj.lora_B.default.weight', 'model.layers.20.self_attn.v_proj.base_layer.bias', 'model.layers.20.self_attn.v_proj.base_layer.weight', 'model.layers.20.self_attn.v_proj.lora_A.default.weight', 'model.layers.20.self_attn.v_proj.lora_B.default.weight', 'model.layers.21.self_attn.k_proj.base_layer.bias', 'model.layers.21.self_attn.k_proj.base_layer.weight', 'model.layers.21.self_attn.k_proj.lora_A.default.weight', 'model.layers.21.self_attn.k_proj.lora_B.default.weight', 'model.layers.21.self_attn.o_proj.base_layer.weight', 'model.layers.21.self_attn.o_proj.lora_A.default.weight', 'model.layers.21.self_attn.o_proj.lora_B.default.weight', 'model.layers.21.self_attn.q_proj.base_layer.bias', 'model.layers.21.self_attn.q_proj.base_layer.weight', 'model.layers.21.self_attn.q_proj.lora_A.default.weight', 'model.layers.21.self_attn.q_proj.lora_B.default.weight', 'model.layers.21.self_attn.v_proj.base_layer.bias', 'model.layers.21.self_attn.v_proj.base_layer.weight', 'model.layers.21.self_attn.v_proj.lora_A.default.weight', 'model.layers.21.self_attn.v_proj.lora_B.default.weight', 'model.layers.22.self_attn.k_proj.base_layer.bias', 'model.layers.22.self_attn.k_proj.base_layer.weight', 'model.layers.22.self_attn.k_proj.lora_A.default.weight', 'model.layers.22.self_attn.k_proj.lora_B.default.weight', 'model.layers.22.self_attn.o_proj.base_layer.weight', 'model.layers.22.self_attn.o_proj.lora_A.default.weight', 'model.layers.22.self_attn.o_proj.lora_B.default.weight', 'model.layers.22.self_attn.q_proj.base_layer.bias', 'model.layers.22.self_attn.q_proj.base_layer.weight', 'model.layers.22.self_attn.q_proj.lora_A.default.weight', 'model.layers.22.self_attn.q_proj.lora_B.default.weight', 'model.layers.22.self_attn.v_proj.base_layer.bias', 'model.layers.22.self_attn.v_proj.base_layer.weight', 'model.layers.22.self_attn.v_proj.lora_A.default.weight', 'model.layers.22.self_attn.v_proj.lora_B.default.weight', 'model.layers.23.self_attn.k_proj.base_layer.bias', 'model.layers.23.self_attn.k_proj.base_layer.weight', 'model.layers.23.self_attn.k_proj.lora_A.default.weight', 'model.layers.23.self_attn.k_proj.lora_B.default.weight', 'model.layers.23.self_attn.o_proj.base_layer.weight', 'model.layers.23.self_attn.o_proj.lora_A.default.weight', 'model.layers.23.self_attn.o_proj.lora_B.default.weight', 'model.layers.23.self_attn.q_proj.base_layer.bias', 'model.layers.23.self_attn.q_proj.base_layer.weight', 'model.layers.23.self_attn.q_proj.lora_A.default.weight', 'model.layers.23.self_attn.q_proj.lora_B.default.weight', 'model.layers.23.self_attn.v_proj.base_layer.bias', 'model.layers.23.self_attn.v_proj.base_layer.weight', 'model.layers.23.self_attn.v_proj.lora_A.default.weight', 'model.layers.23.self_attn.v_proj.lora_B.default.weight', 'model.layers.24.self_attn.k_proj.base_layer.bias', 'model.layers.24.self_attn.k_proj.base_layer.weight', 'model.layers.24.self_attn.k_proj.lora_A.default.weight', 'model.layers.24.self_attn.k_proj.lora_B.default.weight', 'model.layers.24.self_attn.o_proj.base_layer.weight', 'model.layers.24.self_attn.o_proj.lora_A.default.weight', 'model.layers.24.self_attn.o_proj.lora_B.default.weight', 'model.layers.24.self_attn.q_proj.base_layer.bias', 'model.layers.24.self_attn.q_proj.base_layer.weight', 'model.layers.24.self_attn.q_proj.lora_A.default.weight', 'model.layers.24.self_attn.q_proj.lora_B.default.weight', 'model.layers.24.self_attn.v_proj.base_layer.bias', 'model.layers.24.self_attn.v_proj.base_layer.weight', 'model.layers.24.self_attn.v_proj.lora_A.default.weight', 'model.layers.24.self_attn.v_proj.lora_B.default.weight', 'model.layers.25.self_attn.k_proj.base_layer.bias', 'model.layers.25.self_attn.k_proj.base_layer.weight', 'model.layers.25.self_attn.k_proj.lora_A.default.weight', 'model.layers.25.self_attn.k_proj.lora_B.default.weight', 'model.layers.25.self_attn.o_proj.base_layer.weight', 'model.layers.25.self_attn.o_proj.lora_A.default.weight', 'model.layers.25.self_attn.o_proj.lora_B.default.weight', 'model.layers.25.self_attn.q_proj.base_layer.bias', 'model.layers.25.self_attn.q_proj.base_layer.weight', 'model.layers.25.self_attn.q_proj.lora_A.default.weight', 'model.layers.25.self_attn.q_proj.lora_B.default.weight', 'model.layers.25.self_attn.v_proj.base_layer.bias', 'model.layers.25.self_attn.v_proj.base_layer.weight', 'model.layers.25.self_attn.v_proj.lora_A.default.weight', 'model.layers.25.self_attn.v_proj.lora_B.default.weight', 'model.layers.26.self_attn.k_proj.base_layer.bias', 'model.layers.26.self_attn.k_proj.base_layer.weight', 'model.layers.26.self_attn.k_proj.lora_A.default.weight', 'model.layers.26.self_attn.k_proj.lora_B.default.weight', 'model.layers.26.self_attn.o_proj.base_layer.weight', 'model.layers.26.self_attn.o_proj.lora_A.default.weight', 'model.layers.26.self_attn.o_proj.lora_B.default.weight', 'model.layers.26.self_attn.q_proj.base_layer.bias', 'model.layers.26.self_attn.q_proj.base_layer.weight', 'model.layers.26.self_attn.q_proj.lora_A.default.weight', 'model.layers.26.self_attn.q_proj.lora_B.default.weight', 'model.layers.26.self_attn.v_proj.base_layer.bias', 'model.layers.26.self_attn.v_proj.base_layer.weight', 'model.layers.26.self_attn.v_proj.lora_A.default.weight', 'model.layers.26.self_attn.v_proj.lora_B.default.weight', 'model.layers.27.self_attn.k_proj.base_layer.bias', 'model.layers.27.self_attn.k_proj.base_layer.weight', 'model.layers.27.self_attn.k_proj.lora_A.default.weight', 'model.layers.27.self_attn.k_proj.lora_B.default.weight', 'model.layers.27.self_attn.o_proj.base_layer.weight', 'model.layers.27.self_attn.o_proj.lora_A.default.weight', 'model.layers.27.self_attn.o_proj.lora_B.default.weight', 'model.layers.27.self_attn.q_proj.base_layer.bias', 'model.layers.27.self_attn.q_proj.base_layer.weight', 'model.layers.27.self_attn.q_proj.lora_A.default.weight', 'model.layers.27.self_attn.q_proj.lora_B.default.weight', 'model.layers.27.self_attn.v_proj.base_layer.bias', 'model.layers.27.self_attn.v_proj.base_layer.weight', 'model.layers.27.self_attn.v_proj.lora_A.default.weight', 'model.layers.27.self_attn.v_proj.lora_B.default.weight', 'model.layers.3.self_attn.k_proj.base_layer.bias', 'model.layers.3.self_attn.k_proj.base_layer.weight', 'model.layers.3.self_attn.k_proj.lora_A.default.weight', 'model.layers.3.self_attn.k_proj.lora_B.default.weight', 'model.layers.3.self_attn.o_proj.base_layer.weight', 'model.layers.3.self_attn.o_proj.lora_A.default.weight', 'model.layers.3.self_attn.o_proj.lora_B.default.weight', 'model.layers.3.self_attn.q_proj.base_layer.bias', 'model.layers.3.self_attn.q_proj.base_layer.weight', 'model.layers.3.self_attn.q_proj.lora_A.default.weight', 'model.layers.3.self_attn.q_proj.lora_B.default.weight', 'model.layers.3.self_attn.v_proj.base_layer.bias', 'model.layers.3.self_attn.v_proj.base_layer.weight', 'model.layers.3.self_attn.v_proj.lora_A.default.weight', 'model.layers.3.self_attn.v_proj.lora_B.default.weight', 'model.layers.4.self_attn.k_proj.base_layer.bias', 'model.layers.4.self_attn.k_proj.base_layer.weight', 'model.layers.4.self_attn.k_proj.lora_A.default.weight', 'model.layers.4.self_attn.k_proj.lora_B.default.weight', 'model.layers.4.self_attn.o_proj.base_layer.weight', 'model.layers.4.self_attn.o_proj.lora_A.default.weight', 'model.layers.4.self_attn.o_proj.lora_B.default.weight', 'model.layers.4.self_attn.q_proj.base_layer.bias', 'model.layers.4.self_attn.q_proj.base_layer.weight', 'model.layers.4.self_attn.q_proj.lora_A.default.weight', 'model.layers.4.self_attn.q_proj.lora_B.default.weight', 'model.layers.4.self_attn.v_proj.base_layer.bias', 'model.layers.4.self_attn.v_proj.base_layer.weight', 'model.layers.4.self_attn.v_proj.lora_A.default.weight', 'model.layers.4.self_attn.v_proj.lora_B.default.weight', 'model.layers.5.self_attn.k_proj.base_layer.bias', 'model.layers.5.self_attn.k_proj.base_layer.weight', 'model.layers.5.self_attn.k_proj.lora_A.default.weight', 'model.layers.5.self_attn.k_proj.lora_B.default.weight', 'model.layers.5.self_attn.o_proj.base_layer.weight', 'model.layers.5.self_attn.o_proj.lora_A.default.weight', 'model.layers.5.self_attn.o_proj.lora_B.default.weight', 'model.layers.5.self_attn.q_proj.base_layer.bias', 'model.layers.5.self_attn.q_proj.base_layer.weight', 'model.layers.5.self_attn.q_proj.lora_A.default.weight', 'model.layers.5.self_attn.q_proj.lora_B.default.weight', 'model.layers.5.self_attn.v_proj.base_layer.bias', 'model.layers.5.self_attn.v_proj.base_layer.weight', 'model.layers.5.self_attn.v_proj.lora_A.default.weight', 'model.layers.5.self_attn.v_proj.lora_B.default.weight', 'model.layers.6.self_attn.k_proj.base_layer.bias', 'model.layers.6.self_attn.k_proj.base_layer.weight', 'model.layers.6.self_attn.k_proj.lora_A.default.weight', 'model.layers.6.self_attn.k_proj.lora_B.default.weight', 'model.layers.6.self_attn.o_proj.base_layer.weight', 'model.layers.6.self_attn.o_proj.lora_A.default.weight', 'model.layers.6.self_attn.o_proj.lora_B.default.weight', 'model.layers.6.self_attn.q_proj.base_layer.bias', 'model.layers.6.self_attn.q_proj.base_layer.weight', 'model.layers.6.self_attn.q_proj.lora_A.default.weight', 'model.layers.6.self_attn.q_proj.lora_B.default.weight', 'model.layers.6.self_attn.v_proj.base_layer.bias', 'model.layers.6.self_attn.v_proj.base_layer.weight', 'model.layers.6.self_attn.v_proj.lora_A.default.weight', 'model.layers.6.self_attn.v_proj.lora_B.default.weight', 'model.layers.7.self_attn.k_proj.base_layer.bias', 'model.layers.7.self_attn.k_proj.base_layer.weight', 'model.layers.7.self_attn.k_proj.lora_A.default.weight', 'model.layers.7.self_attn.k_proj.lora_B.default.weight', 'model.layers.7.self_attn.o_proj.base_layer.weight', 'model.layers.7.self_attn.o_proj.lora_A.default.weight', 'model.layers.7.self_attn.o_proj.lora_B.default.weight', 'model.layers.7.self_attn.q_proj.base_layer.bias', 'model.layers.7.self_attn.q_proj.base_layer.weight', 'model.layers.7.self_attn.q_proj.lora_A.default.weight', 'model.layers.7.self_attn.q_proj.lora_B.default.weight', 'model.layers.7.self_attn.v_proj.base_layer.bias', 'model.layers.7.self_attn.v_proj.base_layer.weight', 'model.layers.7.self_attn.v_proj.lora_A.default.weight', 'model.layers.7.self_attn.v_proj.lora_B.default.weight', 'model.layers.8.self_attn.k_proj.base_layer.bias', 'model.layers.8.self_attn.k_proj.base_layer.weight', 'model.layers.8.self_attn.k_proj.lora_A.default.weight', 'model.layers.8.self_attn.k_proj.lora_B.default.weight', 'model.layers.8.self_attn.o_proj.base_layer.weight', 'model.layers.8.self_attn.o_proj.lora_A.default.weight', 'model.layers.8.self_attn.o_proj.lora_B.default.weight', 'model.layers.8.self_attn.q_proj.base_layer.bias', 'model.layers.8.self_attn.q_proj.base_layer.weight', 'model.layers.8.self_attn.q_proj.lora_A.default.weight', 'model.layers.8.self_attn.q_proj.lora_B.default.weight', 'model.layers.8.self_attn.v_proj.base_layer.bias', 'model.layers.8.self_attn.v_proj.base_layer.weight', 'model.layers.8.self_attn.v_proj.lora_A.default.weight', 'model.layers.8.self_attn.v_proj.lora_B.default.weight', 'model.layers.9.self_attn.k_proj.base_layer.bias', 'model.layers.9.self_attn.k_proj.base_layer.weight', 'model.layers.9.self_attn.k_proj.lora_A.default.weight', 'model.layers.9.self_attn.k_proj.lora_B.default.weight', 'model.layers.9.self_attn.o_proj.base_layer.weight', 'model.layers.9.self_attn.o_proj.lora_A.default.weight', 'model.layers.9.self_attn.o_proj.lora_B.default.weight', 'model.layers.9.self_attn.q_proj.base_layer.bias', 'model.layers.9.self_attn.q_proj.base_layer.weight', 'model.layers.9.self_attn.q_proj.lora_A.default.weight', 'model.layers.9.self_attn.q_proj.lora_B.default.weight', 'model.layers.9.self_attn.v_proj.base_layer.bias', 'model.layers.9.self_attn.v_proj.base_layer.weight', 'model.layers.9.self_attn.v_proj.lora_A.default.weight', 'model.layers.9.self_attn.v_proj.lora_B.default.weight']
+- This IS expected if you are initializing PGOTQwen2ForCausalLM from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing PGOTQwen2ForCausalLM from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/PGOT/checkpoints/pgot_e11_dual_m4/checkpoint-10000 and are newly initialized: ['model.layers.0.self_attn.k_proj.bias', 'model.layers.0.self_attn.k_proj.weight', 'model.layers.0.self_attn.o_proj.weight', 'model.layers.0.self_attn.q_proj.bias', 'model.layers.0.self_attn.q_proj.weight', 'model.layers.0.self_attn.v_proj.bias', 'model.layers.0.self_attn.v_proj.weight', 'model.layers.1.self_attn.k_proj.bias', 'model.layers.1.self_attn.k_proj.weight', 'model.layers.1.self_attn.o_proj.weight', 'model.layers.1.self_attn.q_proj.bias', 'model.layers.1.self_attn.q_proj.weight', 'model.layers.1.self_attn.v_proj.bias', 'model.layers.1.self_attn.v_proj.weight', 'model.layers.10.self_attn.k_proj.bias', 'model.layers.10.self_attn.k_proj.weight', 'model.layers.10.self_attn.o_proj.weight', 'model.layers.10.self_attn.q_proj.bias', 'model.layers.10.self_attn.q_proj.weight', 'model.layers.10.self_attn.v_proj.bias', 'model.layers.10.self_attn.v_proj.weight', 'model.layers.11.self_attn.k_proj.bias', 'model.layers.11.self_attn.k_proj.weight', 'model.layers.11.self_attn.o_proj.weight', 'model.layers.11.self_attn.q_proj.bias', 'model.layers.11.self_attn.q_proj.weight', 'model.layers.11.self_attn.v_proj.bias', 'model.layers.11.self_attn.v_proj.weight', 'model.layers.12.self_attn.k_proj.bias', 'model.layers.12.self_attn.k_proj.weight', 'model.layers.12.self_attn.o_proj.weight', 'model.layers.12.self_attn.q_proj.bias', 'model.layers.12.self_attn.q_proj.weight', 'model.layers.12.self_attn.v_proj.bias', 'model.layers.12.self_attn.v_proj.weight', 'model.layers.13.self_attn.k_proj.bias', 'model.layers.13.self_attn.k_proj.weight', 'model.layers.13.self_attn.o_proj.weight', 'model.layers.13.self_attn.q_proj.bias', 'model.layers.13.self_attn.q_proj.weight', 'model.layers.13.self_attn.v_proj.bias', 'model.layers.13.self_attn.v_proj.weight', 'model.layers.14.self_attn.k_proj.bias', 'model.layers.14.self_attn.k_proj.weight', 'model.layers.14.self_attn.o_proj.weight', 'model.layers.14.self_attn.q_proj.bias', 'model.layers.14.self_attn.q_proj.weight', 'model.layers.14.self_attn.v_proj.bias', 'model.layers.14.self_attn.v_proj.weight', 'model.layers.15.self_attn.k_proj.bias', 'model.layers.15.self_attn.k_proj.weight', 'model.layers.15.self_attn.o_proj.weight', 'model.layers.15.self_attn.q_proj.bias', 'model.layers.15.self_attn.q_proj.weight', 'model.layers.15.self_attn.v_proj.bias', 'model.layers.15.self_attn.v_proj.weight', 'model.layers.16.self_attn.k_proj.bias', 'model.layers.16.self_attn.k_proj.weight', 'model.layers.16.self_attn.o_proj.weight', 'model.layers.16.self_attn.q_proj.bias', 'model.layers.16.self_attn.q_proj.weight', 'model.layers.16.self_attn.v_proj.bias', 'model.layers.16.self_attn.v_proj.weight', 'model.layers.17.self_attn.k_proj.bias', 'model.layers.17.self_attn.k_proj.weight', 'model.layers.17.self_attn.o_proj.weight', 'model.layers.17.self_attn.q_proj.bias', 'model.layers.17.self_attn.q_proj.weight', 'model.layers.17.self_attn.v_proj.bias', 'model.layers.17.self_attn.v_proj.weight', 'model.layers.18.self_attn.k_proj.bias', 'model.layers.18.self_attn.k_proj.weight', 'model.layers.18.self_attn.o_proj.weight', 'model.layers.18.self_attn.q_proj.bias', 'model.layers.18.self_attn.q_proj.weight', 'model.layers.18.self_attn.v_proj.bias', 'model.layers.18.self_attn.v_proj.weight', 'model.layers.19.self_attn.k_proj.bias', 'model.layers.19.self_attn.k_proj.weight', 'model.layers.19.self_attn.o_proj.weight', 'model.layers.19.self_attn.q_proj.bias', 'model.layers.19.self_attn.q_proj.weight', 'model.layers.19.self_attn.v_proj.bias', 'model.layers.19.self_attn.v_proj.weight', 'model.layers.2.self_attn.k_proj.bias', 'model.layers.2.self_attn.k_proj.weight', 'model.layers.2.self_attn.o_proj.weight', 'model.layers.2.self_attn.q_proj.bias', 'model.layers.2.self_attn.q_proj.weight', 'model.layers.2.self_attn.v_proj.bias', 'model.layers.2.self_attn.v_proj.weight', 'model.layers.20.self_attn.k_proj.bias', 'model.layers.20.self_attn.k_proj.weight', 'model.layers.20.self_attn.o_proj.weight', 'model.layers.20.self_attn.q_proj.bias', 'model.layers.20.self_attn.q_proj.weight', 'model.layers.20.self_attn.v_proj.bias', 'model.layers.20.self_attn.v_proj.weight', 'model.layers.21.self_attn.k_proj.bias', 'model.layers.21.self_attn.k_proj.weight', 'model.layers.21.self_attn.o_proj.weight', 'model.layers.21.self_attn.q_proj.bias', 'model.layers.21.self_attn.q_proj.weight', 'model.layers.21.self_attn.v_proj.bias', 'model.layers.21.self_attn.v_proj.weight', 'model.layers.22.self_attn.k_proj.bias', 'model.layers.22.self_attn.k_proj.weight', 'model.layers.22.self_attn.o_proj.weight', 'model.layers.22.self_attn.q_proj.bias', 'model.layers.22.self_attn.q_proj.weight', 'model.layers.22.self_attn.v_proj.bias', 'model.layers.22.self_attn.v_proj.weight', 'model.layers.23.self_attn.k_proj.bias', 'model.layers.23.self_attn.k_proj.weight', 'model.layers.23.self_attn.o_proj.weight', 'model.layers.23.self_attn.q_proj.bias', 'model.layers.23.self_attn.q_proj.weight', 'model.layers.23.self_attn.v_proj.bias', 'model.layers.23.self_attn.v_proj.weight', 'model.layers.24.self_attn.k_proj.bias', 'model.layers.24.self_attn.k_proj.weight', 'model.layers.24.self_attn.o_proj.weight', 'model.layers.24.self_attn.q_proj.bias', 'model.layers.24.self_attn.q_proj.weight', 'model.layers.24.self_attn.v_proj.bias', 'model.layers.24.self_attn.v_proj.weight', 'model.layers.25.self_attn.k_proj.bias', 'model.layers.25.self_attn.k_proj.weight', 'model.layers.25.self_attn.o_proj.weight', 'model.layers.25.self_attn.q_proj.bias', 'model.layers.25.self_attn.q_proj.weight', 'model.layers.25.self_attn.v_proj.bias', 'model.layers.25.self_attn.v_proj.weight', 'model.layers.26.self_attn.k_proj.bias', 'model.layers.26.self_attn.k_proj.weight', 'model.layers.26.self_attn.o_proj.weight', 'model.layers.26.self_attn.q_proj.bias', 'model.layers.26.self_attn.q_proj.weight', 'model.layers.26.self_attn.v_proj.bias', 'model.layers.26.self_attn.v_proj.weight', 'model.layers.27.self_attn.k_proj.bias', 'model.layers.27.self_attn.k_proj.weight', 'model.layers.27.self_attn.o_proj.weight', 'model.layers.27.self_attn.q_proj.bias', 'model.layers.27.self_attn.q_proj.weight', 'model.layers.27.self_attn.v_proj.bias', 'model.layers.27.self_attn.v_proj.weight', 'model.layers.3.self_attn.k_proj.bias', 'model.layers.3.self_attn.k_proj.weight', 'model.layers.3.self_attn.o_proj.weight', 'model.layers.3.self_attn.q_proj.bias', 'model.layers.3.self_attn.q_proj.weight', 'model.layers.3.self_attn.v_proj.bias', 'model.layers.3.self_attn.v_proj.weight', 'model.layers.4.self_attn.k_proj.bias', 'model.layers.4.self_attn.k_proj.weight', 'model.layers.4.self_attn.o_proj.weight', 'model.layers.4.self_attn.q_proj.bias', 'model.layers.4.self_attn.q_proj.weight', 'model.layers.4.self_attn.v_proj.bias', 'model.layers.4.self_attn.v_proj.weight', 'model.layers.5.self_attn.k_proj.bias', 'model.layers.5.self_attn.k_proj.weight', 'model.layers.5.self_attn.o_proj.weight', 'model.layers.5.self_attn.q_proj.bias', 'model.layers.5.self_attn.q_proj.weight', 'model.layers.5.self_attn.v_proj.bias', 'model.layers.5.self_attn.v_proj.weight', 'model.layers.6.self_attn.k_proj.bias', 'model.layers.6.self_attn.k_proj.weight', 'model.layers.6.self_attn.o_proj.weight', 'model.layers.6.self_attn.q_proj.bias', 'model.layers.6.self_attn.q_proj.weight', 'model.layers.6.self_attn.v_proj.bias', 'model.layers.6.self_attn.v_proj.weight', 'model.layers.7.self_attn.k_proj.bias', 'model.layers.7.self_attn.k_proj.weight', 'model.layers.7.self_attn.o_proj.weight', 'model.layers.7.self_attn.q_proj.bias', 'model.layers.7.self_attn.q_proj.weight', 'model.layers.7.self_attn.v_proj.bias', 'model.layers.7.self_attn.v_proj.weight', 'model.layers.8.self_attn.k_proj.bias', 'model.layers.8.self_attn.k_proj.weight', 'model.layers.8.self_attn.o_proj.weight', 'model.layers.8.self_attn.q_proj.bias', 'model.layers.8.self_attn.q_proj.weight', 'model.layers.8.self_attn.v_proj.bias', 'model.layers.8.self_attn.v_proj.weight', 'model.layers.9.self_attn.k_proj.bias', 'model.layers.9.self_attn.k_proj.weight', 'model.layers.9.self_attn.o_proj.weight', 'model.layers.9.self_attn.q_proj.bias', 'model.layers.9.self_attn.q_proj.weight', 'model.layers.9.self_attn.v_proj.bias', 'model.layers.9.self_attn.v_proj.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/PGOT/checkpoints/pgot_e11_dual_m4/checkpoint-10000 and are newly initialized because the shapes did not match:
+- pgot_e8_reader.memory_key_embeddings: found shape torch.Size([4, 1536]) in the checkpoint and torch.Size([16, 1536]) in the model instantiated
+- pgot_e8_writer.memory_id_embeddings: found shape torch.Size([4, 1536]) in the checkpoint and torch.Size([16, 1536]) in the model instantiated
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/huggingface_hub/file_download.py:1142: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+2026-08-31 03:54:12 PID=1184755 eval_recon_oracles.py:190 load_model_and_tokenizer() INFO → [LoRA] loaded checkpoint | missing=1 unexpected=0
+2026-08-31 03:54:15 PID=1184755 eval_recon_oracles.py:93 patch_diffusion_steps() INFO → Patched RF inference_flow to 10 steps.
+2026-08-31 03:54:15 PID=1184755 eval_recon_oracles.py:208 load_model_and_tokenizer() INFO → Model loaded on cuda.
+pretrain_adapter_and_vision_head is: None
+E8 priority responsibility analysis:   0%|          | 0/128 [00:00<?, ?it/s]E8 priority responsibility analysis:   1%|          | 1/128 [00:04<09:40,  4.57s/it]E8 priority responsibility analysis:   2%|▏         | 2/128 [00:05<05:16,  2.51s/it]E8 priority responsibility analysis:   2%|▏         | 3/128 [00:07<04:29,  2.15s/it]E8 priority responsibility analysis:   3%|▎         | 4/128 [00:08<03:41,  1.79s/it]E8 priority responsibility analysis:   4%|▍         | 5/128 [00:09<03:18,  1.62s/it]E8 priority responsibility analysis:   5%|▍         | 6/128 [00:11<03:02,  1.50s/it]E8 priority responsibility analysis:   5%|▌         | 7/128 [00:13<03:25,  1.70s/it]E8 priority responsibility analysis:   6%|▋         | 8/128 [00:14<03:03,  1.53s/it]E8 priority responsibility analysis:   7%|▋         | 9/128 [00:15<02:59,  1.50s/it]E8 priority responsibility analysis:   8%|▊         | 10/128 [00:16<02:41,  1.37s/it]E8 priority responsibility analysis:   9%|▊         | 11/128 [00:18<02:54,  1.49s/it]E8 priority responsibility analysis:   9%|▉         | 12/128 [00:20<02:53,  1.50s/it]E8 priority responsibility analysis:  10%|█         | 13/128 [00:21<02:45,  1.44s/it]E8 priority responsibility analysis:  11%|█         | 14/128 [00:22<02:37,  1.38s/it]E8 priority responsibility analysis:  12%|█▏        | 15/128 [00:23<02:27,  1.31s/it]E8 priority responsibility analysis:  12%|█▎        | 16/128 [00:25<02:37,  1.40s/it]E8 priority responsibility analysis:  13%|█▎        | 17/128 [00:26<02:27,  1.33s/it]E8 priority responsibility analysis:  14%|█▍        | 18/128 [00:27<02:17,  1.25s/it]E8 priority responsibility analysis:  15%|█▍        | 19/128 [00:29<02:20,  1.29s/it]E8 priority responsibility analysis:  16%|█▌        | 20/128 [00:30<02:17,  1.27s/it]E8 priority responsibility analysis:  16%|█▋        | 21/128 [00:31<02:23,  1.34s/it]E8 priority responsibility analysis:  17%|█▋        | 22/128 [00:33<02:24,  1.36s/it]E8 priority responsibility analysis:  18%|█▊        | 23/128 [00:35<02:35,  1.48s/it]E8 priority responsibility analysis:  19%|█▉        | 24/128 [00:36<02:33,  1.48s/it]E8 priority responsibility analysis:  20%|█▉        | 25/128 [00:37<02:25,  1.41s/it]E8 priority responsibility analysis:  20%|██        | 26/128 [00:39<02:24,  1.41s/it]E8 priority responsibility analysis:  21%|██        | 27/128 [00:40<02:10,  1.29s/it]E8 priority responsibility analysis:  22%|██▏       | 28/128 [00:41<02:09,  1.29s/it]E8 priority responsibility analysis:  23%|██▎       | 29/128 [00:42<02:08,  1.30s/it]E8 priority responsibility analysis:  23%|██▎       | 30/128 [00:44<02:26,  1.49s/it]E8 priority responsibility analysis:  24%|██▍       | 31/128 [00:46<02:26,  1.51s/it]E8 priority responsibility analysis:  25%|██▌       | 32/128 [00:47<02:14,  1.40s/it]E8 priority responsibility analysis:  26%|██▌       | 33/128 [00:49<02:32,  1.60s/it]E8 priority responsibility analysis:  27%|██▋       | 34/128 [00:50<02:21,  1.51s/it]E8 priority responsibility analysis:  27%|██▋       | 35/128 [00:52<02:16,  1.46s/it]E8 priority responsibility analysis:  28%|██▊       | 36/128 [00:53<02:06,  1.37s/it]E8 priority responsibility analysis:  29%|██▉       | 37/128 [00:54<02:01,  1.33s/it]E8 priority responsibility analysis:  30%|██▉       | 38/128 [00:55<01:57,  1.31s/it]E8 priority responsibility analysis:  30%|███       | 39/128 [00:57<02:01,  1.36s/it]E8 priority responsibility analysis:  31%|███▏      | 40/128 [00:58<01:59,  1.36s/it]E8 priority responsibility analysis:  32%|███▏      | 41/128 [00:59<01:53,  1.30s/it]E8 priority responsibility analysis:  33%|███▎      | 42/128 [01:01<01:49,  1.28s/it]E8 priority responsibility analysis:  34%|███▎      | 43/128 [01:02<01:59,  1.40s/it]E8 priority responsibility analysis:  34%|███▍      | 44/128 [01:05<02:26,  1.74s/it]E8 priority responsibility analysis:  35%|███▌      | 45/128 [01:06<02:17,  1.65s/it]E8 priority responsibility analysis:  36%|███▌      | 46/128 [01:07<01:59,  1.46s/it]E8 priority responsibility analysis:  37%|███▋      | 47/128 [01:09<02:02,  1.52s/it]E8 priority responsibility analysis:  38%|███▊      | 48/128 [01:10<01:48,  1.35s/it]E8 priority responsibility analysis:  38%|███▊      | 49/128 [01:11<01:42,  1.29s/it]E8 priority responsibility analysis:  39%|███▉      | 50/128 [01:12<01:36,  1.24s/it]E8 priority responsibility analysis:  40%|███▉      | 51/128 [01:13<01:36,  1.26s/it]E8 priority responsibility analysis:  41%|████      | 52/128 [01:14<01:27,  1.15s/it]E8 priority responsibility analysis:  41%|████▏     | 53/128 [01:15<01:24,  1.13s/it]E8 priority responsibility analysis:  42%|████▏     | 54/128 [01:17<01:23,  1.13s/it]E8 priority responsibility analysis:  43%|████▎     | 55/128 [01:18<01:20,  1.11s/it]E8 priority responsibility analysis:  44%|████▍     | 56/128 [01:19<01:23,  1.16s/it]E8 priority responsibility analysis:  45%|████▍     | 57/128 [01:21<01:34,  1.33s/it]E8 priority responsibility analysis:  45%|████▌     | 58/128 [01:22<01:35,  1.37s/it]E8 priority responsibility analysis:  46%|████▌     | 59/128 [01:23<01:29,  1.29s/it]E8 priority responsibility analysis:  47%|████▋     | 60/128 [01:25<01:36,  1.42s/it]E8 priority responsibility analysis:  48%|████▊     | 61/128 [01:26<01:38,  1.47s/it]E8 priority responsibility analysis:  48%|████▊     | 62/128 [01:28<01:41,  1.55s/it]E8 priority responsibility analysis:  49%|████▉     | 63/128 [01:30<01:38,  1.51s/it]E8 priority responsibility analysis:  50%|█████     | 64/128 [01:31<01:31,  1.42s/it]E8 priority responsibility analysis:  51%|█████     | 65/128 [01:32<01:22,  1.31s/it]E8 priority responsibility analysis:  52%|█████▏    | 66/128 [01:33<01:20,  1.29s/it]E8 priority responsibility analysis:  52%|█████▏    | 67/128 [01:35<01:25,  1.40s/it]E8 priority responsibility analysis:  53%|█████▎    | 68/128 [01:36<01:19,  1.33s/it]E8 priority responsibility analysis:  54%|█████▍    | 69/128 [01:37<01:15,  1.28s/it]E8 priority responsibility analysis:  55%|█████▍    | 70/128 [01:39<01:26,  1.50s/it]E8 priority responsibility analysis:  55%|█████▌    | 71/128 [01:41<01:34,  1.65s/it]E8 priority responsibility analysis:  56%|█████▋    | 72/128 [01:42<01:21,  1.46s/it]E8 priority responsibility analysis:  57%|█████▋    | 73/128 [01:43<01:14,  1.35s/it]E8 priority responsibility analysis:  58%|█████▊    | 74/128 [01:45<01:13,  1.35s/it]E8 priority responsibility analysis:  59%|█████▊    | 75/128 [01:46<01:13,  1.39s/it]E8 priority responsibility analysis:  59%|█████▉    | 76/128 [01:47<01:11,  1.37s/it]E8 priority responsibility analysis:  60%|██████    | 77/128 [01:49<01:11,  1.41s/it]E8 priority responsibility analysis:  61%|██████    | 78/128 [01:51<01:13,  1.47s/it]E8 priority responsibility analysis:  62%|██████▏   | 79/128 [01:52<01:07,  1.37s/it]E8 priority responsibility analysis:  62%|██████▎   | 80/128 [01:54<01:15,  1.56s/it]E8 priority responsibility analysis:  63%|██████▎   | 81/128 [01:56<01:21,  1.73s/it]E8 priority responsibility analysis:  64%|██████▍   | 82/128 [01:57<01:14,  1.63s/it]E8 priority responsibility analysis:  65%|██████▍   | 83/128 [01:59<01:13,  1.62s/it]E8 priority responsibility analysis:  66%|██████▌   | 84/128 [02:00<01:08,  1.57s/it]E8 priority responsibility analysis:  66%|██████▋   | 85/128 [02:01<01:00,  1.40s/it]E8 priority responsibility analysis:  67%|██████▋   | 86/128 [02:03<01:00,  1.44s/it]E8 priority responsibility analysis:  68%|██████▊   | 87/128 [02:04<00:58,  1.42s/it]E8 priority responsibility analysis:  69%|██████▉   | 88/128 [02:05<00:53,  1.33s/it]E8 priority responsibility analysis:  70%|██████▉   | 89/128 [02:06<00:50,  1.29s/it]E8 priority responsibility analysis:  70%|███████   | 90/128 [02:08<00:47,  1.24s/it]E8 priority responsibility analysis:  71%|███████   | 91/128 [02:09<00:44,  1.21s/it]E8 priority responsibility analysis:  72%|███████▏  | 92/128 [02:10<00:41,  1.16s/it]E8 priority responsibility analysis:  73%|███████▎  | 93/128 [02:11<00:39,  1.14s/it]E8 priority responsibility analysis:  73%|███████▎  | 94/128 [02:12<00:38,  1.13s/it]E8 priority responsibility analysis:  74%|███████▍  | 95/128 [02:13<00:37,  1.14s/it]E8 priority responsibility analysis:  75%|███████▌  | 96/128 [02:14<00:38,  1.19s/it]E8 priority responsibility analysis:  76%|███████▌  | 97/128 [02:16<00:36,  1.19s/it]E8 priority responsibility analysis:  77%|███████▋  | 98/128 [02:17<00:37,  1.26s/it]E8 priority responsibility analysis:  77%|███████▋  | 99/128 [02:18<00:36,  1.25s/it]E8 priority responsibility analysis:  78%|███████▊  | 100/128 [02:20<00:36,  1.31s/it]E8 priority responsibility analysis:  79%|███████▉  | 101/128 [02:21<00:34,  1.28s/it]E8 priority responsibility analysis:  80%|███████▉  | 102/128 [02:22<00:32,  1.24s/it]E8 priority responsibility analysis:  80%|████████  | 103/128 [02:24<00:32,  1.31s/it]E8 priority responsibility analysis:  81%|████████▏ | 104/128 [02:25<00:29,  1.24s/it]E8 priority responsibility analysis:  82%|████████▏ | 105/128 [02:26<00:29,  1.30s/it]E8 priority responsibility analysis:  83%|████████▎ | 106/128 [02:27<00:29,  1.32s/it]E8 priority responsibility analysis:  84%|████████▎ | 107/128 [02:28<00:25,  1.24s/it]E8 priority responsibility analysis:  84%|████████▍ | 108/128 [02:30<00:24,  1.25s/it]E8 priority responsibility analysis:  85%|████████▌ | 109/128 [02:31<00:22,  1.18s/it]E8 priority responsibility analysis:  86%|████████▌ | 110/128 [02:32<00:20,  1.13s/it]E8 priority responsibility analysis:  87%|████████▋ | 111/128 [02:33<00:18,  1.11s/it]E8 priority responsibility analysis:  88%|████████▊ | 112/128 [02:34<00:17,  1.08s/it]E8 priority responsibility analysis:  88%|████████▊ | 113/128 [02:35<00:17,  1.14s/it]E8 priority responsibility analysis:  89%|████████▉ | 114/128 [02:36<00:15,  1.13s/it]E8 priority responsibility analysis:  90%|████████▉ | 115/128 [02:38<00:15,  1.20s/it]E8 priority responsibility analysis:  91%|█████████ | 116/128 [02:39<00:13,  1.14s/it]E8 priority responsibility analysis:  91%|█████████▏| 117/128 [02:41<00:16,  1.48s/it]E8 priority responsibility analysis:  92%|█████████▏| 118/128 [02:42<00:14,  1.49s/it]E8 priority responsibility analysis:  93%|█████████▎| 119/128 [02:44<00:13,  1.46s/it]E8 priority responsibility analysis:  94%|█████████▍| 120/128 [02:45<00:11,  1.40s/it]E8 priority responsibility analysis:  95%|█████████▍| 121/128 [02:46<00:09,  1.40s/it]E8 priority responsibility analysis:  95%|█████████▌| 122/128 [02:48<00:09,  1.59s/it]E8 priority responsibility analysis:  96%|█████████▌| 123/128 [02:50<00:08,  1.63s/it]E8 priority responsibility analysis:  97%|█████████▋| 124/128 [02:52<00:06,  1.56s/it]E8 priority responsibility analysis:  98%|█████████▊| 125/128 [02:53<00:04,  1.50s/it]E8 priority responsibility analysis:  98%|█████████▊| 126/128 [02:55<00:03,  1.60s/it]E8 priority responsibility analysis:  99%|█████████▉| 127/128 [02:57<00:01,  1.70s/it]E8 priority responsibility analysis: 100%|██████████| 128/128 [02:58<00:00,  1.49s/it]E8 priority responsibility analysis: 100%|██████████| 128/128 [02:58<00:00,  1.40s/it]
+2026-08-31 03:57:39 PID=1184755 diagnose_e8_responsibility.py:431 _run_appearance_probes() INFO → Fitting appearance probe: direct_self (dim=24576)
+2026-08-31 03:57:44 PID=1184755 diagnose_e8_responsibility.py:431 _run_appearance_probes() INFO → Fitting appearance probe: direct_other_mean (dim=24576)
+2026-08-31 03:57:45 PID=1184755 diagnose_e8_responsibility.py:431 _run_appearance_probes() INFO → Fitting appearance probe: direct_register_flat (dim=98304)
+2026-08-31 03:58:01 PID=1184755 diagnose_e8_responsibility.py:431 _run_appearance_probes() INFO → Fitting appearance probe: direct_nonself (dim=122880)
+2026-08-31 03:58:20 PID=1184755 diagnose_e8_responsibility.py:431 _run_appearance_probes() INFO → Fitting appearance probe: direct_all (dim=147456)
+2026-08-31 03:58:33 PID=1184755 diagnose_e8_responsibility.py:431 _run_appearance_probes() INFO → Fitting appearance probe: routed_self (dim=1536)
+2026-08-31 03:58:34 PID=1184755 diagnose_e8_responsibility.py:431 _run_appearance_probes() INFO → Fitting appearance probe: routed_other (dim=1536)
+2026-08-31 03:58:35 PID=1184755 diagnose_e8_responsibility.py:431 _run_appearance_probes() INFO → Fitting appearance probe: routed_register (dim=1536)
+2026-08-31 03:58:37 PID=1184755 diagnose_e8_responsibility.py:431 _run_appearance_probes() INFO → Fitting appearance probe: routed_nonself (dim=3072)
+2026-08-31 03:58:38 PID=1184755 diagnose_e8_responsibility.py:431 _run_appearance_probes() INFO → Fitting appearance probe: routed_all_concat (dim=4608)
+2026-08-31 03:58:38 PID=1184755 diagnose_e8_responsibility.py:431 _run_appearance_probes() INFO → Fitting appearance probe: routed_sum (dim=1536)
+2026-08-31 03:58:39 PID=1184755 category.py:224 update() INFO → Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-08-31 03:58:39 PID=1184755 category.py:224 update() INFO → Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-08-31 03:58:39 PID=1184755 category.py:224 update() INFO → Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-08-31 03:58:39 PID=1184755 category.py:224 update() INFO → Using categorical units to plot a list of strings that are all parsable as floats or dates. If these strings should be plotted as numbers, cast to the appropriate data type before plotting.
+2026-08-31 03:58:46 PID=1184755 diagnose_e8_responsibility.py:755 run() INFO → Wrote priority analysis to /home/jovyan/PGOT/outputs/analysis_e11_capacity_priority_visible_512
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_e11_capacity/checkpoint-10000",
+  "num_images": 512,
+  "num_model_object_slots": 2742,
+  "num_visible_gt_objects": 2635,
+  "num_cropped_out_object_slots": 107,
+  "protocol": {
+    "causal": "zero one object memory; identical RF timestep/noise; compare every GT object and background",
+    "writer": "named slot IoU plus permutation-invariant Hungarian oracle IoU",
+    "appearance": "image-disjoint 70/10/20 train/validation/test ridge on word-residual target"
+  },
+  "writer_by_layer": {
+    "21": {
+      "named_hard_iou": {
+        "count": 512,
+        "mean": 0.5707523059387919,
+        "median": 0.5746036656200886,
+        "std": 0.11755703186670079,
+        "p10": 0.3990524030872621,
+        "p90": 0.7342754952609544
+      },
+      "oracle_hard_iou": {
+        "count": 512,
+        "mean": 0.6216959149363296,
+        "median": 0.6226313635706902,
+        "std": 0.10163748644697149,
+        "p10": 0.5035929188132287,
+        "p90": 0.7507482007145885
+      },
+      "oracle_minus_named": {
+        "count": 512,
+        "mean": 0.050943608997537616,
+        "median": 0.035999106243252754,
+        "std": 0.05147663137016775,
+        "p10": 0.0,
+        "p90": 0.12441001683473617
+      },
+      "named_soft_iou_per_object": {
+        "count": 512,
+        "mean": 0.44755884565074544,
+        "median": 0.4443042935570235,
+        "std": 0.14144315171110225,
+        "p10": 0.2655842508259779,
+        "p90": 0.6430062868364047
+      },
+      "target_probability_inside": {
+        "count": 512,
+        "mean": 0.6057539448883127,
+        "median": 0.6040915276924086,
+        "std": 0.17250125637493918,
+        "p10": 0.37080465826868425,
+        "p90": 0.8354986115025858
+      },
+      "target_probability_outside": {
+        "count": 512,
+        "mean": 0.020322952624983265,
+        "median": 0.015719625203368753,
+        "std": 0.016846919959672794,
+        "p10": 0.008137689752964599,
+        "p90": 0.03669647895459398
+      }
+    },
+    "24": {
+      "named_hard_iou": {
+        "count": 512,
+        "mean": 0.5870611381881948,
+        "median": 0.5973679237067699,
+        "std": 0.1171690624987221,
+        "p10": 0.4271224789321423,
+        "p90": 0.7314116060733797
+      },
+      "oracle_hard_iou": {
+        "count": 512,
+        "mean": 0.6457279938622378,
+        "median": 0.6458272598683834,
+        "std": 0.09714061189837225,
+        "p10": 0.5266332671046257,
+        "p90": 0.7682866238057615
+      },
+      "oracle_minus_named": {
+        "count": 512,
+        "mean": 0.058666855674042985,
+        "median": 0.04425372928380966,
+        "std": 0.05764354113271652,
+        "p10": 0.0,
+        "p90": 0.13941756896674648
+      },
+      "named_soft_iou_per_object": {
+        "count": 512,
+        "mean": 0.4618239948453382,
+        "median": 0.4582578444611095,
+        "std": 0.14467055971135664,
+        "p10": 0.2807552033367347,
+        "p90": 0.6545215156787824
+      },
+      "target_probability_inside": {
+        "count": 512,
+        "mean": 0.6049135391637454,
+        "median": 0.6063492827902448,
+        "std": 0.17209192744749052,
+        "p10": 0.3845389163699814,
+        "p90": 0.8319497069028708
+      },
+      "target_probability_outside": {
+        "count": 512,
+        "mean": 0.01912543050647082,
+        "median": 0.01377456998235065,
+        "std": 0.017322609732761864,
+        "p10": 0.007178227638069075,
+        "p90": 0.03481093514594252
+      }
+    },
+    "27": {
+      "named_hard_iou": {
+        "count": 512,
+        "mean": 0.5875198965659365,
+        "median": 0.5957600343972445,
+        "std": 0.11677113190100093,
+        "p10": 0.41749061001464727,
+        "p90": 0.7382208809256554
+      },
+      "oracle_hard_iou": {
+        "count": 512,
+        "mean": 0.6461447063775267,
+        "median": 0.6532616913318634,
+        "std": 0.09871507300160086,
+        "p10": 0.5267101593315602,
+        "p90": 0.7601657897233963
+      },
+      "oracle_minus_named": {
+        "count": 512,
+        "mean": 0.05862480981159024,
+        "median": 0.04391908459365368,
+        "std": 0.057299136739864774,
+        "p10": 0.0,
+        "p90": 0.1282002091407776
+      },
+      "named_soft_iou_per_object": {
+        "count": 512,
+        "mean": 0.4650206387685214,
+        "median": 0.4606844595442191,
+        "std": 0.1443714322239355,
+        "p10": 0.2921353096437911,
+        "p90": 0.6382353476398991
+      },
+      "target_probability_inside": {
+        "count": 512,
+        "mean": 0.6081345999667551,
+        "median": 0.6156450869480776,
+        "std": 0.17097886232983922,
+        "p10": 0.38657885988483076,
+        "p90": 0.8605082817948781
+      },
+      "target_probability_outside": {
+        "count": 512,
+        "mean": 0.01957983678098346,
+        "median": 0.014413462970299985,
+        "std": 0.017079238074007633,
+        "p10": 0.007558524512583594,
+        "p90": 0.03524118640081727
+      }
+    }
+  },
+  "writer_transitions": {
+    "21_to_24": {
+      "hard_assignment_consistency_all": {
+        "count": 128,
+        "mean": 0.9186630249023438,
+        "median": 0.920654296875,
+        "std": 0.021501608731466365,
+        "p10": 0.8921875,
+        "p90": 0.94375
+      },
+      "hard_assignment_consistency_fg": {
+        "count": 128,
+        "mean": 0.9309026580303907,
+        "median": 0.9353762418031693,
+        "std": 0.034116719470734504,
+        "p10": 0.8928951278328896,
+        "p90": 0.9681308418512344
+      },
+      "hard_assignment_consistency_bg": {
+        "count": 128,
+        "mean": 0.9072960691410117,
+        "median": 0.9119302406907082,
+        "std": 0.030934792996466672,
+        "p10": 0.8702709063887596,
+        "p90": 0.9403255581855774
+      },
+      "probability_l1": 0.003524289953929838
+    },
+    "24_to_27": {
+      "hard_assignment_consistency_all": {
+        "count": 128,
+        "mean": 0.9323635101318359,
+        "median": 0.9356689453125,
+        "std": 0.01935217306619381,
+        "p10": 0.9048095703125,
+        "p90": 0.9531982421875
+      },
+      "hard_assignment_consistency_fg": {
+        "count": 128,
+        "mean": 0.9515462854954724,
+        "median": 0.9565708041191101,
+        "std": 0.025071707237878257,
+        "p10": 0.9160553440451622,
+        "p90": 0.9781461223959923
+      },
+      "hard_assignment_consistency_bg": {
+        "count": 128,
+        "mean": 0.920728599652648,
+        "median": 0.9261311590671539,
+        "std": 0.027230209121746243,
+        "p10": 0.8885556235909462,
+        "p90": 0.9474893763661385
+      },
+      "probability_l1": 0.0030945493126637302
+    }
+  },
+  "causal_influence": {
+    "num_interventions": 2635,
+    "num_multi_object_interventions": 2577,
+    "diagonal_influence": {
+      "count": 2635,
+      "mean": 0.05365522412652087,
+      "median": 0.01390782929956913,
+      "std": 0.10000656104233704,
+      "p10": 4.226634919177741e-05,
+      "p90": 0.16460489332675932
+    },
+    "other_object_mean_influence": {
+      "count": 2635,
+      "mean": 0.005281112006592356,
+      "median": 0.001221871301263141,
+      "std": 0.013942519121177046,
+      "p10": 4.608297509232646e-05,
+      "p90": 0.012333618300035588
+    },
+    "other_object_max_influence": {
+      "count": 2635,
+      "mean": 0.018912066270112063,
+      "median": 0.0042451778426766396,
+      "std": 0.04569565965435868,
+      "p10": 0.00018072373059112583,
+      "p90": 0.04542939364910126
+    },
+    "background_influence": {
+      "count": 2635,
+      "mean": 0.004897429586629754,
+      "median": 0.0011922135017812252,
+      "std": 0.01206566081410177,
+      "p10": 5.449778836918996e-05,
+      "p90": 0.012804277427494523
+    },
+    "diag_over_other_mean": {
+      "count": 2635,
+      "mean": 1957198083.257354,
+      "median": 9.341951223883662,
+      "std": 21598755723.497234,
+      "p10": 0.08667694670793556,
+      "p90": 149.28262417650012
+    },
+    "diag_over_background": {
+      "count": 2635,
+      "mean": 19.704979298071873,
+      "median": 9.423767584317485,
+      "std": 33.86843064311822,
+      "p10": 0.20924149693294386,
+      "p90": 47.84793807391253
+    },
+    "offdiag_over_diag": {
+      "count": 2635,
+      "mean": 6.7779015647752665,
+      "median": 0.10704401853901752,
+      "std": 36.67805056312557,
+      "p10": 0.006698760777950955,
+      "p90": 11.537501910782852
+    },
+    "background_over_diag": {
+      "count": 2635,
+      "mean": 2.472322164336634,
+      "median": 0.10611467134059471,
+      "std": 12.356439272491354,
+      "p10": 0.02089954354515016,
+      "p90": 4.779302052189954
+    },
+    "diagonal_share_of_selected_other_background": {
+      "count": 2635,
+      "mean": 0.6407096254330918,
+      "median": 0.8155320910056653,
+      "std": 0.3458734407304473,
+      "p10": 0.05336300538724619,
+      "p90": 0.9622301859695305
+    },
+    "global_sum_diag_over_other_mean": 10.15983453097447,
+    "global_sum_diag_over_background": 10.95579286591532,
+    "multi_object_only": {
+      "diagonal_influence": {
+        "count": 2577,
+        "mean": 0.052861582762831205,
+        "median": 0.013323567807674408,
+        "std": 0.09947269781635334,
+        "p10": 4.037779581267387e-05,
+        "p90": 0.16247277557849887
+      },
+      "other_object_mean_influence": {
+        "count": 2577,
+        "mean": 0.005399972889938246,
+        "median": 0.0012815137821841442,
+        "std": 0.014075765534492479,
+        "p10": 6.595863670542571e-05,
+        "p90": 0.012705011852085597
+      },
+      "other_object_max_influence": {
+        "count": 2577,
+        "mean": 0.019337716190044735,
+        "median": 0.004539648070931435,
+        "std": 0.0461178760711501,
+        "p10": 0.00025027756346389656,
+        "p90": 0.04653304293751719
+      },
+      "background_influence": {
+        "count": 2577,
+        "mean": 0.0047392954024328,
+        "median": 0.001146801863797009,
+        "std": 0.011869530192273086,
+        "p10": 5.3163369011599576e-05,
+        "p90": 0.012294857017695907
+      },
+      "diag_over_other_mean": {
+        "count": 2577,
+        "mean": 60.464358312977275,
+        "median": 8.697126871025375,
+        "std": 254.0451728586574,
+        "p10": 0.08393027953076,
+        "p90": 115.14913259155993
+      },
+      "diag_over_background": {
+        "count": 2577,
+        "mean": 19.88500678185473,
+        "median": 9.468802540001654,
+        "std": 34.189316635834054,
+        "p10": 0.1996174087547952,
+        "p90": 48.460159486858586
+      },
+      "offdiag_over_diag": {
+        "count": 2577,
+        "mean": 6.9304503776417645,
+        "median": 0.11498050043762348,
+        "std": 37.07425094399548,
+        "p10": 0.008684456805686056,
+        "p90": 11.914661275995101
+      },
+      "background_over_diag": {
+        "count": 2577,
+        "mean": 2.5226191755150924,
+        "median": 0.1056099750496883,
+        "std": 12.489597938457688,
+        "p10": 0.020635510153712747,
+        "p90": 5.009593506941999
+      }
+    },
+    "selected_region_dominant_fraction": 0.6121442125237192,
+    "selected_region_dominant_fraction_multi_object": 0.6038028715560729
+  },
+  "appearance_information": {
+    "split": {
+      "train_images": 357,
+      "validation_images": 51,
+      "test_images": 103,
+      "train_objects": 1870,
+      "validation_objects": 266,
+      "test_objects": 499
+    },
+    "num_objects": 2635,
+    "word_probe": {
+      "r2": 0.1937308223446158,
+      "cosine": 0.6905204195462925,
+      "rel_l2": 0.719023289349434,
+      "lambda": 10000.0,
+      "validation_r2": 0.19652419849317537
+    },
+    "instance_residual_variance_fraction": 0.806269109249115,
+    "probes_instance_residual": {
+      "direct_self": {
+        "r2": 0.23538657691284492,
+        "cosine": 0.5081505362033559,
+        "rel_l2": 0.855653371586924,
+        "lambda": 10000.0,
+        "validation_r2": 0.1914179789532533
+      },
+      "direct_other_mean": {
+        "r2": 0.02836619157654996,
+        "cosine": 0.23847327590826578,
+        "rel_l2": 0.9837556275709112,
+        "lambda": 1000000.0,
+        "validation_r2": 0.02470674033210518
+      },
+      "direct_register_flat": {
+        "r2": 0.057539305077699776,
+        "cosine": 0.2711455256080594,
+        "rel_l2": 0.964856322116631,
+        "lambda": 1000000.0,
+        "validation_r2": 0.04951459043318496
+      },
+      "direct_nonself": {
+        "r2": 0.06319920848088256,
+        "cosine": 0.2832254215692593,
+        "rel_l2": 0.9614821430798629,
+        "lambda": 1000000.0,
+        "validation_r2": 0.054612666783604435
+      },
+      "direct_all": {
+        "r2": 0.1611631146034178,
+        "cosine": 0.43116060146836477,
+        "rel_l2": 0.9066157732283444,
+        "lambda": 10000.0,
+        "validation_r2": 0.11799739036259216
+      },
+      "routed_self": {
+        "r2": 0.15033229845196205,
+        "cosine": 0.41185750084292366,
+        "rel_l2": 0.8974496827728097,
+        "lambda": 10000.0,
+        "validation_r2": 0.14133974312032116
+      },
+      "routed_other": {
+        "r2": 0.08269829170085952,
+        "cosine": 0.2736679559765463,
+        "rel_l2": 0.9568319555868459,
+        "lambda": 10000.0,
+        "validation_r2": 0.07240319056608369
+      },
+      "routed_register": {
+        "r2": 0.046870248312218865,
+        "cosine": 0.28910403114139577,
+        "rel_l2": 0.9715801265136366,
+        "lambda": 10000.0,
+        "validation_r2": 0.04186939657447086
+      },
+      "routed_nonself": {
+        "r2": 0.10480810162725496,
+        "cosine": 0.34955255077126757,
+        "rel_l2": 0.9421905979748764,
+        "lambda": 10000.0,
+        "validation_r2": 0.09065857392423726
+      },
+      "routed_all_concat": {
+        "r2": 0.2186937875721353,
+        "cosine": 0.5043686982696004,
+        "rel_l2": 0.8616770678559814,
+        "lambda": 10000.0,
+        "validation_r2": 0.19845346268336794
+      },
+      "routed_sum": {
+        "r2": 0.22834044185781877,
+        "cosine": 0.523165823859597,
+        "rel_l2": 0.8597208984404212,
+        "lambda": 10000.0,
+        "validation_r2": 0.2197714737982106
+      },
+      "direct_unique_self_delta_r2": {
+        "r2": 0.09796390612253525
+      },
+      "routed_unique_self_delta_r2": {
+        "r2": 0.11388568594488035
+      }
+    },
+    "reader_mass_on_target_region": {
+      "self": {
+        "count": 2635,
+        "mean": 0.4676665348045699,
+        "median": 0.5396100282669067,
+        "std": 0.3608317193305104,
+        "p10": 0.0005014551570639014,
+        "p90": 0.9041953802108764
+      },
+      "other_objects": {
+        "count": 2635,
+        "mean": 0.3562855604966061,
+        "median": 0.22677378356456757,
+        "std": 0.3344180813521624,
+        "p10": 0.004952303785830737,
+        "p90": 0.895360243320465
+      },
+      "registers": {
+        "count": 2635,
+        "mean": 0.17604791251491875,
+        "median": 0.10196490585803986,
+        "std": 0.2013505823168425,
+        "p10": 0.015777686983346938,
+        "p90": 0.4508077204227447
+      }
+    }
+  }
+}
