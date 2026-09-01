@@ -1,0 +1,1322 @@
+2026-09-01 02:09:26 PID=1301457 __init__.py:49 setup_logging() INFO → 'standard' logger initialized.
+2026-09-01 02:09:38 PID=1301457 eval_recon_oracles.py:102 load_model_and_tokenizer() INFO → Loading model from: /home/jovyan/PGOT/checkpoints/pgot_e11_capacity_dit16/checkpoint-10000
+2026-09-01 02:09:38 PID=1301457 eval_recon_oracles.py:123 load_model_and_tokenizer() INFO → [LoRA] adapter checkpoint detected; bootstrap from /home/jovyan/PGOT/checkpoints/pgot_e11_capacity/checkpoint-10000
+2026-09-01 02:10:30 PID=1301457 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch16-512-interp1024
+2026-09-01 02:10:30 PID=1301457 builder.py:51 build_vision_tower_aux_list() INFO → Loading **Google SigLIP** Vision Tower: google/siglip2-so400m-patch14-224-interp256
+[AURORA-INIT] diffusion_norm_stats_path = /home/jovyan/data/siglip2_bn_stats.pt
+[DEBUG] data_std: torch.Size([1152]), data_mean: torch.Size([1152])
+[AURORA-INIT] diff_head.normalize_data = True
+[PGOT] Initialised — D=1536, N_register=4, n_ovt_per_object=1, N_null_bg=0, e6_coda_direct=False, e7_causal_ownership=False, e8_visual_memory=True, e8_update_mode=separate_memory, e8_layers=[21, 24, 27], e11_dual_m4=True, memories_per_owner=16, object_memories=8, register_memories=16, query_separation=False, e12_centroid_reader=False, fvw=False, fvw_layers=[0, 8, 16, 24, 27], v12=False, v12_layers=[12, 16, 20, 24], v14=False, v14_router_depth=1, v21=False, latent_distill=False
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:59<02:58, 59.54s/it]Loading checkpoint shards:  50%|█████     | 2/4 [02:07<02:08, 64.32s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [03:19<01:07, 67.79s/it]Loading checkpoint shards: 100%|██████████| 4/4 [03:38<00:00, 48.85s/it]Loading checkpoint shards: 100%|██████████| 4/4 [03:38<00:00, 54.73s/it]
+Some weights of the model checkpoint at /home/jovyan/PGOT/checkpoints/pgot_e11_capacity/checkpoint-10000 were not used when initializing PGOTQwen2ForCausalLM: ['model.layers.0.self_attn.k_proj.base_layer.bias', 'model.layers.0.self_attn.k_proj.base_layer.weight', 'model.layers.0.self_attn.k_proj.lora_A.default.weight', 'model.layers.0.self_attn.k_proj.lora_B.default.weight', 'model.layers.0.self_attn.o_proj.base_layer.weight', 'model.layers.0.self_attn.o_proj.lora_A.default.weight', 'model.layers.0.self_attn.o_proj.lora_B.default.weight', 'model.layers.0.self_attn.q_proj.base_layer.bias', 'model.layers.0.self_attn.q_proj.base_layer.weight', 'model.layers.0.self_attn.q_proj.lora_A.default.weight', 'model.layers.0.self_attn.q_proj.lora_B.default.weight', 'model.layers.0.self_attn.v_proj.base_layer.bias', 'model.layers.0.self_attn.v_proj.base_layer.weight', 'model.layers.0.self_attn.v_proj.lora_A.default.weight', 'model.layers.0.self_attn.v_proj.lora_B.default.weight', 'model.layers.1.self_attn.k_proj.base_layer.bias', 'model.layers.1.self_attn.k_proj.base_layer.weight', 'model.layers.1.self_attn.k_proj.lora_A.default.weight', 'model.layers.1.self_attn.k_proj.lora_B.default.weight', 'model.layers.1.self_attn.o_proj.base_layer.weight', 'model.layers.1.self_attn.o_proj.lora_A.default.weight', 'model.layers.1.self_attn.o_proj.lora_B.default.weight', 'model.layers.1.self_attn.q_proj.base_layer.bias', 'model.layers.1.self_attn.q_proj.base_layer.weight', 'model.layers.1.self_attn.q_proj.lora_A.default.weight', 'model.layers.1.self_attn.q_proj.lora_B.default.weight', 'model.layers.1.self_attn.v_proj.base_layer.bias', 'model.layers.1.self_attn.v_proj.base_layer.weight', 'model.layers.1.self_attn.v_proj.lora_A.default.weight', 'model.layers.1.self_attn.v_proj.lora_B.default.weight', 'model.layers.10.self_attn.k_proj.base_layer.bias', 'model.layers.10.self_attn.k_proj.base_layer.weight', 'model.layers.10.self_attn.k_proj.lora_A.default.weight', 'model.layers.10.self_attn.k_proj.lora_B.default.weight', 'model.layers.10.self_attn.o_proj.base_layer.weight', 'model.layers.10.self_attn.o_proj.lora_A.default.weight', 'model.layers.10.self_attn.o_proj.lora_B.default.weight', 'model.layers.10.self_attn.q_proj.base_layer.bias', 'model.layers.10.self_attn.q_proj.base_layer.weight', 'model.layers.10.self_attn.q_proj.lora_A.default.weight', 'model.layers.10.self_attn.q_proj.lora_B.default.weight', 'model.layers.10.self_attn.v_proj.base_layer.bias', 'model.layers.10.self_attn.v_proj.base_layer.weight', 'model.layers.10.self_attn.v_proj.lora_A.default.weight', 'model.layers.10.self_attn.v_proj.lora_B.default.weight', 'model.layers.11.self_attn.k_proj.base_layer.bias', 'model.layers.11.self_attn.k_proj.base_layer.weight', 'model.layers.11.self_attn.k_proj.lora_A.default.weight', 'model.layers.11.self_attn.k_proj.lora_B.default.weight', 'model.layers.11.self_attn.o_proj.base_layer.weight', 'model.layers.11.self_attn.o_proj.lora_A.default.weight', 'model.layers.11.self_attn.o_proj.lora_B.default.weight', 'model.layers.11.self_attn.q_proj.base_layer.bias', 'model.layers.11.self_attn.q_proj.base_layer.weight', 'model.layers.11.self_attn.q_proj.lora_A.default.weight', 'model.layers.11.self_attn.q_proj.lora_B.default.weight', 'model.layers.11.self_attn.v_proj.base_layer.bias', 'model.layers.11.self_attn.v_proj.base_layer.weight', 'model.layers.11.self_attn.v_proj.lora_A.default.weight', 'model.layers.11.self_attn.v_proj.lora_B.default.weight', 'model.layers.12.self_attn.k_proj.base_layer.bias', 'model.layers.12.self_attn.k_proj.base_layer.weight', 'model.layers.12.self_attn.k_proj.lora_A.default.weight', 'model.layers.12.self_attn.k_proj.lora_B.default.weight', 'model.layers.12.self_attn.o_proj.base_layer.weight', 'model.layers.12.self_attn.o_proj.lora_A.default.weight', 'model.layers.12.self_attn.o_proj.lora_B.default.weight', 'model.layers.12.self_attn.q_proj.base_layer.bias', 'model.layers.12.self_attn.q_proj.base_layer.weight', 'model.layers.12.self_attn.q_proj.lora_A.default.weight', 'model.layers.12.self_attn.q_proj.lora_B.default.weight', 'model.layers.12.self_attn.v_proj.base_layer.bias', 'model.layers.12.self_attn.v_proj.base_layer.weight', 'model.layers.12.self_attn.v_proj.lora_A.default.weight', 'model.layers.12.self_attn.v_proj.lora_B.default.weight', 'model.layers.13.self_attn.k_proj.base_layer.bias', 'model.layers.13.self_attn.k_proj.base_layer.weight', 'model.layers.13.self_attn.k_proj.lora_A.default.weight', 'model.layers.13.self_attn.k_proj.lora_B.default.weight', 'model.layers.13.self_attn.o_proj.base_layer.weight', 'model.layers.13.self_attn.o_proj.lora_A.default.weight', 'model.layers.13.self_attn.o_proj.lora_B.default.weight', 'model.layers.13.self_attn.q_proj.base_layer.bias', 'model.layers.13.self_attn.q_proj.base_layer.weight', 'model.layers.13.self_attn.q_proj.lora_A.default.weight', 'model.layers.13.self_attn.q_proj.lora_B.default.weight', 'model.layers.13.self_attn.v_proj.base_layer.bias', 'model.layers.13.self_attn.v_proj.base_layer.weight', 'model.layers.13.self_attn.v_proj.lora_A.default.weight', 'model.layers.13.self_attn.v_proj.lora_B.default.weight', 'model.layers.14.self_attn.k_proj.base_layer.bias', 'model.layers.14.self_attn.k_proj.base_layer.weight', 'model.layers.14.self_attn.k_proj.lora_A.default.weight', 'model.layers.14.self_attn.k_proj.lora_B.default.weight', 'model.layers.14.self_attn.o_proj.base_layer.weight', 'model.layers.14.self_attn.o_proj.lora_A.default.weight', 'model.layers.14.self_attn.o_proj.lora_B.default.weight', 'model.layers.14.self_attn.q_proj.base_layer.bias', 'model.layers.14.self_attn.q_proj.base_layer.weight', 'model.layers.14.self_attn.q_proj.lora_A.default.weight', 'model.layers.14.self_attn.q_proj.lora_B.default.weight', 'model.layers.14.self_attn.v_proj.base_layer.bias', 'model.layers.14.self_attn.v_proj.base_layer.weight', 'model.layers.14.self_attn.v_proj.lora_A.default.weight', 'model.layers.14.self_attn.v_proj.lora_B.default.weight', 'model.layers.15.self_attn.k_proj.base_layer.bias', 'model.layers.15.self_attn.k_proj.base_layer.weight', 'model.layers.15.self_attn.k_proj.lora_A.default.weight', 'model.layers.15.self_attn.k_proj.lora_B.default.weight', 'model.layers.15.self_attn.o_proj.base_layer.weight', 'model.layers.15.self_attn.o_proj.lora_A.default.weight', 'model.layers.15.self_attn.o_proj.lora_B.default.weight', 'model.layers.15.self_attn.q_proj.base_layer.bias', 'model.layers.15.self_attn.q_proj.base_layer.weight', 'model.layers.15.self_attn.q_proj.lora_A.default.weight', 'model.layers.15.self_attn.q_proj.lora_B.default.weight', 'model.layers.15.self_attn.v_proj.base_layer.bias', 'model.layers.15.self_attn.v_proj.base_layer.weight', 'model.layers.15.self_attn.v_proj.lora_A.default.weight', 'model.layers.15.self_attn.v_proj.lora_B.default.weight', 'model.layers.16.self_attn.k_proj.base_layer.bias', 'model.layers.16.self_attn.k_proj.base_layer.weight', 'model.layers.16.self_attn.k_proj.lora_A.default.weight', 'model.layers.16.self_attn.k_proj.lora_B.default.weight', 'model.layers.16.self_attn.o_proj.base_layer.weight', 'model.layers.16.self_attn.o_proj.lora_A.default.weight', 'model.layers.16.self_attn.o_proj.lora_B.default.weight', 'model.layers.16.self_attn.q_proj.base_layer.bias', 'model.layers.16.self_attn.q_proj.base_layer.weight', 'model.layers.16.self_attn.q_proj.lora_A.default.weight', 'model.layers.16.self_attn.q_proj.lora_B.default.weight', 'model.layers.16.self_attn.v_proj.base_layer.bias', 'model.layers.16.self_attn.v_proj.base_layer.weight', 'model.layers.16.self_attn.v_proj.lora_A.default.weight', 'model.layers.16.self_attn.v_proj.lora_B.default.weight', 'model.layers.17.self_attn.k_proj.base_layer.bias', 'model.layers.17.self_attn.k_proj.base_layer.weight', 'model.layers.17.self_attn.k_proj.lora_A.default.weight', 'model.layers.17.self_attn.k_proj.lora_B.default.weight', 'model.layers.17.self_attn.o_proj.base_layer.weight', 'model.layers.17.self_attn.o_proj.lora_A.default.weight', 'model.layers.17.self_attn.o_proj.lora_B.default.weight', 'model.layers.17.self_attn.q_proj.base_layer.bias', 'model.layers.17.self_attn.q_proj.base_layer.weight', 'model.layers.17.self_attn.q_proj.lora_A.default.weight', 'model.layers.17.self_attn.q_proj.lora_B.default.weight', 'model.layers.17.self_attn.v_proj.base_layer.bias', 'model.layers.17.self_attn.v_proj.base_layer.weight', 'model.layers.17.self_attn.v_proj.lora_A.default.weight', 'model.layers.17.self_attn.v_proj.lora_B.default.weight', 'model.layers.18.self_attn.k_proj.base_layer.bias', 'model.layers.18.self_attn.k_proj.base_layer.weight', 'model.layers.18.self_attn.k_proj.lora_A.default.weight', 'model.layers.18.self_attn.k_proj.lora_B.default.weight', 'model.layers.18.self_attn.o_proj.base_layer.weight', 'model.layers.18.self_attn.o_proj.lora_A.default.weight', 'model.layers.18.self_attn.o_proj.lora_B.default.weight', 'model.layers.18.self_attn.q_proj.base_layer.bias', 'model.layers.18.self_attn.q_proj.base_layer.weight', 'model.layers.18.self_attn.q_proj.lora_A.default.weight', 'model.layers.18.self_attn.q_proj.lora_B.default.weight', 'model.layers.18.self_attn.v_proj.base_layer.bias', 'model.layers.18.self_attn.v_proj.base_layer.weight', 'model.layers.18.self_attn.v_proj.lora_A.default.weight', 'model.layers.18.self_attn.v_proj.lora_B.default.weight', 'model.layers.19.self_attn.k_proj.base_layer.bias', 'model.layers.19.self_attn.k_proj.base_layer.weight', 'model.layers.19.self_attn.k_proj.lora_A.default.weight', 'model.layers.19.self_attn.k_proj.lora_B.default.weight', 'model.layers.19.self_attn.o_proj.base_layer.weight', 'model.layers.19.self_attn.o_proj.lora_A.default.weight', 'model.layers.19.self_attn.o_proj.lora_B.default.weight', 'model.layers.19.self_attn.q_proj.base_layer.bias', 'model.layers.19.self_attn.q_proj.base_layer.weight', 'model.layers.19.self_attn.q_proj.lora_A.default.weight', 'model.layers.19.self_attn.q_proj.lora_B.default.weight', 'model.layers.19.self_attn.v_proj.base_layer.bias', 'model.layers.19.self_attn.v_proj.base_layer.weight', 'model.layers.19.self_attn.v_proj.lora_A.default.weight', 'model.layers.19.self_attn.v_proj.lora_B.default.weight', 'model.layers.2.self_attn.k_proj.base_layer.bias', 'model.layers.2.self_attn.k_proj.base_layer.weight', 'model.layers.2.self_attn.k_proj.lora_A.default.weight', 'model.layers.2.self_attn.k_proj.lora_B.default.weight', 'model.layers.2.self_attn.o_proj.base_layer.weight', 'model.layers.2.self_attn.o_proj.lora_A.default.weight', 'model.layers.2.self_attn.o_proj.lora_B.default.weight', 'model.layers.2.self_attn.q_proj.base_layer.bias', 'model.layers.2.self_attn.q_proj.base_layer.weight', 'model.layers.2.self_attn.q_proj.lora_A.default.weight', 'model.layers.2.self_attn.q_proj.lora_B.default.weight', 'model.layers.2.self_attn.v_proj.base_layer.bias', 'model.layers.2.self_attn.v_proj.base_layer.weight', 'model.layers.2.self_attn.v_proj.lora_A.default.weight', 'model.layers.2.self_attn.v_proj.lora_B.default.weight', 'model.layers.20.self_attn.k_proj.base_layer.bias', 'model.layers.20.self_attn.k_proj.base_layer.weight', 'model.layers.20.self_attn.k_proj.lora_A.default.weight', 'model.layers.20.self_attn.k_proj.lora_B.default.weight', 'model.layers.20.self_attn.o_proj.base_layer.weight', 'model.layers.20.self_attn.o_proj.lora_A.default.weight', 'model.layers.20.self_attn.o_proj.lora_B.default.weight', 'model.layers.20.self_attn.q_proj.base_layer.bias', 'model.layers.20.self_attn.q_proj.base_layer.weight', 'model.layers.20.self_attn.q_proj.lora_A.default.weight', 'model.layers.20.self_attn.q_proj.lora_B.default.weight', 'model.layers.20.self_attn.v_proj.base_layer.bias', 'model.layers.20.self_attn.v_proj.base_layer.weight', 'model.layers.20.self_attn.v_proj.lora_A.default.weight', 'model.layers.20.self_attn.v_proj.lora_B.default.weight', 'model.layers.21.self_attn.k_proj.base_layer.bias', 'model.layers.21.self_attn.k_proj.base_layer.weight', 'model.layers.21.self_attn.k_proj.lora_A.default.weight', 'model.layers.21.self_attn.k_proj.lora_B.default.weight', 'model.layers.21.self_attn.o_proj.base_layer.weight', 'model.layers.21.self_attn.o_proj.lora_A.default.weight', 'model.layers.21.self_attn.o_proj.lora_B.default.weight', 'model.layers.21.self_attn.q_proj.base_layer.bias', 'model.layers.21.self_attn.q_proj.base_layer.weight', 'model.layers.21.self_attn.q_proj.lora_A.default.weight', 'model.layers.21.self_attn.q_proj.lora_B.default.weight', 'model.layers.21.self_attn.v_proj.base_layer.bias', 'model.layers.21.self_attn.v_proj.base_layer.weight', 'model.layers.21.self_attn.v_proj.lora_A.default.weight', 'model.layers.21.self_attn.v_proj.lora_B.default.weight', 'model.layers.22.self_attn.k_proj.base_layer.bias', 'model.layers.22.self_attn.k_proj.base_layer.weight', 'model.layers.22.self_attn.k_proj.lora_A.default.weight', 'model.layers.22.self_attn.k_proj.lora_B.default.weight', 'model.layers.22.self_attn.o_proj.base_layer.weight', 'model.layers.22.self_attn.o_proj.lora_A.default.weight', 'model.layers.22.self_attn.o_proj.lora_B.default.weight', 'model.layers.22.self_attn.q_proj.base_layer.bias', 'model.layers.22.self_attn.q_proj.base_layer.weight', 'model.layers.22.self_attn.q_proj.lora_A.default.weight', 'model.layers.22.self_attn.q_proj.lora_B.default.weight', 'model.layers.22.self_attn.v_proj.base_layer.bias', 'model.layers.22.self_attn.v_proj.base_layer.weight', 'model.layers.22.self_attn.v_proj.lora_A.default.weight', 'model.layers.22.self_attn.v_proj.lora_B.default.weight', 'model.layers.23.self_attn.k_proj.base_layer.bias', 'model.layers.23.self_attn.k_proj.base_layer.weight', 'model.layers.23.self_attn.k_proj.lora_A.default.weight', 'model.layers.23.self_attn.k_proj.lora_B.default.weight', 'model.layers.23.self_attn.o_proj.base_layer.weight', 'model.layers.23.self_attn.o_proj.lora_A.default.weight', 'model.layers.23.self_attn.o_proj.lora_B.default.weight', 'model.layers.23.self_attn.q_proj.base_layer.bias', 'model.layers.23.self_attn.q_proj.base_layer.weight', 'model.layers.23.self_attn.q_proj.lora_A.default.weight', 'model.layers.23.self_attn.q_proj.lora_B.default.weight', 'model.layers.23.self_attn.v_proj.base_layer.bias', 'model.layers.23.self_attn.v_proj.base_layer.weight', 'model.layers.23.self_attn.v_proj.lora_A.default.weight', 'model.layers.23.self_attn.v_proj.lora_B.default.weight', 'model.layers.24.self_attn.k_proj.base_layer.bias', 'model.layers.24.self_attn.k_proj.base_layer.weight', 'model.layers.24.self_attn.k_proj.lora_A.default.weight', 'model.layers.24.self_attn.k_proj.lora_B.default.weight', 'model.layers.24.self_attn.o_proj.base_layer.weight', 'model.layers.24.self_attn.o_proj.lora_A.default.weight', 'model.layers.24.self_attn.o_proj.lora_B.default.weight', 'model.layers.24.self_attn.q_proj.base_layer.bias', 'model.layers.24.self_attn.q_proj.base_layer.weight', 'model.layers.24.self_attn.q_proj.lora_A.default.weight', 'model.layers.24.self_attn.q_proj.lora_B.default.weight', 'model.layers.24.self_attn.v_proj.base_layer.bias', 'model.layers.24.self_attn.v_proj.base_layer.weight', 'model.layers.24.self_attn.v_proj.lora_A.default.weight', 'model.layers.24.self_attn.v_proj.lora_B.default.weight', 'model.layers.25.self_attn.k_proj.base_layer.bias', 'model.layers.25.self_attn.k_proj.base_layer.weight', 'model.layers.25.self_attn.k_proj.lora_A.default.weight', 'model.layers.25.self_attn.k_proj.lora_B.default.weight', 'model.layers.25.self_attn.o_proj.base_layer.weight', 'model.layers.25.self_attn.o_proj.lora_A.default.weight', 'model.layers.25.self_attn.o_proj.lora_B.default.weight', 'model.layers.25.self_attn.q_proj.base_layer.bias', 'model.layers.25.self_attn.q_proj.base_layer.weight', 'model.layers.25.self_attn.q_proj.lora_A.default.weight', 'model.layers.25.self_attn.q_proj.lora_B.default.weight', 'model.layers.25.self_attn.v_proj.base_layer.bias', 'model.layers.25.self_attn.v_proj.base_layer.weight', 'model.layers.25.self_attn.v_proj.lora_A.default.weight', 'model.layers.25.self_attn.v_proj.lora_B.default.weight', 'model.layers.26.self_attn.k_proj.base_layer.bias', 'model.layers.26.self_attn.k_proj.base_layer.weight', 'model.layers.26.self_attn.k_proj.lora_A.default.weight', 'model.layers.26.self_attn.k_proj.lora_B.default.weight', 'model.layers.26.self_attn.o_proj.base_layer.weight', 'model.layers.26.self_attn.o_proj.lora_A.default.weight', 'model.layers.26.self_attn.o_proj.lora_B.default.weight', 'model.layers.26.self_attn.q_proj.base_layer.bias', 'model.layers.26.self_attn.q_proj.base_layer.weight', 'model.layers.26.self_attn.q_proj.lora_A.default.weight', 'model.layers.26.self_attn.q_proj.lora_B.default.weight', 'model.layers.26.self_attn.v_proj.base_layer.bias', 'model.layers.26.self_attn.v_proj.base_layer.weight', 'model.layers.26.self_attn.v_proj.lora_A.default.weight', 'model.layers.26.self_attn.v_proj.lora_B.default.weight', 'model.layers.27.self_attn.k_proj.base_layer.bias', 'model.layers.27.self_attn.k_proj.base_layer.weight', 'model.layers.27.self_attn.k_proj.lora_A.default.weight', 'model.layers.27.self_attn.k_proj.lora_B.default.weight', 'model.layers.27.self_attn.o_proj.base_layer.weight', 'model.layers.27.self_attn.o_proj.lora_A.default.weight', 'model.layers.27.self_attn.o_proj.lora_B.default.weight', 'model.layers.27.self_attn.q_proj.base_layer.bias', 'model.layers.27.self_attn.q_proj.base_layer.weight', 'model.layers.27.self_attn.q_proj.lora_A.default.weight', 'model.layers.27.self_attn.q_proj.lora_B.default.weight', 'model.layers.27.self_attn.v_proj.base_layer.bias', 'model.layers.27.self_attn.v_proj.base_layer.weight', 'model.layers.27.self_attn.v_proj.lora_A.default.weight', 'model.layers.27.self_attn.v_proj.lora_B.default.weight', 'model.layers.3.self_attn.k_proj.base_layer.bias', 'model.layers.3.self_attn.k_proj.base_layer.weight', 'model.layers.3.self_attn.k_proj.lora_A.default.weight', 'model.layers.3.self_attn.k_proj.lora_B.default.weight', 'model.layers.3.self_attn.o_proj.base_layer.weight', 'model.layers.3.self_attn.o_proj.lora_A.default.weight', 'model.layers.3.self_attn.o_proj.lora_B.default.weight', 'model.layers.3.self_attn.q_proj.base_layer.bias', 'model.layers.3.self_attn.q_proj.base_layer.weight', 'model.layers.3.self_attn.q_proj.lora_A.default.weight', 'model.layers.3.self_attn.q_proj.lora_B.default.weight', 'model.layers.3.self_attn.v_proj.base_layer.bias', 'model.layers.3.self_attn.v_proj.base_layer.weight', 'model.layers.3.self_attn.v_proj.lora_A.default.weight', 'model.layers.3.self_attn.v_proj.lora_B.default.weight', 'model.layers.4.self_attn.k_proj.base_layer.bias', 'model.layers.4.self_attn.k_proj.base_layer.weight', 'model.layers.4.self_attn.k_proj.lora_A.default.weight', 'model.layers.4.self_attn.k_proj.lora_B.default.weight', 'model.layers.4.self_attn.o_proj.base_layer.weight', 'model.layers.4.self_attn.o_proj.lora_A.default.weight', 'model.layers.4.self_attn.o_proj.lora_B.default.weight', 'model.layers.4.self_attn.q_proj.base_layer.bias', 'model.layers.4.self_attn.q_proj.base_layer.weight', 'model.layers.4.self_attn.q_proj.lora_A.default.weight', 'model.layers.4.self_attn.q_proj.lora_B.default.weight', 'model.layers.4.self_attn.v_proj.base_layer.bias', 'model.layers.4.self_attn.v_proj.base_layer.weight', 'model.layers.4.self_attn.v_proj.lora_A.default.weight', 'model.layers.4.self_attn.v_proj.lora_B.default.weight', 'model.layers.5.self_attn.k_proj.base_layer.bias', 'model.layers.5.self_attn.k_proj.base_layer.weight', 'model.layers.5.self_attn.k_proj.lora_A.default.weight', 'model.layers.5.self_attn.k_proj.lora_B.default.weight', 'model.layers.5.self_attn.o_proj.base_layer.weight', 'model.layers.5.self_attn.o_proj.lora_A.default.weight', 'model.layers.5.self_attn.o_proj.lora_B.default.weight', 'model.layers.5.self_attn.q_proj.base_layer.bias', 'model.layers.5.self_attn.q_proj.base_layer.weight', 'model.layers.5.self_attn.q_proj.lora_A.default.weight', 'model.layers.5.self_attn.q_proj.lora_B.default.weight', 'model.layers.5.self_attn.v_proj.base_layer.bias', 'model.layers.5.self_attn.v_proj.base_layer.weight', 'model.layers.5.self_attn.v_proj.lora_A.default.weight', 'model.layers.5.self_attn.v_proj.lora_B.default.weight', 'model.layers.6.self_attn.k_proj.base_layer.bias', 'model.layers.6.self_attn.k_proj.base_layer.weight', 'model.layers.6.self_attn.k_proj.lora_A.default.weight', 'model.layers.6.self_attn.k_proj.lora_B.default.weight', 'model.layers.6.self_attn.o_proj.base_layer.weight', 'model.layers.6.self_attn.o_proj.lora_A.default.weight', 'model.layers.6.self_attn.o_proj.lora_B.default.weight', 'model.layers.6.self_attn.q_proj.base_layer.bias', 'model.layers.6.self_attn.q_proj.base_layer.weight', 'model.layers.6.self_attn.q_proj.lora_A.default.weight', 'model.layers.6.self_attn.q_proj.lora_B.default.weight', 'model.layers.6.self_attn.v_proj.base_layer.bias', 'model.layers.6.self_attn.v_proj.base_layer.weight', 'model.layers.6.self_attn.v_proj.lora_A.default.weight', 'model.layers.6.self_attn.v_proj.lora_B.default.weight', 'model.layers.7.self_attn.k_proj.base_layer.bias', 'model.layers.7.self_attn.k_proj.base_layer.weight', 'model.layers.7.self_attn.k_proj.lora_A.default.weight', 'model.layers.7.self_attn.k_proj.lora_B.default.weight', 'model.layers.7.self_attn.o_proj.base_layer.weight', 'model.layers.7.self_attn.o_proj.lora_A.default.weight', 'model.layers.7.self_attn.o_proj.lora_B.default.weight', 'model.layers.7.self_attn.q_proj.base_layer.bias', 'model.layers.7.self_attn.q_proj.base_layer.weight', 'model.layers.7.self_attn.q_proj.lora_A.default.weight', 'model.layers.7.self_attn.q_proj.lora_B.default.weight', 'model.layers.7.self_attn.v_proj.base_layer.bias', 'model.layers.7.self_attn.v_proj.base_layer.weight', 'model.layers.7.self_attn.v_proj.lora_A.default.weight', 'model.layers.7.self_attn.v_proj.lora_B.default.weight', 'model.layers.8.self_attn.k_proj.base_layer.bias', 'model.layers.8.self_attn.k_proj.base_layer.weight', 'model.layers.8.self_attn.k_proj.lora_A.default.weight', 'model.layers.8.self_attn.k_proj.lora_B.default.weight', 'model.layers.8.self_attn.o_proj.base_layer.weight', 'model.layers.8.self_attn.o_proj.lora_A.default.weight', 'model.layers.8.self_attn.o_proj.lora_B.default.weight', 'model.layers.8.self_attn.q_proj.base_layer.bias', 'model.layers.8.self_attn.q_proj.base_layer.weight', 'model.layers.8.self_attn.q_proj.lora_A.default.weight', 'model.layers.8.self_attn.q_proj.lora_B.default.weight', 'model.layers.8.self_attn.v_proj.base_layer.bias', 'model.layers.8.self_attn.v_proj.base_layer.weight', 'model.layers.8.self_attn.v_proj.lora_A.default.weight', 'model.layers.8.self_attn.v_proj.lora_B.default.weight', 'model.layers.9.self_attn.k_proj.base_layer.bias', 'model.layers.9.self_attn.k_proj.base_layer.weight', 'model.layers.9.self_attn.k_proj.lora_A.default.weight', 'model.layers.9.self_attn.k_proj.lora_B.default.weight', 'model.layers.9.self_attn.o_proj.base_layer.weight', 'model.layers.9.self_attn.o_proj.lora_A.default.weight', 'model.layers.9.self_attn.o_proj.lora_B.default.weight', 'model.layers.9.self_attn.q_proj.base_layer.bias', 'model.layers.9.self_attn.q_proj.base_layer.weight', 'model.layers.9.self_attn.q_proj.lora_A.default.weight', 'model.layers.9.self_attn.q_proj.lora_B.default.weight', 'model.layers.9.self_attn.v_proj.base_layer.bias', 'model.layers.9.self_attn.v_proj.base_layer.weight', 'model.layers.9.self_attn.v_proj.lora_A.default.weight', 'model.layers.9.self_attn.v_proj.lora_B.default.weight']
+- This IS expected if you are initializing PGOTQwen2ForCausalLM from the checkpoint of a model trained on another task or with another architecture (e.g. initializing a BertForSequenceClassification model from a BertForPreTraining model).
+- This IS NOT expected if you are initializing PGOTQwen2ForCausalLM from the checkpoint of a model that you expect to be exactly identical (initializing a BertForSequenceClassification model from a BertForSequenceClassification model).
+Some weights of PGOTQwen2ForCausalLM were not initialized from the model checkpoint at /home/jovyan/PGOT/checkpoints/pgot_e11_capacity/checkpoint-10000 and are newly initialized: ['model.layers.0.self_attn.k_proj.bias', 'model.layers.0.self_attn.k_proj.weight', 'model.layers.0.self_attn.o_proj.weight', 'model.layers.0.self_attn.q_proj.bias', 'model.layers.0.self_attn.q_proj.weight', 'model.layers.0.self_attn.v_proj.bias', 'model.layers.0.self_attn.v_proj.weight', 'model.layers.1.self_attn.k_proj.bias', 'model.layers.1.self_attn.k_proj.weight', 'model.layers.1.self_attn.o_proj.weight', 'model.layers.1.self_attn.q_proj.bias', 'model.layers.1.self_attn.q_proj.weight', 'model.layers.1.self_attn.v_proj.bias', 'model.layers.1.self_attn.v_proj.weight', 'model.layers.10.self_attn.k_proj.bias', 'model.layers.10.self_attn.k_proj.weight', 'model.layers.10.self_attn.o_proj.weight', 'model.layers.10.self_attn.q_proj.bias', 'model.layers.10.self_attn.q_proj.weight', 'model.layers.10.self_attn.v_proj.bias', 'model.layers.10.self_attn.v_proj.weight', 'model.layers.11.self_attn.k_proj.bias', 'model.layers.11.self_attn.k_proj.weight', 'model.layers.11.self_attn.o_proj.weight', 'model.layers.11.self_attn.q_proj.bias', 'model.layers.11.self_attn.q_proj.weight', 'model.layers.11.self_attn.v_proj.bias', 'model.layers.11.self_attn.v_proj.weight', 'model.layers.12.self_attn.k_proj.bias', 'model.layers.12.self_attn.k_proj.weight', 'model.layers.12.self_attn.o_proj.weight', 'model.layers.12.self_attn.q_proj.bias', 'model.layers.12.self_attn.q_proj.weight', 'model.layers.12.self_attn.v_proj.bias', 'model.layers.12.self_attn.v_proj.weight', 'model.layers.13.self_attn.k_proj.bias', 'model.layers.13.self_attn.k_proj.weight', 'model.layers.13.self_attn.o_proj.weight', 'model.layers.13.self_attn.q_proj.bias', 'model.layers.13.self_attn.q_proj.weight', 'model.layers.13.self_attn.v_proj.bias', 'model.layers.13.self_attn.v_proj.weight', 'model.layers.14.self_attn.k_proj.bias', 'model.layers.14.self_attn.k_proj.weight', 'model.layers.14.self_attn.o_proj.weight', 'model.layers.14.self_attn.q_proj.bias', 'model.layers.14.self_attn.q_proj.weight', 'model.layers.14.self_attn.v_proj.bias', 'model.layers.14.self_attn.v_proj.weight', 'model.layers.15.self_attn.k_proj.bias', 'model.layers.15.self_attn.k_proj.weight', 'model.layers.15.self_attn.o_proj.weight', 'model.layers.15.self_attn.q_proj.bias', 'model.layers.15.self_attn.q_proj.weight', 'model.layers.15.self_attn.v_proj.bias', 'model.layers.15.self_attn.v_proj.weight', 'model.layers.16.self_attn.k_proj.bias', 'model.layers.16.self_attn.k_proj.weight', 'model.layers.16.self_attn.o_proj.weight', 'model.layers.16.self_attn.q_proj.bias', 'model.layers.16.self_attn.q_proj.weight', 'model.layers.16.self_attn.v_proj.bias', 'model.layers.16.self_attn.v_proj.weight', 'model.layers.17.self_attn.k_proj.bias', 'model.layers.17.self_attn.k_proj.weight', 'model.layers.17.self_attn.o_proj.weight', 'model.layers.17.self_attn.q_proj.bias', 'model.layers.17.self_attn.q_proj.weight', 'model.layers.17.self_attn.v_proj.bias', 'model.layers.17.self_attn.v_proj.weight', 'model.layers.18.self_attn.k_proj.bias', 'model.layers.18.self_attn.k_proj.weight', 'model.layers.18.self_attn.o_proj.weight', 'model.layers.18.self_attn.q_proj.bias', 'model.layers.18.self_attn.q_proj.weight', 'model.layers.18.self_attn.v_proj.bias', 'model.layers.18.self_attn.v_proj.weight', 'model.layers.19.self_attn.k_proj.bias', 'model.layers.19.self_attn.k_proj.weight', 'model.layers.19.self_attn.o_proj.weight', 'model.layers.19.self_attn.q_proj.bias', 'model.layers.19.self_attn.q_proj.weight', 'model.layers.19.self_attn.v_proj.bias', 'model.layers.19.self_attn.v_proj.weight', 'model.layers.2.self_attn.k_proj.bias', 'model.layers.2.self_attn.k_proj.weight', 'model.layers.2.self_attn.o_proj.weight', 'model.layers.2.self_attn.q_proj.bias', 'model.layers.2.self_attn.q_proj.weight', 'model.layers.2.self_attn.v_proj.bias', 'model.layers.2.self_attn.v_proj.weight', 'model.layers.20.self_attn.k_proj.bias', 'model.layers.20.self_attn.k_proj.weight', 'model.layers.20.self_attn.o_proj.weight', 'model.layers.20.self_attn.q_proj.bias', 'model.layers.20.self_attn.q_proj.weight', 'model.layers.20.self_attn.v_proj.bias', 'model.layers.20.self_attn.v_proj.weight', 'model.layers.21.self_attn.k_proj.bias', 'model.layers.21.self_attn.k_proj.weight', 'model.layers.21.self_attn.o_proj.weight', 'model.layers.21.self_attn.q_proj.bias', 'model.layers.21.self_attn.q_proj.weight', 'model.layers.21.self_attn.v_proj.bias', 'model.layers.21.self_attn.v_proj.weight', 'model.layers.22.self_attn.k_proj.bias', 'model.layers.22.self_attn.k_proj.weight', 'model.layers.22.self_attn.o_proj.weight', 'model.layers.22.self_attn.q_proj.bias', 'model.layers.22.self_attn.q_proj.weight', 'model.layers.22.self_attn.v_proj.bias', 'model.layers.22.self_attn.v_proj.weight', 'model.layers.23.self_attn.k_proj.bias', 'model.layers.23.self_attn.k_proj.weight', 'model.layers.23.self_attn.o_proj.weight', 'model.layers.23.self_attn.q_proj.bias', 'model.layers.23.self_attn.q_proj.weight', 'model.layers.23.self_attn.v_proj.bias', 'model.layers.23.self_attn.v_proj.weight', 'model.layers.24.self_attn.k_proj.bias', 'model.layers.24.self_attn.k_proj.weight', 'model.layers.24.self_attn.o_proj.weight', 'model.layers.24.self_attn.q_proj.bias', 'model.layers.24.self_attn.q_proj.weight', 'model.layers.24.self_attn.v_proj.bias', 'model.layers.24.self_attn.v_proj.weight', 'model.layers.25.self_attn.k_proj.bias', 'model.layers.25.self_attn.k_proj.weight', 'model.layers.25.self_attn.o_proj.weight', 'model.layers.25.self_attn.q_proj.bias', 'model.layers.25.self_attn.q_proj.weight', 'model.layers.25.self_attn.v_proj.bias', 'model.layers.25.self_attn.v_proj.weight', 'model.layers.26.self_attn.k_proj.bias', 'model.layers.26.self_attn.k_proj.weight', 'model.layers.26.self_attn.o_proj.weight', 'model.layers.26.self_attn.q_proj.bias', 'model.layers.26.self_attn.q_proj.weight', 'model.layers.26.self_attn.v_proj.bias', 'model.layers.26.self_attn.v_proj.weight', 'model.layers.27.self_attn.k_proj.bias', 'model.layers.27.self_attn.k_proj.weight', 'model.layers.27.self_attn.o_proj.weight', 'model.layers.27.self_attn.q_proj.bias', 'model.layers.27.self_attn.q_proj.weight', 'model.layers.27.self_attn.v_proj.bias', 'model.layers.27.self_attn.v_proj.weight', 'model.layers.3.self_attn.k_proj.bias', 'model.layers.3.self_attn.k_proj.weight', 'model.layers.3.self_attn.o_proj.weight', 'model.layers.3.self_attn.q_proj.bias', 'model.layers.3.self_attn.q_proj.weight', 'model.layers.3.self_attn.v_proj.bias', 'model.layers.3.self_attn.v_proj.weight', 'model.layers.4.self_attn.k_proj.bias', 'model.layers.4.self_attn.k_proj.weight', 'model.layers.4.self_attn.o_proj.weight', 'model.layers.4.self_attn.q_proj.bias', 'model.layers.4.self_attn.q_proj.weight', 'model.layers.4.self_attn.v_proj.bias', 'model.layers.4.self_attn.v_proj.weight', 'model.layers.5.self_attn.k_proj.bias', 'model.layers.5.self_attn.k_proj.weight', 'model.layers.5.self_attn.o_proj.weight', 'model.layers.5.self_attn.q_proj.bias', 'model.layers.5.self_attn.q_proj.weight', 'model.layers.5.self_attn.v_proj.bias', 'model.layers.5.self_attn.v_proj.weight', 'model.layers.6.self_attn.k_proj.bias', 'model.layers.6.self_attn.k_proj.weight', 'model.layers.6.self_attn.o_proj.weight', 'model.layers.6.self_attn.q_proj.bias', 'model.layers.6.self_attn.q_proj.weight', 'model.layers.6.self_attn.v_proj.bias', 'model.layers.6.self_attn.v_proj.weight', 'model.layers.7.self_attn.k_proj.bias', 'model.layers.7.self_attn.k_proj.weight', 'model.layers.7.self_attn.o_proj.weight', 'model.layers.7.self_attn.q_proj.bias', 'model.layers.7.self_attn.q_proj.weight', 'model.layers.7.self_attn.v_proj.bias', 'model.layers.7.self_attn.v_proj.weight', 'model.layers.8.self_attn.k_proj.bias', 'model.layers.8.self_attn.k_proj.weight', 'model.layers.8.self_attn.o_proj.weight', 'model.layers.8.self_attn.q_proj.bias', 'model.layers.8.self_attn.q_proj.weight', 'model.layers.8.self_attn.v_proj.bias', 'model.layers.8.self_attn.v_proj.weight', 'model.layers.9.self_attn.k_proj.bias', 'model.layers.9.self_attn.k_proj.weight', 'model.layers.9.self_attn.o_proj.weight', 'model.layers.9.self_attn.q_proj.bias', 'model.layers.9.self_attn.q_proj.weight', 'model.layers.9.self_attn.v_proj.bias', 'model.layers.9.self_attn.v_proj.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+/home/jovyan/.conda/envs/scale_rae/lib/python3.10/site-packages/huggingface_hub/file_download.py:1142: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+2026-09-01 02:23:07 PID=1301457 eval_recon_oracles.py:190 load_model_and_tokenizer() INFO → [LoRA] loaded checkpoint | missing=1 unexpected=0
+2026-09-01 02:23:11 PID=1301457 eval_recon_oracles.py:93 patch_diffusion_steps() INFO → Patched RF inference_flow to 10 steps.
+2026-09-01 02:23:11 PID=1301457 eval_recon_oracles.py:208 load_model_and_tokenizer() INFO → Model loaded on cuda.
+pretrain_adapter_and_vision_head is: None
+E11 follow-up:   0%|          | 0/256 [00:00<?, ?it/s]E11 follow-up:   0%|          | 1/256 [00:05<25:20,  5.96s/it]E11 follow-up:   1%|          | 2/256 [00:08<17:54,  4.23s/it]E11 follow-up:   1%|          | 3/256 [00:12<15:33,  3.69s/it]E11 follow-up:   2%|▏         | 4/256 [00:14<13:36,  3.24s/it]E11 follow-up:   2%|▏         | 5/256 [00:17<12:35,  3.01s/it]E11 follow-up:   2%|▏         | 6/256 [00:19<11:55,  2.86s/it]E11 follow-up:   3%|▎         | 7/256 [00:21<10:54,  2.63s/it]E11 follow-up:   3%|▎         | 8/256 [00:24<10:46,  2.61s/it]E11 follow-up:   4%|▎         | 9/256 [00:27<10:43,  2.60s/it]E11 follow-up:   4%|▍         | 10/256 [00:29<10:04,  2.46s/it]E11 follow-up:   4%|▍         | 11/256 [00:31<09:36,  2.35s/it]E11 follow-up:   5%|▍         | 12/256 [00:33<09:53,  2.43s/it]E11 follow-up:   5%|▌         | 13/256 [00:36<10:21,  2.56s/it]E11 follow-up:   5%|▌         | 14/256 [00:39<10:28,  2.60s/it]E11 follow-up:   6%|▌         | 15/256 [00:42<10:23,  2.59s/it]E11 follow-up:   6%|▋         | 16/256 [00:44<10:17,  2.57s/it]E11 follow-up:   7%|▋         | 17/256 [00:47<10:17,  2.58s/it]E11 follow-up:   7%|▋         | 18/256 [00:49<10:12,  2.58s/it]E11 follow-up:   7%|▋         | 19/256 [00:52<10:08,  2.57s/it]E11 follow-up:   8%|▊         | 20/256 [00:54<10:04,  2.56s/it]E11 follow-up:   8%|▊         | 21/256 [00:57<10:05,  2.58s/it]E11 follow-up:   9%|▊         | 22/256 [01:00<10:06,  2.59s/it]E11 follow-up:   9%|▉         | 23/256 [01:02<10:01,  2.58s/it]E11 follow-up:   9%|▉         | 24/256 [01:05<10:03,  2.60s/it]E11 follow-up:  10%|▉         | 25/256 [01:07<09:56,  2.58s/it]E11 follow-up:  10%|█         | 26/256 [01:10<09:54,  2.58s/it]E11 follow-up:  11%|█         | 27/256 [01:12<09:48,  2.57s/it]E11 follow-up:  11%|█         | 28/256 [01:15<09:46,  2.57s/it]E11 follow-up:  11%|█▏        | 29/256 [01:17<09:11,  2.43s/it]E11 follow-up:  12%|█▏        | 30/256 [01:20<09:18,  2.47s/it]E11 follow-up:  12%|█▏        | 31/256 [01:22<09:25,  2.51s/it]E11 follow-up:  12%|█▎        | 32/256 [01:25<09:28,  2.54s/it]E11 follow-up:  13%|█▎        | 33/256 [01:27<09:26,  2.54s/it]E11 follow-up:  13%|█▎        | 34/256 [01:30<09:24,  2.54s/it]E11 follow-up:  14%|█▎        | 35/256 [01:33<09:22,  2.54s/it]E11 follow-up:  14%|█▍        | 36/256 [01:35<09:21,  2.55s/it]E11 follow-up:  14%|█▍        | 37/256 [01:37<08:06,  2.22s/it]E11 follow-up:  15%|█▍        | 38/256 [01:38<07:10,  1.98s/it]E11 follow-up:  15%|█▌        | 39/256 [01:39<06:33,  1.81s/it]E11 follow-up:  16%|█▌        | 40/256 [01:41<06:04,  1.69s/it]E11 follow-up:  16%|█▌        | 41/256 [01:42<05:44,  1.60s/it]E11 follow-up:  16%|█▋        | 42/256 [01:44<05:35,  1.57s/it]E11 follow-up:  17%|█▋        | 43/256 [01:45<05:28,  1.54s/it]E11 follow-up:  17%|█▋        | 44/256 [01:47<05:19,  1.51s/it]E11 follow-up:  18%|█▊        | 45/256 [01:48<05:11,  1.47s/it]E11 follow-up:  18%|█▊        | 46/256 [01:49<05:09,  1.47s/it]E11 follow-up:  18%|█▊        | 47/256 [01:51<05:06,  1.47s/it]E11 follow-up:  19%|█▉        | 48/256 [01:52<05:00,  1.45s/it]E11 follow-up:  19%|█▉        | 49/256 [01:54<04:58,  1.44s/it]E11 follow-up:  20%|█▉        | 50/256 [01:55<04:53,  1.43s/it]E11 follow-up:  20%|█▉        | 51/256 [01:57<04:54,  1.44s/it]E11 follow-up:  20%|██        | 52/256 [01:58<04:50,  1.42s/it]E11 follow-up:  21%|██        | 53/256 [01:59<04:46,  1.41s/it]E11 follow-up:  21%|██        | 54/256 [02:01<04:44,  1.41s/it]E11 follow-up:  21%|██▏       | 55/256 [02:02<04:45,  1.42s/it]E11 follow-up:  22%|██▏       | 56/256 [02:04<04:44,  1.42s/it]E11 follow-up:  22%|██▏       | 57/256 [02:05<04:41,  1.41s/it]E11 follow-up:  23%|██▎       | 58/256 [02:06<04:42,  1.43s/it]E11 follow-up:  23%|██▎       | 59/256 [02:08<04:42,  1.43s/it]E11 follow-up:  23%|██▎       | 60/256 [02:09<04:43,  1.44s/it]E11 follow-up:  24%|██▍       | 61/256 [02:11<04:42,  1.45s/it]E11 follow-up:  24%|██▍       | 62/256 [02:12<04:38,  1.43s/it]E11 follow-up:  25%|██▍       | 63/256 [02:14<04:35,  1.43s/it]E11 follow-up:  25%|██▌       | 64/256 [02:15<04:33,  1.42s/it]E11 follow-up:  25%|██▌       | 65/256 [02:17<04:36,  1.45s/it]E11 follow-up:  26%|██▌       | 66/256 [02:18<04:36,  1.46s/it]E11 follow-up:  26%|██▌       | 67/256 [02:20<04:35,  1.46s/it]E11 follow-up:  27%|██▋       | 68/256 [02:21<04:31,  1.45s/it]E11 follow-up:  27%|██▋       | 69/256 [02:22<04:32,  1.46s/it]E11 follow-up:  27%|██▋       | 70/256 [02:24<04:28,  1.44s/it]E11 follow-up:  28%|██▊       | 71/256 [02:25<04:25,  1.43s/it]E11 follow-up:  28%|██▊       | 72/256 [02:27<04:23,  1.43s/it]E11 follow-up:  29%|██▊       | 73/256 [02:28<04:22,  1.44s/it]E11 follow-up:  29%|██▉       | 74/256 [02:30<04:20,  1.43s/it]E11 follow-up:  29%|██▉       | 75/256 [02:31<04:20,  1.44s/it]E11 follow-up:  30%|██▉       | 76/256 [02:32<04:17,  1.43s/it]E11 follow-up:  30%|███       | 77/256 [02:34<04:15,  1.43s/it]E11 follow-up:  30%|███       | 78/256 [02:35<04:16,  1.44s/it]E11 follow-up:  31%|███       | 79/256 [02:37<04:16,  1.45s/it]E11 follow-up:  31%|███▏      | 80/256 [02:38<04:12,  1.43s/it]E11 follow-up:  32%|███▏      | 81/256 [02:40<04:09,  1.43s/it]E11 follow-up:  32%|███▏      | 82/256 [02:41<04:06,  1.42s/it]E11 follow-up:  32%|███▏      | 83/256 [02:42<04:04,  1.41s/it]E11 follow-up:  33%|███▎      | 84/256 [02:44<04:02,  1.41s/it]E11 follow-up:  33%|███▎      | 85/256 [02:45<04:03,  1.43s/it]E11 follow-up:  34%|███▎      | 86/256 [02:47<04:03,  1.43s/it]E11 follow-up:  34%|███▍      | 87/256 [02:48<04:03,  1.44s/it]E11 follow-up:  34%|███▍      | 88/256 [02:50<04:06,  1.47s/it]E11 follow-up:  35%|███▍      | 89/256 [02:51<04:04,  1.46s/it]E11 follow-up:  35%|███▌      | 90/256 [02:53<04:00,  1.45s/it]E11 follow-up:  36%|███▌      | 91/256 [02:54<03:55,  1.43s/it]E11 follow-up:  36%|███▌      | 92/256 [02:55<03:53,  1.42s/it]E11 follow-up:  36%|███▋      | 93/256 [02:57<03:54,  1.44s/it]E11 follow-up:  37%|███▋      | 94/256 [02:58<03:55,  1.45s/it]E11 follow-up:  37%|███▋      | 95/256 [03:00<03:52,  1.44s/it]E11 follow-up:  38%|███▊      | 96/256 [03:05<06:32,  2.45s/it]E11 follow-up:  38%|███▊      | 97/256 [03:18<14:57,  5.65s/it]E11 follow-up:  38%|███▊      | 98/256 [03:27<18:09,  6.89s/it]E11 follow-up:  39%|███▊      | 99/256 [03:37<20:29,  7.83s/it]E11 follow-up:  39%|███▉      | 100/256 [03:44<19:28,  7.49s/it]E11 follow-up:  39%|███▉      | 101/256 [03:47<15:43,  6.09s/it]E11 follow-up:  40%|███▉      | 102/256 [03:49<12:33,  4.89s/it]E11 follow-up:  40%|████      | 103/256 [03:50<09:47,  3.84s/it]E11 follow-up:  41%|████      | 104/256 [03:52<07:51,  3.10s/it]E11 follow-up:  41%|████      | 105/256 [03:53<06:30,  2.59s/it]E11 follow-up:  41%|████▏     | 106/256 [03:55<05:34,  2.23s/it]E11 follow-up:  42%|████▏     | 107/256 [03:56<04:55,  1.98s/it]E11 follow-up:  42%|████▏     | 108/256 [03:57<04:27,  1.81s/it]E11 follow-up:  43%|████▎     | 109/256 [03:59<04:07,  1.68s/it]E11 follow-up:  43%|████▎     | 110/256 [04:00<03:52,  1.59s/it]E11 follow-up:  43%|████▎     | 111/256 [04:02<03:42,  1.54s/it]E11 follow-up:  44%|████▍     | 112/256 [04:03<03:36,  1.50s/it]E11 follow-up:  44%|████▍     | 113/256 [04:05<03:34,  1.50s/it]E11 follow-up:  45%|████▍     | 114/256 [04:06<03:28,  1.47s/it]E11 follow-up:  45%|████▍     | 115/256 [04:07<03:26,  1.47s/it]E11 follow-up:  45%|████▌     | 116/256 [04:09<03:23,  1.45s/it]E11 follow-up:  46%|████▌     | 117/256 [04:10<03:20,  1.44s/it]E11 follow-up:  46%|████▌     | 118/256 [04:12<03:18,  1.44s/it]E11 follow-up:  46%|████▋     | 119/256 [04:13<03:15,  1.43s/it]E11 follow-up:  47%|████▋     | 120/256 [04:15<03:17,  1.45s/it]E11 follow-up:  47%|████▋     | 121/256 [04:16<03:13,  1.44s/it]E11 follow-up:  48%|████▊     | 122/256 [04:17<03:13,  1.44s/it]E11 follow-up:  48%|████▊     | 123/256 [04:19<03:11,  1.44s/it]E11 follow-up:  48%|████▊     | 124/256 [04:20<03:11,  1.45s/it]E11 follow-up:  49%|████▉     | 125/256 [04:22<03:10,  1.46s/it]E11 follow-up:  49%|████▉     | 126/256 [04:23<03:07,  1.44s/it]E11 follow-up:  50%|████▉     | 127/256 [04:25<03:05,  1.44s/it]E11 follow-up:  50%|█████     | 128/256 [04:26<03:02,  1.42s/it]E11 follow-up:  50%|█████     | 129/256 [04:27<02:59,  1.41s/it]E11 follow-up:  51%|█████     | 130/256 [04:29<02:58,  1.42s/it]E11 follow-up:  51%|█████     | 131/256 [04:30<02:59,  1.44s/it]E11 follow-up:  52%|█████▏    | 132/256 [04:32<02:56,  1.42s/it]E11 follow-up:  52%|█████▏    | 133/256 [04:33<02:54,  1.42s/it]E11 follow-up:  52%|█████▏    | 134/256 [04:35<02:54,  1.43s/it]E11 follow-up:  53%|█████▎    | 135/256 [04:36<02:53,  1.43s/it]E11 follow-up:  53%|█████▎    | 136/256 [04:37<02:50,  1.42s/it]E11 follow-up:  54%|█████▎    | 137/256 [04:39<02:48,  1.41s/it]E11 follow-up:  54%|█████▍    | 138/256 [04:40<02:46,  1.41s/it]E11 follow-up:  54%|█████▍    | 139/256 [04:42<02:44,  1.41s/it]E11 follow-up:  55%|█████▍    | 140/256 [04:43<02:46,  1.44s/it]E11 follow-up:  55%|█████▌    | 141/256 [04:45<02:49,  1.47s/it]E11 follow-up:  55%|█████▌    | 142/256 [04:46<02:45,  1.45s/it]E11 follow-up:  56%|█████▌    | 143/256 [04:47<02:41,  1.43s/it]E11 follow-up:  56%|█████▋    | 144/256 [04:49<02:39,  1.42s/it]E11 follow-up:  57%|█████▋    | 145/256 [04:50<02:37,  1.42s/it]E11 follow-up:  57%|█████▋    | 146/256 [04:52<02:35,  1.41s/it]E11 follow-up:  57%|█████▋    | 147/256 [04:53<02:33,  1.41s/it]E11 follow-up:  58%|█████▊    | 148/256 [04:55<02:34,  1.43s/it]E11 follow-up:  58%|█████▊    | 149/256 [04:56<02:34,  1.44s/it]E11 follow-up:  59%|█████▊    | 150/256 [04:57<02:33,  1.45s/it]E11 follow-up:  59%|█████▉    | 151/256 [04:59<02:32,  1.45s/it]E11 follow-up:  59%|█████▉    | 152/256 [05:00<02:30,  1.45s/it]E11 follow-up:  60%|█████▉    | 153/256 [05:02<02:27,  1.43s/it]E11 follow-up:  60%|██████    | 154/256 [05:03<02:27,  1.44s/it]E11 follow-up:  61%|██████    | 155/256 [05:05<02:24,  1.43s/it]E11 follow-up:  61%|██████    | 156/256 [05:06<02:24,  1.44s/it]E11 follow-up:  61%|██████▏   | 157/256 [05:07<02:21,  1.43s/it]E11 follow-up:  62%|██████▏   | 158/256 [05:09<02:19,  1.43s/it]E11 follow-up:  62%|██████▏   | 159/256 [05:10<02:19,  1.44s/it]E11 follow-up:  62%|██████▎   | 160/256 [05:12<02:18,  1.45s/it]E11 follow-up:  63%|██████▎   | 161/256 [05:13<02:16,  1.43s/it]E11 follow-up:  63%|██████▎   | 162/256 [05:15<02:17,  1.46s/it]E11 follow-up:  64%|██████▎   | 163/256 [05:16<02:14,  1.44s/it]E11 follow-up:  64%|██████▍   | 164/256 [05:18<02:12,  1.44s/it]E11 follow-up:  64%|██████▍   | 165/256 [05:19<02:11,  1.45s/it]E11 follow-up:  65%|██████▍   | 166/256 [05:21<02:10,  1.45s/it]E11 follow-up:  65%|██████▌   | 167/256 [05:22<02:10,  1.46s/it]E11 follow-up:  66%|██████▌   | 168/256 [05:23<02:07,  1.45s/it]E11 follow-up:  66%|██████▌   | 169/256 [05:25<02:04,  1.44s/it]E11 follow-up:  66%|██████▋   | 170/256 [05:26<02:03,  1.43s/it]E11 follow-up:  67%|██████▋   | 171/256 [05:28<02:01,  1.43s/it]E11 follow-up:  67%|██████▋   | 172/256 [05:29<02:01,  1.44s/it]E11 follow-up:  68%|██████▊   | 173/256 [05:31<01:58,  1.43s/it]E11 follow-up:  68%|██████▊   | 174/256 [05:32<01:58,  1.44s/it]E11 follow-up:  68%|██████▊   | 175/256 [05:33<01:55,  1.43s/it]E11 follow-up:  69%|██████▉   | 176/256 [05:35<01:54,  1.43s/it]E11 follow-up:  69%|██████▉   | 177/256 [05:36<01:52,  1.42s/it]E11 follow-up:  70%|██████▉   | 178/256 [05:38<01:50,  1.42s/it]E11 follow-up:  70%|██████▉   | 179/256 [05:39<01:49,  1.43s/it]E11 follow-up:  70%|███████   | 180/256 [05:41<01:48,  1.42s/it]E11 follow-up:  71%|███████   | 181/256 [05:42<01:46,  1.42s/it]E11 follow-up:  71%|███████   | 182/256 [05:43<01:45,  1.42s/it]E11 follow-up:  71%|███████▏  | 183/256 [05:45<01:43,  1.42s/it]E11 follow-up:  72%|███████▏  | 184/256 [05:46<01:42,  1.42s/it]E11 follow-up:  72%|███████▏  | 185/256 [05:48<01:40,  1.42s/it]E11 follow-up:  73%|███████▎  | 186/256 [05:49<01:39,  1.42s/it]E11 follow-up:  73%|███████▎  | 187/256 [05:50<01:38,  1.42s/it]E11 follow-up:  73%|███████▎  | 188/256 [05:52<01:36,  1.42s/it]E11 follow-up:  74%|███████▍  | 189/256 [05:53<01:35,  1.42s/it]E11 follow-up:  74%|███████▍  | 190/256 [05:55<01:34,  1.43s/it]E11 follow-up:  75%|███████▍  | 191/256 [05:56<01:33,  1.43s/it]E11 follow-up:  75%|███████▌  | 192/256 [05:58<01:31,  1.43s/it]E11 follow-up:  75%|███████▌  | 193/256 [05:59<01:29,  1.43s/it]E11 follow-up:  76%|███████▌  | 194/256 [06:00<01:28,  1.43s/it]E11 follow-up:  76%|███████▌  | 195/256 [06:02<01:27,  1.44s/it]E11 follow-up:  77%|███████▋  | 196/256 [06:03<01:26,  1.44s/it]E11 follow-up:  77%|███████▋  | 197/256 [06:05<01:24,  1.44s/it]E11 follow-up:  77%|███████▋  | 198/256 [06:06<01:23,  1.43s/it]E11 follow-up:  78%|███████▊  | 199/256 [06:08<01:21,  1.42s/it]E11 follow-up:  78%|███████▊  | 200/256 [06:09<01:20,  1.43s/it]E11 follow-up:  79%|███████▊  | 201/256 [06:10<01:18,  1.42s/it]E11 follow-up:  79%|███████▉  | 202/256 [06:12<01:16,  1.42s/it]E11 follow-up:  79%|███████▉  | 203/256 [06:13<01:15,  1.42s/it]E11 follow-up:  80%|███████▉  | 204/256 [06:15<01:13,  1.41s/it]E11 follow-up:  80%|████████  | 205/256 [06:16<01:11,  1.41s/it]E11 follow-up:  80%|████████  | 206/256 [06:18<01:11,  1.42s/it]E11 follow-up:  81%|████████  | 207/256 [06:19<01:09,  1.42s/it]E11 follow-up:  81%|████████▏ | 208/256 [06:20<01:08,  1.42s/it]E11 follow-up:  82%|████████▏ | 209/256 [06:22<01:06,  1.41s/it]E11 follow-up:  82%|████████▏ | 210/256 [06:23<01:06,  1.44s/it]E11 follow-up:  82%|████████▏ | 211/256 [06:25<01:04,  1.43s/it]E11 follow-up:  83%|████████▎ | 212/256 [06:26<01:03,  1.44s/it]E11 follow-up:  83%|████████▎ | 213/256 [06:28<01:01,  1.43s/it]E11 follow-up:  84%|████████▎ | 214/256 [06:29<01:00,  1.43s/it]E11 follow-up:  84%|████████▍ | 215/256 [06:30<00:58,  1.43s/it]E11 follow-up:  84%|████████▍ | 216/256 [06:32<00:57,  1.44s/it]E11 follow-up:  85%|████████▍ | 217/256 [06:33<00:55,  1.43s/it]E11 follow-up:  85%|████████▌ | 218/256 [06:35<00:54,  1.43s/it]E11 follow-up:  86%|████████▌ | 219/256 [06:36<00:52,  1.42s/it]E11 follow-up:  86%|████████▌ | 220/256 [06:38<00:50,  1.42s/it]E11 follow-up:  86%|████████▋ | 221/256 [06:39<00:49,  1.41s/it]E11 follow-up:  87%|████████▋ | 222/256 [06:40<00:48,  1.42s/it]E11 follow-up:  87%|████████▋ | 223/256 [06:42<00:46,  1.41s/it]E11 follow-up:  88%|████████▊ | 224/256 [06:43<00:45,  1.41s/it]E11 follow-up:  88%|████████▊ | 225/256 [06:45<00:44,  1.42s/it]E11 follow-up:  88%|████████▊ | 226/256 [06:46<00:42,  1.42s/it]E11 follow-up:  89%|████████▊ | 227/256 [06:47<00:41,  1.42s/it]E11 follow-up:  89%|████████▉ | 228/256 [06:49<00:40,  1.43s/it]E11 follow-up:  89%|████████▉ | 229/256 [06:50<00:38,  1.43s/it]E11 follow-up:  90%|████████▉ | 230/256 [06:52<00:37,  1.43s/it]E11 follow-up:  90%|█████████ | 231/256 [06:53<00:35,  1.42s/it]E11 follow-up:  91%|█████████ | 232/256 [06:55<00:34,  1.42s/it]E11 follow-up:  91%|█████████ | 233/256 [06:56<00:33,  1.44s/it]E11 follow-up:  91%|█████████▏| 234/256 [06:58<00:32,  1.46s/it]E11 follow-up:  92%|█████████▏| 235/256 [06:59<00:30,  1.46s/it]E11 follow-up:  92%|█████████▏| 236/256 [07:00<00:28,  1.45s/it]E11 follow-up:  93%|█████████▎| 237/256 [07:02<00:28,  1.47s/it]E11 follow-up:  93%|█████████▎| 238/256 [07:03<00:26,  1.45s/it]E11 follow-up:  93%|█████████▎| 239/256 [07:05<00:24,  1.44s/it]E11 follow-up:  94%|█████████▍| 240/256 [07:06<00:22,  1.43s/it]E11 follow-up:  94%|█████████▍| 241/256 [07:08<00:21,  1.43s/it]E11 follow-up:  95%|█████████▍| 242/256 [07:09<00:19,  1.42s/it]E11 follow-up:  95%|█████████▍| 243/256 [07:11<00:18,  1.44s/it]E11 follow-up:  95%|█████████▌| 244/256 [07:12<00:17,  1.44s/it]E11 follow-up:  96%|█████████▌| 245/256 [07:13<00:15,  1.45s/it]E11 follow-up:  96%|█████████▌| 246/256 [07:15<00:14,  1.45s/it]E11 follow-up:  96%|█████████▋| 247/256 [07:16<00:13,  1.46s/it]E11 follow-up:  97%|█████████▋| 248/256 [07:18<00:11,  1.44s/it]E11 follow-up:  97%|█████████▋| 249/256 [07:19<00:10,  1.43s/it]E11 follow-up:  98%|█████████▊| 250/256 [07:21<00:08,  1.44s/it]E11 follow-up:  98%|█████████▊| 251/256 [07:22<00:07,  1.45s/it]E11 follow-up:  98%|█████████▊| 252/256 [07:24<00:05,  1.45s/it]E11 follow-up:  99%|█████████▉| 253/256 [07:25<00:04,  1.47s/it]E11 follow-up:  99%|█████████▉| 254/256 [07:26<00:02,  1.44s/it]E11 follow-up: 100%|█████████▉| 255/256 [07:28<00:01,  1.43s/it]E11 follow-up: 100%|██████████| 256/256 [07:29<00:00,  1.42s/it]E11 follow-up: 100%|██████████| 256/256 [07:30<00:00,  1.76s/it]
+2026-09-01 02:30:42 PID=1301457 diagnose_e11_followup.py:799 run() INFO → Wrote /home/jovyan/PGOT/outputs/analysis_e11_capacity_dit16_followup_512/summary.json
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_e11_capacity_dit16/checkpoint-10000",
+  "num_samples": 512,
+  "protocol": {
+    "memory_count": "Top-N is selected independently for every semantic owner using the final Writer utilization; object-only and register-only capacity reductions are also reported.",
+    "spatial_assignment": "Final Writer owner mass multiplied by within-owner memory softmax.",
+    "donor_transfer": "Same-category previous-image donor; fixed diffusion noise; masked generated SigLIP feature compared with donor/target GT features.",
+    "register_decomposition": {
+      "register_only_keys_present": "Object values zero; object semantic keys remain valid.",
+      "register_only_null_object_keys": "Object values and semantic content zero; zero object slots remain valid.",
+      "pure_register_only_object_keys_masked": "Object values zero and object slots removed from Reader attention.",
+      "all_memory_zero": "All visual values zero while semantic keys remain.",
+      "full_with_registers_swapped": "Target object memories with registers from a previous image."
+    }
+  },
+  "memory_count_ablation": {
+    "keep_top_16_all_owners": {
+      "mse": {
+        "mean": 0.5825150892487727,
+        "median": 0.5727694034576416,
+        "std": 0.16165837877660022,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.5384540871018544,
+        "median": 0.5130901038646698,
+        "std": 0.16165101014239464,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.5884302831836976,
+        "median": 0.568178117275238,
+        "std": 0.16619966281699994,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      }
+    },
+    "keep_top_16_register_owners": {
+      "mse": {
+        "mean": 0.5825150892487727,
+        "median": 0.5727694034576416,
+        "std": 0.16165837877660022,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.5384540871018544,
+        "median": 0.5130901038646698,
+        "std": 0.16165101014239464,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.5884302831836976,
+        "median": 0.568178117275238,
+        "std": 0.16619966281699994,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      }
+    },
+    "keep_top_1_all_owners": {
+      "mse": {
+        "mean": 0.684777520771604,
+        "median": 0.6132142841815948,
+        "std": 0.2553308190339142,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.6176953419635538,
+        "median": 0.5670062601566315,
+        "std": 0.2327122648645618,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.6971613428904675,
+        "median": 0.6308325231075287,
+        "std": 0.2641326334013015,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.11726903784438036,
+        "median": 0.0677584633231163,
+        "std": 0.119458589231038,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.15334212607012887,
+        "median": 0.09940732270479202,
+        "std": 0.1341692397620735,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.10226243152283132,
+        "median": 0.05271252989768982,
+        "std": 0.1097515816161905,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.07924125491990708,
+        "median": 0.03219032287597656,
+        "std": 0.1005496917068095,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.10873105970676988,
+        "median": 0.05550161004066467,
+        "std": 0.11502162219743223,
+        "count": 512
+      }
+    },
+    "keep_top_1_object_owners": {
+      "mse": {
+        "mean": 0.5970450235763565,
+        "median": 0.5794315338134766,
+        "std": 0.17598035457360373,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.5716385753476061,
+        "median": 0.5398022830486298,
+        "std": 0.18906200129102665,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.5927684987545945,
+        "median": 0.5741908252239227,
+        "std": 0.1703922409813535,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.054960608400335786,
+        "median": 0.03390399180352688,
+        "std": 0.05879105896986033,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.017963513396100694,
+        "median": 0.00904562184587121,
+        "std": 0.022098211504315745,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.01452993432758376,
+        "median": 0.003536418080329895,
+        "std": 0.025602401089820915,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.03318448824575171,
+        "median": 0.014042004942893982,
+        "std": 0.04753901443293367,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.004338215570896864,
+        "median": 0.0007732212543487549,
+        "std": 0.012860622189474135,
+        "count": 512
+      }
+    },
+    "keep_top_1_register_owners": {
+      "mse": {
+        "mean": 0.6482472805655561,
+        "median": 0.6018691658973694,
+        "std": 0.22150630755450557,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.5516052571765613,
+        "median": 0.5298607349395752,
+        "std": 0.17227294767681903,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.672667597187683,
+        "median": 0.6126338839530945,
+        "std": 0.2410841784853691,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.030632655195518055,
+        "median": 0.01736351102590561,
+        "std": 0.035984989806654884,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.11695895722311889,
+        "median": 0.07339141145348549,
+        "std": 0.10937280803896073,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.06573219131678343,
+        "median": 0.029991552233695984,
+        "std": 0.08123998545765765,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.013151170074706897,
+        "median": 0.003888338804244995,
+        "std": 0.032881610882958136,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.08423731400398538,
+        "median": 0.04371201992034912,
+        "std": 0.09368518599162445,
+        "count": 512
+      }
+    },
+    "keep_top_2_all_owners": {
+      "mse": {
+        "mean": 0.654898059729021,
+        "median": 0.598362386226654,
+        "std": 0.22774661272268065,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.5844887456623837,
+        "median": 0.5415448248386383,
+        "std": 0.20401071352507358,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.6674189773038961,
+        "median": 0.6074238717556,
+        "std": 0.237678770087222,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.07518459181574144,
+        "median": 0.043238019570708275,
+        "std": 0.07889098672773125,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.11653435843618354,
+        "median": 0.07820792868733406,
+        "std": 0.10363551359737225,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.07238297048024833,
+        "median": 0.03618237376213074,
+        "std": 0.08087549009990118,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.04603465856052935,
+        "median": 0.01682165265083313,
+        "std": 0.0671920401029929,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.07898869412019849,
+        "median": 0.04001736640930176,
+        "std": 0.08734332062619599,
+        "count": 512
+      }
+    },
+    "keep_top_2_object_owners": {
+      "mse": {
+        "mean": 0.592001210548915,
+        "median": 0.5740938782691956,
+        "std": 0.170948731429251,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.5595950839342549,
+        "median": 0.5260507464408875,
+        "std": 0.1792513725190553,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.5911757203866728,
+        "median": 0.5717381536960602,
+        "std": 0.16898768971534964,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.035761583615779635,
+        "median": 0.019644031301140785,
+        "std": 0.04148467888987739,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.012321579813059369,
+        "median": 0.00547806778922677,
+        "std": 0.016700894203807142,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.009486121300142258,
+        "median": 0.0017253458499908447,
+        "std": 0.017473146215841926,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.02114099683240056,
+        "median": 0.0071229487657547,
+        "std": 0.034406242917578364,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.002745437202975154,
+        "median": 0.0004148632287979126,
+        "std": 0.009498492534984937,
+        "count": 512
+      }
+    },
+    "keep_top_2_register_owners": {
+      "mse": {
+        "mean": 0.6337949546286836,
+        "median": 0.5932328104972839,
+        "std": 0.20742978212632598,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.5477744679956231,
+        "median": 0.5225203931331635,
+        "std": 0.16951459777329253,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.6537693741847761,
+        "median": 0.603983610868454,
+        "std": 0.22347454189721314,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.023986537592577406,
+        "median": 0.013604309409856796,
+        "std": 0.03046630135386161,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.09404845750418644,
+        "median": 0.05738577991724014,
+        "std": 0.08845359857786941,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.051279865379910916,
+        "median": 0.023669928312301636,
+        "std": 0.06423738650465752,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.009320380893768743,
+        "median": 0.0023139268159866333,
+        "std": 0.02959171874113209,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.06533909100107849,
+        "median": 0.03552401065826416,
+        "std": 0.0739751036443731,
+        "count": 512
+      }
+    },
+    "keep_top_4_all_owners": {
+      "mse": {
+        "mean": 0.6203753589070402,
+        "median": 0.5840308964252472,
+        "std": 0.19470034511947193,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.5556312548869755,
+        "median": 0.5302501618862152,
+        "std": 0.17713356373491118,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.6316063067060895,
+        "median": 0.5928754806518555,
+        "std": 0.203563756019829,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.03521390415176029,
+        "median": 0.02182743139564991,
+        "std": 0.038133463101637136,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.0709118103743549,
+        "median": 0.04857106693089008,
+        "std": 0.06359490161088331,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.0378602696582675,
+        "median": 0.019221588969230652,
+        "std": 0.045895552599808064,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.017177167785121128,
+        "median": 0.004460245370864868,
+        "std": 0.033552671978686395,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.043176023522391915,
+        "median": 0.021197974681854248,
+        "std": 0.05187480064578506,
+        "count": 512
+      }
+    },
+    "keep_top_4_object_owners": {
+      "mse": {
+        "mean": 0.5867174637387507,
+        "median": 0.5725352466106415,
+        "std": 0.16561837752232386,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.547103895660257,
+        "median": 0.5211688280105591,
+        "std": 0.16878890099518748,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.5898240602691658,
+        "median": 0.5714433193206787,
+        "std": 0.16774433997152782,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.015812999461590954,
+        "median": 0.00665222411043942,
+        "std": 0.021858314991498044,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.006081642320289422,
+        "median": 0.0019344583852216601,
+        "std": 0.010566564351421968,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.004202374489977956,
+        "median": 0.0005506277084350586,
+        "std": 0.009060875701528625,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.008649808558402583,
+        "median": 0.0017874985933303833,
+        "std": 0.018696196498010454,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.001393777085468173,
+        "median": 6.410479545593262e-05,
+        "std": 0.007434123824809984,
+        "count": 512
+      }
+    },
+    "keep_top_4_register_owners": {
+      "mse": {
+        "mean": 0.613375271204859,
+        "median": 0.5801216065883636,
+        "std": 0.1879503226721068,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.5430867034883704,
+        "median": 0.5181413292884827,
+        "std": 0.1660851875783198,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.627586338086985,
+        "median": 0.5912893116474152,
+        "std": 0.19918494912529655,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.016380178712495308,
+        "median": 0.0089766182936728,
+        "std": 0.020561255964345607,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.06283742169190987,
+        "median": 0.042467525228857994,
+        "std": 0.05926130706637973,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.030860181956086308,
+        "median": 0.014509156346321106,
+        "std": 0.04084763697138962,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.00463261638651602,
+        "median": 0.0010367780923843384,
+        "std": 0.020447751317626828,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.03915605490328744,
+        "median": 0.020227745175361633,
+        "std": 0.047572593893010114,
+        "count": 512
+      }
+    },
+    "keep_top_8_all_owners": {
+      "mse": {
+        "mean": 0.594001316872891,
+        "median": 0.5719261467456818,
+        "std": 0.1707773735482928,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.5393854282738175,
+        "median": 0.5143030285835266,
+        "std": 0.16343311892348145,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.6032994044362567,
+        "median": 0.5762565732002258,
+        "std": 0.1778424596449926,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.008853159449699888,
+        "median": 0.004593239398673177,
+        "std": 0.011832589332201784,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.029864297304053267,
+        "median": 0.019050035625696182,
+        "std": 0.027470918102024938,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.011486227624118328,
+        "median": 0.004795879125595093,
+        "std": 0.016426467768114336,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.0009313411719631404,
+        "median": 0.0003243088722229004,
+        "std": 0.013465699899346385,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.014869121252559125,
+        "median": 0.006998658180236816,
+        "std": 0.02093444428940673,
+        "count": 512
+      }
+    },
+    "keep_top_8_object_owners": {
+      "mse": {
+        "mean": 0.5825150892487727,
+        "median": 0.5727694034576416,
+        "std": 0.16165837877660022,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.5384540871018544,
+        "median": 0.5130901038646698,
+        "std": 0.16165101014239464,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.5884302831836976,
+        "median": 0.568178117275238,
+        "std": 0.16619966281699994,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      }
+    },
+    "keep_top_8_register_owners": {
+      "mse": {
+        "mean": 0.594001316872891,
+        "median": 0.5719261467456818,
+        "std": 0.1707773735482928,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.5393854282738175,
+        "median": 0.5143030285835266,
+        "std": 0.16343311892348145,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.6032994044362567,
+        "median": 0.5762565732002258,
+        "std": 0.1778424596449926,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.008853159449699888,
+        "median": 0.004593239398673177,
+        "std": 0.011832589332201784,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.029864297304053267,
+        "median": 0.019050035625696182,
+        "std": 0.027470918102024938,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.011486227624118328,
+        "median": 0.004795879125595093,
+        "std": 0.016426467768114336,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.0009313411719631404,
+        "median": 0.0003243088722229004,
+        "std": 0.013465699899346385,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.014869121252559125,
+        "median": 0.006998658180236816,
+        "std": 0.02093444428940673,
+        "count": 512
+      }
+    }
+  },
+  "spatial_assignment": {
+    "metrics": {
+      "object_centroid_pair_distance": {
+        "mean": 0.3129402980767058,
+        "median": 0.2424885407090187,
+        "std": 0.26864667340928927,
+        "count": 76776
+      },
+      "object_utilization_entropy": {
+        "mean": 0.48699797163761605,
+        "median": 0.5093846321105957,
+        "std": 0.22557861182141462,
+        "count": 2742
+      },
+      "object_write_weight_pair_cosine": {
+        "mean": 0.2791048713761317,
+        "median": 0.1634000688791275,
+        "std": 0.2896535270672339,
+        "count": 76776
+      },
+      "register_centroid_pair_distance": {
+        "mean": 0.436134937726496,
+        "median": 0.40262818336486816,
+        "std": 0.22853588802980318,
+        "count": 245760
+      },
+      "register_utilization_entropy": {
+        "mean": 0.7817178160476033,
+        "median": 0.8056026995182037,
+        "std": 0.09114023989172661,
+        "count": 2048
+      },
+      "register_write_weight_pair_cosine": {
+        "mean": 0.09399201289508387,
+        "median": 0.0346077885478735,
+        "std": 0.13737497559628595,
+        "count": 245760
+      }
+    },
+    "centroids_by_memory_id": {
+      "object": {
+        "0": {
+          "mean_x": 0.014487382550985382,
+          "mean_y": 0.12041580961574953,
+          "std_x": 0.6371307721563675,
+          "std_y": 0.5929745997783106,
+          "count": 2742
+        },
+        "1": {
+          "mean_x": 0.007519083299754251,
+          "mean_y": 0.032040872302490205,
+          "std_x": 0.6690806005096389,
+          "std_y": 0.4293170023862571,
+          "count": 2742
+        },
+        "2": {
+          "mean_x": 0.026052116521617475,
+          "mean_y": 0.014993342146237773,
+          "std_x": 0.36555892918498917,
+          "std_y": 0.47042754571972023,
+          "count": 2742
+        },
+        "3": {
+          "mean_x": 0.052793418349681036,
+          "mean_y": 0.0535932890716916,
+          "std_x": 0.40020021972420444,
+          "std_y": 0.5022558436849717,
+          "count": 2742
+        },
+        "4": {
+          "mean_x": 0.015001908249006404,
+          "mean_y": 0.032817137147718604,
+          "std_x": 0.48177592530626473,
+          "std_y": 0.43692367374324226,
+          "count": 2742
+        },
+        "5": {
+          "mean_x": 0.02252745313288333,
+          "mean_y": 0.023488618822970084,
+          "std_x": 0.5018656596861658,
+          "std_y": 0.49034212427469637,
+          "count": 2742
+        },
+        "6": {
+          "mean_x": 0.0108168361993128,
+          "mean_y": 0.03478395879121811,
+          "std_x": 0.6862058524445165,
+          "std_y": 0.48779718699929847,
+          "count": 2742
+        },
+        "7": {
+          "mean_x": 0.04428601076089708,
+          "mean_y": 0.023956975808281288,
+          "std_x": 0.49619758089463145,
+          "std_y": 0.48269446887320466,
+          "count": 2742
+        }
+      },
+      "register": {
+        "0": {
+          "mean_x": 0.019657772601931356,
+          "mean_y": 0.004527412613242632,
+          "std_x": 0.8358430742537477,
+          "std_y": 0.8335550340777502,
+          "count": 2048
+        },
+        "1": {
+          "mean_x": 0.0007819089842087124,
+          "mean_y": -0.026176139540808663,
+          "std_x": 0.8282463572061539,
+          "std_y": 0.3552665841667817,
+          "count": 2048
+        },
+        "2": {
+          "mean_x": 0.052094464278042096,
+          "mean_y": -0.01911350614773255,
+          "std_x": 0.14529946540167987,
+          "std_y": 0.5363090588061531,
+          "count": 2048
+        },
+        "3": {
+          "mean_x": 0.07511798480752852,
+          "mean_y": -0.19051223503879555,
+          "std_x": 0.195261111420361,
+          "std_y": 0.6313755508645982,
+          "count": 2048
+        },
+        "4": {
+          "mean_x": 0.03234926642085156,
+          "mean_y": -0.042867434401614446,
+          "std_x": 0.472325356203161,
+          "std_y": 0.37061700714641727,
+          "count": 2048
+        },
+        "5": {
+          "mean_x": 0.0334508902815287,
+          "mean_y": -0.06624159164948651,
+          "std_x": 0.4908585081952845,
+          "std_y": 0.5047131661425364,
+          "count": 2048
+        },
+        "6": {
+          "mean_x": -0.012019444648103672,
+          "mean_y": -0.01824397808741196,
+          "std_x": 0.8749697227521256,
+          "std_y": 0.5284720093570529,
+          "count": 2048
+        },
+        "7": {
+          "mean_x": 0.03460221520072082,
+          "mean_y": 0.05466468551685466,
+          "std_x": 0.5012474235657239,
+          "std_y": 0.515234222990542,
+          "count": 2048
+        },
+        "8": {
+          "mean_x": 0.007498372837289935,
+          "mean_y": 0.018159641100055524,
+          "std_x": 0.7670176992598869,
+          "std_y": 0.6036613777741773,
+          "count": 2048
+        },
+        "9": {
+          "mean_x": 0.058404444771895214,
+          "mean_y": -0.1741157531882891,
+          "std_x": 0.3763972582994316,
+          "std_y": 0.6808308848675244,
+          "count": 2048
+        },
+        "10": {
+          "mean_x": 0.05734372107008312,
+          "mean_y": 0.0297091834636376,
+          "std_x": 0.39115430755118435,
+          "std_y": 0.8775683241789339,
+          "count": 2048
+        },
+        "11": {
+          "mean_x": 0.01623211206333508,
+          "mean_y": -0.007906320890015195,
+          "std_x": 0.5992577526031794,
+          "std_y": 0.5979567918370025,
+          "count": 2048
+        },
+        "12": {
+          "mean_x": 0.06182166301778125,
+          "mean_y": 0.18359385791518434,
+          "std_x": 0.4705144396874622,
+          "std_y": 0.5639573385623117,
+          "count": 2048
+        },
+        "13": {
+          "mean_x": 0.049526403474260405,
+          "mean_y": -0.004315288133511785,
+          "std_x": 0.23021232399471273,
+          "std_y": 0.6193033066367315,
+          "count": 2048
+        },
+        "14": {
+          "mean_x": 0.04060707043754519,
+          "mean_y": 0.07082406489826099,
+          "std_x": 0.6183309604428169,
+          "std_y": 0.78901393392305,
+          "count": 2048
+        },
+        "15": {
+          "mean_x": 0.014796286254807,
+          "mean_y": -0.15958312297584598,
+          "std_x": 0.6953195894865043,
+          "std_y": 0.4589075956657169,
+          "count": 2048
+        }
+      }
+    },
+    "visualizations": [
+      "/home/jovyan/PGOT/outputs/analysis_e11_capacity_dit16_followup_512/spatial_assignments/0000_object_owner0.png",
+      "/home/jovyan/PGOT/outputs/analysis_e11_capacity_dit16_followup_512/spatial_assignments/0001_register_owner53.png",
+      "/home/jovyan/PGOT/outputs/analysis_e11_capacity_dit16_followup_512/spatial_assignments/0002_object_owner0.png",
+      "/home/jovyan/PGOT/outputs/analysis_e11_capacity_dit16_followup_512/spatial_assignments/0003_register_owner52.png",
+      "/home/jovyan/PGOT/outputs/analysis_e11_capacity_dit16_followup_512/spatial_assignments/0004_object_owner0.png",
+      "/home/jovyan/PGOT/outputs/analysis_e11_capacity_dit16_followup_512/spatial_assignments/0005_register_owner53.png",
+      "/home/jovyan/PGOT/outputs/analysis_e11_capacity_dit16_followup_512/spatial_assignments/0006_object_owner0.png",
+      "/home/jovyan/PGOT/outputs/analysis_e11_capacity_dit16_followup_512/spatial_assignments/0007_register_owner50.png",
+      "/home/jovyan/PGOT/outputs/analysis_e11_capacity_dit16_followup_512/spatial_assignments/0008_object_owner0.png",
+      "/home/jovyan/PGOT/outputs/analysis_e11_capacity_dit16_followup_512/spatial_assignments/0009_register_owner50.png",
+      "/home/jovyan/PGOT/outputs/analysis_e11_capacity_dit16_followup_512/spatial_assignments/0010_object_owner0.png",
+      "/home/jovyan/PGOT/outputs/analysis_e11_capacity_dit16_followup_512/spatial_assignments/0011_register_owner53.png"
+    ]
+  },
+  "donor_appearance_transfer": {
+    "donor_closer": {
+      "mean": 0.875,
+      "median": 1.0,
+      "std": 0.33071891388307384,
+      "count": 64
+    },
+    "donor_direction_alignment": {
+      "mean": 0.37540358924889006,
+      "median": 0.4368690103292465,
+      "std": 0.24368722418119756,
+      "count": 64
+    },
+    "donor_similarity_gain": {
+      "mean": 0.0983403674326837,
+      "median": 0.07334825396537781,
+      "std": 0.09580052350045465,
+      "count": 64
+    },
+    "full_to_donor_cosine": {
+      "mean": 0.5148222325369716,
+      "median": 0.49845336377620697,
+      "std": 0.159487559117412,
+      "count": 64
+    },
+    "full_to_target_cosine": {
+      "mean": 0.8748544529080391,
+      "median": 0.9084198176860809,
+      "std": 0.13431583642220346,
+      "count": 64
+    },
+    "swap_to_donor_cosine": {
+      "mean": 0.6131625999696553,
+      "median": 0.6579766273498535,
+      "std": 0.18600991006287962,
+      "count": 64
+    },
+    "swap_to_target_cosine": {
+      "mean": 0.7673054812476039,
+      "median": 0.80528324842453,
+      "std": 0.14339644109122515,
+      "count": 64
+    },
+    "target_similarity_change": {
+      "mean": -0.1075489716604352,
+      "median": -0.07222399115562439,
+      "std": 0.11288852566550982,
+      "count": 64
+    }
+  },
+  "register_decomposition": {
+    "full": {
+      "mse": {
+        "mean": 0.5825150892487727,
+        "median": 0.5727694034576416,
+        "std": 0.16165837877660022,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.5384540871018544,
+        "median": 0.5130901038646698,
+        "std": 0.16165101014239464,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.5884302831836976,
+        "median": 0.568178117275238,
+        "std": 0.16619966281699994,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "count": 512
+      }
+    },
+    "register_only_keys_present": {
+      "mse": {
+        "mean": 0.6143844439648092,
+        "median": 0.5887531936168671,
+        "std": 0.19534508514120622,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.6146798655972816,
+        "median": 0.5657573342323303,
+        "std": 0.2312320794125497,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.6011419320711866,
+        "median": 0.5763837993144989,
+        "std": 0.17904254903005273,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.11524381271055972,
+        "median": 0.07625968009233475,
+        "std": 0.11719484637188536,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.0348904312698437,
+        "median": 0.018877356313169003,
+        "std": 0.040735785305032475,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.03186935471603647,
+        "median": 0.009409531950950623,
+        "std": 0.05081071022858459,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.07622577855363488,
+        "median": 0.03661203384399414,
+        "std": 0.10564687072132684,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.012711648887488991,
+        "median": 0.002860322594642639,
+        "std": 0.02423357760281549,
+        "count": 512
+      }
+    },
+    "register_only_null_object_keys": {
+      "mse": {
+        "mean": 0.6384466422023252,
+        "median": 0.6168906390666962,
+        "std": 0.20855211972380977,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.6669591554091312,
+        "median": 0.6160473227500916,
+        "std": 0.2609463992609457,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.6122819863958284,
+        "median": 0.5969488322734833,
+        "std": 0.18459924079984263,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.16270423164951353,
+        "median": 0.1070195883512497,
+        "std": 0.1507026582794709,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.0496682509931361,
+        "median": 0.028799014165997505,
+        "std": 0.05241268186523044,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.055931552953552455,
+        "median": 0.026647359132766724,
+        "std": 0.06766528675598704,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.12850506830727682,
+        "median": 0.07857634127140045,
+        "std": 0.13758390035160725,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.023851703212130815,
+        "median": 0.010310307145118713,
+        "std": 0.033515368697300596,
+        "count": 512
+      }
+    },
+    "pure_register_only_object_keys_masked": {
+      "mse": {
+        "mean": 0.635813160915859,
+        "median": 0.6141506135463715,
+        "std": 0.20693619687134682,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.6622610180056654,
+        "median": 0.6112357378005981,
+        "std": 0.25825225518192996,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.6110828978708014,
+        "median": 0.5961436331272125,
+        "std": 0.18389156668050963,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.15841160280979238,
+        "median": 0.10464271530508995,
+        "std": 0.14771210954090436,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.048522356549085544,
+        "median": 0.0283510135486722,
+        "std": 0.05123692970215429,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.05329807166708633,
+        "median": 0.025308310985565186,
+        "std": 0.06522576088451537,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.12380693090381101,
+        "median": 0.07515540719032288,
+        "std": 0.13480321261806938,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.022652614687103778,
+        "median": 0.009403228759765625,
+        "std": 0.03255983811586141,
+        "count": 512
+      }
+    },
+    "all_memory_zero": {
+      "mse": {
+        "mean": 0.7740444444934838,
+        "median": 0.639403373003006,
+        "std": 0.34605407032585606,
+        "count": 512
+      },
+      "foreground_mse": {
+        "mean": 0.7460620783967897,
+        "median": 0.6296504437923431,
+        "std": 0.35386690148400923,
+        "count": 512
+      },
+      "background_mse": {
+        "mean": 0.7767822633031756,
+        "median": 0.6634345948696136,
+        "std": 0.34260808927323505,
+        "count": 512
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.2617812802818662,
+        "median": 0.1367383450269699,
+        "std": 0.25469148307413997,
+        "count": 512
+      },
+      "prediction_delta_background": {
+        "mean": 0.24545304324055905,
+        "median": 0.14244674146175385,
+        "std": 0.21966463934960095,
+        "count": 512
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.19152935524471104,
+        "median": 0.07674454152584076,
+        "std": 0.20404664260941419,
+        "count": 512
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.20760799123672768,
+        "median": 0.08368517458438873,
+        "std": 0.23471629615756545,
+        "count": 512
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.18835198011947796,
+        "median": 0.0830293595790863,
+        "std": 0.19651490713374858,
+        "count": 512
+      }
+    },
+    "full_with_registers_swapped": {
+      "mse": {
+        "mean": 0.890799538528218,
+        "median": 0.8800933957099915,
+        "std": 0.393542516460436,
+        "count": 510
+      },
+      "foreground_mse": {
+        "mean": 0.6360644201729811,
+        "median": 0.6067708134651184,
+        "std": 0.2364299065181737,
+        "count": 510
+      },
+      "background_mse": {
+        "mean": 0.9751799515649384,
+        "median": 0.9928856492042542,
+        "std": 0.4358014621911925,
+        "count": 510
+      },
+      "prediction_delta_foreground": {
+        "mean": 0.12028889602835419,
+        "median": 0.07202379032969475,
+        "std": 0.13753318927378272,
+        "count": 510
+      },
+      "prediction_delta_background": {
+        "mean": 0.42859099755273655,
+        "median": 0.43353645503520966,
+        "std": 0.3273257159670491,
+        "count": 510
+      },
+      "mse_delta_vs_full": {
+        "mean": 0.30828987973577837,
+        "median": 0.22996807098388672,
+        "std": 0.27964732569832706,
+        "count": 510
+      },
+      "foreground_mse_delta_vs_full": {
+        "mean": 0.0976082138278905,
+        "median": 0.05168752372264862,
+        "std": 0.12441224527259842,
+        "count": 510
+      },
+      "background_mse_delta_vs_full": {
+        "mean": 0.3868916630744934,
+        "median": 0.3749275207519531,
+        "std": 0.30759529571992156,
+        "count": 510
+      }
+    }
+  }
+}
