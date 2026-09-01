@@ -1305,6 +1305,9 @@ def main():
         summary["e11_query_separation_enabled"] = bool(
             getattr(model.config, "pgot_e11_query_separation_enable", False)
         )
+        summary["e8_reader_num_layers"] = int(
+            getattr(model.config, "pgot_e8_reader_num_layers", 1)
+        )
         summary["object_semantic_owners_per_object"] = 1
         summary["background_semantic_registers"] = int(
             getattr(model.config, "pgot_n_register", 0)

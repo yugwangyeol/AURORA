@@ -211,6 +211,7 @@ class PGOTModelArguments:
     pgot_e8_owner_weight: float = field(default=1.0)
     pgot_e8_owner_bg_weight: float = field(default=0.5)
     pgot_e8_reader_num_heads: int = field(default=8)
+    pgot_e8_reader_num_layers: int = field(default=1)
     pgot_e8_reader_temperature: float = field(default=1.0)
     pgot_e8_clean_refinement: bool = field(default=False)
     pgot_e8_inject_memory: bool = field(default=True)

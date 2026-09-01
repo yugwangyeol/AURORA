@@ -140,6 +140,9 @@ def train():
     source_checkpoint_is_e12 = bool(
         getattr(config, "pgot_e12_centroid_reader_enable", False)
     )
+    source_reader_num_layers = int(
+        getattr(config, "pgot_e8_reader_num_layers", 1)
+    )
     # ScaleRAE base fields
     config.vision_loss = model_args.vision_loss
     config.vision_loss_mode = model_args.vision_loss_mode
@@ -319,6 +322,7 @@ def train():
     config.pgot_e8_owner_weight = float(model_args.pgot_e8_owner_weight)
     config.pgot_e8_owner_bg_weight = float(model_args.pgot_e8_owner_bg_weight)
     config.pgot_e8_reader_num_heads = int(model_args.pgot_e8_reader_num_heads)
+    config.pgot_e8_reader_num_layers = int(model_args.pgot_e8_reader_num_layers)
     config.pgot_e8_reader_temperature = float(
         model_args.pgot_e8_reader_temperature
     )
@@ -448,6 +452,17 @@ def train():
         ignore_mismatched_sizes=True,
     )
     model.config.use_cache = False
+    target_reader_num_layers = int(config.pgot_e8_reader_num_layers)
+    if target_reader_num_layers > source_reader_num_layers:
+        refinement_layers = model.pgot_e8_reader.refinement_layers
+        for refinement in refinement_layers[source_reader_num_layers - 1 :]:
+            refinement.reset_as_identity()
+        logger.info(
+            "[PGOT/Reader] deterministically initialized zero-output "
+            "refinement layers source=%d target=%d",
+            source_reader_num_layers,
+            target_reader_num_layers,
+        )
     target_max_memories = max(
         int(config.pgot_e11_object_memories_per_owner),
         int(config.pgot_e11_register_memories_per_owner),
@@ -731,6 +746,9 @@ def train():
     model.config.pgot_e8_owner_bg_weight = float(model_args.pgot_e8_owner_bg_weight)
     model.config.pgot_e8_reader_num_heads = int(
         model_args.pgot_e8_reader_num_heads
+    )
+    model.config.pgot_e8_reader_num_layers = int(
+        model_args.pgot_e8_reader_num_layers
     )
     model.config.pgot_e8_reader_temperature = float(
         model_args.pgot_e8_reader_temperature

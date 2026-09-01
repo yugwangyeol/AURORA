@@ -722,6 +722,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_e12_centroid_gate_init = float(
             getattr(self.config, "pgot_e12_centroid_gate_init", 0.0)
         )
+        self.pgot_e8_reader_num_layers = int(
+            getattr(self.config, "pgot_e8_reader_num_layers", 1)
+        )
+        if self.pgot_e8_reader_num_layers <= 0:
+            raise ValueError("E8 Reader num_layers must be positive")
         self.pgot_e11_memories_per_owner = int(
             getattr(
                 self.config,
@@ -844,6 +849,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 ),
                 centroid_position_enable=self.pgot_e12_centroid_reader_enable,
                 centroid_gate_init=self.pgot_e12_centroid_gate_init,
+                num_layers=self.pgot_e8_reader_num_layers,
             )
         else:
             self.pgot_e8_layers = []
@@ -979,6 +985,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             f"memories_per_owner={self.pgot_e11_memories_per_owner}, "
             f"object_memories={self.pgot_e11_object_memories_per_owner}, "
             f"register_memories={self.pgot_e11_register_memories_per_owner}, "
+            f"reader_layers={self.pgot_e8_reader_num_layers}, "
             f"query_separation={self.pgot_e11_query_separation_enable}, "
             f"e12_centroid_reader={self.pgot_e12_centroid_reader_enable}, "
             f"fvw={self.pgot_fvw_enable}, fvw_layers={self.pgot_fvw_layers}, "
@@ -5489,6 +5496,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             ),
             "e11_register_memories_per_owner": hidden.new_tensor(
                 float(self.pgot_e11_register_memories_per_owner)
+            ),
+            "e8_reader_num_layers": hidden.new_tensor(
+                float(self.pgot_e8_reader_num_layers)
             ),
             "e11_query_separation_enabled": hidden.new_tensor(
                 float(self.pgot_e11_query_separation_enable)

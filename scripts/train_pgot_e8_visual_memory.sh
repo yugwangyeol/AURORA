@@ -87,6 +87,7 @@ echo "E8 background: ${E8_N_REGISTER:-4} competitive registers; NULL_BG disabled
     --pgot_e8_owner_weight "${E8_OWNER_WEIGHT:-1.0}" \
     --pgot_e8_owner_bg_weight "${E8_OWNER_BG_WEIGHT:-0.5}" \
     --pgot_e8_reader_num_heads "${E8_READER_HEADS:-8}" \
+    --pgot_e8_reader_num_layers "${E8_READER_LAYERS:-1}" \
     --pgot_e8_reader_temperature "${E8_READER_TEMPERATURE:-1.0}" \
     --pgot_e8_clean_refinement True --pgot_e8_inject_memory False \
     --pgot_e8_update_mode "${E8_UPDATE_MODE:-separate_memory}" \

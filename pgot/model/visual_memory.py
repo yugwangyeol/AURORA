@@ -567,6 +567,106 @@ class PGOTE9UnifiedSlotWriter(nn.Module):
         }
 
 
+class _PGOTE8ReaderRefinementBlock(nn.Module):
+    """Pre-norm cross-attention + FFN refinement for an existing Reader state.
+
+    The residual output projections are zero-initialized so adding refinement
+    layers exactly preserves a trained one-layer Reader at initialization.
+    """
+
+    def __init__(
+        self,
+        *,
+        dim: int,
+        num_heads: int,
+        layer_index: int,
+        mlp_ratio: float = 4.0,
+    ) -> None:
+        super().__init__()
+        self.dim = int(dim)
+        self.num_heads = int(num_heads)
+        self.layer_index = int(layer_index)
+        if self.dim % self.num_heads != 0:
+            raise ValueError(
+                f"Reader refinement dim={self.dim} must be divisible by "
+                f"heads={self.num_heads}"
+            )
+        self.head_dim = self.dim // self.num_heads
+        hidden_dim = max(self.dim, int(round(self.dim * float(mlp_ratio))))
+
+        self.query_norm = nn.LayerNorm(self.dim)
+        self.key_norm = nn.LayerNorm(self.dim)
+        self.value_norm = nn.LayerNorm(self.dim)
+        self.query = nn.Linear(self.dim, self.dim, bias=False)
+        self.key = nn.Linear(self.dim, self.dim, bias=False)
+        self.value = nn.Linear(self.dim, self.dim, bias=False)
+        self.output = nn.Linear(self.dim, self.dim, bias=False)
+        self.ffn_norm = nn.LayerNorm(self.dim)
+        self.ffn_in = nn.Linear(self.dim, hidden_dim, bias=False)
+        self.ffn_out = nn.Linear(hidden_dim, self.dim, bias=False)
+
+        self.reset_as_identity()
+
+    @torch.no_grad()
+    def reset_as_identity(self) -> None:
+        """Deterministically initialize this block as an exact residual no-op."""
+        for norm in (
+            self.query_norm,
+            self.key_norm,
+            self.value_norm,
+            self.ffn_norm,
+        ):
+            norm.weight.fill_(1.0)
+            norm.bias.zero_()
+        for projection in (self.query, self.key, self.value):
+            nn.init.eye_(projection.weight)
+        nn.init.zeros_(self.output.weight)
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(1300 + self.layer_index)
+        fan_out, fan_in = self.ffn_in.weight.shape
+        bound = math.sqrt(6.0 / float(fan_in + fan_out))
+        initialized = torch.empty(
+            tuple(self.ffn_in.weight.shape), dtype=torch.float32, device="cpu"
+        ).uniform_(-bound, bound, generator=generator)
+        self.ffn_in.weight.copy_(
+            initialized.to(
+                device=self.ffn_in.weight.device,
+                dtype=self.ffn_in.weight.dtype,
+            )
+        )
+        nn.init.zeros_(self.ffn_out.weight)
+
+    def forward(
+        self,
+        *,
+        hidden: torch.Tensor,
+        key_tokens: torch.Tensor,
+        value_tokens: torch.Tensor,
+        memory_valid: torch.Tensor,
+        temperature: float,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        B, Q, D = hidden.shape
+        T = key_tokens.shape[1]
+        H, Dh = self.num_heads, self.head_dim
+        query = self.query(self.query_norm(hidden)).reshape(B, Q, H, Dh)
+        key = self.key(self.key_norm(key_tokens)).reshape(B, T, H, Dh)
+        value = self.value(self.value_norm(value_tokens)).reshape(B, T, H, Dh)
+        logits = torch.einsum("bqhd,bthd->bhqt", query.float(), key.float())
+        logits = logits / math.sqrt(float(Dh))
+        logits = logits / max(float(temperature), 1e-6)
+        logits = logits.masked_fill(~memory_valid[:, None, None, :], -1e4)
+        attention = F.softmax(logits, dim=-1)
+        attention = attention * memory_valid[:, None, None, :].float()
+        attention = attention / attention.sum(dim=-1, keepdim=True).clamp_min(1e-6)
+        context = torch.einsum(
+            "bhqt,bthd->bqhd", attention.to(value.dtype), value
+        ).reshape(B, Q, D)
+        refined = hidden + self.output(context)
+        refined = refined + self.ffn_out(F.gelu(self.ffn_in(self.ffn_norm(refined))))
+        refined = torch.where(torch.isfinite(refined), refined, hidden)
+        return refined, attention
+
+
 class PGOTE8TypedRAEReader(nn.Module):
     """RAE reader with semantic keys and image-only visual-memory values."""
 
@@ -580,6 +680,7 @@ class PGOTE8TypedRAEReader(nn.Module):
         register_memories_per_owner: int | None = None,
         centroid_position_enable: bool = False,
         centroid_gate_init: float = 0.0,
+        num_layers: int = 1,
     ) -> None:
         super().__init__()
         self.dim = int(dim)
@@ -605,6 +706,9 @@ class PGOTE8TypedRAEReader(nn.Module):
             self.register_memories_per_owner,
         )
         self.centroid_position_enable = bool(centroid_position_enable)
+        self.num_layers = int(num_layers)
+        if self.num_layers <= 0:
+            raise ValueError("E8 Reader num_layers must be positive")
         if self.memories_per_owner <= 0:
             raise ValueError("memories_per_owner must be positive")
         if (
@@ -661,6 +765,16 @@ class PGOTE8TypedRAEReader(nn.Module):
 
         for layer in (self.query, self.key, self.value, self.output):
             nn.init.eye_(layer.weight)
+        self.refinement_layers = nn.ModuleList(
+            [
+                _PGOTE8ReaderRefinementBlock(
+                    dim=self.dim,
+                    num_heads=self.num_heads,
+                    layer_index=layer_index,
+                )
+                for layer_index in range(1, self.num_layers)
+            ]
+        )
 
     def forward(
         self,
@@ -768,7 +882,8 @@ class PGOTE8TypedRAEReader(nn.Module):
                 coordinates.float().square().sum(dim=-1).sqrt()
                 * valid_centroid.float()
             ).sum() / valid_centroid.float().expand(B, S, J).sum().clamp_min(1.0)
-        key = key.reshape(B, S * J, H, Dh)
+        key_tokens = key.reshape(B, S * J, D)
+        key = key_tokens.reshape(B, S * J, H, Dh)
         logits = torch.einsum("bqhd,bthd->bhqt", query.float(), key.float())
         logits = logits / math.sqrt(float(Dh))
         logits = logits / max(float(self.temperature), 1e-6)
@@ -781,11 +896,27 @@ class PGOTE8TypedRAEReader(nn.Module):
 
         # Crucially, values originate only from visual_memory.  The semantic
         # OVT/register states are never available as reconstruction values.
-        value = self.value(self.memory_norm(memory_work)).reshape(B, S * J, H, Dh)
+        value_tokens = self.value(self.memory_norm(memory_work)).reshape(B, S * J, D)
+        value = value_tokens.reshape(B, S * J, H, Dh)
         context = torch.einsum(
             "bhqt,bthd->bqhd", attention.to(value.dtype), value
         ).reshape(B, Q, D)
-        condition = self.output_norm(self.output(context)).to(dtype=stream_dtype)
+        condition_work = self.output_norm(self.output(context))
+        # The trained first layer remains the explicit owner-routing layer and
+        # therefore continues to receive Reader supervision.  Deeper blocks
+        # refine the visual value readout without replacing that routing target
+        # with randomly initialized attention maps.
+        routing_attention = attention
+        for refinement in self.refinement_layers:
+            condition_work, _ = refinement(
+                hidden=condition_work,
+                key_tokens=key_tokens,
+                value_tokens=value_tokens,
+                memory_valid=memory_valid,
+                temperature=self.temperature,
+            )
+        attention = routing_attention
+        condition = condition_work.to(dtype=stream_dtype)
         condition = torch.where(torch.isfinite(condition), condition, torch.zeros_like(condition))
         return {
             "condition_hidden": condition,
@@ -801,6 +932,7 @@ class PGOTE8TypedRAEReader(nn.Module):
             "centroid_register_gate": register_gate_value.detach(),
             "centroid_position_rms": centroid_position_rms.detach(),
             "centroid_mean_radius": centroid_mean_radius.detach(),
+            "reader_num_layers": zero.new_tensor(float(self.num_layers)),
             "reader_entropy": (
                 -(attention.float().clamp_min(1e-8).log() * attention.float()).sum(dim=-1)
             ).mean().detach(),
