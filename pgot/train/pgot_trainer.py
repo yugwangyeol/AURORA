@@ -278,6 +278,8 @@ class PGOTModelArguments:
     pgot_dit_ovt_cross_attn_enable: bool = field(default=False)
     pgot_dit_ovt_cross_attn_start_block: int = field(default=25)
     pgot_dit_ovt_cross_attn_every_n_blocks: int = field(default=1)
+    pgot_dit_soft_routing_enable: bool = field(default=False)
+    pgot_dit_soft_routing_scale: float = field(default=1.0)
 
     # V17: Generative Binding. Diffusion condition comes from the final-layer
     # RAE query hidden states; ownership CE supervises RAE query -> OVT attention.

@@ -568,6 +568,7 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
         x_t: torch.Tensor = None,
         slot_context: Optional[torch.Tensor] = None,
         slot_mask: Optional[torch.Tensor] = None,
+        slot_bias: Optional[torch.Tensor] = None,
         loss_mask: Optional[torch.Tensor] = None,
         return_diagnostics: bool = False,
     ) -> torch.Tensor:
@@ -628,6 +629,8 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
             model_kwargs["slot_context"] = slot_context
         if slot_mask is not None:
             model_kwargs["slot_mask"] = slot_mask
+        if slot_bias is not None:
+            model_kwargs["slot_bias"] = slot_bias
 
         spatial_loss_mask = None
         if loss_mask is not None:
@@ -677,6 +680,7 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
         guidance_level=None,
         slot_context: Optional[torch.Tensor] = None,
         slot_mask: Optional[torch.Tensor] = None,
+        slot_bias: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         guidance_scale = guidance_level if guidance_level is not None else self.guidance_scale
         use_cfg = guidance_scale > 1.0
@@ -700,6 +704,8 @@ class FullSequenceRectifiedFlowProjector(nn.Module):
             model_kwargs["slot_context"] = slot_context
         if slot_mask is not None:
             model_kwargs["slot_mask"] = slot_mask
+        if slot_bias is not None:
+            model_kwargs["slot_bias"] = slot_bias
         samples = self.inference_flow.p_sample_loop(
             sample_fn,
             x_end_shape,

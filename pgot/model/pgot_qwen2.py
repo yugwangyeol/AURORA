@@ -1789,6 +1789,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                         if "memory_probs" in writer
                         else None
                     ),
+                    "memory_valid": (
+                        writer["memory_valid"].detach()
+                        if "memory_valid" in writer
+                        else None
+                    ),
                     # Keep this differentiable: E12 reconstruction gradients
                     # should be able to reward useful Writer partitions.
                     "memory_centroids": writer.get("memory_centroids"),
@@ -2151,7 +2156,13 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         ovt_category_ids: Optional[torch.Tensor],
     ) -> Dict[str, torch.Tensor]:
         """Replace one valid object memory per image; prefer same-category donors."""
-        B, S, D = visual_memory.shape
+        if visual_memory.ndim not in (3, 4):
+            raise ValueError(
+                "E8 causal intervention expects [B,S,D] or [B,S,J,D], got "
+                f"{tuple(visual_memory.shape)}"
+            )
+        B, S = visual_memory.shape[:2]
+        feature_size = int(visual_memory[0, 0].numel())
         K = object_valid.shape[1]
         device = visual_memory.device
         selected = torch.zeros(B, device=device, dtype=torch.long)
@@ -2180,7 +2191,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             if mode == 0:
                 replacement = torch.zeros_like(source)
             elif mode == 1:
-                scale = source.float().norm() / max(float(D) ** 0.5, 1.0)
+                scale = source.float().norm() / max(float(feature_size) ** 0.5, 1.0)
                 replacement = torch.randn_like(source) * scale.to(source.dtype)
             else:
                 candidates = []
@@ -2200,7 +2211,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                     replacement = visual_memory[choice[0], choice[1]].detach()
                     same_category[b] = bool(choice[2])
                 else:
-                    scale = source.float().norm() / max(float(D) ** 0.5, 1.0)
+                    scale = source.float().norm() / max(float(feature_size) ** 0.5, 1.0)
                     replacement = torch.randn_like(source) * scale.to(source.dtype)
                     modes[b] = 1
             ablated[b, k] = replacement.detach()
@@ -2234,6 +2245,15 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         selected_mask: torch.Tensor,
         foreground_mask: torch.Tensor,
         selected_valid: torch.Tensor,
+        full_slot_context: Optional[torch.Tensor] = None,
+        ablated_slot_context: Optional[torch.Tensor] = None,
+        register_slot_context: Optional[torch.Tensor] = None,
+        full_slot_mask: Optional[torch.Tensor] = None,
+        ablated_slot_mask: Optional[torch.Tensor] = None,
+        register_slot_mask: Optional[torch.Tensor] = None,
+        full_slot_bias: Optional[torch.Tensor] = None,
+        ablated_slot_bias: Optional[torch.Tensor] = None,
+        register_slot_bias: Optional[torch.Tensor] = None,
     ) -> Dict[str, torch.Tensor]:
         """One concatenated DiT call with identical RF timestep/noise per branch."""
         full = self._captionslot_prepare_diffusion_condition(full_condition).float()
@@ -2267,11 +2287,28 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         timesteps = t.repeat(3)
         noisy = x_t.repeat(3, 1, 1, 1)
         ends = x_end.repeat(3, 1, 1, 1)
+        model_kwargs = {"y": conditions}
+        contexts = (full_slot_context, ablated_slot_context, register_slot_context)
+        masks = (full_slot_mask, ablated_slot_mask, register_slot_mask)
+        biases = (full_slot_bias, ablated_slot_bias, register_slot_bias)
+        if any(value is not None for value in contexts):
+            if not all(value is not None for value in contexts):
+                raise ValueError("Paired causal DiT contexts must be supplied for all branches")
+            model_kwargs["slot_context"] = torch.cat(contexts, dim=0).float()
+        if any(value is not None for value in masks):
+            if not all(value is not None for value in masks):
+                raise ValueError("Paired causal DiT masks must be supplied for all branches")
+            model_kwargs["slot_mask"] = torch.cat(masks, dim=0).bool()
+        if any(value is not None for value in biases):
+            if not all(value is not None for value in biases):
+                raise ValueError("Paired causal DiT routing biases must be supplied for all branches")
+            model_kwargs["slot_bias"] = torch.cat(biases, dim=0).float()
+
         terms = self.diff_head.train_flow.training_losses(
             self.diff_head.model,
             targets,
             timesteps,
-            model_kwargs={"y": conditions},
+            model_kwargs=model_kwargs,
             x_end=ends,
             x_t=noisy,
         )
@@ -2890,6 +2927,97 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         mask = ovt_valid.to(device=context.device, dtype=torch.bool)
         context = context.masked_fill(~mask.unsqueeze(-1), 0.0)
         return context, mask
+
+    def _pgot_prepare_e8_dit_memory_context(
+        self,
+        seq: Dict[str, torch.Tensor],
+        *,
+        visual_memory: Optional[torch.Tensor] = None,
+        register_only: bool = False,
+    ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
+        """Flatten E11 owner memories into direct DiT context tokens.
+
+        The existing typed Reader/AdaLN path remains intact.  This is an
+        additional direct path whose token contains both the semantic owner
+        state and that owner's visual-memory value.  The optional soft routing
+        bias is derived only from the Writer's predicted owner x memory map.
+        """
+        memory = seq["visual_memory"] if visual_memory is None else visual_memory
+        if memory.ndim == 3:
+            memory = memory.unsqueeze(2)
+        if memory.ndim != 4:
+            raise ValueError(f"Direct E11 context expects [B,S,J,D], got {tuple(memory.shape)}")
+        semantic = seq["semantic_slots"]
+        if semantic.shape[:2] != memory.shape[:2] or semantic.shape[-1] != memory.shape[-1]:
+            raise ValueError("Direct E11 semantic/memory shape mismatch")
+        B, S, J, D = memory.shape
+        K = int(seq["object_valid"].shape[1])
+
+        final_write = seq["write_records"][-1]
+        memory_valid = final_write.get("memory_valid")
+        if memory_valid is None:
+            owner_ids = torch.arange(S, device=memory.device)
+            counts = torch.where(
+                owner_ids < K,
+                torch.full_like(owner_ids, int(self.pgot_e11_object_memories_per_owner)),
+                torch.full_like(owner_ids, int(self.pgot_e11_register_memories_per_owner)),
+            )
+            memory_valid = seq["slot_valid"][:, :, None] & (
+                torch.arange(J, device=memory.device)[None, None, :] < counts[None, :, None]
+            )
+        else:
+            memory_valid = memory_valid.to(device=memory.device, dtype=torch.bool)
+        if register_only and K > 0:
+            memory_valid = memory_valid.clone()
+            memory_valid[:, :K] = False
+
+        # The semantic component identifies the owner; the separate memory
+        # component carries its image appearance.  Cross-attention still has
+        # its own learned K/V projections after this shared projection.
+        fused = semantic.unsqueeze(2) + memory
+        if self.use_diff_head_projector:
+            proj_dtype = next(self.diff_head_projector.parameters()).dtype
+            context = self.diff_head_projector(fused.to(dtype=proj_dtype))
+        else:
+            context = fused
+        context = torch.nan_to_num(context, nan=0.0, posinf=0.0, neginf=0.0)
+        context = context.reshape(B, S * J, -1)
+        flat_valid = memory_valid.reshape(B, S * J)
+        context = context.masked_fill(~flat_valid.unsqueeze(-1), 0.0)
+
+        slot_bias = None
+        if bool(getattr(self.config, "pgot_dit_soft_routing_enable", False)):
+            owner_probs = final_write["owner_probs"].detach().float()
+            memory_probs = final_write.get("memory_probs")
+            if memory_probs is None:
+                memory_probs = torch.ones(
+                    B, S, J, owner_probs.shape[-1],
+                    device=owner_probs.device,
+                    dtype=owner_probs.dtype,
+                )
+                memory_probs = memory_probs * memory_valid.unsqueeze(-1).float()
+                memory_probs = memory_probs / memory_probs.sum(dim=2, keepdim=True).clamp_min(1.0)
+            else:
+                memory_probs = memory_probs.detach().float()
+            route = owner_probs.unsqueeze(2) * memory_probs
+            source_tokens = route.shape[-1]
+            source_side = int(round(float(source_tokens) ** 0.5))
+            target_tokens = int(getattr(self.diff_head, "diffusion_tokens", 256))
+            target_side = int(round(float(target_tokens) ** 0.5))
+            if source_side * source_side != source_tokens or target_side * target_side != target_tokens:
+                raise ValueError(
+                    f"Soft routing requires square grids, got {source_tokens}->{target_tokens}"
+                )
+            route = F.interpolate(
+                route.reshape(B * S * J, 1, source_side, source_side),
+                size=(target_side, target_side),
+                mode="area",
+            ).reshape(B, S * J, target_tokens).transpose(1, 2)
+            route = route.masked_fill(~flat_valid[:, None, :], 0.0)
+            scale = float(getattr(self.config, "pgot_dit_soft_routing_scale", 1.0))
+            slot_bias = scale * route.clamp_min(1e-6).log()
+            slot_bias = slot_bias.masked_fill(~flat_valid[:, None, :], 0.0)
+        return context, flat_valid, slot_bias
 
     def _resolve_llm_qk_outside_layers(self, spec: str) -> List[int]:
         """Resolve a layer spec such as 'last4', 'all', '20:28', or '20,24,27'."""
@@ -4938,10 +5066,18 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 ovt_valid_mask=ovt_valid_mask,
                 output_hidden_states=False,
             )
-            return {
+            result = {
                 "rae_hidden": feats["condition_hidden"],
                 "gt_siglip": feats["gt_siglip"],
             }
+            if self._pgot_dit_ovt_cross_attn_enabled():
+                slot_context, slot_mask, slot_bias = (
+                    self._pgot_prepare_e8_dit_memory_context(feats)
+                )
+                result["slot_context"] = slot_context
+                result["slot_mask"] = slot_mask
+                result["slot_bias"] = slot_bias
+            return result
 
         if bool(getattr(self.config, "pgot_v14_enable", False)):
             feats = self._pgot_v14_forward_features(
@@ -5146,6 +5282,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             z=cond,
             slot_context=feats.get("slot_context"),
             slot_mask=feats.get("slot_mask"),
+            slot_bias=feats.get("slot_bias"),
         )
         direct_latent = self.pgot_predict_direct_latent(rae_hidden)
         result = {"pred_latent": pred_latent, "gt_siglip": feats["gt_siglip"]}
@@ -5276,11 +5413,21 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         causal_active = causal_enabled and bool(
             getattr(self.config, "pgot_e8_causal_active", True)
         )
-        if causal_active and self.pgot_e11_dual_m4_enable:
-            raise ValueError(
-                "E11 Dual-M4 intentionally excludes causal training in its "
-                "first controlled run"
+        direct_context = None
+        direct_mask = None
+        direct_bias = None
+        if self._pgot_dit_ovt_cross_attn_enabled():
+            direct_context, direct_mask, direct_bias = (
+                self._pgot_prepare_e8_dit_memory_context(seq)
             )
+            if self.training and cfg_drop_rate > 0.0:
+                keep_batch = (~drop_mask.squeeze(-1).squeeze(-1)).to(
+                    device=direct_mask.device, dtype=torch.bool
+                )
+                direct_context = direct_context * keep_batch[:, None, None].to(
+                    direct_context.dtype
+                )
+                direct_mask = direct_mask & keep_batch[:, None]
         zero = hidden.new_zeros(())
         causal_stats = {
             "need_loss": zero,
@@ -5337,6 +5484,34 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             )
             ablated_condition = ablated_reader["condition_hidden"]
             register_condition = register_reader["condition_hidden"]
+            ablated_context = None
+            ablated_context_mask = None
+            ablated_context_bias = None
+            register_context = None
+            register_context_mask = None
+            register_context_bias = None
+            if self._pgot_dit_ovt_cross_attn_enabled():
+                ablated_context, ablated_context_mask, ablated_context_bias = (
+                    self._pgot_prepare_e8_dit_memory_context(
+                        seq,
+                        visual_memory=intervention_stats["ablated_memory"],
+                    )
+                )
+                register_context, register_context_mask, register_context_bias = (
+                    self._pgot_prepare_e8_dit_memory_context(
+                        seq,
+                        visual_memory=intervention_stats["register_only_memory"],
+                        register_only=True,
+                    )
+                )
+                if self.training and cfg_drop_rate > 0.0:
+                    keep_batch = (~drop_mask.squeeze(-1).squeeze(-1)).to(
+                        device=ablated_context_mask.device, dtype=torch.bool
+                    )
+                    for context in (ablated_context, register_context):
+                        context.mul_(keep_batch[:, None, None].to(context.dtype))
+                    ablated_context_mask = ablated_context_mask & keep_batch[:, None]
+                    register_context_mask = register_context_mask & keep_batch[:, None]
             if self.training and cfg_drop_rate > 0.0:
                 # Use exactly the same CFG decision in all paired branches.
                 keep = (condition_for_diff != 0.0).any(dim=(1, 2), keepdim=True)
@@ -5364,14 +5539,24 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 selected_mask=selected_mask,
                 foreground_mask=foreground_mask,
                 selected_valid=intervention_stats["selected_valid"],
+                full_slot_context=direct_context,
+                ablated_slot_context=ablated_context,
+                register_slot_context=register_context,
+                full_slot_mask=direct_mask,
+                ablated_slot_mask=ablated_context_mask,
+                register_slot_mask=register_context_mask,
+                full_slot_bias=direct_bias,
+                ablated_slot_bias=ablated_context_bias,
+                register_slot_bias=register_context_bias,
             )
             loss_recon = causal_stats["recon_loss"]
         else:
             loss_recon = self._captionslot_compute_diffusion_loss(
                 hidden=condition_for_diff,
                 target_features=gt_siglip,
-                slot_context=None,
-                slot_mask=None,
+                slot_context=direct_context,
+                slot_mask=direct_mask,
+                slot_bias=direct_bias,
             )
 
         lm_w = float(getattr(self.config, "pgot_lm_loss_weight", 1.0))
@@ -5439,6 +5624,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_loss_contrastive = hidden.new_zeros(())
         self.pgot_n_objects_mean = n_objects_mean.detach()
         self.pgot_loss_details = {
+            "lm_first_caption_token_supervised": hidden.new_ones(()),
             "loss_e8_owner": loss_owner.detach(),
             "loss_e8_reader": loss_reader.detach(),
             "loss_e8_reader_object": reader_active_stats["object_loss"].detach(),
@@ -5499,6 +5685,17 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             ),
             "e8_reader_num_layers": hidden.new_tensor(
                 float(self.pgot_e8_reader_num_layers)
+            ),
+            "dit_direct_memory_enabled": hidden.new_tensor(
+                float(self._pgot_dit_ovt_cross_attn_enabled())
+            ),
+            "dit_soft_routing_enabled": hidden.new_tensor(
+                float(getattr(self.config, "pgot_dit_soft_routing_enable", False))
+            ),
+            "dit_direct_context_tokens": (
+                direct_mask.float().sum(dim=1).mean().detach()
+                if direct_mask is not None
+                else hidden.new_zeros(())
             ),
             "e11_query_separation_enabled": hidden.new_tensor(
                 float(self.pgot_e11_query_separation_enable)
@@ -7555,31 +7752,33 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
     ) -> torch.Tensor:
         """Next-token cross-entropy over assistant caption tokens.
 
-        We supervise positions [cap_s : cap_e] of the LLM hidden states so that
-        predicted token at position i matches caption_input_ids[i+1].
+        The hidden state immediately before the caption predicts its first
+        token; subsequent caption states predict the remaining tokens.  This
+        includes the first <thing>/<stuff> token that AR generation needs.
         """
         cap_s = positions["cap_s"]
         cap_e = positions["cap_e"]
-        # Logits from the lm_head over caption hidden states (causal LM head)
-        cap_hidden = hidden[:, cap_s:cap_e, :]
+        caption_length = max(int(cap_e - cap_s), 0)
+        if caption_length <= 0 or cap_s <= 0:
+            return hidden.new_zeros(())
+        # Position cap_s-1 predicts caption token 0, and position cap_e-2
+        # predicts the final caption token.
+        cap_hidden = hidden[:, cap_s - 1:cap_e - 1, :]
         logits = self.lm_head(cap_hidden.float())  # (B, T, V)
 
         if caption_labels is None:
             caption_labels = caption_input_ids.clone()
             caption_labels = caption_labels.masked_fill(~caption_attention_mask.bool(), -100)
 
-        # Shift: logits[:, :-1] predicts ids[:, 1:]
-        shift_logits = logits[:, :-1, :].contiguous()
-        shift_labels = caption_labels[:, 1:].contiguous()
-        # Mask padded positions as -100
+        labels = caption_labels[:, :caption_length].contiguous()
         if caption_attention_mask is not None:
-            pad_mask = caption_attention_mask[:, 1:].bool()
-            shift_labels = shift_labels.masked_fill(~pad_mask, -100)
+            pad_mask = caption_attention_mask[:, :caption_length].bool()
+            labels = labels.masked_fill(~pad_mask, -100)
 
         loss_fct = nn.CrossEntropyLoss(ignore_index=-100)
         loss = loss_fct(
-            shift_logits.view(-1, shift_logits.size(-1)),
-            shift_labels.view(-1),
+            logits.contiguous().view(-1, logits.size(-1)),
+            labels.view(-1),
         )
         if not torch.isfinite(loss):
             loss = torch.zeros_like(loss)

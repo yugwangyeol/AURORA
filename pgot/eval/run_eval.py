@@ -256,6 +256,192 @@ def build_predicted_register_block_mask(
     return blocked
 
 
+@torch.no_grad()
+def generate_pgot_caption_batch(
+    model,
+    tokenizer,
+    images: torch.Tensor,
+    *,
+    max_new_tokens: int,
+    max_objects: int,
+    n_ovt_per_object: int,
+) -> dict:
+    """Greedily generate PGOT object captions, then pack them for pass two.
+
+    The first pass reproduces PGOT's projected image-prefix path and performs
+    cached token-by-token decoding.  The returned caption tensors can be passed
+    directly to ``pgot_forward_eval``; no GT caption, object count, category,
+    or mask enters generation.
+    """
+    device = model._pgot_model_device()
+    model_dtype = model._aurora_model_dtype()
+    images = images.to(device=device, dtype=model_dtype)
+
+    scene_end_id = int(tokenizer.convert_tokens_to_ids(SCENE_END_TOKEN))
+    ovt_id = int(tokenizer.convert_tokens_to_ids(OVT_TOKEN))
+    thing_id = int(tokenizer.convert_tokens_to_ids(THING_TOKEN))
+    stuff_id = int(tokenizer.convert_tokens_to_ids(STUFF_TOKEN))
+    batch_size = int(images.shape[0])
+
+    # Reproduce the exact PGOT training prefix.  The generic Scale-RAE
+    # prepare_inputs_for_multimodal path does not construct the same projected
+    # image stream as _pgot_build_sequence_inputs and gives invalid captions.
+    _, img_features, _ = model._encode_images_aurora(images, target_images=None)
+    sys_p = model._pgot_embed_frozen_tokens(
+        model.pgot_system_prefix_ids, batch_size, device, model_dtype
+    )
+    sys_s = model._pgot_embed_frozen_tokens(
+        model.pgot_system_suffix_ids, batch_size, device, model_dtype
+    )
+    user_p = model._pgot_embed_frozen_tokens(
+        model.pgot_user_prefix_ids, batch_size, device, model_dtype
+    )
+    user_s = model._pgot_embed_frozen_tokens(
+        model.pgot_user_suffix_ids, batch_size, device, model_dtype
+    )
+    asst_p = model._pgot_embed_frozen_tokens(
+        model.pgot_assistant_prefix_ids, batch_size, device, model_dtype
+    )
+    # The current LM loss shifts only inside the caption span, so the first
+    # caption token is not trained from the assistant prefix.  Every
+    # coco-instance caption starts with this schema marker; seeding it carries
+    # no image annotation, category, count, or mask information.
+    seed_ids = torch.full((batch_size, 1), thing_id, device=device, dtype=torch.long)
+    seed_embed = model._pgot_embed_caption(seed_ids, device, model_dtype)
+    prefix_embeds = torch.cat(
+        [sys_p, sys_s, user_p, img_features.to(model_dtype), user_s, asst_p, seed_embed],
+        dim=1,
+    )
+
+    generated_ids = [[thing_id] for _ in range(batch_size)]
+    finished = torch.zeros(batch_size, device=device, dtype=torch.bool)
+    outputs = model.model(
+        inputs_embeds=prefix_embeds,
+        use_cache=True,
+        return_dict=True,
+    )
+    past_key_values = outputs.past_key_values
+    for _ in range(int(max_new_tokens)):
+        logits = model.lm_head(outputs.last_hidden_state[:, -1].float())
+        next_ids = logits.argmax(dim=-1)
+        next_ids = torch.where(
+            finished,
+            torch.full_like(next_ids, int(tokenizer.pad_token_id)),
+            next_ids,
+        )
+        for batch_idx, token_id in enumerate(next_ids.detach().cpu().tolist()):
+            if not bool(finished[batch_idx]):
+                generated_ids[batch_idx].append(int(token_id))
+        finished |= next_ids == scene_end_id
+        if bool(finished.all()):
+            break
+
+        next_embed = model._pgot_embed_caption(
+            next_ids.unsqueeze(1), device, model_dtype
+        )
+        outputs = model.model(
+            inputs_embeds=next_embed,
+            past_key_values=past_key_values,
+            use_cache=True,
+            return_dict=True,
+        )
+        past_key_values = outputs.past_key_values
+
+    captions = []
+    records = []
+    max_ovts = int(max_objects) * int(n_ovt_per_object)
+    ignored_ids = {int(tokenizer.pad_token_id)}
+    if tokenizer.bos_token_id is not None:
+        ignored_ids.add(int(tokenizer.bos_token_id))
+    for row in generated_ids:
+        ids = [
+            int(token_id)
+            for token_id in row
+            if int(token_id) not in ignored_ids
+        ]
+        # The schema-only <thing> seed is normally already present.
+        if not ids or ids[0] != thing_id:
+            ids.insert(0, thing_id)
+        # Some transformers versions prepend a placeholder token when generation
+        # starts from inputs_embeds.  Keep only the assistant's object sequence.
+        marker_positions = [
+            idx for idx, token_id in enumerate(ids) if token_id in {thing_id, stuff_id}
+        ]
+        scene_positions = [idx for idx, token_id in enumerate(ids) if token_id == scene_end_id]
+        if marker_positions:
+            ids = ids[marker_positions[0] :]
+        elif scene_positions:
+            ids = ids[scene_positions[0] :]
+
+        hit_scene_end = scene_end_id in ids
+        if hit_scene_end:
+            ids = ids[: ids.index(scene_end_id) + 1]
+
+        ovt_positions = [idx for idx, token_id in enumerate(ids) if token_id == ovt_id]
+        if len(ovt_positions) > max_ovts:
+            cutoff = ovt_positions[max_ovts - 1] + 1
+            ids = ids[:cutoff]
+            ovt_positions = ovt_positions[:max_ovts]
+            hit_scene_end = False
+        # A max-token cutoff may land halfway through the next object caption.
+        # Keep only whole marker/description/OVT records for pass two.
+        if not hit_scene_end and ovt_positions:
+            ids = ids[: ovt_positions[-1] + 1]
+        if not ids or ids[-1] != scene_end_id:
+            ids.append(scene_end_id)
+
+        n_complete_ovts = (
+            len(ovt_positions) // max(int(n_ovt_per_object), 1)
+        ) * max(int(n_ovt_per_object), 1)
+        ovt_positions = ovt_positions[:n_complete_ovts]
+        has_marker = any(token_id in {thing_id, stuff_id} for token_id in ids)
+        captions.append(ids)
+        records.append(
+            {
+                "text": tokenizer.decode(ids, skip_special_tokens=False),
+                "token_count": len(ids),
+                "ovt_count": n_complete_ovts,
+                "object_count": n_complete_ovts // max(int(n_ovt_per_object), 1),
+                "scene_end_generated": bool(hit_scene_end),
+                "has_object_marker": bool(has_marker),
+                "format_valid": bool(hit_scene_end and has_marker and n_complete_ovts > 0),
+            }
+        )
+
+    max_len = max(len(ids) for ids in captions)
+    batch_size = len(captions)
+    caption_input_ids = torch.full(
+        (batch_size, max_len), int(tokenizer.pad_token_id), dtype=torch.long
+    )
+    caption_attention_mask = torch.zeros((batch_size, max_len), dtype=torch.bool)
+    ovt_positions_in_caption = torch.zeros(
+        (batch_size, max_ovts), dtype=torch.long
+    )
+    ovt_valid_mask = torch.zeros((batch_size, max_ovts), dtype=torch.bool)
+    for batch_idx, ids in enumerate(captions):
+        caption_input_ids[batch_idx, : len(ids)] = torch.tensor(ids, dtype=torch.long)
+        caption_attention_mask[batch_idx, : len(ids)] = True
+        positions = [idx for idx, token_id in enumerate(ids) if token_id == ovt_id]
+        keep = min(
+            (len(positions) // max(int(n_ovt_per_object), 1))
+            * max(int(n_ovt_per_object), 1),
+            max_ovts,
+        )
+        if keep:
+            ovt_positions_in_caption[batch_idx, :keep] = torch.tensor(
+                positions[:keep], dtype=torch.long
+            )
+            ovt_valid_mask[batch_idx, :keep] = True
+
+    return {
+        "caption_input_ids": caption_input_ids,
+        "caption_attention_mask": caption_attention_mask,
+        "ovt_positions_in_caption": ovt_positions_in_caption,
+        "ovt_valid_mask": ovt_valid_mask,
+        "records": records,
+    }
+
+
 # ----------------------------------------------------------------------
 # Main eval loop
 # ----------------------------------------------------------------------
@@ -274,6 +460,22 @@ def main():
     p.add_argument("--max_caption_tokens", type=int, default=2048)
     p.add_argument("--n_ovt_per_object", type=int, default=2)
     p.add_argument("--max_objects", type=int, default=50)
+    p.add_argument(
+        "--caption_mode",
+        choices=["teacher_forced", "autoregressive"],
+        default="teacher_forced",
+        help=(
+            "teacher_forced uses the dataset caption. autoregressive first "
+            "generates the structured object caption from the image, then "
+            "uses its generated OVTs for PGOT reconstruction and readout."
+        ),
+    )
+    p.add_argument(
+        "--ar_max_new_tokens",
+        type=int,
+        default=512,
+        help="Maximum structured-caption tokens generated per image in AR mode.",
+    )
     p.add_argument("--bg_threshold", type=float, default=0.05)
     p.add_argument("--eval_merge", choices=["mean", "max"], default="max",
                    help="How to merge the n_ovt_per_object logits into one object score for competition.")
@@ -400,6 +602,18 @@ def main():
         p.error("--register_eval_gt_threshold must be in [0,1]")
     if int(args.register_eval_pred_dilation) < 0:
         p.error("--register_eval_pred_dilation must be >= 0")
+    if int(args.ar_max_new_tokens) <= 0:
+        p.error("--ar_max_new_tokens must be > 0")
+    if args.caption_mode == "autoregressive":
+        if int(args.n_ovt_per_object) != 1:
+            p.error("AR evaluation currently requires --n_ovt_per_object 1")
+        if args.register_eval_route != "unrestricted":
+            p.error(
+                "AR evaluation currently supports only "
+                "--register_eval_route unrestricted"
+            )
+        if args.latent_splice != "none":
+            p.error("AR evaluation does not support GT latent splice modes")
 
     os.makedirs(args.output_dir, exist_ok=True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -624,6 +838,7 @@ def main():
     register_route_tp = 0.0
     register_route_fp = 0.0
     register_route_fn = 0.0
+    ar_caption_records = []
 
     # CODA-style GT cache (optional)
     coco_cache = None
@@ -696,6 +911,39 @@ def main():
     # ---- Loop
     samples_iter = val_dataset.dataset.samples if isinstance(val_dataset, torch.utils.data.Subset) else val_dataset.samples
     for batch_idx, batch in enumerate(tqdm(loader, desc="Eval")):
+        eval_caption_input_ids = batch["caption_input_ids"]
+        eval_caption_attention_mask = batch["caption_attention_mask"]
+        eval_ovt_positions = batch["ovt_positions_in_caption"]
+        eval_ovt_valid_mask = batch["ovt_valid_mask"]
+        if args.caption_mode == "autoregressive":
+            ar_batch = generate_pgot_caption_batch(
+                model,
+                tokenizer,
+                batch["images"],
+                max_new_tokens=int(args.ar_max_new_tokens),
+                max_objects=int(args.max_objects),
+                n_ovt_per_object=int(args.n_ovt_per_object),
+            )
+            eval_caption_input_ids = ar_batch["caption_input_ids"]
+            eval_caption_attention_mask = ar_batch["caption_attention_mask"]
+            eval_ovt_positions = ar_batch["ovt_positions_in_caption"]
+            eval_ovt_valid_mask = ar_batch["ovt_valid_mask"]
+            for local_idx, record in enumerate(ar_batch["records"]):
+                record = dict(record)
+                record["image_id"] = int(batch["image_ids"][local_idx])
+                record["gt_object_count"] = int(batch["n_objects_list"][local_idx])
+                ar_caption_records.append(record)
+                if len(ar_caption_records) <= 5:
+                    log.info(
+                        "[AR] image_id=%s generated_objects=%d gt_objects=%d "
+                        "scene_end=%s | %s",
+                        record["image_id"],
+                        record["object_count"],
+                        record["gt_object_count"],
+                        record["scene_end_generated"],
+                        record["text"].replace("\n", " "),
+                    )
+
         # Discovery is always GT-free and register-unrestricted.  Its OVT maps
         # are used for segmentation in every R0/R1/R2 variant, preventing the
         # R1 oracle mask from leaking GT into fARI/mBO/mIoU.
@@ -703,10 +951,10 @@ def main():
             model,
             images=batch["images"],
             target_images=batch["target_images"],
-            caption_input_ids=batch["caption_input_ids"],
-            caption_attention_mask=batch["caption_attention_mask"],
-            ovt_positions_in_caption=batch["ovt_positions_in_caption"],
-            ovt_valid_mask=batch["ovt_valid_mask"],
+            caption_input_ids=eval_caption_input_ids,
+            caption_attention_mask=eval_caption_attention_mask,
+            ovt_positions_in_caption=eval_ovt_positions,
+            ovt_valid_mask=eval_ovt_valid_mask,
             return_llm_attention_maps=(
                 args.readout == "llm_attention"
                 or args.register_eval_route == "predicted_ovt"
@@ -747,10 +995,10 @@ def main():
                 model,
                 images=batch["images"],
                 target_images=batch["target_images"],
-                caption_input_ids=batch["caption_input_ids"],
-                caption_attention_mask=batch["caption_attention_mask"],
-                ovt_positions_in_caption=batch["ovt_positions_in_caption"],
-                ovt_valid_mask=batch["ovt_valid_mask"],
+                caption_input_ids=eval_caption_input_ids,
+                caption_attention_mask=eval_caption_attention_mask,
+                ovt_positions_in_caption=eval_ovt_positions,
+                ovt_valid_mask=eval_ovt_valid_mask,
                 return_llm_attention_maps=False,
                 llm_attention_readout=args.llm_attention_readout,
                 register_image_block_mask=register_block_mask,
@@ -789,13 +1037,17 @@ def main():
         # used in v3 and is useful for diagnosing whether v6's dual-background
         # (stuff OVT + register) is what's hurting fARI.
         valid_for_pred = out["ovt_valid_mask"].clone()
-        ovt_is_thing = batch.get("ovt_is_thing")
+        ovt_is_thing = (
+            valid_for_pred.clone()
+            if args.caption_mode == "autoregressive"
+            else batch.get("ovt_is_thing")
+        )
         has_batch_thing = ovt_is_thing is not None
         if has_batch_thing:
             ovt_is_thing = ovt_is_thing.to(valid_for_pred.device, dtype=torch.bool)
         else:
             ovt_is_thing = torch.zeros_like(valid_for_pred, dtype=torch.bool)
-        if thing_categories is not None:
+        if thing_categories is not None and args.caption_mode != "autoregressive":
             for b in range(valid_for_pred.shape[0]):
                 global_idx = batch_idx * args.batch_size + b
                 segs = samples_iter[global_idx]["segments"]
@@ -1074,6 +1326,7 @@ def main():
                         guidance_level=float(args.guidance_scale),
                         slot_context=recon_out.get("slot_context"),
                         slot_mask=recon_out.get("slot_mask"),
+                        slot_bias=recon_out.get("slot_bias"),
                     )
                 if args.latent_splice != "none" and not direct_sd_enabled:
                     # Inference-only oracle: swap the selected region's sampled
@@ -1184,12 +1437,40 @@ def main():
         },
     }
     summary["gt_source"] = args.gt_source
+    # Instance vs category GT changes what mBO/mIoU mean (^i vs ^c). The mask
+    # cache declares its own granularity so the two can never be confused.
+    gt_granularity = (
+        str(coco_cache.meta.get("gt_granularity", "instance"))
+        if coco_cache is not None
+        else "instance"
+    )
+    summary["gt_granularity"] = gt_granularity
+    summary["mBO_variant"] = "mBO^c" if gt_granularity == "category" else "mBO^i"
+    summary["mIoU_variant"] = "mIoU^c" if gt_granularity == "category" else "mIoU^i"
     summary["image_preprocess_mode"] = args.image_preprocess_mode
     summary["coda_crop_size"] = int(args.coda_crop_size)
     summary["metric_resolution"] = int(args.eval_size)
     summary["image_patch_grid"] = int(args.grid_size)
     summary["image_patch_tokens"] = int(args.grid_size) ** 2
-    summary["teacher_forced_caption"] = True
+    summary["caption_mode"] = str(args.caption_mode)
+    summary["teacher_forced_caption"] = args.caption_mode == "teacher_forced"
+    if args.caption_mode == "autoregressive":
+        generated_counts = [int(r["object_count"]) for r in ar_caption_records]
+        gt_counts = [int(r["gt_object_count"]) for r in ar_caption_records]
+        summary["ar_max_new_tokens"] = int(args.ar_max_new_tokens)
+        summary["ar_schema_seed_token"] = THING_TOKEN
+        summary["ar_schema_seed_uses_gt"] = False
+        summary["ar_scene_end_rate"] = _mean(
+            [float(r["scene_end_generated"]) for r in ar_caption_records]
+        )
+        summary["ar_format_valid_rate"] = _mean(
+            [float(r["format_valid"]) for r in ar_caption_records]
+        )
+        summary["ar_generated_object_count_mean"] = _mean(generated_counts)
+        summary["ar_gt_object_count_mean"] = _mean(gt_counts)
+        summary["ar_object_count_mae"] = _mean(
+            [abs(pred - gt) for pred, gt in zip(generated_counts, gt_counts)]
+        )
     summary["llm_attention_readout_requested"] = args.llm_attention_readout
     summary["register_hard_gt_mask_training"] = bool(
         getattr(model.config, "pgot_register_hard_gt_mask", False)
@@ -1357,6 +1638,15 @@ def main():
         )
         summary["e8_causal_training_enabled"] = bool(
             getattr(model.config, "pgot_e8_causal_enable", False)
+        )
+        summary["dit_direct_memory_enabled"] = bool(
+            getattr(model.config, "pgot_dit_ovt_cross_attn_enable", False)
+        ) and not bool(args.disable_dit_ovt_cross_attn)
+        summary["dit_soft_routing_enabled"] = bool(
+            getattr(model.config, "pgot_dit_soft_routing_enable", False)
+        ) and summary["dit_direct_memory_enabled"]
+        summary["dit_soft_routing_scale"] = float(
+            getattr(model.config, "pgot_dit_soft_routing_scale", 1.0)
         )
         summary["null_bg_tokens"] = int(getattr(model.config, "pgot_n_null_bg", 0))
         summary["background_owner"] = "aggregate probability over registers"
@@ -1564,6 +1854,11 @@ def main():
     summary_path = os.path.join(args.output_dir, "summary.json")
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)
+    if args.caption_mode == "autoregressive":
+        captions_path = os.path.join(args.output_dir, "generated_captions.jsonl")
+        with open(captions_path, "w") as f:
+            for record in ar_caption_records:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     log.info("=" * 60)
     log.info("EVAL SUMMARY")
@@ -1573,6 +1868,18 @@ def main():
     log.info(f"  mBO:            {summary['mBO']:.4f}")
     log.info(f"  mIoU:           {summary['mIoU']:.4f}")
     log.info(f"  Active count:   {summary['active_count_mean']:.2f}")
+    if args.caption_mode == "autoregressive":
+        log.info(
+            "  AR format/end:  %.3f / %.3f",
+            summary["ar_format_valid_rate"],
+            summary["ar_scene_end_rate"],
+        )
+        log.info(
+            "  AR count pred/GT/MAE: %.2f / %.2f / %.2f",
+            summary["ar_generated_object_count_mean"],
+            summary["ar_gt_object_count_mean"],
+            summary["ar_object_count_mae"],
+        )
     log.info("  --- By object count ---")
     for bkt in ["1-3", "4-6", "7-10", "11+"]:
         if bkt in summary["by_object_count"]:

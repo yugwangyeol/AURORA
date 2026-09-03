@@ -60,6 +60,7 @@ else
 fi
 echo "E8 supervision: writer_weight=${E8_OWNER_WEIGHT:-1.0}; reader_mode=${E8_READER_SUPERVISION_MODE:-gt}"
 echo "E8.2 paired causal: ${E8_CAUSAL_ENABLE:-False}"
+echo "Direct DiT memory: ${PGOT_DIT_OVT_XATTN_ENABLE:-False}; soft routing=${PGOT_DIT_SOFT_ROUTING_ENABLE:-False}"
 echo "E8 background: ${E8_N_REGISTER:-4} competitive registers; NULL_BG disabled"
 
 "${PYTHON}" -m torch.distributed.run \
@@ -125,6 +126,11 @@ echo "E8 background: ${E8_N_REGISTER:-4} competitive registers; NULL_BG disabled
     --pgot_core_outside_weight 0.0 --pgot_core_register_outside_weight 0.0 \
     --pgot_e3_attention_competition_weight 0.0 \
     --pgot_v12_enable False --pgot_v14_enable False --pgot_v17_enable False \
+    --pgot_dit_ovt_cross_attn_enable "${PGOT_DIT_OVT_XATTN_ENABLE:-False}" \
+    --pgot_dit_ovt_cross_attn_start_block "${PGOT_DIT_OVT_XATTN_START_BLOCK:-17}" \
+    --pgot_dit_ovt_cross_attn_every_n_blocks "${PGOT_DIT_OVT_XATTN_EVERY_N_BLOCKS:-1}" \
+    --pgot_dit_soft_routing_enable "${PGOT_DIT_SOFT_ROUTING_ENABLE:-False}" \
+    --pgot_dit_soft_routing_scale "${PGOT_DIT_SOFT_ROUTING_SCALE:-1.0}" \
     --pgot_v21_enable False --pgot_v22_attention_competition_weight 0.0 \
     --pgot_fvw_enable False --pgot_e6_enable False --pgot_e7_enable False \
     --pgot_e4_rae_isolated True --pgot_rae_attends_caption False --pgot_rae_bidirectional False \
@@ -151,6 +157,7 @@ echo "E8 background: ${E8_N_REGISTER:-4} competitive registers; NULL_BG disabled
     --max_grad_norm 1.0 --bf16 False --fp16 False --tf32 False \
     --model_max_length 4096 --gradient_checkpointing False \
     --save_strategy steps --save_steps "${SAVE_STEPS:-500}" --save_total_limit "${SAVE_TOTAL_LIMIT:-3}" \
+    --save_only_model "${SAVE_ONLY_MODEL:-False}" \
     --evaluation_strategy steps --eval_steps "${EVAL_STEPS:-500}" --prediction_loss_only True \
     --pgot_eval_log_recon_images "${PGOT_EVAL_LOG_RECON_IMAGES:-4}" \
     --logging_steps "${LOGGING_STEPS:-10}" --report_to "${REPORT_TO:-wandb}" \

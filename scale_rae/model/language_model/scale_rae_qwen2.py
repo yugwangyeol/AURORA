@@ -2120,6 +2120,7 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         target_features: torch.Tensor,
         slot_context: Optional[torch.Tensor] = None,
         slot_mask: Optional[torch.Tensor] = None,
+        slot_bias: Optional[torch.Tensor] = None,
         loss_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         cond = self._captionslot_prepare_diffusion_condition(hidden)
@@ -2129,6 +2130,7 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
         target_input = target_features.to(device=cond.device).float()
         slot_context_input = None if slot_context is None else slot_context.to(device=cond.device).float()
         slot_mask_input = None if slot_mask is None else slot_mask.to(device=cond.device, dtype=torch.bool)
+        slot_bias_input = None if slot_bias is None else slot_bias.to(device=cond.device, dtype=torch.float32)
 
         if not getattr(self.diff_head, "normalize_data", False):
             target_input = F.layer_norm(target_input, (target_input.shape[-1],))
@@ -2138,6 +2140,7 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
             "x": target_input,
             "slot_context": slot_context_input,
             "slot_mask": slot_mask_input,
+            "slot_bias": slot_bias_input,
         }
         if loss_mask is not None:
             diffusion_kwargs["loss_mask"] = loss_mask.to(

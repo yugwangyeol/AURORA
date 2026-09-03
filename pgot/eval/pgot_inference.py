@@ -88,6 +88,16 @@ def pgot_forward_eval(
             temperature=attn_temp,
             normalize_tokens=attn_ln,
         )
+        slot_context = None
+        slot_mask = None
+        slot_bias = None
+        if (
+            hasattr(model, "_pgot_prepare_e8_dit_memory_context")
+            and bool(getattr(model.config, "pgot_dit_ovt_cross_attn_enable", False))
+        ):
+            slot_context, slot_mask, slot_bias = (
+                model._pgot_prepare_e8_dit_memory_context(out)
+            )
         result = {
             "ovt_logits": ovt_logits,
             "reg_logits": reg_logits,
@@ -105,6 +115,9 @@ def pgot_forward_eval(
             "ovt_valid_mask": out["ovt_valid_mask"],
             "rae_hidden": out["condition_hidden"],
             "raw_rae_hidden": out["raw_rae_hidden"],
+            "slot_context": slot_context,
+            "slot_mask": slot_mask,
+            "slot_bias": slot_bias,
             "ovt_hidden": ovt_hidden,
             "register_hidden": register_hidden,
             "img_hidden": img_hidden,
@@ -843,6 +856,7 @@ def generate_siglip_latent(
     guidance_level: float = 1.0,
     slot_context: torch.Tensor | None = None,
     slot_mask: torch.Tensor | None = None,
+    slot_bias: torch.Tensor | None = None,
 ) -> torch.Tensor:
     """Run diff_head.infer to denoise SigLIP latent from rae_hidden.
 
@@ -866,5 +880,6 @@ def generate_siglip_latent(
         guidance_level=guidance_level,
         slot_context=slot_context,
         slot_mask=slot_mask,
+        slot_bias=slot_bias,
     )
     return generated  # (B, P, C)

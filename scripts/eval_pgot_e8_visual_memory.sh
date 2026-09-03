@@ -29,4 +29,5 @@ if [[ "${COMPUTE_RFID:-True}" == True ]]; then EXTRA_ARGS+=(--compute_rfid); fi
     --image_preprocess_mode coda_center_crop --coda_crop_size 512 \
     --register_eval_route unrestricted \
     --dtype "${DTYPE:-fp32}" --guidance_scale "${GUIDANCE_SCALE:-1.0}" \
-    --diffusion_inference_steps "${DIFFUSION_INFERENCE_STEPS:-10}" "${EXTRA_ARGS[@]}"
+    --diffusion_inference_steps "${DIFFUSION_INFERENCE_STEPS:-10}" \
+    "${EXTRA_ARGS[@]}" "$@"

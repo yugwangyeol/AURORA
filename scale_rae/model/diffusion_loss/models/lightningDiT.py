@@ -138,6 +138,7 @@ class SparseContextCrossAttention(nn.Module):
         x: torch.Tensor,
         context: torch.Tensor,
         context_mask: torch.Tensor | None = None,
+        attention_bias: torch.Tensor | None = None,
     ) -> torch.Tensor:
         B, T, C = x.shape
         _, S, _ = context.shape
@@ -150,6 +151,16 @@ class SparseContextCrossAttention(nn.Module):
         v = self.to_v(context).reshape(B, S, self.num_heads, self.head_dim).transpose(1, 2)
 
         scores = torch.matmul(q.float() * self.scale, k.float().transpose(-2, -1))
+        if attention_bias is not None:
+            bias = attention_bias.to(device=x.device, dtype=scores.dtype)
+            if bias.ndim == 3:
+                bias = bias[:, None, :, :]
+            if bias.shape not in {(B, 1, T, S), (B, self.num_heads, T, S)}:
+                raise ValueError(
+                    "slot attention bias must be [B,T,S] or [B,H,T,S], got "
+                    f"{tuple(attention_bias.shape)} for B,T,S={B},{T},{S}"
+                )
+            scores = scores + bias
         if context_mask is not None:
             mask = context_mask.to(device=x.device, dtype=torch.bool)[:, None, None, :]
             scores = scores.masked_fill(~mask, -1e9)
@@ -253,7 +264,10 @@ class LightningDiTBlock(nn.Module):
         else:
             self.slot_cross_attn = None
 
-    def forward(self, x, c, feat_rope=None, slot_context=None, slot_mask=None):
+    def forward(
+        self, x, c, feat_rope=None, slot_context=None, slot_mask=None,
+        slot_bias=None,
+    ):
         if self.wo_shift:
             scale_msa, gate_msa, scale_mlp, gate_mlp = self.adaLN_modulation(c).chunk(4, dim=-1)
             shift_msa = None
@@ -262,7 +276,9 @@ class LightningDiTBlock(nn.Module):
             shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = self.adaLN_modulation(c).chunk(6, dim=-1)
         x = x + gate(self.attn(modulate(self.norm1(x), shift_msa, scale_msa), rope=feat_rope), gate_msa)
         if self.slot_cross_attn_enabled and slot_context is not None:
-            slot_out = self.slot_cross_attn(x, slot_context, context_mask=slot_mask)
+            slot_out = self.slot_cross_attn(
+                x, slot_context, context_mask=slot_mask, attention_bias=slot_bias
+            )
             slot_out = torch.nan_to_num(slot_out, nan=0.0, posinf=0.0, neginf=0.0)
             # No gate: out_proj is zero-initialised so slot contribution starts at 0 and grows via training.
             x = x + slot_out
@@ -642,7 +658,10 @@ class LightningDiT(nn.Module):
         imgs = x.reshape(shape=(x.shape[0], c, h * p, h * p))
         return imgs
 
-    def forward(self, x, t=None, y=None, slot_context=None, slot_mask=None):
+    def forward(
+        self, x, t=None, y=None, slot_context=None, slot_mask=None,
+        slot_bias=None,
+    ):
         """
         Forward pass of LightningDiT.
         x: (N, C, H, W) tensor of spatial inputs (images or latent representations of images)
@@ -680,16 +699,16 @@ class LightningDiT(nn.Module):
             encoder_blocks = self.dit_blocks[:self.DDT_encoder_depth]
             decoder_blocks = self.dit_blocks[self.DDT_encoder_depth:]
             for block in encoder_blocks:
-                s = block(s, c, feat_rope=self.feat_rope, slot_context=slot_context, slot_mask=slot_mask)
+                s = block(s, c, feat_rope=self.feat_rope, slot_context=slot_context, slot_mask=slot_mask, slot_bias=slot_bias)
             if self.cond_silu:
                 s = nn.functional.silu(s)
             x = self.s_embedder(x) # no need for additional pos embed
             for block in decoder_blocks:
-                x = block(x, s, feat_rope=self.feat_rope, slot_context=slot_context, slot_mask=slot_mask)
+                x = block(x, s, feat_rope=self.feat_rope, slot_context=slot_context, slot_mask=slot_mask, slot_bias=slot_bias)
             x = self.final_layer(x, s)  
         else:
             for block in self.dit_blocks:
-                s = block(s, c, feat_rope=self.feat_rope, slot_context=slot_context, slot_mask=slot_mask)
+                s = block(s, c, feat_rope=self.feat_rope, slot_context=slot_context, slot_mask=slot_mask, slot_bias=slot_bias)
             x = s 
             # if os.getenv("SCALE_RAE_LAUNCHER", "") == "TORCHXLA_SPMD":
             #     xs.mark_sharding(x, xs.get_global_mesh(), ("fsdp", None, None))
@@ -718,6 +737,7 @@ class LightningDiT(nn.Module):
         interval_cfg: float = 0.0,
         slot_context=None,
         slot_mask=None,
+        slot_bias=None,
     ): 
         """
         Forward pass of LightningDiT, but also batches the unconditional forward pass for classifier-free guidance.
@@ -736,6 +756,7 @@ class LightningDiT(nn.Module):
 
         cfg_slot_context = None
         cfg_slot_mask = None
+        cfg_slot_bias = None
         if slot_context is not None:
             cond_slot_context = slot_context
             null_slot_context = torch.zeros_like(cond_slot_context)
@@ -748,8 +769,19 @@ class LightningDiT(nn.Module):
                 cond_slot_mask = slot_mask.to(device=cond_slot_context.device, dtype=torch.bool)
             null_slot_mask = torch.zeros_like(cond_slot_mask, dtype=torch.bool)
             cfg_slot_mask = torch.cat([cond_slot_mask, null_slot_mask], dim=0)
+            if slot_bias is not None:
+                cond_slot_bias = slot_bias.to(
+                    device=cond_slot_context.device, dtype=torch.float32
+                )
+                null_slot_bias = torch.zeros_like(cond_slot_bias)
+                cfg_slot_bias = torch.cat([cond_slot_bias, null_slot_bias], dim=0)
 
-        model_out = self.forward(combined, t, y, slot_context=cfg_slot_context, slot_mask=cfg_slot_mask)
+        model_out = self.forward(
+            combined, t, y,
+            slot_context=cfg_slot_context,
+            slot_mask=cfg_slot_mask,
+            slot_bias=cfg_slot_bias,
+        )
         # For exact reproducibility reasons, we apply classifier-free guidance on only
         # three channels by default. The standard approach to cfg applies it to all channels.
         # This can be done by uncommenting the following line and commenting-out the line following that.
