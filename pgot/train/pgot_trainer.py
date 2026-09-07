@@ -206,6 +206,12 @@ class PGOTModelArguments:
     # and background registers compete for patches; RAE reads semantic keys
     # but receives reconstruction values only from the visual memories.
     pgot_e8_visual_memory_enable: bool = field(default=False)
+    # One-shot replacement for E8/E11: final semantic owners route frozen raw
+    # SigLIP values directly into RAE queries.  No persistent visual memory or
+    # multi-layer Writer is constructed.
+    pgot_one_shot_reader_enable: bool = field(default=False)
+    pgot_one_shot_readout_mode: str = field(default="pooled")
+    pgot_one_shot_detach_owner_routing: bool = field(default=True)
     pgot_e8_layers: str = field(default="21,24,27")
     pgot_e8_owner_temperature: float = field(default=1.0)
     pgot_e8_owner_weight: float = field(default=1.0)

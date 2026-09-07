@@ -1,0 +1,53 @@
+{
+  "model_path": "checkpoints/pgot_oneshot_pooled/checkpoint-5000",
+  "readout_mode": "pooled",
+  "num_samples": 512,
+  "fixed_noise_seed_base": 123,
+  "diffusion_training_loss": {
+    "baseline": 0.6072699166834354,
+    "object_region_local_only": 0.62225194030907,
+    "register_region_local_only": 0.6294737502466887,
+    "all_spatial_mean": 0.657870642025955,
+    "owner_map_spatial_shuffle": 0.6625575111247599,
+    "raw_patch_spatial_shuffle": 0.6633875312982127,
+    "gt_owner_routing": 0.6170136203290895
+  },
+  "diffusion_training_loss_delta_vs_baseline": {
+    "object_region_local_only": 0.01498202362563461,
+    "register_region_local_only": 0.022203833563253284,
+    "all_spatial_mean": 0.05060072534251958,
+    "owner_map_spatial_shuffle": 0.05528759444132447,
+    "raw_patch_spatial_shuffle": 0.05611761461477727,
+    "gt_owner_routing": 0.009743703645654023
+  },
+  "condition_relative_l2_change": {
+    "object_region_local_only": 0.3179396782797994,
+    "register_region_local_only": 0.39140693812805694,
+    "all_spatial_mean": 0.5046516807051376,
+    "owner_map_spatial_shuffle": 0.5191939672804438,
+    "raw_patch_spatial_shuffle": 0.5189493788930122,
+    "gt_owner_routing": 0.16782201583191636
+  },
+  "routing_and_locality": {
+    "owner_correct_object_patch_top1": 0.8388586847672928,
+    "owner_register_on_gt_foreground_top1": 0.041351981264668464,
+    "owner_object_on_gt_background_top1": 0.12736947013718236,
+    "reader_correct_object_query_top1": 0.8110451259836554,
+    "reader_register_on_gt_foreground_top1": 0.05116115647181869,
+    "reader_object_on_gt_background_top1": 0.23719103179246304,
+    "patch_attention_same_object_mass": 0.6517977410554886,
+    "patch_attention_background_mass_on_bg_query": 0.8007834512072805,
+    "patch_attention_expected_distance": 0.194957959552994,
+    "reader_object_owner_utilization": 0.9694194088224322,
+    "reader_register_owner_utilization": 0.978515625,
+    "patch_attention_effective_count": 417.39882576465607
+  },
+  "interpretation": {
+    "object_region_local_only": "register-owned raw patches replaced by image mean",
+    "register_region_local_only": "object-owned raw patches replaced by image mean",
+    "all_spatial_mean": "all raw patches replaced by the image-mean raw feature",
+    "owner_map_spatial_shuffle": "owner probabilities permuted over patch positions",
+    "raw_patch_spatial_shuffle": "raw feature positions permuted while owner map stays fixed",
+    "gt_owner_routing": "GT object masks; predicted relative split among background registers"
+  }
+}

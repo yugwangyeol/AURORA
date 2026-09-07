@@ -1,0 +1,177 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_owner_masked_15k/checkpoint-10000",
+  "one_shot_readout_mode": "owner_masked",
+  "protocol": "one-shot Reader: same semantic owners/ownership/noise; interventions zero or swap raw SigLIP patch values grouped by the model's own predicted patch ownership",
+  "records": [
+    {
+      "target_sample_index": 1,
+      "target_image_id": 285,
+      "target_object_index": 0,
+      "donor_sample_index": 193,
+      "donor_image_id": 20247,
+      "donor_object_index": 0,
+      "category": "bear",
+      "selected_object_patch_count": 779,
+      "object_patch_count": 779,
+      "fixed_noise_seed": 123,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.4292832612991333,
+        "object_only": 2.057227373123169,
+        "register_only": 3.3438985347747803,
+        "all_zero": 4.432384014129639,
+        "selected_zero": 3.3438985347747803,
+        "same_category_swap": 1.033549189567566,
+        "same_category_bundle_swap": 0.9387529492378235
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_oneshot_owner_masked_15k_visuals/sample1_obj0_bear_patch_grid.png"
+    },
+    {
+      "target_sample_index": 500,
+      "target_image_id": 58705,
+      "target_object_index": 0,
+      "donor_sample_index": 5,
+      "donor_image_id": 785,
+      "donor_object_index": 0,
+      "category": "person",
+      "selected_object_patch_count": 280,
+      "object_patch_count": 556,
+      "fixed_noise_seed": 124,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.673163115978241,
+        "object_only": 2.7471466064453125,
+        "register_only": 2.7312071323394775,
+        "all_zero": 4.1421637535095215,
+        "selected_zero": 2.116981029510498,
+        "same_category_swap": 0.95573490858078,
+        "same_category_bundle_swap": 1.0627981424331665
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_oneshot_owner_masked_15k_visuals/sample500_obj0_person_patch_grid.png"
+    },
+    {
+      "target_sample_index": 1407,
+      "target_image_id": 171298,
+      "target_object_index": 0,
+      "donor_sample_index": 17,
+      "donor_image_id": 1584,
+      "donor_object_index": 0,
+      "category": "bus",
+      "selected_object_patch_count": 495,
+      "object_patch_count": 694,
+      "fixed_noise_seed": 125,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.7333468198776245,
+        "object_only": 2.341902017593384,
+        "register_only": 3.5010061264038086,
+        "all_zero": 4.8173508644104,
+        "selected_zero": 2.806299924850464,
+        "same_category_swap": 1.2681827545166016,
+        "same_category_bundle_swap": 1.2513012886047363
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_oneshot_owner_masked_15k_visuals/sample1407_obj0_bus_patch_grid.png"
+    }
+  ],
+  "ar_segmentation_caption_records": [
+    {
+      "sample_index": 1,
+      "image_id": 285,
+      "caption_gt_count": 1,
+      "coco_metric_gt_count": 1,
+      "counted_ovt": 1,
+      "complete_object_records": 1,
+      "spatially_active_predicted_objects": 1,
+      "scene_end_generated": true,
+      "metrics": {
+        "fARI": 0.0,
+        "mBO": 0.9517349004745483,
+        "mIoU": 0.9008413553237915
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_oneshot_owner_masked_15k_visuals/ar_sample1_segmentation_caption.png"
+    },
+    {
+      "sample_index": 5,
+      "image_id": 785,
+      "caption_gt_count": 2,
+      "coco_metric_gt_count": 2,
+      "counted_ovt": 3,
+      "complete_object_records": 3,
+      "spatially_active_predicted_objects": 3,
+      "scene_end_generated": true,
+      "metrics": {
+        "fARI": 0.7837516665458679,
+        "mBO": 0.5371745824813843,
+        "mIoU": 0.6714536547660828
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_oneshot_owner_masked_15k_visuals/ar_sample5_segmentation_caption.png"
+    },
+    {
+      "sample_index": 1439,
+      "image_id": 174371,
+      "caption_gt_count": 9,
+      "coco_metric_gt_count": 8,
+      "counted_ovt": 30,
+      "complete_object_records": 30,
+      "spatially_active_predicted_objects": 11,
+      "scene_end_generated": false,
+      "metrics": {
+        "fARI": 0.7947070598602295,
+        "mBO": 0.4696369171142578,
+        "mIoU": 0.4811600148677826
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_oneshot_owner_masked_15k_visuals/ar_sample1439_segmentation_caption.png"
+    },
+    {
+      "sample_index": 4494,
+      "image_id": 554291,
+      "caption_gt_count": 1,
+      "coco_metric_gt_count": 8,
+      "counted_ovt": 16,
+      "complete_object_records": 16,
+      "spatially_active_predicted_objects": 9,
+      "scene_end_generated": true,
+      "metrics": {
+        "fARI": 0.7775298357009888,
+        "mBO": 0.3406546413898468,
+        "mIoU": 0.35274532437324524
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_oneshot_owner_masked_15k_visuals/ar_sample4494_segmentation_caption.png"
+    },
+    {
+      "sample_index": 984,
+      "image_id": 122962,
+      "caption_gt_count": 30,
+      "coco_metric_gt_count": 25,
+      "counted_ovt": 11,
+      "complete_object_records": 11,
+      "spatially_active_predicted_objects": 11,
+      "scene_end_generated": false,
+      "metrics": {
+        "fARI": 0.5272807478904724,
+        "mBO": 0.20290260016918182,
+        "mIoU": 0.18873825669288635
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_oneshot_owner_masked_15k_visuals/ar_sample984_segmentation_caption.png"
+    },
+    {
+      "sample_index": 28,
+      "image_id": 2431,
+      "caption_gt_count": 7,
+      "coco_metric_gt_count": 3,
+      "counted_ovt": 50,
+      "complete_object_records": 8,
+      "spatially_active_predicted_objects": 18,
+      "scene_end_generated": false,
+      "metrics": {
+        "fARI": 0.06465984880924225,
+        "mBO": 0.3006702959537506,
+        "mIoU": 0.4170922040939331
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_oneshot_owner_masked_15k_visuals/ar_sample28_segmentation_caption.png"
+    }
+  ]
+}

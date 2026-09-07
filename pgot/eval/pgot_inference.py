@@ -107,10 +107,16 @@ def pgot_forward_eval(
             "llm_attention_void_maps": None,
             "llm_attention_register_maps": None,
             "llm_attention_source": (
-                "e9_final_ovt_gru_writer"
-                if str(getattr(model.config, "pgot_e8_update_mode", ""))
-                == "final_ovt"
-                else "e8_competitive_visual_memory_writer"
+                "final_semantic_owner_readout"
+                if bool(
+                    getattr(model.config, "pgot_one_shot_reader_enable", False)
+                )
+                else (
+                    "e9_final_ovt_gru_writer"
+                    if str(getattr(model.config, "pgot_e8_update_mode", ""))
+                    == "final_ovt"
+                    else "e8_competitive_visual_memory_writer"
+                )
             ),
             "ovt_valid_mask": out["ovt_valid_mask"],
             "rae_hidden": out["condition_hidden"],
@@ -121,8 +127,15 @@ def pgot_forward_eval(
             "ovt_hidden": ovt_hidden,
             "register_hidden": register_hidden,
             "img_hidden": img_hidden,
+            "raw_img_features": out.get("raw_img_features"),
             "gt_siglip": out["gt_siglip"],
-            "rae_access_mode": "typed_memory_only",
+            "rae_access_mode": (
+                "one_shot_owner_routed_raw_siglip"
+                if bool(
+                    getattr(model.config, "pgot_one_shot_reader_enable", False)
+                )
+                else "typed_memory_only"
+            ),
             "hidden": hidden,
             "attn_bias": out["attn_bias"],
             "positions": out["positions"],

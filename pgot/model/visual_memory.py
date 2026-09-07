@@ -937,3 +937,234 @@ class PGOTE8TypedRAEReader(nn.Module):
                 -(attention.float().clamp_min(1e-8).log() * attention.float()).sum(dim=-1)
             ).mean().detach(),
         }
+
+
+class PGOTOneShotOwnerReader(nn.Module):
+    """One-shot object-routed readout from frozen raw SigLIP patches.
+
+    The semantic owner attention ``G(q_i, s_k)`` is shared by both modes.
+    ``pooled`` composes it with the semantic-only patch ownership map and is
+    therefore the clean owner-vector bottleneck baseline.  ``owner_masked``
+    lets every attention head select exactly one owner and performs a second,
+    query-dependent attention only over patches hard-assigned to that owner.
+    Raw SigLIP features are the sole reconstruction values in both modes.
+    """
+
+    VALID_MODES = {"pooled", "owner_masked"}
+
+    def __init__(
+        self,
+        *,
+        dim: int,
+        raw_value_dim: int,
+        num_heads: int = 8,
+        temperature: float = 1.0,
+        readout_mode: str = "pooled",
+        detach_owner_routing: bool = True,
+    ) -> None:
+        super().__init__()
+        self.dim = int(dim)
+        self.raw_value_dim = int(raw_value_dim)
+        self.num_heads = int(num_heads)
+        self.temperature = float(temperature)
+        self.readout_mode = str(readout_mode).strip().lower()
+        self.detach_owner_routing = bool(detach_owner_routing)
+        if self.readout_mode not in self.VALID_MODES:
+            raise ValueError(
+                f"one-shot readout_mode must be one of {sorted(self.VALID_MODES)}, "
+                f"got {readout_mode!r}"
+            )
+        if self.dim % self.num_heads != 0:
+            raise ValueError(
+                f"one-shot reader dim={self.dim} must be divisible by "
+                f"heads={self.num_heads}"
+            )
+        self.head_dim = self.dim // self.num_heads
+
+        # Keep these names compatible with the trained E11 typed Reader so its
+        # query-to-owner routing projections initialise from the checkpoint.
+        self.query_norm = nn.LayerNorm(self.dim)
+        self.semantic_norm = nn.LayerNorm(self.dim)
+        self.query = nn.Linear(self.dim, self.dim, bias=False)
+        self.key = nn.Linear(self.dim, self.dim, bias=False)
+        self.output = nn.Linear(self.dim, self.dim, bias=False)
+        self.output_norm = nn.LayerNorm(self.dim)
+
+        # Raw SigLIP is never exposed outside the owner route.  In pooled mode
+        # only raw_value is used; raw_key is active only for the hard-masked
+        # within-owner detail readout.
+        self.raw_norm = nn.LayerNorm(self.raw_value_dim)
+        self.raw_key = nn.Linear(self.raw_value_dim, self.dim, bias=False)
+        self.raw_value = nn.Linear(self.raw_value_dim, self.dim, bias=False)
+
+        for projection in (self.query, self.key, self.output):
+            nn.init.eye_(projection.weight)
+        nn.init.xavier_uniform_(self.raw_key.weight)
+        nn.init.xavier_uniform_(self.raw_value.weight)
+
+    def forward(
+        self,
+        *,
+        rae_queries: torch.Tensor,
+        semantic_slots: torch.Tensor,
+        raw_patches: torch.Tensor,
+        owner_probs: torch.Tensor,
+        slot_valid: torch.Tensor,
+    ) -> Dict[str, torch.Tensor]:
+        B, Q, D = rae_queries.shape
+        S = semantic_slots.shape[1]
+        P = raw_patches.shape[1]
+        if D != self.dim or semantic_slots.shape != (B, S, D):
+            raise ValueError("one-shot Reader semantic/query shape mismatch")
+        if raw_patches.shape != (B, P, self.raw_value_dim):
+            raise ValueError("one-shot Reader raw SigLIP shape mismatch")
+        if owner_probs.shape != (B, S, P):
+            raise ValueError(
+                "one-shot Reader owner_probs must be [B,S,P], got "
+                f"{tuple(owner_probs.shape)}"
+            )
+        if slot_valid.shape != (B, S):
+            raise ValueError("one-shot Reader slot_valid must be [B,S]")
+
+        stream_dtype = rae_queries.dtype
+        module_dtype = self.query_norm.weight.dtype
+        H, Dh = self.num_heads, self.head_dim
+        q_work = rae_queries.to(dtype=module_dtype)
+        s_work = semantic_slots.to(dtype=module_dtype)
+        raw_work = raw_patches.to(dtype=self.raw_norm.weight.dtype)
+
+        query = self.query(self.query_norm(q_work)).reshape(B, Q, H, Dh)
+        semantic_key = self.key(self.semantic_norm(s_work)).reshape(B, S, H, Dh)
+        owner_logits = torch.einsum(
+            "bqhd,bshd->bhqs", query.float(), semantic_key.float()
+        )
+        owner_logits = owner_logits / math.sqrt(float(Dh))
+        owner_logits = owner_logits / max(self.temperature, 1e-6)
+        owner_logits = owner_logits.masked_fill(
+            ~slot_valid[:, None, None, :], -1e4
+        )
+        owner_attention = F.softmax(owner_logits, dim=-1)
+        owner_attention = owner_attention * slot_valid[:, None, None, :].float()
+        owner_attention = owner_attention / owner_attention.sum(
+            dim=-1, keepdim=True
+        ).clamp_min(1e-6)
+
+        routing = owner_probs.float()
+        if self.detach_owner_routing:
+            routing = routing.detach()
+        routing = routing * slot_valid.unsqueeze(-1).float()
+        routing = routing / routing.sum(dim=1, keepdim=True).clamp_min(1e-6)
+
+        raw_n = self.raw_norm(raw_work)
+        value = self.raw_value(raw_n).reshape(B, P, H, Dh)
+        zero = owner_attention.new_zeros(())
+        hard_outside_mass = zero
+
+        if self.readout_mode == "pooled":
+            patch_distribution = routing / routing.sum(
+                dim=-1, keepdim=True
+            ).clamp_min(1e-6)
+            patch_attention = torch.einsum(
+                "bhqs,bsp->bhqp", owner_attention, patch_distribution
+            )
+            patch_attention = patch_attention / patch_attention.sum(
+                dim=-1, keepdim=True
+            ).clamp_min(1e-6)
+        else:
+            # Each head/query chooses exactly one semantic owner.  Each patch
+            # also has exactly one predicted owner.  Equality of those two
+            # hard assignments is a strict support mask: content logits can
+            # never cross an owner boundary.
+            selected_owner = owner_attention.argmax(dim=-1)  # [B,H,Q]
+            patch_owner = routing.argmax(dim=1)  # [B,P]
+            allowed = selected_owner.unsqueeze(-1) == patch_owner[:, None, None]
+
+            # An early or padded owner can receive no top-1 patch.  Give such a
+            # query its owner's highest-probability patch so softmax never sees
+            # a fully masked row.
+            expanded_routing = routing[:, None].expand(B, H, S, P)
+            selected_maps = expanded_routing.gather(
+                2,
+                selected_owner.unsqueeze(-1).expand(B, H, Q, P),
+            )
+            fallback_patch = selected_maps.argmax(dim=-1, keepdim=True)
+            has_allowed = allowed.any(dim=-1, keepdim=True)
+            fallback = torch.zeros_like(allowed).scatter(
+                -1, fallback_patch, True
+            )
+            allowed = allowed | ((~has_allowed) & fallback)
+
+            raw_key = self.raw_key(raw_n).reshape(B, P, H, Dh)
+            content_logits = torch.einsum(
+                "bqhd,bphd->bhqp", query.float(), raw_key.float()
+            ) / math.sqrt(float(Dh))
+            content_logits = content_logits / max(self.temperature, 1e-6)
+            content_logits = content_logits.masked_fill(~allowed, -1e4)
+            patch_attention = F.softmax(content_logits, dim=-1)
+            patch_attention = patch_attention * allowed.float()
+            patch_attention = patch_attention / patch_attention.sum(
+                dim=-1, keepdim=True
+            ).clamp_min(1e-6)
+            hard_outside_mass = (
+                patch_attention * (~allowed).float()
+            ).sum(dim=-1).mean()
+
+            # Forward value is exactly one.  The straight-through scale lets
+            # reconstruction gradients still improve q->owner confidence;
+            # the explicit Reader loss remains the primary routing teacher.
+            selected_prob = owner_attention.gather(
+                -1, selected_owner.unsqueeze(-1)
+            ).squeeze(-1)
+            straight_through_owner = (
+                torch.ones_like(selected_prob)
+                + selected_prob
+                - selected_prob.detach()
+            )
+            patch_attention = patch_attention * straight_through_owner.unsqueeze(-1)
+
+        context = torch.einsum(
+            "bhqp,bphd->bqhd", patch_attention.to(value.dtype), value
+        ).reshape(B, Q, D)
+        condition = self.output_norm(self.output(context)).to(dtype=stream_dtype)
+        condition = torch.where(
+            torch.isfinite(condition), condition, torch.zeros_like(condition)
+        )
+
+        # Owner-pooled values are diagnostics and provide a common intervention
+        # representation; owner_masked reconstruction does not consume them.
+        owner_patch_distribution = routing / routing.sum(
+            dim=-1, keepdim=True
+        ).clamp_min(1e-6)
+        owner_values = torch.einsum(
+            "bsp,bpd->bsd",
+            owner_patch_distribution.to(raw_n.dtype),
+            self.raw_value(raw_n),
+        ).to(dtype=stream_dtype)
+        valid_owner_values = owner_values * slot_valid.unsqueeze(-1).to(
+            owner_values.dtype
+        )
+
+        return {
+            "condition_hidden": condition,
+            "reader_owner_attention": owner_attention.mean(dim=1),
+            "reader_attention_heads": owner_attention,
+            "reader_patch_attention": patch_attention.mean(dim=1),
+            "reader_patch_attention_heads": patch_attention,
+            "visual_memory": valid_owner_values,
+            "reader_entropy": (
+                -(
+                    owner_attention.float().clamp_min(1e-8).log()
+                    * owner_attention.float()
+                ).sum(dim=-1)
+            ).mean().detach(),
+            "patch_entropy": (
+                -(
+                    patch_attention.float().clamp_min(1e-8).log()
+                    * patch_attention.float()
+                ).sum(dim=-1)
+            ).mean().detach(),
+            "hard_outside_mass": hard_outside_mass.detach(),
+            "hard_owner_fraction": zero.new_tensor(
+                float(self.readout_mode == "owner_masked")
+            ),
+        }

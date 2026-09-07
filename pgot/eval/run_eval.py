@@ -1529,6 +1529,17 @@ def main():
     )
     summary["e8_visual_memory_bottleneck"] = e8_enabled
     if e8_enabled:
+        summary["one_shot_reader_enabled"] = bool(
+            getattr(model.config, "pgot_one_shot_reader_enable", False)
+        )
+        summary["one_shot_readout_mode"] = str(
+            getattr(model.config, "pgot_one_shot_readout_mode", "disabled")
+            if summary["one_shot_reader_enabled"]
+            else "disabled"
+        )
+        summary["one_shot_detach_owner_routing"] = bool(
+            getattr(model.config, "pgot_one_shot_detach_owner_routing", True)
+        )
         update_mode = str(
             getattr(model.config, "pgot_e8_update_mode", "separate_memory")
         )
@@ -1550,7 +1561,9 @@ def main():
                 torch.tanh(model.pgot_e8_reader.centroid_register_gate).detach()
             )
         summary["e11_memories_per_owner"] = int(
-            max(
+            0
+            if summary["one_shot_reader_enabled"]
+            else max(
                 int(
                     getattr(
                         model.config,
@@ -1570,14 +1583,18 @@ def main():
             else 1
         )
         summary["e11_object_memories_per_owner"] = int(
-            getattr(
+            0
+            if summary["one_shot_reader_enabled"]
+            else getattr(
                 model.config,
                 "pgot_e11_object_memories_per_owner",
                 summary["e11_memories_per_owner"],
             )
         )
         summary["e11_register_memories_per_owner"] = int(
-            getattr(
+            0
+            if summary["one_shot_reader_enabled"]
+            else getattr(
                 model.config,
                 "pgot_e11_register_memories_per_owner",
                 summary["e11_memories_per_owner"],
@@ -1594,15 +1611,28 @@ def main():
             getattr(model.config, "pgot_n_register", 0)
         )
         summary["background_visual_memories"] = (
-            summary["background_semantic_registers"]
-            * summary["e11_register_memories_per_owner"]
+            0
+            if summary["one_shot_reader_enabled"]
+            else (
+                summary["background_semantic_registers"]
+                * summary["e11_register_memories_per_owner"]
+            )
         )
         summary["visual_memory_value_source"] = (
-            "frozen source SigLIP pre-projector patches"
-            if summary["e10_raw_value_enabled"]
-            else "Qwen image-token hidden states"
+            "none; one-shot frozen raw SigLIP patch readout"
+            if summary["one_shot_reader_enabled"]
+            else (
+                "frozen source SigLIP pre-projector patches"
+                if summary["e10_raw_value_enabled"]
+                else "Qwen image-token hidden states"
+            )
         )
-        if update_mode == "final_ovt":
+        if summary["one_shot_reader_enabled"]:
+            summary["decoder_condition"] = (
+                "query-to-semantic-owner routing followed by one-shot raw "
+                f"SigLIP {summary['one_shot_readout_mode']} readout"
+            )
+        elif update_mode == "final_ovt":
             summary["decoder_condition"] = (
                 "post-final-layer unified OVT/register states as Reader keys and values"
             )
@@ -1794,15 +1824,23 @@ def main():
         if e8_enabled:
             e8_mode = str(getattr(model.config, "pgot_e8_update_mode", ""))
             summary["owner_source"] = (
-                "e9_final_ovt_gru_writer"
-                if e8_mode == "final_ovt"
+                "final_semantic_owner_readout"
+                if bool(getattr(model.config, "pgot_one_shot_reader_enable", False))
                 else (
-                    "e9_unified_ovt_gru_writer"
-                    if e8_mode == "unified_gru"
-                    else "e8_competitive_visual_memory_writer"
+                    "e9_final_ovt_gru_writer"
+                    if e8_mode == "final_ovt"
+                    else (
+                        "e9_unified_ovt_gru_writer"
+                        if e8_mode == "unified_gru"
+                        else "e8_competitive_visual_memory_writer"
+                    )
                 )
             )
-            summary["ovt_layers"] = str(getattr(model.config, "pgot_e8_layers", ""))
+            summary["ovt_layers"] = (
+                "final"
+                if bool(getattr(model.config, "pgot_one_shot_reader_enable", False))
+                else str(getattr(model.config, "pgot_e8_layers", ""))
+            )
             summary["owner_temperature"] = float(
                 getattr(model.config, "pgot_e8_owner_temperature", 1.0)
             )

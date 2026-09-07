@@ -1,0 +1,129 @@
+{
+  "model_path": "checkpoints/pgot_oneshot_owner_masked/checkpoint-5000",
+  "protocol": "same-category donor raw-SigLIP owner crop warped into the fixed target owner region; appearance-only keeps target s_k, bundle also swaps s_k",
+  "num_pairs": 64,
+  "diffusion_inference_steps": 10,
+  "guidance_scale": 1.0,
+  "metrics": {
+    "appearance_change_energy_inside_fraction": {
+      "mean": 0.26452503495283963,
+      "median": 0.13843996077775955,
+      "std": 0.2691544661286452,
+      "count": 64
+    },
+    "appearance_change_inside_outside_mse_ratio": {
+      "mean": 5.206857625336852,
+      "median": 3.981049060821533,
+      "std": 5.477202966071429,
+      "count": 64
+    },
+    "appearance_donor_closer": {
+      "mean": 0.859375,
+      "median": 1.0,
+      "std": 0.3476343040826092,
+      "count": 64
+    },
+    "appearance_donor_direction_alignment": {
+      "mean": 0.41732269906788133,
+      "median": 0.47187037765979767,
+      "std": 0.26102336500973783,
+      "count": 64
+    },
+    "appearance_donor_similarity_gain": {
+      "mean": 0.09645711677148938,
+      "median": 0.07633799314498901,
+      "std": 0.08962535312309054,
+      "count": 64
+    },
+    "appearance_full_to_donor_cosine": {
+      "mean": 0.5475714621134102,
+      "median": 0.5514102876186371,
+      "std": 0.15038678602593247,
+      "count": 64
+    },
+    "appearance_full_to_target_cosine": {
+      "mean": 0.872944331727922,
+      "median": 0.9184234440326691,
+      "std": 0.1665640033034681,
+      "count": 64
+    },
+    "appearance_swap_to_donor_cosine": {
+      "mean": 0.6440285788848996,
+      "median": 0.6615387797355652,
+      "std": 0.18918494366994332,
+      "count": 64
+    },
+    "appearance_swap_to_target_cosine": {
+      "mean": 0.733782097697258,
+      "median": 0.7773420810699463,
+      "std": 0.16677140619303707,
+      "count": 64
+    },
+    "appearance_target_similarity_change": {
+      "mean": -0.13916223403066397,
+      "median": -0.10930392146110535,
+      "std": 0.1245106018720606,
+      "count": 64
+    },
+    "bundle_change_energy_inside_fraction": {
+      "mean": 0.22768800013875534,
+      "median": 0.11873792484402657,
+      "std": 0.2643393984524552,
+      "count": 64
+    },
+    "bundle_change_inside_outside_mse_ratio": {
+      "mean": 3.33536129957065,
+      "median": 2.177104353904724,
+      "std": 4.127817011063876,
+      "count": 64
+    },
+    "bundle_donor_closer": {
+      "mean": 0.578125,
+      "median": 1.0,
+      "std": 0.4938587696649721,
+      "count": 64
+    },
+    "bundle_donor_direction_alignment": {
+      "mean": 0.27052865755103994,
+      "median": 0.24872364103794098,
+      "std": 0.24395595423729097,
+      "count": 64
+    },
+    "bundle_donor_similarity_gain": {
+      "mean": 0.010522980708628893,
+      "median": 0.014685332775115967,
+      "std": 0.1169004611803964,
+      "count": 64
+    },
+    "bundle_full_to_donor_cosine": {
+      "mean": 0.5475714621134102,
+      "median": 0.5514102876186371,
+      "std": 0.15038678602593247,
+      "count": 64
+    },
+    "bundle_full_to_target_cosine": {
+      "mean": 0.872944331727922,
+      "median": 0.9184234440326691,
+      "std": 0.1665640033034681,
+      "count": 64
+    },
+    "bundle_swap_to_donor_cosine": {
+      "mean": 0.5580944428220391,
+      "median": 0.5334232747554779,
+      "std": 0.18234178366164724,
+      "count": 64
+    },
+    "bundle_swap_to_target_cosine": {
+      "mean": 0.7459122855216265,
+      "median": 0.8089776337146759,
+      "std": 0.19347748148221608,
+      "count": 64
+    },
+    "bundle_target_similarity_change": {
+      "mean": -0.12703204667195678,
+      "median": -0.06803879141807556,
+      "std": 0.13982272755487596,
+      "count": 64
+    }
+  }
+}

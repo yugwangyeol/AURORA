@@ -45,7 +45,11 @@ fi
 
 echo "E8 model: ${MODEL_PATH}"
 echo "E8 output: ${OUTPUT_DIR}"
-echo "E8 writer layers: ${E8_LAYERS:-21,24,27}"
+if [[ "${ONE_SHOT_READER_ENABLE:-False}" == True ]]; then
+    echo "One-shot path: visual Writer disabled; final semantic ownership only"
+else
+    echo "E8 writer layers: ${E8_LAYERS:-21,24,27}"
+fi
 echo "E8/E9 update mode: ${E8_UPDATE_MODE:-separate_memory}"
 echo "E10 raw source-SigLIP values: ${E10_RAW_VALUE_ENABLE:-False}"
 echo "E11 Dual-M4: ${E11_DUAL_M4_ENABLE:-False}; memories/owner=${E11_MEMORIES_PER_OWNER:-4}"
@@ -58,8 +62,9 @@ elif [[ "${E8_UPDATE_MODE:-separate_memory}" == unified_gru ]]; then
 else
     echo "E8 clean refinement: enabled; memory-to-Qwen injection disabled"
 fi
-echo "E8 supervision: writer_weight=${E8_OWNER_WEIGHT:-1.0}; reader_mode=${E8_READER_SUPERVISION_MODE:-gt}"
+echo "E8 supervision: owner_weight=${E8_OWNER_WEIGHT:-1.0}; reader_mode=${E8_READER_SUPERVISION_MODE:-gt}"
 echo "E8.2 paired causal: ${E8_CAUSAL_ENABLE:-False}"
+echo "One-shot Reader: ${ONE_SHOT_READER_ENABLE:-False}; mode=${ONE_SHOT_READOUT_MODE:-pooled}; detach_owner=${ONE_SHOT_DETACH_OWNER_ROUTING:-True}"
 echo "Direct DiT memory: ${PGOT_DIT_OVT_XATTN_ENABLE:-False}; soft routing=${PGOT_DIT_SOFT_ROUTING_ENABLE:-False}"
 echo "E8 background: ${E8_N_REGISTER:-4} competitive registers; NULL_BG disabled"
 
@@ -83,6 +88,9 @@ echo "E8 background: ${E8_N_REGISTER:-4} competitive registers; NULL_BG disabled
     --pgot_ovt_caption_init True --pgot_ovt_caption_init_scale 1.0 \
     --pgot_ovt_isolated_attention True --pgot_ovt_attends_own_caption True \
     --pgot_e8_visual_memory_enable True \
+    --pgot_one_shot_reader_enable "${ONE_SHOT_READER_ENABLE:-False}" \
+    --pgot_one_shot_readout_mode "${ONE_SHOT_READOUT_MODE:-pooled}" \
+    --pgot_one_shot_detach_owner_routing "${ONE_SHOT_DETACH_OWNER_ROUTING:-True}" \
     --pgot_e8_layers "${E8_LAYERS:-21,24,27}" \
     --pgot_e8_owner_temperature "${E8_OWNER_TEMPERATURE:-1.0}" \
     --pgot_e8_owner_weight "${E8_OWNER_WEIGHT:-1.0}" \

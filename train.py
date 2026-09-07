@@ -315,6 +315,15 @@ def train():
     config.pgot_e8_visual_memory_enable = bool(
         model_args.pgot_e8_visual_memory_enable
     )
+    config.pgot_one_shot_reader_enable = bool(
+        model_args.pgot_one_shot_reader_enable
+    )
+    config.pgot_one_shot_readout_mode = str(
+        model_args.pgot_one_shot_readout_mode
+    )
+    config.pgot_one_shot_detach_owner_routing = bool(
+        model_args.pgot_one_shot_detach_owner_routing
+    )
     config.pgot_e8_layers = str(model_args.pgot_e8_layers)
     config.pgot_e8_owner_temperature = float(
         model_args.pgot_e8_owner_temperature
@@ -739,6 +748,15 @@ def train():
     )
     model.config.pgot_e8_visual_memory_enable = bool(
         model_args.pgot_e8_visual_memory_enable
+    )
+    model.config.pgot_one_shot_reader_enable = bool(
+        model_args.pgot_one_shot_reader_enable
+    )
+    model.config.pgot_one_shot_readout_mode = str(
+        model_args.pgot_one_shot_readout_mode
+    )
+    model.config.pgot_one_shot_detach_owner_routing = bool(
+        model_args.pgot_one_shot_detach_owner_routing
     )
     model.config.pgot_e8_layers = str(model_args.pgot_e8_layers)
     model.config.pgot_e8_owner_temperature = float(

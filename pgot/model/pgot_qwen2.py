@@ -49,6 +49,7 @@ from pgot.model.visual_memory import (
     PGOTE8TypedRAEReader,
     PGOTE8VisualMemoryWriter,
     PGOTE9UnifiedSlotWriter,
+    PGOTOneShotOwnerReader,
 )
 
 
@@ -707,6 +708,16 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_e8_visual_memory_enable = bool(
             getattr(self.config, "pgot_e8_visual_memory_enable", False)
         )
+        self.pgot_one_shot_reader_enable = bool(
+            getattr(self.config, "pgot_one_shot_reader_enable", False)
+        )
+        self.pgot_one_shot_readout_mode = str(
+            getattr(self.config, "pgot_one_shot_readout_mode", "pooled")
+        ).strip().lower()
+        if self.pgot_one_shot_reader_enable and not self.pgot_e8_visual_memory_enable:
+            raise ValueError(
+                "pgot_one_shot_reader_enable requires the shared E8 loss/eval path"
+            )
         self.pgot_e8_update_mode = str(
             getattr(self.config, "pgot_e8_update_mode", "separate_memory")
         ).strip().lower()
@@ -777,7 +788,37 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 )
             if self.pgot_n_register <= 0:
                 raise ValueError("E8 requires at least one background register")
-            if self.pgot_e11_dual_m4_enable:
+            if self.pgot_one_shot_reader_enable:
+                if self.pgot_e11_dual_m4_enable:
+                    raise ValueError(
+                        "one-shot Reader removes E11 visual memories; disable Dual-M4"
+                    )
+                if bool(getattr(self.config, "pgot_e8_causal_enable", False)):
+                    raise ValueError(
+                        "one-shot Reader first experiment does not support E8 causal loss"
+                    )
+                self.pgot_e8_layers = []
+                self.pgot_e8_writer = None
+                self.pgot_e9_writer = None
+                self.pgot_e8_reader = PGOTOneShotOwnerReader(
+                    dim=D,
+                    raw_value_dim=int(getattr(self.config, "mm_hidden_size", 0)),
+                    num_heads=int(
+                        getattr(self.config, "pgot_e8_reader_num_heads", 8)
+                    ),
+                    temperature=float(
+                        getattr(self.config, "pgot_e8_reader_temperature", 1.0)
+                    ),
+                    readout_mode=self.pgot_one_shot_readout_mode,
+                    detach_owner_routing=bool(
+                        getattr(
+                            self.config,
+                            "pgot_one_shot_detach_owner_routing",
+                            True,
+                        )
+                    ),
+                )
+            elif self.pgot_e11_dual_m4_enable:
                 if self.pgot_e8_update_mode != "separate_memory":
                     raise ValueError("E11 Dual-M4 requires separate_memory mode")
                 if not self.pgot_e10_raw_value_enable:
@@ -787,13 +828,16 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                     raise ValueError("E12 centroid Reader requires E11 Dual-M4")
                 if self.pgot_e8_update_mode != "separate_memory":
                     raise ValueError("E12 centroid Reader requires separate_memory mode")
-            self.pgot_e8_layers = _resolve_layer_spec(
-                str(getattr(self.config, "pgot_e8_layers", "21,24,27")),
-                int(getattr(self.config, "num_hidden_layers", 0)),
-            )
-            if not self.pgot_e8_layers:
+            if not self.pgot_one_shot_reader_enable:
+                self.pgot_e8_layers = _resolve_layer_spec(
+                    str(getattr(self.config, "pgot_e8_layers", "21,24,27")),
+                    int(getattr(self.config, "num_hidden_layers", 0)),
+                )
+            if not self.pgot_one_shot_reader_enable and not self.pgot_e8_layers:
                 raise ValueError("E8 requires at least one valid visual-write layer")
-            if self.pgot_e8_update_mode == "separate_memory":
+            if self.pgot_one_shot_reader_enable:
+                pass
+            elif self.pgot_e8_update_mode == "separate_memory":
                 self.pgot_e8_writer = PGOTE8VisualMemoryWriter(
                     dim=D,
                     temperature=float(
@@ -834,23 +878,24 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                     "separate_memory/unified_gru/final_ovt, got "
                     f"{self.pgot_e8_update_mode!r}"
                 )
-            self.pgot_e8_reader = PGOTE8TypedRAEReader(
-                dim=D,
-                num_heads=int(getattr(self.config, "pgot_e8_reader_num_heads", 8)),
-                temperature=float(
-                    getattr(self.config, "pgot_e8_reader_temperature", 1.0)
-                ),
-                memories_per_owner=self.pgot_e11_memories_per_owner,
-                object_memories_per_owner=(
-                    self.pgot_e11_object_memories_per_owner
-                ),
-                register_memories_per_owner=(
-                    self.pgot_e11_register_memories_per_owner
-                ),
-                centroid_position_enable=self.pgot_e12_centroid_reader_enable,
-                centroid_gate_init=self.pgot_e12_centroid_gate_init,
-                num_layers=self.pgot_e8_reader_num_layers,
-            )
+            if not self.pgot_one_shot_reader_enable:
+                self.pgot_e8_reader = PGOTE8TypedRAEReader(
+                    dim=D,
+                    num_heads=int(getattr(self.config, "pgot_e8_reader_num_heads", 8)),
+                    temperature=float(
+                        getattr(self.config, "pgot_e8_reader_temperature", 1.0)
+                    ),
+                    memories_per_owner=self.pgot_e11_memories_per_owner,
+                    object_memories_per_owner=(
+                        self.pgot_e11_object_memories_per_owner
+                    ),
+                    register_memories_per_owner=(
+                        self.pgot_e11_register_memories_per_owner
+                    ),
+                    centroid_position_enable=self.pgot_e12_centroid_reader_enable,
+                    centroid_gate_init=self.pgot_e12_centroid_gate_init,
+                    num_layers=self.pgot_e8_reader_num_layers,
+                )
         else:
             self.pgot_e8_layers = []
             self.pgot_e8_writer = None
@@ -979,6 +1024,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             f"e6_coda_direct={self.pgot_e6_enable}, "
             f"e7_causal_ownership={self.pgot_e7_enable}, "
             f"e8_visual_memory={self.pgot_e8_visual_memory_enable}, "
+            f"one_shot_reader={self.pgot_one_shot_reader_enable}, "
+            f"one_shot_mode={self.pgot_one_shot_readout_mode}, "
             f"e8_update_mode={self.pgot_e8_update_mode}, "
             f"e8_layers={self.pgot_e8_layers}, "
             f"e11_dual_m4={self.pgot_e11_dual_m4_enable}, "
@@ -1599,6 +1646,164 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         bias[:, :, rows, rows] = 0.0
         return bias
 
+    def _pgot_one_shot_forward_features(
+        self,
+        *,
+        images: torch.Tensor,
+        target_images: torch.Tensor,
+        caption_input_ids: torch.LongTensor,
+        caption_attention_mask: torch.Tensor,
+        ovt_positions_in_caption: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        output_hidden_states: bool = False,
+    ) -> Dict[str, torch.Tensor]:
+        """Run semantic-only ownership and one Reader read from raw patches."""
+        if not self.pgot_one_shot_reader_enable:
+            raise RuntimeError("one-shot Reader features requested while disabled")
+        if not isinstance(self.pgot_e8_reader, PGOTOneShotOwnerReader):
+            raise RuntimeError("one-shot Reader module is missing")
+
+        seq = self._pgot_build_sequence_inputs(
+            images=images,
+            target_images=target_images,
+            caption_input_ids=caption_input_ids,
+            caption_attention_mask=caption_attention_mask,
+            ovt_positions_in_caption=ovt_positions_in_caption,
+            ovt_valid_mask=ovt_valid_mask,
+        )
+        seq["attn_bias"] = self._pgot_e8_block_standard_rae_values(
+            seq["attn_bias"], seq["positions"]
+        )
+        out = self.model(
+            inputs_embeds=seq["inputs_embeds"],
+            attention_bias=seq["attn_bias"],
+            use_cache=False,
+            output_hidden_states=output_hidden_states,
+            return_dict=True,
+        )
+        hidden = out.last_hidden_state
+        final_slots = self._pgot_e8_build_semantic_slots(
+            hidden_states=hidden,
+            positions=seq["positions"],
+            ovt_abs_positions=seq["ovt_abs_positions"],
+            ovt_valid_mask=seq["ovt_valid_mask"],
+        )
+        semantic_slots = final_slots["semantic_slots"]
+        slot_valid = final_slots["slot_valid"]
+        K = final_slots["object_states"].shape[1]
+        img_hidden = hidden[
+            :, seq["positions"]["img_s"]:seq["positions"]["img_e"], :
+        ]
+        raw_rae_hidden = hidden[
+            :, seq["positions"]["rae_s"]:seq["positions"]["rae_e"], :
+        ]
+
+        # This is the same final semantic readout used by segmentation eval.
+        # It is now also the only ownership map used by reconstruction.
+        temperature = float(
+            getattr(
+                self.config,
+                "pgot_e8_owner_temperature",
+                getattr(self.config, "pgot_attention_temperature", 1.0),
+            )
+        )
+        normalize_tokens = bool(
+            getattr(self.config, "pgot_attention_use_layer_norm", True)
+        )
+        object_logits = compute_per_ovt_mask_logits(
+            ovt_hidden=final_slots["object_states"],
+            img_hidden=img_hidden,
+            temperature=temperature,
+            normalize_tokens=normalize_tokens,
+        )
+        register_logits = compute_per_ovt_mask_logits(
+            ovt_hidden=final_slots["register_states"],
+            img_hidden=img_hidden,
+            temperature=temperature,
+            normalize_tokens=normalize_tokens,
+        )
+        owner_logits = torch.cat([object_logits, register_logits], dim=1)
+        owner_logits = owner_logits.masked_fill(~slot_valid.unsqueeze(-1), -1e4)
+        owner_probs = F.softmax(owner_logits.float(), dim=1)
+        owner_probs = owner_probs * slot_valid.unsqueeze(-1).float()
+        owner_probs = owner_probs / owner_probs.sum(
+            dim=1, keepdim=True
+        ).clamp_min(1e-6)
+
+        reader = self.pgot_e8_reader(
+            rae_queries=raw_rae_hidden,
+            semantic_slots=semantic_slots,
+            raw_patches=seq["raw_img_features"],
+            owner_probs=owner_probs,
+            slot_valid=slot_valid,
+        )
+        zero = hidden.new_zeros(())
+        visual_memory = reader["visual_memory"]
+        final_layer = hidden.new_tensor(
+            float(int(getattr(self.config, "num_hidden_layers", 1)) - 1)
+        )
+        write_record = {
+            "layer": final_layer,
+            "owner_logits": owner_logits,
+            "owner_probs": owner_probs,
+            "object_probs": owner_probs[:, :K],
+            "register_probs": owner_probs[:, K:],
+            "memory_norm": visual_memory.float().norm(dim=-1).mean().detach(),
+            "injection_norm": zero,
+            "write_gate_mean": zero,
+            "write_strength": zero,
+            "retain_gate_mean": zero,
+            "reset_gate_mean": zero,
+            "mlp_strength": zero,
+            "raw_value_enabled": hidden.new_ones(()),
+            "memory_probs": None,
+            "memory_valid": slot_valid.unsqueeze(-1),
+            "memory_centroids": None,
+            "memory_utilization": None,
+            "memory_utilization_entropy": zero,
+            "memory_assignment_entropy": zero,
+            "memory_utilization_min": zero,
+            "memory_utilization_max": zero,
+            "object_memory_utilization_entropy": zero,
+            "register_memory_utilization_entropy": zero,
+        }
+        seq.update(
+            {
+                "hidden": hidden,
+                "outputs": out,
+                "hidden_states": out.hidden_states if output_hidden_states else None,
+                "img_hidden": img_hidden,
+                "raw_rae_hidden": raw_rae_hidden,
+                "condition_hidden": reader["condition_hidden"],
+                "reader_attention": reader["reader_owner_attention"],
+                "reader_memory_attention": reader["reader_patch_attention"],
+                "reader_entropy": reader["reader_entropy"],
+                "reader_attention_heads": reader["reader_attention_heads"],
+                "reader_patch_entropy": reader["patch_entropy"],
+                "reader_hard_outside_mass": reader["hard_outside_mass"],
+                "memory_centroids": None,
+                "centroid_position_enabled": zero,
+                "centroid_object_gate": zero,
+                "centroid_register_gate": zero,
+                "centroid_position_rms": zero,
+                "centroid_mean_radius": zero,
+                "semantic_slots": semantic_slots,
+                "visual_memory": visual_memory,
+                "slot_valid": slot_valid,
+                "object_states": final_slots["object_states"],
+                "object_valid": final_slots["object_valid"],
+                "register_states": final_slots["register_states"],
+                "unified_slots": semantic_slots,
+                "update_mode": f"one_shot_{self.pgot_one_shot_readout_mode}",
+                "owner_logits": owner_logits,
+                "owner_probs": owner_probs,
+                "object_probs": owner_probs[:, :K],
+                "register_probs": owner_probs[:, K:],
+                "write_records": [write_record],
+            }
+        )
+        return seq
+
     def _pgot_e8_forward_features(
         self,
         *,
@@ -1613,6 +1818,16 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         """Run Qwen with iterative image-only memories and a typed RAE read."""
         if not self.pgot_e8_visual_memory_enable:
             raise RuntimeError("E8 visual-memory features requested while E8 is disabled")
+        if self.pgot_one_shot_reader_enable:
+            return self._pgot_one_shot_forward_features(
+                images=images,
+                target_images=target_images,
+                caption_input_ids=caption_input_ids,
+                caption_attention_mask=caption_attention_mask,
+                ovt_positions_in_caption=ovt_positions_in_caption,
+                ovt_valid_mask=ovt_valid_mask,
+                output_hidden_states=output_hidden_states,
+            )
         if self.pgot_e8_reader is None:
             raise RuntimeError("E8/E9 reader module is missing")
         update_mode = str(
@@ -5665,6 +5880,27 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "e8_register_prob_on_fg": owner_stats["void_prob_on_fg"],
             "e8_object_prob_on_bg": owner_stats["object_prob_on_bg"],
             "e8_owner_entropy": owner_stats["entropy"],
+            "one_shot_reader_enabled": hidden.new_tensor(
+                float(self.pgot_one_shot_reader_enable)
+            ),
+            "one_shot_pooled_mode": hidden.new_tensor(
+                float(
+                    self.pgot_one_shot_reader_enable
+                    and self.pgot_one_shot_readout_mode == "pooled"
+                )
+            ),
+            "one_shot_owner_masked_mode": hidden.new_tensor(
+                float(
+                    self.pgot_one_shot_reader_enable
+                    and self.pgot_one_shot_readout_mode == "owner_masked"
+                )
+            ),
+            "one_shot_patch_entropy": seq.get(
+                "reader_patch_entropy", hidden.new_zeros(())
+            ),
+            "one_shot_hard_outside_mass": seq.get(
+                "reader_hard_outside_mass", hidden.new_zeros(())
+            ),
             "e8_visual_memory_rms": memory_rms.detach(),
             "e8_visual_memory_norm": last_write["memory_norm"],
             "e8_injection_norm": last_write["injection_norm"],
@@ -5751,7 +5987,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "e8_reader_object_mass_on_bg": reader_gt_stats[
                 "object_mass_on_bg"
             ],
-            "e8_num_writes": hidden.new_tensor(float(len(seq["write_records"]))),
+            "e8_num_writes": hidden.new_tensor(
+                0.0
+                if self.pgot_one_shot_reader_enable
+                else float(len(seq["write_records"]))
+            ),
             "e8_typed_reader_only": hidden.new_tensor(1.0),
             "e8_clean_refinement": hidden.new_tensor(
                 float(bool(getattr(self.config, "pgot_e8_clean_refinement", False)))

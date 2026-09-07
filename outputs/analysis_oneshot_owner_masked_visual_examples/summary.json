@@ -1,0 +1,79 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_owner_masked/checkpoint-5000",
+  "one_shot_readout_mode": "owner_masked",
+  "protocol": "one-shot Reader: same semantic owners/ownership/noise; interventions zero or swap raw SigLIP patch values grouped by the model's own predicted patch ownership",
+  "records": [
+    {
+      "target_sample_index": 1,
+      "target_image_id": 285,
+      "target_object_index": 0,
+      "donor_sample_index": 193,
+      "donor_image_id": 20247,
+      "donor_object_index": 0,
+      "category": "bear",
+      "selected_object_patch_count": 780,
+      "object_patch_count": 780,
+      "fixed_noise_seed": 123,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.4433101415634155,
+        "object_only": 1.7260829210281372,
+        "register_only": 2.6752960681915283,
+        "all_zero": 3.3459253311157227,
+        "selected_zero": 2.6752960681915283,
+        "same_category_swap": 0.98710697889328,
+        "same_category_bundle_swap": 0.919316291809082
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_oneshot_owner_masked_visual_examples/sample1_obj0_bear_patch_grid.png"
+    },
+    {
+      "target_sample_index": 500,
+      "target_image_id": 58705,
+      "target_object_index": 0,
+      "donor_sample_index": 5,
+      "donor_image_id": 785,
+      "donor_object_index": 0,
+      "category": "person",
+      "selected_object_patch_count": 290,
+      "object_patch_count": 567,
+      "fixed_noise_seed": 124,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.7102470993995667,
+        "object_only": 2.281648874282837,
+        "register_only": 2.3479092121124268,
+        "all_zero": 3.348093271255493,
+        "selected_zero": 1.8953607082366943,
+        "same_category_swap": 1.015259861946106,
+        "same_category_bundle_swap": 1.073517084121704
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_oneshot_owner_masked_visual_examples/sample500_obj0_person_patch_grid.png"
+    },
+    {
+      "target_sample_index": 1407,
+      "target_image_id": 171298,
+      "target_object_index": 0,
+      "donor_sample_index": 17,
+      "donor_image_id": 1584,
+      "donor_object_index": 0,
+      "category": "bus",
+      "selected_object_patch_count": 499,
+      "object_patch_count": 696,
+      "fixed_noise_seed": 125,
+      "guidance_scale": 1.0,
+      "diffusion_inference_steps": 10,
+      "losses": {
+        "full": 0.7955628633499146,
+        "object_only": 1.9554522037506104,
+        "register_only": 2.711902379989624,
+        "all_zero": 3.4933578968048096,
+        "selected_zero": 2.2424957752227783,
+        "same_category_swap": 1.2429133653640747,
+        "same_category_bundle_swap": 1.2336804866790771
+      },
+      "grid": "/home/jovyan/PGOT/outputs/analysis_oneshot_owner_masked_visual_examples/sample1407_obj0_bus_patch_grid.png"
+    }
+  ]
+}
