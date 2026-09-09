@@ -50,6 +50,8 @@ from pgot.model.visual_memory import (
     PGOTE8VisualMemoryWriter,
     PGOTE9UnifiedSlotWriter,
     PGOTOneShotOwnerReader,
+    PGOTOneShotMemoryWriter,
+    PGOTOneShotMemoryReader,
 )
 
 
@@ -714,6 +716,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_one_shot_readout_mode = str(
             getattr(self.config, "pgot_one_shot_readout_mode", "pooled")
         ).strip().lower()
+        self.pgot_one_shot_memory_enable = (
+            self.pgot_one_shot_reader_enable
+            and self.pgot_one_shot_readout_mode in {"memory_content", "memory_id"}
+        )
         if self.pgot_one_shot_reader_enable and not self.pgot_e8_visual_memory_enable:
             raise ValueError(
                 "pgot_one_shot_reader_enable requires the shared E8 loss/eval path"
@@ -764,7 +770,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         )
         if self.pgot_e11_memories_per_owner <= 0:
             raise ValueError("E11 memories per owner must be positive")
-        if not self.pgot_e11_dual_m4_enable:
+        if not self.pgot_e11_dual_m4_enable and not self.pgot_one_shot_memory_enable:
             self.pgot_e11_memories_per_owner = 1
             self.pgot_e11_object_memories_per_owner = 1
             self.pgot_e11_register_memories_per_owner = 1
@@ -800,24 +806,43 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 self.pgot_e8_layers = []
                 self.pgot_e8_writer = None
                 self.pgot_e9_writer = None
-                self.pgot_e8_reader = PGOTOneShotOwnerReader(
-                    dim=D,
-                    raw_value_dim=int(getattr(self.config, "mm_hidden_size", 0)),
-                    num_heads=int(
-                        getattr(self.config, "pgot_e8_reader_num_heads", 8)
-                    ),
-                    temperature=float(
-                        getattr(self.config, "pgot_e8_reader_temperature", 1.0)
-                    ),
-                    readout_mode=self.pgot_one_shot_readout_mode,
-                    detach_owner_routing=bool(
-                        getattr(
-                            self.config,
-                            "pgot_one_shot_detach_owner_routing",
-                            True,
-                        )
-                    ),
-                )
+                if self.pgot_one_shot_memory_enable:
+                    if self.pgot_e8_reader_num_layers != 1:
+                        raise ValueError("one-shot memory uses exactly one hierarchical Reader")
+                    self.pgot_e8_writer = PGOTOneShotMemoryWriter(
+                        dim=D,
+                        raw_value_dim=int(getattr(self.config, "mm_hidden_size", 0)),
+                        object_memories_per_owner=self.pgot_e11_object_memories_per_owner,
+                        register_memories_per_owner=self.pgot_e11_register_memories_per_owner,
+                        temperature=float(getattr(self.config, "pgot_e8_owner_temperature", 1.0)),
+                        detach_owner_routing=bool(getattr(self.config, "pgot_one_shot_detach_owner_routing", True)),
+                    )
+                    self.pgot_e8_reader = PGOTOneShotMemoryReader(
+                        dim=D,
+                        num_heads=int(getattr(self.config, "pgot_e8_reader_num_heads", 8)),
+                        memories_per_owner=self.pgot_e11_memories_per_owner,
+                        readout_mode=self.pgot_one_shot_readout_mode,
+                        temperature=float(getattr(self.config, "pgot_e8_reader_temperature", 1.0)),
+                    )
+                else:
+                    self.pgot_e8_reader = PGOTOneShotOwnerReader(
+                        dim=D,
+                        raw_value_dim=int(getattr(self.config, "mm_hidden_size", 0)),
+                        num_heads=int(
+                            getattr(self.config, "pgot_e8_reader_num_heads", 8)
+                        ),
+                        temperature=float(
+                            getattr(self.config, "pgot_e8_reader_temperature", 1.0)
+                        ),
+                        readout_mode=self.pgot_one_shot_readout_mode,
+                        detach_owner_routing=bool(
+                            getattr(
+                                self.config,
+                                "pgot_one_shot_detach_owner_routing",
+                                True,
+                            )
+                        ),
+                    )
             elif self.pgot_e11_dual_m4_enable:
                 if self.pgot_e8_update_mode != "separate_memory":
                     raise ValueError("E11 Dual-M4 requires separate_memory mode")
@@ -1017,31 +1042,39 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_assistant_prefix_ids: List[int] = []
         self.pgot_assistant_suffix_ids: List[int] = []
 
-        print(
-            f"[PGOT] Initialised — D={D}, N_register={self.pgot_n_register}, "
-            f"n_ovt_per_object={self.pgot_n_ovt_per_object}, "
-            f"N_null_bg={self.pgot_n_null_bg}, "
-            f"e6_coda_direct={self.pgot_e6_enable}, "
-            f"e7_causal_ownership={self.pgot_e7_enable}, "
-            f"e8_visual_memory={self.pgot_e8_visual_memory_enable}, "
-            f"one_shot_reader={self.pgot_one_shot_reader_enable}, "
-            f"one_shot_mode={self.pgot_one_shot_readout_mode}, "
-            f"e8_update_mode={self.pgot_e8_update_mode}, "
-            f"e8_layers={self.pgot_e8_layers}, "
-            f"e11_dual_m4={self.pgot_e11_dual_m4_enable}, "
-            f"memories_per_owner={self.pgot_e11_memories_per_owner}, "
-            f"object_memories={self.pgot_e11_object_memories_per_owner}, "
-            f"register_memories={self.pgot_e11_register_memories_per_owner}, "
-            f"reader_layers={self.pgot_e8_reader_num_layers}, "
-            f"query_separation={self.pgot_e11_query_separation_enable}, "
-            f"e12_centroid_reader={self.pgot_e12_centroid_reader_enable}, "
-            f"fvw={self.pgot_fvw_enable}, fvw_layers={self.pgot_fvw_layers}, "
-            f"v12={self.pgot_v12_enable}, v12_layers={self.pgot_v12_layers}, "
-            f"v14={self.pgot_v14_enable}, "
-            f"v14_router_depth={getattr(self.config, 'pgot_v14_router_depth', 1)}, "
-            f"v21={self.pgot_v21_enable}, "
-            f"latent_distill={self.pgot_latent_head is not None}"
-        )
+        if self.pgot_one_shot_memory_enable:
+            print(
+                f"[PGOT/Memory] D={D}, OVT/object={self.pgot_n_ovt_per_object}, "
+                f"object={self.pgot_e11_object_memories_per_owner}, "
+                f"register={self.pgot_e11_register_memories_per_owner} x {self.pgot_n_register}, "
+                f"readout={self.pgot_one_shot_readout_mode}, RAE=self-only"
+            )
+        else:
+            print(
+                f"[PGOT] Initialised — D={D}, N_register={self.pgot_n_register}, "
+                f"n_ovt_per_object={self.pgot_n_ovt_per_object}, "
+                f"N_null_bg={self.pgot_n_null_bg}, "
+                f"e6_coda_direct={self.pgot_e6_enable}, "
+                f"e7_causal_ownership={self.pgot_e7_enable}, "
+                f"e8_visual_memory={self.pgot_e8_visual_memory_enable}, "
+                f"one_shot_reader={self.pgot_one_shot_reader_enable}, "
+                f"one_shot_mode={self.pgot_one_shot_readout_mode}, "
+                f"e8_update_mode={self.pgot_e8_update_mode}, "
+                f"e8_layers={self.pgot_e8_layers}, "
+                f"e11_dual_m4={self.pgot_e11_dual_m4_enable}, "
+                f"memories_per_owner={self.pgot_e11_memories_per_owner}, "
+                f"object_memories={self.pgot_e11_object_memories_per_owner}, "
+                f"register_memories={self.pgot_e11_register_memories_per_owner}, "
+                f"reader_layers={self.pgot_e8_reader_num_layers}, "
+                f"query_separation={self.pgot_e11_query_separation_enable}, "
+                f"e12_centroid_reader={self.pgot_e12_centroid_reader_enable}, "
+                f"fvw={self.pgot_fvw_enable}, fvw_layers={self.pgot_fvw_layers}, "
+                f"v12={self.pgot_v12_enable}, v12_layers={self.pgot_v12_layers}, "
+                f"v14={self.pgot_v14_enable}, "
+                f"v14_router_depth={getattr(self.config, 'pgot_v14_router_depth', 1)}, "
+                f"v21={self.pgot_v21_enable}, "
+                f"latent_distill={self.pgot_latent_head is not None}"
+            )
 
     # ------------------------------------------------------------------
     # forward dispatcher
@@ -1660,7 +1693,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         """Run semantic-only ownership and one Reader read from raw patches."""
         if not self.pgot_one_shot_reader_enable:
             raise RuntimeError("one-shot Reader features requested while disabled")
-        if not isinstance(self.pgot_e8_reader, PGOTOneShotOwnerReader):
+        if not isinstance(self.pgot_e8_reader, (PGOTOneShotOwnerReader, PGOTOneShotMemoryReader)):
             raise RuntimeError("one-shot Reader module is missing")
 
         seq = self._pgot_build_sequence_inputs(
@@ -1730,13 +1763,36 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             dim=1, keepdim=True
         ).clamp_min(1e-6)
 
-        reader = self.pgot_e8_reader(
-            rae_queries=raw_rae_hidden,
-            semantic_slots=semantic_slots,
-            raw_patches=seq["raw_img_features"],
-            owner_probs=owner_probs,
-            slot_valid=slot_valid,
-        )
+        memory_write = None
+        if self.pgot_one_shot_memory_enable:
+            memory_write = self.pgot_e8_writer(
+                semantic_slots=semantic_slots, image_states=img_hidden,
+                raw_value_states=seq["raw_img_features"], owner_probs=owner_probs,
+                slot_valid=slot_valid, object_count=K,
+            )
+            reader = self.pgot_e8_reader(
+                rae_queries=raw_rae_hidden, semantic_slots=semantic_slots,
+                visual_memory=memory_write["visual_memory"], slot_valid=slot_valid,
+                memory_valid=memory_write["memory_valid"],
+            )
+            reader["visual_memory"] = memory_write["visual_memory"]
+            # Diagnostic attention composition, not an additional value path.
+            with torch.no_grad():
+                patch_attention = torch.einsum(
+                    "bqt,btp->bqp", reader["reader_memory_attention"].float(),
+                    memory_write["write_weights"].flatten(1, 2).float(),
+                )
+                reader["reader_patch_attention"] = patch_attention
+                reader["patch_entropy"] = -(patch_attention * patch_attention.clamp_min(1e-8).log()).sum(-1).mean()
+                reader["hard_outside_mass"] = hidden.new_zeros(())
+        else:
+            reader = self.pgot_e8_reader(
+                rae_queries=raw_rae_hidden,
+                semantic_slots=semantic_slots,
+                raw_patches=seq["raw_img_features"],
+                owner_probs=owner_probs,
+                slot_valid=slot_valid,
+            )
         zero = hidden.new_zeros(())
         visual_memory = reader["visual_memory"]
         final_layer = hidden.new_tensor(
@@ -1767,6 +1823,30 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "object_memory_utilization_entropy": zero,
             "register_memory_utilization_entropy": zero,
         }
+        memory_diagnostics = {}
+        if memory_write is not None:
+            valid = memory_write["memory_valid"]
+            write_record["memory_valid"] = valid
+            write_record["write_weights"] = memory_write["write_weights"]
+            write_record["memory_norm"] = visual_memory.float().norm(dim=-1)[valid].mean().detach()
+            with torch.no_grad():
+                weights = memory_write["write_weights"].float()
+                entropy = -(weights * weights.clamp_min(1e-8).log()).sum(-1)
+                normalized = F.normalize(visual_memory.float(), dim=-1)
+                cosine = torch.einsum("bsjd,bsld->bsjl", normalized, normalized)
+                J = valid.shape[-1]
+                pairs = valid[..., :, None] & valid[..., None, :]
+                pairs = pairs & torch.triu(torch.ones(J, J, device=valid.device, dtype=torch.bool), diagonal=1)
+                def pair_mean(start, end):
+                    selected = cosine[:, start:end][pairs[:, start:end]]
+                    return selected.mean() if selected.numel() else zero
+                memory_diagnostics = {
+                    "memory_write_entropy": entropy[valid].mean(),
+                    "memory_object_pair_cosine": pair_mean(0, K),
+                    "memory_register_pair_cosine": pair_mean(K, valid.shape[1]),
+                    "memory_reader_entropy": reader["memory_reader_entropy"],
+                    "memory_active_tokens": valid.float().sum((1, 2)).mean(),
+                }
         seq.update(
             {
                 "hidden": hidden,
@@ -1776,7 +1856,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 "raw_rae_hidden": raw_rae_hidden,
                 "condition_hidden": reader["condition_hidden"],
                 "reader_attention": reader["reader_owner_attention"],
-                "reader_memory_attention": reader["reader_patch_attention"],
+                "reader_memory_attention": reader.get("reader_memory_attention", reader["reader_patch_attention"]),
                 "reader_entropy": reader["reader_entropy"],
                 "reader_attention_heads": reader["reader_attention_heads"],
                 "reader_patch_entropy": reader["patch_entropy"],
@@ -1800,6 +1880,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 "object_probs": owner_probs[:, :K],
                 "register_probs": owner_probs[:, K:],
                 "write_records": [write_record],
+                "memory_diagnostics": memory_diagnostics,
             }
         )
         return seq
@@ -6040,6 +6121,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "e8_causal_outside_consistency": causal_stats["outside_consistency"],
             "e8_causal_timestep": causal_stats["timestep"],
         }
+        self.pgot_loss_details.update(seq.get("memory_diagnostics", {}))
         for layer_idx, stats in owner_stats_by_layer:
             prefix = f"e8_owner_l{layer_idx:02d}"
             self.pgot_loss_details[f"{prefix}_loss"] = stats["loss"].detach()

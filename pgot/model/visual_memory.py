@@ -939,6 +939,153 @@ class PGOTE8TypedRAEReader(nn.Module):
         }
 
 
+class PGOTOneShotMemoryWriter(nn.Module):
+    """One write: (final semantic query + E11 ID) attends patches under ownership.
+
+    Names intentionally match E11 so its projections and IDs load unchanged.
+    There is no previous-memory input, update gate, or recurrent state.
+    """
+
+    def __init__(self, *, dim, raw_value_dim, object_memories_per_owner=4,
+                 register_memories_per_owner=16, temperature=1.0,
+                 detach_owner_routing=True):
+        super().__init__()
+        self.dim = int(dim)
+        self.object_memories_per_owner = int(object_memories_per_owner)
+        self.register_memories_per_owner = int(register_memories_per_owner)
+        if min(self.object_memories_per_owner, self.register_memories_per_owner) < 1:
+            raise ValueError("one-shot memory counts must be positive")
+        self.memories_per_owner = max(self.object_memories_per_owner,
+                                     self.register_memories_per_owner)
+        self.temperature = float(temperature)
+        self.detach_owner_routing = bool(detach_owner_routing)
+        self.semantic_norm = nn.LayerNorm(dim)
+        self.image_norm = nn.LayerNorm(dim)
+        self.query = nn.Linear(dim, dim, bias=False)
+        self.key = nn.Linear(dim, dim, bias=False)
+        self.raw_value_norm = nn.LayerNorm(raw_value_dim)
+        self.raw_value = nn.Linear(raw_value_dim, dim, bias=False)
+        self.memory_id_embeddings = nn.Parameter(torch.empty(self.memories_per_owner, dim))
+        nn.init.normal_(self.memory_id_embeddings)
+        nn.init.eye_(self.query.weight)
+        nn.init.eye_(self.key.weight)
+        nn.init.xavier_uniform_(self.raw_value.weight)
+
+    def forward(self, *, semantic_slots, image_states, raw_value_states,
+                owner_probs, slot_valid, object_count):
+        B, S, D = semantic_slots.shape
+        P = image_states.shape[1]
+        if image_states.shape != (B, P, D) or owner_probs.shape != (B, S, P):
+            raise ValueError("one-shot Writer image/ownership shape mismatch")
+        if raw_value_states.shape[:2] != (B, P) or not 0 <= object_count <= S:
+            raise ValueError("one-shot Writer raw patches/object count mismatch")
+        valid = _build_memory_valid_mask(
+            slot_valid=slot_valid, object_count=object_count,
+            object_memories_per_owner=self.object_memories_per_owner,
+            register_memories_per_owner=self.register_memories_per_owner,
+            max_memories_per_owner=self.memories_per_owner,
+        )
+        dtype = self.query.weight.dtype
+        query = self.query(self.semantic_norm(semantic_slots.to(dtype)))[:, :, None]
+        query = query + self.memory_id_embeddings[None, None]
+        key = self.key(self.image_norm(image_states.to(dtype)))
+        logits = torch.einsum("bsjd,bpd->bsjp", query.float(), key.float())
+        logits = logits / math.sqrt(D) / max(self.temperature, 1e-6)
+        routing = owner_probs.float()
+        if self.detach_owner_routing:
+            routing = routing.detach()
+        routing = routing * slot_valid[..., None].float()
+        routing = routing / routing.sum(dim=1, keepdim=True).clamp_min(1e-8)
+        # Normalize over P: each token summarizes patches independently.
+        logits = logits + routing.clamp_min(1e-8).log()[:, :, None]
+        weights = F.softmax(logits, dim=-1) * valid[..., None].float()
+        raw = raw_value_states.to(self.raw_value.weight.dtype)
+        values = self.raw_value(self.raw_value_norm(raw))
+        memory = torch.einsum("bsjp,bpd->bsjd", weights.to(values.dtype), values)
+        memory = memory.to(semantic_slots.dtype)
+        return {"visual_memory": memory, "memory_valid": valid,
+                "write_weights": weights}
+
+
+class PGOTOneShotMemoryReader(nn.Module):
+    """G(q, semantic owner) * beta(q, within-owner memory), then visual values.
+
+    The interface accepts stored memories only: no source-patch bypass.
+    memory_content and memory_id differ only in the within-owner keys.
+    """
+
+    def __init__(self, *, dim, num_heads=8, memories_per_owner=16,
+                 readout_mode="memory_content", temperature=1.0):
+        super().__init__()
+        if readout_mode not in {"memory_content", "memory_id"}:
+            raise ValueError("expected memory_content or memory_id")
+        if dim % num_heads:
+            raise ValueError("Reader dimension must be divisible by heads")
+        self.dim, self.num_heads = int(dim), int(num_heads)
+        self.memories_per_owner = int(memories_per_owner)
+        self.readout_mode, self.temperature = readout_mode, float(temperature)
+        self.query_norm = nn.LayerNorm(dim)
+        self.semantic_norm = nn.LayerNorm(dim)
+        self.memory_norm = nn.LayerNorm(dim)
+        self.query = nn.Linear(dim, dim, bias=False)
+        self.key = nn.Linear(dim, dim, bias=False)
+        self.value = nn.Linear(dim, dim, bias=False)
+        self.output = nn.Linear(dim, dim, bias=False)
+        self.output_norm = nn.LayerNorm(dim)
+        if readout_mode == "memory_content":
+            self.content_key = nn.Linear(dim, dim, bias=False)
+            nn.init.eye_(self.content_key.weight)
+        else:
+            self.memory_key_embeddings = nn.Parameter(torch.empty(memories_per_owner, dim))
+            nn.init.normal_(self.memory_key_embeddings)
+        for layer in (self.query, self.key, self.value, self.output):
+            nn.init.eye_(layer.weight)
+
+    def forward(self, *, rae_queries, semantic_slots, visual_memory,
+                slot_valid, memory_valid):
+        B, Q, D = rae_queries.shape
+        S, J = visual_memory.shape[1:3]
+        if visual_memory.shape != (B, S, J, D) or J != self.memories_per_owner:
+            raise ValueError("one-shot Reader memory shape mismatch")
+        if semantic_slots.shape != (B, S, D) or memory_valid.shape != (B, S, J):
+            raise ValueError("one-shot Reader owner/validity shape mismatch")
+        if slot_valid.shape != (B, S):
+            raise ValueError("one-shot Reader slot_valid shape mismatch")
+        H, Dh = self.num_heads, D // self.num_heads
+        dtype = self.query.weight.dtype
+        query = self.query(self.query_norm(rae_queries.to(dtype))).reshape(B, Q, H, Dh)
+        semantic_key = self.key(self.semantic_norm(semantic_slots.to(dtype))).reshape(B, S, H, Dh)
+        scale = math.sqrt(Dh) * max(self.temperature, 1e-6)
+        owner_logits = torch.einsum("bqhd,bshd->bhqs", query.float(), semantic_key.float()) / scale
+        owner_valid = slot_valid & memory_valid.any(dim=-1)
+        owner_attention = F.softmax(owner_logits.masked_fill(~owner_valid[:, None, None], -1e4), -1)
+        owner_attention = owner_attention * owner_valid[:, None, None].float()
+        owner_attention = owner_attention / owner_attention.sum(-1, keepdim=True).clamp_min(1e-8)
+        memory_n = self.memory_norm(visual_memory.to(dtype))
+        if self.readout_mode == "memory_content":
+            keys = self.content_key(memory_n).reshape(B, S, J, H, Dh)
+        else:
+            keys = self.memory_key_embeddings[None, None].expand(B, S, J, D).reshape(B, S, J, H, Dh)
+        inner_logits = torch.einsum("bqhd,bsjhd->bhqsj", query.float(), keys.float()) / scale
+        beta = F.softmax(inner_logits.masked_fill(~memory_valid[:, None, None], -1e4), -1)
+        beta = beta * memory_valid[:, None, None].float()
+        beta = beta / beta.sum(-1, keepdim=True).clamp_min(1e-8)
+        joint = owner_attention[..., None] * beta
+        values = self.value(memory_n).reshape(B, S, J, H, Dh)
+        context = torch.einsum("bhqsj,bsjhd->bqhd", joint.to(values.dtype), values).reshape(B, Q, D)
+        condition = self.output_norm(self.output(context)).to(rae_queries.dtype)
+        inner_entropy = -(beta * beta.clamp_min(1e-8).log()).sum(-1)
+        return {
+            "condition_hidden": condition,
+            "reader_owner_attention": owner_attention.mean(1),
+            "reader_attention_heads": owner_attention,
+            "reader_memory_attention": joint.mean(1).flatten(2),
+            "reader_inner_attention_heads": beta,
+            "reader_entropy": -(owner_attention * owner_attention.clamp_min(1e-8).log()).sum(-1).mean().detach(),
+            "memory_reader_entropy": (inner_entropy * owner_attention).sum(-1).mean().detach(),
+        }
+
+
 class PGOTOneShotOwnerReader(nn.Module):
     """One-shot object-routed readout from frozen raw SigLIP patches.
 

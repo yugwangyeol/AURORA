@@ -40,6 +40,7 @@ from pgot.constants import (
 )
 from pgot.model.pgot_qwen2 import PGOTQwen2ForCausalLM
 from pgot.train.pgot_dataset import Pix2CapPGOTDataset, PGOTDataCollator
+from pgot.eval.coda_datasets import CodaEvalPGOTDataset
 from pgot.eval.pgot_metrics import (
     fari_metric, mbo_metric, miou_metric,
     ovt_logits_to_pred_mask,
@@ -48,10 +49,12 @@ from pgot.eval.pgot_metrics import (
     compute_recon_metrics,
 )
 from pgot.model.pgot_utils import (
+    build_pgot_attention_mask,
     build_pred_mask_competition_eval,
     build_pred_mask_llm_attention_eval,
     build_pred_mask_null_bg_eval,
     build_pred_mask_ovt_owner_eval,
+    pgot_positions,
 )
 from pgot.eval.pgot_inference import pgot_forward_eval, generate_siglip_latent
 
@@ -256,6 +259,46 @@ def build_predicted_register_block_mask(
     return blocked
 
 
+def _ovt_caption_conditioned_embedding(
+    model,
+    *,
+    raw_embeds: list,
+    token_ids: list,
+    ovt_local_idx: int,
+    marker_ids: set,
+):
+    """Rebuild one <ovt> input embedding the way training builds it.
+
+    Mirrors ``_pgot_apply_caption_conditioned_ovt_init``: pool the raw token
+    embeddings of the object's own caption span (from the token after the last
+    <thing>/<stuff> marker up to, but excluding, the OVT), project them, and add
+    the result to the raw <ovt> embedding.  Autoregressive decoding has to do
+    this incrementally because the OVT positions are only known as they are
+    emitted.
+    """
+    base = raw_embeds[ovt_local_idx]
+    if not bool(getattr(model, "pgot_ovt_caption_init_enabled", False)):
+        return base
+    if getattr(model, "pgot_ovt_caption_projector", None) is None:
+        return base
+    end = int(ovt_local_idx)
+    if end <= 0:
+        return base
+    start = 0
+    if marker_ids:
+        for idx in range(end):
+            if int(token_ids[idx]) in marker_ids:
+                start = idx + 1
+    if start >= end:
+        return base
+    scale = float(getattr(model.config, "pgot_ovt_caption_init_scale", 1.0))
+    pooled = torch.stack(raw_embeds[start:end], dim=0).float().mean(dim=0)
+    conditioned = model.pgot_ovt_caption_projector(
+        model.pgot_ovt_caption_norm(pooled.to(base.dtype))
+    )
+    return base + scale * conditioned.to(base.dtype)
+
+
 @torch.no_grad()
 def generate_pgot_caption_batch(
     model,
@@ -313,10 +356,79 @@ def generate_pgot_caption_batch(
         dim=1,
     )
 
+    # Decoding has to reproduce the *training* attention geometry, not a plain
+    # causal mask.  Two PGOT rules differ from vanilla causal decoding:
+    #   * image rows are bidirectional inside the image block, and
+    #   * under pgot_ovt_isolated_attention an <ovt> row sees only the image
+    #     block plus its own object's caption span.
+    # The <ovt> row's hidden state is exactly the state that predicts the token
+    # after it (see _compute_lm_loss), so decoding it under a causal mask puts
+    # that prediction off-distribution and the model emits runs of <ovt>
+    # instead of the next object's <thing> marker.
+    prefix_positions = pgot_positions(
+        caption_len=1,
+        system_prefix_len=sys_p.shape[1],
+        system_suffix_len=sys_s.shape[1],
+        user_prefix_len=user_p.shape[1],
+        user_suffix_len=user_s.shape[1],
+        assistant_prefix_len=asst_p.shape[1],
+        assistant_suffix_len=0,
+        num_image_tokens=img_features.shape[1],
+        n_register=0,
+        n_rae_query=0,
+        n_null_bg=0,
+    )
+    cap_s = int(prefix_positions["cap_s"])
+    img_s = int(prefix_positions["img_s"])
+    img_e = int(prefix_positions["img_e"])
+    ovt_isolated = bool(
+        getattr(model.config, "pgot_ovt_isolated_attention", False)
+    )
+    ovt_attends_own_caption = bool(
+        getattr(model.config, "pgot_ovt_attends_own_caption", False)
+    )
+    marker_ids = {
+        int(x) for x in (thing_id, stuff_id) if x is not None and int(x) >= 0
+    }
+    # Blocks after the caption (assistant suffix, null-bg, register, RAE) are
+    # dropped: caption rows never attend forward, so their hidden states are
+    # unchanged by the truncation.
+    prefix_bias = build_pgot_attention_mask(
+        positions=prefix_positions,
+        caption_padding_mask=torch.ones(
+            (batch_size, 1), device=device, dtype=torch.bool
+        ),
+        device=device,
+        dtype=prefix_embeds.dtype,
+        rae_bidirectional=bool(
+            getattr(model.config, "pgot_rae_bidirectional", False)
+        ),
+        rae_isolated=bool(getattr(model.config, "pgot_e4_rae_isolated", False)),
+        rae_attends_caption=bool(
+            getattr(model.config, "pgot_rae_attends_caption", False)
+        ),
+        ovt_absolute_positions=None,
+        ovt_valid_mask=None,
+        register_attends_caption=bool(
+            getattr(model.config, "pgot_register_attends_caption", True)
+        ),
+        ovt_isolated=ovt_isolated,
+        ovt_attends_own_caption=ovt_attends_own_caption,
+    )
+
     generated_ids = [[thing_id] for _ in range(batch_size)]
+    # Per-sample caption state aligned with the KV cache: every sample grows by
+    # one position per step (pad tokens once finished), while generated_ids
+    # keeps only the emitted text.
+    caption_token_ids = [[thing_id] for _ in range(batch_size)]
+    raw_caption_embeds = [
+        [seed_embed[b_idx, 0].clone()] for b_idx in range(batch_size)
+    ]
+    last_ovt_local = [None for _ in range(batch_size)]
     finished = torch.zeros(batch_size, device=device, dtype=torch.bool)
     outputs = model.model(
         inputs_embeds=prefix_embeds,
+        attention_bias=prefix_bias,
         use_cache=True,
         return_dict=True,
     )
@@ -338,9 +450,44 @@ def generate_pgot_caption_batch(
 
         next_embed = model._pgot_embed_caption(
             next_ids.unsqueeze(1), device, model_dtype
+        ).clone()
+        # Absolute position the appended token will occupy in the sequence.
+        local_idx = len(caption_token_ids[0])
+        abs_idx = cap_s + local_idx
+        # An all-zero row is the ordinary caption rule: those rows attend to the
+        # whole prefix and causally over the caption, i.e. plain causal.
+        step_bias = torch.zeros(
+            (batch_size, 1, 1, abs_idx + 1),
+            device=device,
+            dtype=prefix_embeds.dtype,
         )
+        for batch_idx, token_id in enumerate(next_ids.detach().cpu().tolist()):
+            caption_token_ids[batch_idx].append(int(token_id))
+            raw_caption_embeds[batch_idx].append(next_embed[batch_idx, 0].clone())
+            if int(token_id) != ovt_id or not ovt_isolated:
+                continue
+            # Isolated <ovt> row: image block + own caption span + itself.
+            step_bias[batch_idx, 0, 0, :] = float("-inf")
+            step_bias[batch_idx, 0, 0, img_s:img_e] = 0.0
+            step_bias[batch_idx, 0, 0, abs_idx] = 0.0
+            if ovt_attends_own_caption:
+                own_start = (
+                    cap_s
+                    if last_ovt_local[batch_idx] is None
+                    else cap_s + last_ovt_local[batch_idx] + 1
+                )
+                step_bias[batch_idx, 0, 0, own_start : abs_idx + 1] = 0.0
+            last_ovt_local[batch_idx] = local_idx
+            next_embed[batch_idx, 0] = _ovt_caption_conditioned_embedding(
+                model,
+                raw_embeds=raw_caption_embeds[batch_idx],
+                token_ids=caption_token_ids[batch_idx],
+                ovt_local_idx=local_idx,
+                marker_ids=marker_ids,
+            )
         outputs = model.model(
             inputs_embeds=next_embed,
+            attention_bias=step_bias,
             past_key_values=past_key_values,
             use_cache=True,
             return_dict=True,
@@ -448,6 +595,17 @@ def generate_pgot_caption_batch(
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model_path", required=True, help="PGOT trained checkpoint")
+    p.add_argument(
+        "--dataset",
+        choices=["pix2cap", "voc", "movi-c", "movi-e"],
+        default="pix2cap",
+        help="Evaluation dataset. pix2cap preserves the existing JSONL path.",
+    )
+    p.add_argument(
+        "--data_root",
+        default=None,
+        help="Dataset root for VOC/MOVi evaluation.",
+    )
     p.add_argument("--val_jsonl", default="/home/jovyan/PGOT/data/pgot_val.jsonl")
     p.add_argument("--output_dir", required=True)
     p.add_argument("--batch_size", type=int, default=4)
@@ -514,7 +672,11 @@ def main():
     )
     p.add_argument("--compute_rfid", action="store_true", help="Decode + FID (slow)")
     p.add_argument("--dtype", choices=["fp32", "bf16"], default="fp32")
-    p.add_argument("--gt_source", choices=["pix2cap_panoptic", "coco_instance"], default="pix2cap_panoptic")
+    p.add_argument(
+        "--gt_source",
+        choices=["pix2cap_panoptic", "coco_instance", "dataset_mask"],
+        default="pix2cap_panoptic",
+    )
     p.add_argument("--coco_mask_cache", default="/home/jovyan/PGOT/data/coco_inst_mask_cache_coda256",
                    help="CODA-style mask cache (built by AURORA's coco_mask_cache.py mode=coda)")
     p.add_argument(
@@ -614,6 +776,13 @@ def main():
             )
         if args.latent_splice != "none":
             p.error("AR evaluation does not support GT latent splice modes")
+    if args.dataset != "pix2cap":
+        if args.caption_mode != "autoregressive":
+            p.error("VOC/MOVi evaluation requires --caption_mode autoregressive")
+        if args.gt_source != "dataset_mask":
+            p.error("VOC/MOVi evaluation requires --gt_source dataset_mask")
+        if not args.data_root:
+            p.error("VOC/MOVi evaluation requires --data_root")
 
     os.makedirs(args.output_dir, exist_ok=True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -759,6 +928,13 @@ def main():
                 for k in f.keys():
                     sd[k] = f.get_tensor(k)
         missing, unexpected = model.load_state_dict(sd, strict=False)
+        if bool(getattr(model, "pgot_one_shot_memory_enable", False)):
+            memory_missing = [
+                key for key in missing
+                if key.startswith(("pgot_e8_writer.", "pgot_e8_reader."))
+            ]
+            if memory_missing:
+                raise RuntimeError(f"Stored visual-memory weights missing: {memory_missing}")
         critical_unexpected = [
             key
             for key in unexpected
@@ -777,6 +953,8 @@ def main():
             len(missing),
             len(unexpected),
         )
+        if missing and len(missing) <= 8:
+            log.info("[LoRA] absent checkpoint keys: %s", missing)
 
     # Template ids (stored dataset format selects the exact training prompt).
     system_prompt, user_instruction = get_pgot_prompts(
@@ -801,19 +979,33 @@ def main():
     vt_list = model.get_vision_tower_aux_list()
     image_proc = vt_list[0].image_processor
     target_proc = vt_list[1].image_processor if len(vt_list) > 1 else image_proc
-    val_dataset = Pix2CapPGOTDataset(
-        jsonl_path=args.val_jsonl,
-        tokenizer=tokenizer,
-        image_processor=image_proc,
-        target_image_processor=target_proc,
-        grid_size=args.grid_size,
-        max_caption_tokens=args.max_caption_tokens,
-        n_ovt_per_object=args.n_ovt_per_object,
-        max_objects=args.max_objects,
-        panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_val2017.json",
-        image_preprocess_mode=args.image_preprocess_mode,
-        coda_crop_size=args.coda_crop_size,
-    )
+    if args.dataset == "pix2cap":
+        val_dataset = Pix2CapPGOTDataset(
+            jsonl_path=args.val_jsonl,
+            tokenizer=tokenizer,
+            image_processor=image_proc,
+            target_image_processor=target_proc,
+            grid_size=args.grid_size,
+            max_caption_tokens=args.max_caption_tokens,
+            n_ovt_per_object=args.n_ovt_per_object,
+            max_objects=args.max_objects,
+            panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_val2017.json",
+            image_preprocess_mode=args.image_preprocess_mode,
+            coda_crop_size=args.coda_crop_size,
+        )
+    else:
+        val_dataset = CodaEvalPGOTDataset(
+            dataset_name=args.dataset,
+            data_root=args.data_root,
+            tokenizer=tokenizer,
+            image_processor=image_proc,
+            target_image_processor=target_proc,
+            eval_size=args.eval_size,
+            grid_size=args.grid_size,
+            max_caption_tokens=args.max_caption_tokens,
+            n_ovt_per_object=args.n_ovt_per_object,
+            max_objects=args.max_objects,
+        )
     if args.max_samples is not None:
         val_dataset = torch.utils.data.Subset(val_dataset, list(range(min(args.max_samples, len(val_dataset)))))
     log.info(f"Eval set: {len(val_dataset)} samples")
@@ -826,6 +1018,7 @@ def main():
 
     # ---- Metric accumulators
     fari_scores, mbo_scores, miou_scores = [], [], []
+    semantic_mbo_scores, semantic_miou_scores = [], []
     by_count = defaultdict(lambda: {"fari": [], "mbo": [], "miou": []})
     active_counts = []
     image_ids = []
@@ -909,7 +1102,13 @@ def main():
     img_std = torch.tensor(img_proc.image_std).view(1, -1, 1, 1)
 
     # ---- Loop
-    samples_iter = val_dataset.dataset.samples if isinstance(val_dataset, torch.utils.data.Subset) else val_dataset.samples
+    samples_iter = None
+    if args.dataset == "pix2cap":
+        samples_iter = (
+            val_dataset.dataset.samples
+            if isinstance(val_dataset, torch.utils.data.Subset)
+            else val_dataset.samples
+        )
     for batch_idx, batch in enumerate(tqdm(loader, desc="Eval")):
         eval_caption_input_ids = batch["caption_input_ids"]
         eval_caption_attention_mask = batch["caption_attention_mask"]
@@ -1239,38 +1438,47 @@ def main():
 
         # GT mask
         B = pred_mask.shape[0]
-        gt_masks = []
-        overlap_masks = []
-        for b in range(B):
-            global_idx = batch_idx * args.batch_size + b
-            samp = samples_iter[global_idx]
-            if args.gt_source == "coco_instance":
-                gt = coco_cache.get(int(samp["image_id"]))
-                if gt is None:
-                    # Image not in COCO val cache — fall back to panoptic-from-pix2cap
+        if args.gt_source == "dataset_mask":
+            gt_mask = batch["gt_mask"].to(device=pred_mask.device)
+            overlap_mask = batch.get("overlap_mask")
+            if overlap_mask is not None:
+                overlap_mask = overlap_mask.to(device=pred_mask.device)
+        else:
+            gt_masks = []
+            overlap_masks = []
+            for b in range(B):
+                global_idx = batch_idx * args.batch_size + b
+                samp = samples_iter[global_idx]
+                if args.gt_source == "coco_instance":
+                    gt = coco_cache.get(int(samp["image_id"]))
+                    if gt is None:
+                        # Image not in COCO val cache — fall back to panoptic-from-pix2cap
+                        seg_ids = [
+                            int(s["segment_id"])
+                            for s in samp["segments"][: batch["n_objects_list"][b]]
+                        ]
+                        gt = load_gt_panoptic_mask(samp["panoptic_mask_path"], seg_ids, args.eval_size)
+                    gt_masks.append(gt)
+                    overlap = coco_cache.get_overlap(int(samp["image_id"]))
+                    if overlap is None:
+                        overlap = torch.zeros_like(gt, dtype=torch.uint8)
+                    overlap_masks.append(overlap)
+                else:
                     seg_ids = [
                         int(s["segment_id"])
                         for s in samp["segments"][: batch["n_objects_list"][b]]
                     ]
                     gt = load_gt_panoptic_mask(samp["panoptic_mask_path"], seg_ids, args.eval_size)
-                gt_masks.append(gt)
-                overlap = coco_cache.get_overlap(int(samp["image_id"]))
-                if overlap is None:
-                    overlap = torch.zeros_like(gt, dtype=torch.uint8)
-                overlap_masks.append(overlap)
-            else:
-                seg_ids = [
-                    int(s["segment_id"])
-                    for s in samp["segments"][: batch["n_objects_list"][b]]
-                ]
-                gt = load_gt_panoptic_mask(samp["panoptic_mask_path"], seg_ids, args.eval_size)
-                gt_masks.append(gt)
-        gt_mask = torch.stack(gt_masks).to(device=pred_mask.device)
-        overlap_mask = (
-            torch.stack(overlap_masks).to(device=pred_mask.device)
-            if overlap_masks
-            else None
-        )
+                    gt_masks.append(gt)
+            gt_mask = torch.stack(gt_masks).to(device=pred_mask.device)
+            overlap_mask = (
+                torch.stack(overlap_masks).to(device=pred_mask.device)
+                if overlap_masks
+                else None
+            )
+        semantic_mask = batch.get("sem_mask")
+        if semantic_mask is not None:
+            semantic_mask = semantic_mask.to(device=pred_mask.device)
 
         # Per-sample metrics (loop to handle nan-safe averaging)
         for b in range(B):
@@ -1283,6 +1491,14 @@ def main():
             if not np.isnan(fa): fari_scores.append(fa)
             if not np.isnan(mb): mbo_scores.append(mb)
             if not np.isnan(mi): miou_scores.append(mi)
+            if semantic_mask is not None:
+                sem_b = semantic_mask[b:b+1]
+                sem_mb = mbo_metric(sem_b, pr_b, overlap_b)
+                sem_mi = miou_metric(sem_b, pr_b, overlap_b)
+                if not np.isnan(sem_mb):
+                    semantic_mbo_scores.append(sem_mb)
+                if not np.isnan(sem_mi):
+                    semantic_miou_scores.append(sem_mi)
             # Per-count bucket
             n_obj = batch["n_objects_list"][b]
             bkt = "1-3" if n_obj <= 3 else ("4-6" if n_obj <= 6 else ("7-10" if n_obj <= 10 else "11+"))
@@ -1436,6 +1652,10 @@ def main():
             } for bkt, d in by_count.items()
         },
     }
+    summary["dataset"] = args.dataset
+    if semantic_mbo_scores:
+        summary["sMBO"] = _mean(semantic_mbo_scores)
+        summary["sMIOU"] = _mean(semantic_miou_scores)
     summary["gt_source"] = args.gt_source
     # Instance vs category GT changes what mBO/mIoU mean (^i vs ^c). The mask
     # cache declares its own granularity so the two can never be confused.
@@ -1528,6 +1748,7 @@ def main():
         getattr(model.config, "pgot_e8_visual_memory_enable", False)
     )
     summary["e8_visual_memory_bottleneck"] = e8_enabled
+    one_shot_memory = bool(getattr(model, "pgot_one_shot_memory_enable", False))
     if e8_enabled:
         summary["one_shot_reader_enabled"] = bool(
             getattr(model.config, "pgot_one_shot_reader_enable", False)
@@ -1562,7 +1783,7 @@ def main():
             )
         summary["e11_memories_per_owner"] = int(
             0
-            if summary["one_shot_reader_enabled"]
+            if summary["one_shot_reader_enabled"] and not one_shot_memory
             else max(
                 int(
                     getattr(
@@ -1579,12 +1800,12 @@ def main():
                     )
                 ),
             )
-            if summary["e11_dual_m4_enabled"]
+            if summary["e11_dual_m4_enabled"] or one_shot_memory
             else 1
         )
         summary["e11_object_memories_per_owner"] = int(
             0
-            if summary["one_shot_reader_enabled"]
+            if summary["one_shot_reader_enabled"] and not one_shot_memory
             else getattr(
                 model.config,
                 "pgot_e11_object_memories_per_owner",
@@ -1593,7 +1814,7 @@ def main():
         )
         summary["e11_register_memories_per_owner"] = int(
             0
-            if summary["one_shot_reader_enabled"]
+            if summary["one_shot_reader_enabled"] and not one_shot_memory
             else getattr(
                 model.config,
                 "pgot_e11_register_memories_per_owner",
@@ -1612,7 +1833,7 @@ def main():
         )
         summary["background_visual_memories"] = (
             0
-            if summary["one_shot_reader_enabled"]
+            if summary["one_shot_reader_enabled"] and not one_shot_memory
             else (
                 summary["background_semantic_registers"]
                 * summary["e11_register_memories_per_owner"]
@@ -1620,14 +1841,22 @@ def main():
         )
         summary["visual_memory_value_source"] = (
             "none; one-shot frozen raw SigLIP patch readout"
-            if summary["one_shot_reader_enabled"]
+            if summary["one_shot_reader_enabled"] and not one_shot_memory
             else (
                 "frozen source SigLIP pre-projector patches"
                 if summary["e10_raw_value_enabled"]
                 else "Qwen image-token hidden states"
             )
         )
-        if summary["one_shot_reader_enabled"]:
+        summary["one_shot_memory_enabled"] = one_shot_memory
+        if one_shot_memory:
+            summary["e8_update_mode"] = "one_shot_memory"
+            summary["visual_memory_value_source"] = "one final owner-prior patch attention over frozen raw SigLIP values"
+            summary["memory_reader_key_mode"] = summary["one_shot_readout_mode"].removeprefix("memory_")
+            summary["memory_writer_softmax_axis"] = "patch"
+            summary["memory_reader_owner_routing"] = "soft"
+            summary["decoder_condition"] = "semantic owner routing then attention over stored visual memories; no raw-patch Reader access"
+        elif summary["one_shot_reader_enabled"]:
             summary["decoder_condition"] = (
                 "query-to-semantic-owner routing followed by one-shot raw "
                 f"SigLIP {summary['one_shot_readout_mode']} readout"
@@ -1654,7 +1883,7 @@ def main():
                 )
         summary["rae_standard_slot_attention_blocked"] = True
         summary["e8_clean_refinement"] = bool(
-            getattr(model.config, "pgot_e8_clean_refinement", False)
+            not one_shot_memory and getattr(model.config, "pgot_e8_clean_refinement", False)
         )
         summary["e8_memory_injection_enabled"] = bool(
             update_mode in {"unified_gru", "final_ovt"}

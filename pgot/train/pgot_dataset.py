@@ -399,7 +399,7 @@ class PGOTDataCollator:
             caption_attention_mask[i, :L] = True
             caption_labels[i, :L] = inst["caption_input_ids"]
 
-        return {
+        batch = {
             "images": torch.stack([inst["image"] for inst in instances]),
             "target_images": torch.stack([inst["target_image"] for inst in instances]),
             "caption_input_ids": caption_input_ids,
@@ -421,3 +421,9 @@ class PGOTDataCollator:
             "n_objects_list": [inst["n_objects"] for inst in instances],
             "caption_texts": [inst["caption_text"] for inst in instances],
         }
+        for optional_key in ("gt_mask", "sem_mask", "overlap_mask"):
+            if all(optional_key in inst for inst in instances):
+                batch[optional_key] = torch.stack(
+                    [inst[optional_key] for inst in instances]
+                )
+        return batch

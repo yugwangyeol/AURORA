@@ -90,6 +90,11 @@ def train():
         (PGOTModelArguments, PGOTDataArguments, PGOTTrainingArguments)
     )
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    one_shot_memory = bool(model_args.pgot_one_shot_reader_enable) and (
+        model_args.pgot_one_shot_readout_mode in {"memory_content", "memory_id"}
+    )
+    if one_shot_memory and training_args.pgot_log_metric_profile == "all":
+        training_args.pgot_log_metric_profile = "one_shot_memory"
 
     logger.info("=" * 70)
     logger.info("[PGOT] train() start")
@@ -120,6 +125,14 @@ def train():
     source_checkpoint_is_e11 = bool(
         getattr(config, "pgot_e11_dual_m4_enable", False)
     )
+    source_one_shot_memory = bool(getattr(config, "pgot_one_shot_reader_enable", False)) and (
+        getattr(config, "pgot_one_shot_readout_mode", "") in {"memory_content", "memory_id"}
+    )
+    source_one_shot_mode = getattr(config, "pgot_one_shot_readout_mode", "")
+    if one_shot_memory and not (source_checkpoint_is_e11 or source_one_shot_memory):
+        raise ValueError("one-shot memory must initialize from E11 or a one-shot memory checkpoint to reuse trained Writer IDs")
+    if one_shot_memory and source_one_shot_memory and source_one_shot_mode != model_args.pgot_one_shot_readout_mode:
+        raise ValueError("For an ID/content comparison initialize both from E11; continue one-shot checkpoints in their original mode")
     source_legacy_memories = int(
         getattr(config, "pgot_e11_memories_per_owner", 1)
     )
@@ -463,6 +476,13 @@ def train():
         ignore_mismatched_sizes=True,
     )
     model.config.use_cache = False
+    if one_shot_memory and model_args.pgot_one_shot_readout_mode == "memory_content":
+        if not source_one_shot_memory:
+            # Newly introduced content keys start from the trained E11 key
+            # projection; resuming a memory_content checkpoint preserves them.
+            with torch.no_grad():
+                model.pgot_e8_reader.content_key.weight.copy_(model.pgot_e8_reader.key.weight)
+            logger.info("[PGOT/Memory] initialized content-key projection from source Reader key")
     target_reader_num_layers = int(config.pgot_e8_reader_num_layers)
     if target_reader_num_layers > source_reader_num_layers:
         refinement_layers = model.pgot_e8_reader.refinement_layers
@@ -482,23 +502,24 @@ def train():
         source_object_memories,
         source_register_memories,
     )
-    if bool(model_args.pgot_e11_dual_m4_enable) and (
-        not source_checkpoint_is_e11
+    if (bool(model_args.pgot_e11_dual_m4_enable) or one_shot_memory) and (
+        not (source_checkpoint_is_e11 or source_one_shot_memory)
         or target_max_memories != source_max_memories
     ):
         with torch.no_grad():
-            named_parameters = (
+            named_parameters = [
                 (
                     1104,
                     "pgot_e8_writer.memory_id_embeddings",
                     model.pgot_e8_writer.memory_id_embeddings,
                 ),
-                (
+            ]
+            if hasattr(model.pgot_e8_reader, "memory_key_embeddings"):
+                named_parameters.append((
                     1105,
                     "pgot_e8_reader.memory_key_embeddings",
                     model.pgot_e8_reader.memory_key_embeddings,
-                ),
-            )
+                ))
             for seed, parameter_name, parameter in named_parameters:
                 generator = torch.Generator(device="cpu")
                 generator.manual_seed(seed)
@@ -511,7 +532,7 @@ def train():
                 parameter.copy_(
                     initialized.to(device=parameter.device, dtype=parameter.dtype)
                 )
-                if source_checkpoint_is_e11:
+                if source_checkpoint_is_e11 or source_one_shot_memory:
                     try:
                         import glob
                         from safetensors import safe_open
@@ -881,93 +902,104 @@ def train():
     model.config.pgot_unfreeze_mm_projector = bool(model_args.pgot_unfreeze_mm_projector)
     model.config.image_preprocess_mode = str(data_args.image_preprocess_mode)
     model.config.coda_crop_size = int(data_args.coda_crop_size)
-    logger.info(
-        f"[PGOT] mask loss weights -> ce={model.config.pgot_mask_ce_weight} "
-        f"fg={model.config.pgot_mask_fg_weight} outside={model.config.pgot_mask_outside_weight} "
-        f"ce_aux={model.config.pgot_mask_aux_competition_weight} "
-        f"bce={model.config.pgot_mask_bce_weight} "
-        f"sigmoid_out={model.config.pgot_mask_sigmoid_outside_weight} "
-        f"reg_fg_suppress={model.config.pgot_register_foreground_suppression_weight} "
-        f"obj_bal_bce={model.config.pgot_mask_object_balanced_bce_weight} "
-        f"tversky={model.config.pgot_mask_tversky_weight} "
-        f"spatial_out={model.config.pgot_mask_spatial_outside_weight} "
-        f"(spatial_temp={model.config.pgot_mask_spatial_temperature}) "
-        f"spatial_out_log={model.config.pgot_mask_spatial_outside_log_weight} "
-        f"(spatial_log_temp={model.config.pgot_mask_spatial_outside_log_temperature}) "
-        f"llm_qk_out={model.config.pgot_mask_llm_qk_outside_weight} "
-        f"(llm_qk_temp={model.config.pgot_mask_llm_qk_outside_temperature}, "
-        f"llm_qk_layers={model.config.pgot_mask_llm_qk_outside_layers}) "
-        f"llm_attn_out={model.config.pgot_mask_llm_attention_outside_weight} "
-        f"(llm_attn_layers={model.config.pgot_mask_llm_attention_outside_layers}, "
-        f"void_w={model.config.pgot_mask_llm_attention_void_weight}) "
-        f"llm_patch_out={model.config.pgot_mask_llm_patch_outside_weight} "
-        f"(llm_patch_layers={model.config.pgot_mask_llm_patch_outside_layers}, "
-        f"temp={model.config.pgot_mask_llm_patch_outside_temperature}, "
-        f"void_w={model.config.pgot_mask_llm_patch_void_weight}, "
-        f"image_use_w={model.config.pgot_mask_llm_image_use_weight}, "
-        f"image_use_margin={model.config.pgot_mask_llm_image_use_margin}) "
-        f"core_out={model.config.pgot_core_outside_weight} "
-        f"(layers={model.config.pgot_core_outside_layers}, "
-        f"temp={model.config.pgot_core_outside_temperature}, "
-        f"void_w={model.config.pgot_core_void_weight}, "
-        f"register_w={model.config.pgot_core_register_outside_weight}, "
-        f"register_hard_gt={model.config.pgot_register_hard_gt_mask}, "
-        f"register_hard_gt_eval={model.config.pgot_register_hard_gt_mask_eval}, "
-        f"register_hard_threshold={model.config.pgot_register_hard_gt_mask_threshold}, "
-        f"tail_w={model.config.pgot_core_tail_weight}, "
-        f"tail_frac={model.config.pgot_core_tail_fraction}) "
-        f"ovt=(caption_init={model.config.pgot_ovt_caption_init}, "
-        f"isolated_attention={model.config.pgot_ovt_isolated_attention}, "
-        f"own_caption={model.config.pgot_ovt_attends_own_caption}) "
-        f"e5=(forcing_p={model.config.pgot_e5_forcing_probability}) "
-        f"fvw=(enable={getattr(model.config, 'pgot_fvw_enable', False)}, "
-        f"layers={getattr(model.config, 'pgot_fvw_layers', '0,8,16,24,27')}, "
-        f"heads={getattr(model.config, 'pgot_fvw_num_heads', 8)}, "
-        f"temp={getattr(model.config, 'pgot_fvw_temperature', 1.0)}, "
-        f"write_out_w={getattr(model.config, 'pgot_fvw_write_outside_weight', 0.0)}, "
-        f"full_p={getattr(model.config, 'pgot_fvw_full_probability', 0.5)}, "
-        f"ovt_p={getattr(model.config, 'pgot_fvw_ovt_only_probability', 0.25)}) "
-        f"e3_comp=(w={model.config.pgot_e3_attention_competition_weight}, "
-        f"layers={model.config.pgot_e3_attention_competition_layers}, "
-        f"temp={model.config.pgot_e3_attention_competition_temperature}, "
-        f"bg_w={model.config.pgot_e3_attention_competition_bg_weight}) "
-        f"e4=(rae_isolated={model.config.pgot_e4_rae_isolated}, "
-        f"full_inside_w={model.config.pgot_e4_full_inside_weight}, "
-        f"full_inside_target={model.config.pgot_e4_full_inside_target}, "
-        f"rae_bind_w={model.config.pgot_e4_rae_bind_weight}, "
-        f"rae_bind_layers={model.config.pgot_e4_rae_bind_layers}) "
-        f"v12={bool(getattr(model.config, 'pgot_v12_enable', False))} "
-        f"(layers={getattr(model.config, 'pgot_v12_layers', '12,16,20,24')}, "
-        f"ovt_temp={getattr(model.config, 'pgot_v12_ovt_temperature', getattr(model.config, 'pgot_v12_slot_temperature', 1.0))}, "
-        f"owner_temp={getattr(model.config, 'pgot_v12_owner_temperature', 1.0)}, "
-        f"owner_w={getattr(model.config, 'pgot_v12_owner_weight', 1.0)}) "
-        f"v14={bool(getattr(model.config, 'pgot_v14_enable', False))} "
-        f"(route_temp={getattr(model.config, 'pgot_v14_route_temperature', 1.0)}, "
-        f"route_w={getattr(model.config, 'pgot_v14_route_weight', 1.0)}, "
-        f"void_w={getattr(model.config, 'pgot_v14_void_weight', 0.5)}, "
-        f"pos_w={getattr(model.config, 'pgot_v14_position_weight', 1.0)}, "
-        f"router_depth={getattr(model.config, 'pgot_v14_router_depth', 1)}, "
-        f"router_mlp={getattr(model.config, 'pgot_v14_router_mlp_ratio', 4)}, "
-        f"dit_ovt_xattn={getattr(model.config, 'pgot_dit_ovt_cross_attn_enable', False)}, "
-        f"xattn_start={getattr(model.config, 'pgot_dit_ovt_cross_attn_start_block', 25)}, "
-        f"xattn_every={getattr(model.config, 'pgot_dit_ovt_cross_attn_every_n_blocks', 1)}) "
-        f"v17={bool(getattr(model.config, 'pgot_v17_enable', False))} "
-        f"(ownership_w={getattr(model.config, 'pgot_v17_ownership_weight', 0.0)}, "
-        f"ownership_layers={getattr(model.config, 'pgot_v17_ownership_layers', 'last4')}) "
-        f"v21={bool(getattr(model.config, 'pgot_v21_enable', False))} "
-        f"(ground_w={getattr(model.config, 'pgot_v21_ground_weight', 0.0)}, "
-        f"ground_final={getattr(model.config, 'pgot_v21_ground_final_weight', -1.0)}, "
-        f"anneal={getattr(model.config, 'pgot_v21_ground_anneal_steps', 0)}, "
-        f"temp={getattr(model.config, 'pgot_v21_temperature', 1.0)}, "
-        f"pos_w={getattr(model.config, 'pgot_v21_position_weight', 1.0)}, "
-        f"code_dim={getattr(model.config, 'pgot_v21_code_dim', 0)}) "
-        f"v22a=(attn_comp_w={getattr(model.config, 'pgot_v22_attention_competition_weight', 0.0)}, "
-        f"attn_comp_layers={getattr(model.config, 'pgot_v22_attention_competition_layers', '26,27')}, "
-        f"attn_comp_temp={getattr(model.config, 'pgot_v22_attention_competition_temperature', 1.0)}, "
-        f"attn_comp_void={getattr(model.config, 'pgot_v22_attention_competition_include_void', False)}) "
-        f"(ce_temp={model.config.pgot_mask_ce_temperature}, ce_merge={model.config.pgot_mask_ce_merge}); "
-        f"null_bg={model.config.pgot_use_null_bg_competition}; cfg_drop={model.config.pgot_cfg_drop_rate}"
-    )
+    if one_shot_memory:
+        logger.info(
+            "[PGOT/Memory] mode=%s; memories object=%d/register=%d; owner loss=%.2f; Reader loss object=%.2f/background=%.2f",
+            model.config.pgot_one_shot_readout_mode,
+            model.config.pgot_e11_object_memories_per_owner,
+            model.config.pgot_e11_register_memories_per_owner,
+            model.config.pgot_e8_owner_weight,
+            model.config.pgot_e8_reader_object_weight,
+            model.config.pgot_e8_reader_background_weight,
+        )
+    else:
+        logger.info(
+            f"[PGOT] mask loss weights -> ce={model.config.pgot_mask_ce_weight} "
+            f"fg={model.config.pgot_mask_fg_weight} outside={model.config.pgot_mask_outside_weight} "
+            f"ce_aux={model.config.pgot_mask_aux_competition_weight} "
+            f"bce={model.config.pgot_mask_bce_weight} "
+            f"sigmoid_out={model.config.pgot_mask_sigmoid_outside_weight} "
+            f"reg_fg_suppress={model.config.pgot_register_foreground_suppression_weight} "
+            f"obj_bal_bce={model.config.pgot_mask_object_balanced_bce_weight} "
+            f"tversky={model.config.pgot_mask_tversky_weight} "
+            f"spatial_out={model.config.pgot_mask_spatial_outside_weight} "
+            f"(spatial_temp={model.config.pgot_mask_spatial_temperature}) "
+            f"spatial_out_log={model.config.pgot_mask_spatial_outside_log_weight} "
+            f"(spatial_log_temp={model.config.pgot_mask_spatial_outside_log_temperature}) "
+            f"llm_qk_out={model.config.pgot_mask_llm_qk_outside_weight} "
+            f"(llm_qk_temp={model.config.pgot_mask_llm_qk_outside_temperature}, "
+            f"llm_qk_layers={model.config.pgot_mask_llm_qk_outside_layers}) "
+            f"llm_attn_out={model.config.pgot_mask_llm_attention_outside_weight} "
+            f"(llm_attn_layers={model.config.pgot_mask_llm_attention_outside_layers}, "
+            f"void_w={model.config.pgot_mask_llm_attention_void_weight}) "
+            f"llm_patch_out={model.config.pgot_mask_llm_patch_outside_weight} "
+            f"(llm_patch_layers={model.config.pgot_mask_llm_patch_outside_layers}, "
+            f"temp={model.config.pgot_mask_llm_patch_outside_temperature}, "
+            f"void_w={model.config.pgot_mask_llm_patch_void_weight}, "
+            f"image_use_w={model.config.pgot_mask_llm_image_use_weight}, "
+            f"image_use_margin={model.config.pgot_mask_llm_image_use_margin}) "
+            f"core_out={model.config.pgot_core_outside_weight} "
+            f"(layers={model.config.pgot_core_outside_layers}, "
+            f"temp={model.config.pgot_core_outside_temperature}, "
+            f"void_w={model.config.pgot_core_void_weight}, "
+            f"register_w={model.config.pgot_core_register_outside_weight}, "
+            f"register_hard_gt={model.config.pgot_register_hard_gt_mask}, "
+            f"register_hard_gt_eval={model.config.pgot_register_hard_gt_mask_eval}, "
+            f"register_hard_threshold={model.config.pgot_register_hard_gt_mask_threshold}, "
+            f"tail_w={model.config.pgot_core_tail_weight}, "
+            f"tail_frac={model.config.pgot_core_tail_fraction}) "
+            f"ovt=(caption_init={model.config.pgot_ovt_caption_init}, "
+            f"isolated_attention={model.config.pgot_ovt_isolated_attention}, "
+            f"own_caption={model.config.pgot_ovt_attends_own_caption}) "
+            f"e5=(forcing_p={model.config.pgot_e5_forcing_probability}) "
+            f"fvw=(enable={getattr(model.config, 'pgot_fvw_enable', False)}, "
+            f"layers={getattr(model.config, 'pgot_fvw_layers', '0,8,16,24,27')}, "
+            f"heads={getattr(model.config, 'pgot_fvw_num_heads', 8)}, "
+            f"temp={getattr(model.config, 'pgot_fvw_temperature', 1.0)}, "
+            f"write_out_w={getattr(model.config, 'pgot_fvw_write_outside_weight', 0.0)}, "
+            f"full_p={getattr(model.config, 'pgot_fvw_full_probability', 0.5)}, "
+            f"ovt_p={getattr(model.config, 'pgot_fvw_ovt_only_probability', 0.25)}) "
+            f"e3_comp=(w={model.config.pgot_e3_attention_competition_weight}, "
+            f"layers={model.config.pgot_e3_attention_competition_layers}, "
+            f"temp={model.config.pgot_e3_attention_competition_temperature}, "
+            f"bg_w={model.config.pgot_e3_attention_competition_bg_weight}) "
+            f"e4=(rae_isolated={model.config.pgot_e4_rae_isolated}, "
+            f"full_inside_w={model.config.pgot_e4_full_inside_weight}, "
+            f"full_inside_target={model.config.pgot_e4_full_inside_target}, "
+            f"rae_bind_w={model.config.pgot_e4_rae_bind_weight}, "
+            f"rae_bind_layers={model.config.pgot_e4_rae_bind_layers}) "
+            f"v12={bool(getattr(model.config, 'pgot_v12_enable', False))} "
+            f"(layers={getattr(model.config, 'pgot_v12_layers', '12,16,20,24')}, "
+            f"ovt_temp={getattr(model.config, 'pgot_v12_ovt_temperature', getattr(model.config, 'pgot_v12_slot_temperature', 1.0))}, "
+            f"owner_temp={getattr(model.config, 'pgot_v12_owner_temperature', 1.0)}, "
+            f"owner_w={getattr(model.config, 'pgot_v12_owner_weight', 1.0)}) "
+            f"v14={bool(getattr(model.config, 'pgot_v14_enable', False))} "
+            f"(route_temp={getattr(model.config, 'pgot_v14_route_temperature', 1.0)}, "
+            f"route_w={getattr(model.config, 'pgot_v14_route_weight', 1.0)}, "
+            f"void_w={getattr(model.config, 'pgot_v14_void_weight', 0.5)}, "
+            f"pos_w={getattr(model.config, 'pgot_v14_position_weight', 1.0)}, "
+            f"router_depth={getattr(model.config, 'pgot_v14_router_depth', 1)}, "
+            f"router_mlp={getattr(model.config, 'pgot_v14_router_mlp_ratio', 4)}, "
+            f"dit_ovt_xattn={getattr(model.config, 'pgot_dit_ovt_cross_attn_enable', False)}, "
+            f"xattn_start={getattr(model.config, 'pgot_dit_ovt_cross_attn_start_block', 25)}, "
+            f"xattn_every={getattr(model.config, 'pgot_dit_ovt_cross_attn_every_n_blocks', 1)}) "
+            f"v17={bool(getattr(model.config, 'pgot_v17_enable', False))} "
+            f"(ownership_w={getattr(model.config, 'pgot_v17_ownership_weight', 0.0)}, "
+            f"ownership_layers={getattr(model.config, 'pgot_v17_ownership_layers', 'last4')}) "
+            f"v21={bool(getattr(model.config, 'pgot_v21_enable', False))} "
+            f"(ground_w={getattr(model.config, 'pgot_v21_ground_weight', 0.0)}, "
+            f"ground_final={getattr(model.config, 'pgot_v21_ground_final_weight', -1.0)}, "
+            f"anneal={getattr(model.config, 'pgot_v21_ground_anneal_steps', 0)}, "
+            f"temp={getattr(model.config, 'pgot_v21_temperature', 1.0)}, "
+            f"pos_w={getattr(model.config, 'pgot_v21_position_weight', 1.0)}, "
+            f"code_dim={getattr(model.config, 'pgot_v21_code_dim', 0)}) "
+            f"v22a=(attn_comp_w={getattr(model.config, 'pgot_v22_attention_competition_weight', 0.0)}, "
+            f"attn_comp_layers={getattr(model.config, 'pgot_v22_attention_competition_layers', '26,27')}, "
+            f"attn_comp_temp={getattr(model.config, 'pgot_v22_attention_competition_temperature', 1.0)}, "
+            f"attn_comp_void={getattr(model.config, 'pgot_v22_attention_competition_include_void', False)}) "
+            f"(ce_temp={model.config.pgot_mask_ce_temperature}, ce_merge={model.config.pgot_mask_ce_merge}); "
+            f"null_bg={model.config.pgot_use_null_bg_competition}; cfg_drop={model.config.pgot_cfg_drop_rate}"
+        )
     logger.info("[PGOT] model checkpoint loaded")
 
     # ---- Tokenizer

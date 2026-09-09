@@ -420,7 +420,7 @@ class PGOTTrainingArguments(transformers.TrainingArguments):
     pgot_e6_eval_guidance_scale: float = field(default=2.5)
     pgot_e7_eval_inference_steps: int = field(default=10)
     pgot_e7_eval_guidance_scale: float = field(default=2.5)
-    # "e6" keeps only varying, decision-relevant E6 metrics in HF/W&B history.
+    # Profiles suppress inactive diagnostics in both HF/terminal and W&B.
     pgot_log_metric_profile: str = field(default="all")
 
     # Contrastive (mirrored here so compute_loss can read from self.args)
@@ -692,19 +692,14 @@ def freeze_for_pgot(
 
     # Vision tower: leave frozen (already requires_grad_(False))
 
-    logger.info(
-        "[PGOT/Freeze] Total trainable params: %s  "
-        "(LoRA: %s, mm_projector: %s, E6 projector: %s, E6 U-Net xattn: %s, "
-        "E7 owner: %s, E7 projector: %s, E7 U-Net LoRA: %s)",
-        f"{n_trainable:,}",
-        f"{n_lora:,}",
-        f"{n_mm_projector:,}",
-        f"{n_e6_projector:,}",
-        f"{n_e6_unet:,}",
-        f"{n_e7_owner:,}",
-        f"{n_e7_projector:,}",
-        f"{n_e7_unet:,}",
-    )
+    counts = {
+        "LoRA": n_lora, "mm_projector": n_mm_projector,
+        "E6 projector": n_e6_projector, "E6 U-Net xattn": n_e6_unet,
+        "E7 owner": n_e7_owner, "E7 projector": n_e7_projector,
+        "E7 U-Net LoRA": n_e7_unet,
+    }
+    details = ", ".join(f"{name}: {count:,}" for name, count in counts.items() if count)
+    logger.info("[PGOT/Freeze] Total trainable params: %s (%s)", f"{n_trainable:,}", details)
     return model
 
 
@@ -729,7 +724,7 @@ class PGOTTrainer(Trainer):
         self._eval_decoder = None  # lazy-loaded siglip2 decoder for image recon logging
 
     def _keep_metric(self, key: str) -> bool:
-        if self._metric_profile not in {"e6", "e7"}:
+        if self._metric_profile not in {"e6", "e7", "one_shot_memory"}:
             return True
         normalized = key
         for prefix in ("eval_", "train_"):
@@ -739,6 +734,22 @@ class PGOTTrainer(Trainer):
             "loss", "grad_norm", "learning_rate", "runtime",
             "samples_per_second", "steps_per_second",
         }
+        if self._metric_profile == "one_shot_memory":
+            # Filter by meaning, never by numeric value: an active metric
+            # reaching zero (or NaN) must remain visible.
+            active = {
+                "loss_lm", "loss_mask", "loss_recon", "n_objects_mean",
+                "loss_e8_owner", "loss_e8_reader", "loss_e8_reader_object",
+                "loss_e8_reader_background", "e8_owner_fg_acc", "e8_owner_bg_acc",
+                "e8_register_prob_on_fg", "e8_object_prob_on_bg", "e8_owner_entropy",
+                "e8_reader_entropy", "e8_reader_matching_mass_on_fg",
+                "e8_reader_register_mass_on_fg", "e8_reader_object_mass_on_bg",
+                "e8_reader_writer_kl", "e8_visual_memory_norm",
+                "memory_write_entropy", "memory_object_pair_cosine",
+                "memory_register_pair_cosine", "memory_reader_entropy",
+                "memory_active_tokens",
+            }
+            return normalized in generic or normalized in active
         direct_metrics = {
             "loss_lm",
             "loss_e6_diffusion",
@@ -1171,10 +1182,10 @@ class PGOTTrainer(Trainer):
                 logs[k] = v
             self._custom_loss_buffer.clear()
             self._loss_count_buffer = 0
-        if self._metric_profile in {"e6", "e7"}:
+        if self._metric_profile in {"e6", "e7", "one_shot_memory"}:
             logs = {k: v for k, v in logs.items() if self._keep_metric(k)}
             # transformers.Trainer.log appends ``epoch`` after this override.
-            # E6 is step-based (10k steps over many nominal epochs), so that
+            # These experiments are step-based, so that
             # chart is not actionable and is intentionally omitted from W&B.
             saved_epoch = self.state.epoch
             self.state.epoch = None
@@ -1258,7 +1269,13 @@ class PGOTTrainer(Trainer):
         }
         if extra:
             metrics.update(extra)
-            self.log(extra)
+            already_logged = self._metric_profile == "one_shot_memory" and any(
+                row.get("step") == self.state.global_step
+                and all(key in row for key in extra)
+                for row in reversed(self.state.log_history)
+            )
+            if not already_logged:
+                self.log(extra)
         return metrics
 
     # ----- Helper: load siglip2 decoder lazily -----

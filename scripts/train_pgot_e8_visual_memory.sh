@@ -43,6 +43,12 @@ if [[ -n "${RESUME_FROM_CHECKPOINT:-}" ]]; then
     export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1
 fi
 
+if [[ "${ONE_SHOT_READOUT_MODE:-}" == memory_* ]]; then
+    echo "One-shot memory: ${ONE_SHOT_READOUT_MODE}; object=${E11_OBJECT_MEMORIES_PER_OWNER}; register=${E11_REGISTER_MEMORIES_PER_OWNER} x ${E8_N_REGISTER:-4}"
+    echo "Model: ${MODEL_PATH}"
+    echo "Output: ${OUTPUT_DIR}"
+    echo "One final write; semantic routing + within-owner attention; RAE self-only"
+else
 echo "E8 model: ${MODEL_PATH}"
 echo "E8 output: ${OUTPUT_DIR}"
 if [[ "${ONE_SHOT_READER_ENABLE:-False}" == True ]]; then
@@ -67,6 +73,8 @@ echo "E8.2 paired causal: ${E8_CAUSAL_ENABLE:-False}"
 echo "One-shot Reader: ${ONE_SHOT_READER_ENABLE:-False}; mode=${ONE_SHOT_READOUT_MODE:-pooled}; detach_owner=${ONE_SHOT_DETACH_OWNER_ROUTING:-True}"
 echo "Direct DiT memory: ${PGOT_DIT_OVT_XATTN_ENABLE:-False}; soft routing=${PGOT_DIT_SOFT_ROUTING_ENABLE:-False}"
 echo "E8 background: ${E8_N_REGISTER:-4} competitive registers; NULL_BG disabled"
+
+fi
 
 "${PYTHON}" -m torch.distributed.run \
     --nproc_per_node="${NUM_GPUS}" --master_port="${MASTER_PORT:-29548}" \
