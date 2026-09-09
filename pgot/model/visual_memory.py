@@ -972,7 +972,8 @@ class PGOTOneShotMemoryWriter(nn.Module):
         nn.init.xavier_uniform_(self.raw_value.weight)
 
     def forward(self, *, semantic_slots, image_states, raw_value_states,
-                owner_probs, slot_valid, object_count):
+                owner_probs, slot_valid, object_count,
+                owner_gradient_scale=1.0):
         B, S, D = semantic_slots.shape
         P = image_states.shape[1]
         if image_states.shape != (B, P, D) or owner_probs.shape != (B, S, P):
@@ -994,6 +995,12 @@ class PGOTOneShotMemoryWriter(nn.Module):
         routing = owner_probs.float()
         if self.detach_owner_routing:
             routing = routing.detach()
+        else:
+            # Preserve the forward routing while ramping only the reconstruction
+            # gradient that reaches semantic ownership.
+            scale = min(max(float(owner_gradient_scale), 0.0), 1.0)
+            detached = routing.detach()
+            routing = detached + scale * (routing - detached)
         routing = routing * slot_valid[..., None].float()
         routing = routing / routing.sum(dim=1, keepdim=True).clamp_min(1e-8)
         # Normalize over P: each token summarizes patches independently.

@@ -48,6 +48,8 @@ if [[ "${ONE_SHOT_READOUT_MODE:-}" == memory_* ]]; then
     echo "Model: ${MODEL_PATH}"
     echo "Output: ${OUTPUT_DIR}"
     echo "One final write; semantic routing + within-owner attention; RAE self-only"
+    echo "Owner reconstruction gradient: detach=${ONE_SHOT_DETACH_OWNER_ROUTING:-True}; ramp=${ONE_SHOT_OWNER_GRADIENT_RAMP_STEPS:-0}"
+    echo "Direct feature reconstruction: weight=${PGOT_LATENT_DISTILL_WEIGHT:-0.0}; ramp=${PGOT_LATENT_DISTILL_RAMP_STEPS:-0}"
 else
 echo "E8 model: ${MODEL_PATH}"
 echo "E8 output: ${OUTPUT_DIR}"
@@ -99,6 +101,7 @@ fi
     --pgot_one_shot_reader_enable "${ONE_SHOT_READER_ENABLE:-False}" \
     --pgot_one_shot_readout_mode "${ONE_SHOT_READOUT_MODE:-pooled}" \
     --pgot_one_shot_detach_owner_routing "${ONE_SHOT_DETACH_OWNER_ROUTING:-True}" \
+    --pgot_one_shot_owner_gradient_ramp_steps "${ONE_SHOT_OWNER_GRADIENT_RAMP_STEPS:-0}" \
     --pgot_e8_layers "${E8_LAYERS:-21,24,27}" \
     --pgot_e8_owner_temperature "${E8_OWNER_TEMPERATURE:-1.0}" \
     --pgot_e8_owner_weight "${E8_OWNER_WEIGHT:-1.0}" \
@@ -148,6 +151,12 @@ fi
     --pgot_dit_soft_routing_enable "${PGOT_DIT_SOFT_ROUTING_ENABLE:-False}" \
     --pgot_dit_soft_routing_scale "${PGOT_DIT_SOFT_ROUTING_SCALE:-1.0}" \
     --pgot_v21_enable False --pgot_v22_attention_competition_weight 0.0 \
+    --pgot_latent_distill_enable "${PGOT_LATENT_DISTILL_ENABLE:-False}" \
+    --pgot_latent_distill_weight "${PGOT_LATENT_DISTILL_WEIGHT:-0.0}" \
+    --pgot_latent_distill_ramp_steps "${PGOT_LATENT_DISTILL_RAMP_STEPS:-0}" \
+    --pgot_latent_distill_mse_weight "${PGOT_LATENT_DISTILL_MSE_WEIGHT:-1.0}" \
+    --pgot_latent_distill_cos_weight "${PGOT_LATENT_DISTILL_COS_WEIGHT:-1.0}" \
+    --pgot_latent_distill_l1_weight "${PGOT_LATENT_DISTILL_L1_WEIGHT:-0.0}" \
     --pgot_fvw_enable False --pgot_e6_enable False --pgot_e7_enable False \
     --pgot_e4_rae_isolated True --pgot_rae_attends_caption False --pgot_rae_bidirectional False \
     --pgot_cfg_drop_rate "${PGOT_CFG_DROP_RATE:-0.0}" \
@@ -165,6 +174,7 @@ fi
     --per_device_eval_batch_size "${PER_DEVICE_EVAL_BATCH_SIZE:-1}" \
     --gradient_accumulation_steps "${GRADIENT_ACCUMULATION_STEPS}" \
     --learning_rate "${LEARNING_RATE:-5e-5}" --diff_head_lr "${DIFF_HEAD_LR:-3e-5}" \
+    --pgot_latent_head_lr "${LATENT_HEAD_LR:-${DIFF_HEAD_LR:-3e-5}}" \
     --pgot_dit_body_lr "${DIT_BODY_LR:-1e-5}" --pgot_mm_projector_lr "${MM_PROJECTOR_LR:-1e-5}" \
     --pgot_register_lr "${REGISTER_LR:-5e-5}" --pgot_rae_query_lr "${RAE_QUERY_LR:-5e-5}" \
     --pgot_llm_lr "${LLM_LR:-1e-4}" --weight_decay 0.01 \

@@ -212,6 +212,7 @@ class PGOTModelArguments:
     pgot_one_shot_reader_enable: bool = field(default=False)
     pgot_one_shot_readout_mode: str = field(default="pooled")
     pgot_one_shot_detach_owner_routing: bool = field(default=True)
+    pgot_one_shot_owner_gradient_ramp_steps: int = field(default=0)
     pgot_e8_layers: str = field(default="21,24,27")
     pgot_e8_owner_temperature: float = field(default=1.0)
     pgot_e8_owner_weight: float = field(default=1.0)
@@ -318,6 +319,7 @@ class PGOTModelArguments:
     # used by DiT, so we can optimize toward the decoder_gt oracle directly.
     pgot_latent_distill_enable: bool = field(default=False)
     pgot_latent_distill_weight: float = field(default=0.0)
+    pgot_latent_distill_ramp_steps: int = field(default=0)
     pgot_latent_distill_mse_weight: float = field(default=1.0)
     pgot_latent_distill_cos_weight: float = field(default=1.0)
     pgot_latent_distill_l1_weight: float = field(default=0.0)
@@ -407,6 +409,7 @@ class PGOTTrainingArguments(transformers.TrainingArguments):
     pgot_mm_projector_lr: Optional[float] = field(default=None)
     # LR for unfrozen DiT body params (non-AdaLN, non-projector). Falls back to diff_head_lr.
     pgot_dit_body_lr: Optional[float] = field(default=None)
+    pgot_latent_head_lr: Optional[float] = field(default=None)
     pgot_e6_projector_lr: Optional[float] = field(default=None)
     pgot_e6_unet_lr: Optional[float] = field(default=None)
     pgot_e7_owner_lr: Optional[float] = field(default=None)
@@ -748,6 +751,9 @@ class PGOTTrainer(Trainer):
                 "memory_write_entropy", "memory_object_pair_cosine",
                 "memory_register_pair_cosine", "memory_reader_entropy",
                 "memory_active_tokens",
+                "loss_latent_distill", "latent_distill_mse", "latent_distill_cos",
+                "latent_pred_norm", "latent_target_norm",
+                "latent_distill_weight_effective", "owner_gradient_scale",
             }
             return normalized in generic or normalized in active
         direct_metrics = {
@@ -810,6 +816,11 @@ class PGOTTrainer(Trainer):
         )
         dit_body_lr = (
             self.args.pgot_dit_body_lr if getattr(self.args, "pgot_dit_body_lr", None) is not None else diff_head_lr
+        )
+        latent_head_lr = (
+            self.args.pgot_latent_head_lr
+            if getattr(self.args, "pgot_latent_head_lr", None) is not None
+            else diff_head_lr
         )
         e6_projector_lr = (
             self.args.pgot_e6_projector_lr
@@ -979,7 +990,7 @@ class PGOTTrainer(Trainer):
             groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": self.args.learning_rate})
         params = _take_params(latent_head_names)
         if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": diff_head_lr})
+            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": latent_head_lr})
         params = _take_params(e6_projector_names)
         if params:
             groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": e6_projector_lr})
@@ -1000,9 +1011,9 @@ class PGOTTrainer(Trainer):
             groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": llm_lr})
 
         logger.info(
-            "[PGOT] optimizer | base=%g mm_projector=%g diff_head=%g dit_body=%g register=%g rae_query=%g llm=%g e6_proj=%g e6_unet=%g e7_owner=%g e7_proj=%g e7_unet=%g | "
+            "[PGOT] optimizer | base=%g mm_projector=%g diff_head=%g dit_body=%g latent_head=%g register=%g rae_query=%g llm=%g e6_proj=%g e6_unet=%g e7_owner=%g e7_proj=%g e7_unet=%g | "
             "mm_projector=%d projector=%d dit_adaln=%d dit_body=%d register=%d null_bg=%d rae_query=%d v14=%d v21=%d latent_head=%d e6_proj=%d e6_unet=%d e7_owner=%d e7_proj=%d e7_unet=%d llm=%d",
-            self.args.learning_rate, mm_projector_lr, diff_head_lr, dit_body_lr, register_lr, rae_query_lr, llm_lr, e6_projector_lr, e6_unet_lr, e7_owner_lr, e7_projector_lr, e7_unet_lr,
+            self.args.learning_rate, mm_projector_lr, diff_head_lr, dit_body_lr, latent_head_lr, register_lr, rae_query_lr, llm_lr, e6_projector_lr, e6_unet_lr, e7_owner_lr, e7_projector_lr, e7_unet_lr,
             len(mm_projector_names), len(projector_names), len(dit_adaln_names), len(dit_body_names), len(register_names),
             len(null_bg_names), len(rae_query_names), len(v14_names), len(v21_names), len(latent_head_names), len(e6_projector_names), len(e6_unet_names), len(e7_owner_names), len(e7_projector_names), len(e7_unet_names), len(llm_names),
         )
@@ -1102,6 +1113,41 @@ class PGOTTrainer(Trainer):
         else:
             e7_scale = 1.0
         inner_model.config.pgot_e7_causal_weight_effective = e7_target_w * e7_scale
+
+        owner_detached = bool(
+            getattr(inner_model.config, "pgot_one_shot_detach_owner_routing", True)
+        )
+        owner_ramp = int(
+            getattr(
+                inner_model.config,
+                "pgot_one_shot_owner_gradient_ramp_steps",
+                0,
+            )
+            or 0
+        )
+        owner_gradient_scale = 0.0 if owner_detached else (
+            min(max(float(global_step + 1) / float(owner_ramp), 0.0), 1.0)
+            if owner_ramp > 0
+            else 1.0
+        )
+        inner_model.config.pgot_one_shot_owner_gradient_scale_effective = float(
+            owner_gradient_scale
+        )
+
+        latent_target_w = float(
+            getattr(inner_model.config, "pgot_latent_distill_weight", 0.0)
+        )
+        latent_ramp = int(
+            getattr(inner_model.config, "pgot_latent_distill_ramp_steps", 0) or 0
+        )
+        latent_scale = (
+            min(max(float(global_step + 1) / float(latent_ramp), 0.0), 1.0)
+            if latent_ramp > 0
+            else 1.0
+        )
+        inner_model.config.pgot_latent_distill_weight_effective = (
+            latent_target_w * latent_scale
+        )
 
         if bool(getattr(inner_model.config, "pgot_e8_causal_enable", False)):
             e8_ramp = int(

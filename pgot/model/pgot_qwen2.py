@@ -1769,6 +1769,21 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 semantic_slots=semantic_slots, image_states=img_hidden,
                 raw_value_states=seq["raw_img_features"], owner_probs=owner_probs,
                 slot_valid=slot_valid, object_count=K,
+                owner_gradient_scale=float(
+                    getattr(
+                        self.config,
+                        "pgot_one_shot_owner_gradient_scale_effective",
+                        0.0
+                        if bool(
+                            getattr(
+                                self.config,
+                                "pgot_one_shot_detach_owner_routing",
+                                True,
+                            )
+                        )
+                        else 1.0,
+                    )
+                ),
             )
             reader = self.pgot_e8_reader(
                 rae_queries=raw_rae_hidden, semantic_slots=semantic_slots,
@@ -5855,6 +5870,25 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 slot_bias=direct_bias,
             )
 
+        latent_target_w = float(
+            getattr(self.config, "pgot_latent_distill_weight", 0.0)
+        )
+        latent_effective_w = float(
+            getattr(
+                self.config,
+                "pgot_latent_distill_weight_effective",
+                latent_target_w,
+            )
+        )
+        latent_stats = None
+        loss_latent_distill = zero
+        if latent_target_w > 0.0 and self.pgot_latent_head is not None:
+            latent_stats = self._pgot_compute_latent_distill_loss(
+                condition_hidden=condition_hidden,
+                target_features=gt_siglip,
+            )
+            loss_latent_distill = latent_stats["loss"]
+
         lm_w = float(getattr(self.config, "pgot_lm_loss_weight", 1.0))
         recon_w = float(getattr(self.config, "pgot_recon_loss_weight", 1.0))
         owner_w = float(getattr(self.config, "pgot_e8_owner_weight", 1.0))
@@ -5888,7 +5922,12 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             + loss_register_fg_weighted
         )
         loss_mask = owner_w * loss_owner + loss_reader + loss_causal
-        total_loss = lm_w * loss_lm + recon_w * loss_recon + loss_mask
+        total_loss = (
+            lm_w * loss_lm
+            + recon_w * loss_recon
+            + loss_mask
+            + latent_effective_w * loss_latent_distill
+        )
         if not torch.isfinite(total_loss):
             total_loss = torch.nan_to_num(total_loss, nan=1e4, posinf=1e4, neginf=1e4)
 
@@ -6122,6 +6161,28 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "e8_causal_timestep": causal_stats["timestep"],
         }
         self.pgot_loss_details.update(seq.get("memory_diagnostics", {}))
+        if latent_target_w > 0.0 and latent_stats is not None:
+            self.pgot_loss_details.update(
+                {
+                    "loss_latent_distill": loss_latent_distill.detach(),
+                    "latent_distill_mse": latent_stats["mse"].detach(),
+                    "latent_distill_cos": latent_stats["cos"].detach(),
+                    "latent_pred_norm": latent_stats["pred_norm"].detach(),
+                    "latent_target_norm": latent_stats["target_norm"].detach(),
+                    "latent_distill_weight_effective": hidden.new_tensor(
+                        latent_effective_w
+                    ),
+                    "owner_gradient_scale": hidden.new_tensor(
+                        float(
+                            getattr(
+                                self.config,
+                                "pgot_one_shot_owner_gradient_scale_effective",
+                                0.0,
+                            )
+                        )
+                    ),
+                }
+            )
         for layer_idx, stats in owner_stats_by_layer:
             prefix = f"e8_owner_l{layer_idx:02d}"
             self.pgot_loss_details[f"{prefix}_loss"] = stats["loss"].detach()

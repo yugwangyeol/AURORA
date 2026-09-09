@@ -55,6 +55,24 @@ def test_semantic_query_changes_patch_selection_with_fixed_ownership():
     assert (before - after).abs().max() > 0.01
 
 
+def test_owner_gradient_scale_changes_backward_only():
+    writer, _, inputs, _ = make_case()
+    writer.detach_owner_routing = False
+    owner = inputs["owner_probs"].detach().requires_grad_(True)
+    inputs["owner_probs"] = owner
+
+    stopped = writer(**inputs, owner_gradient_scale=0.0)
+    stopped["visual_memory"].square().sum().backward()
+    assert owner.grad is not None
+    torch.testing.assert_close(owner.grad, torch.zeros_like(owner.grad))
+
+    owner.grad = None
+    live = writer(**inputs, owner_gradient_scale=1.0)
+    torch.testing.assert_close(live["visual_memory"], stopped["visual_memory"])
+    live["visual_memory"].square().sum().backward()
+    assert owner.grad is not None and owner.grad.abs().sum() > 0
+
+
 @pytest.mark.parametrize("mode", ["memory_content", "memory_id"])
 def test_stored_memory_roundtrip_and_content_permutation(mode):
     writer, reader, inputs, queries = make_case(mode)
@@ -97,5 +115,7 @@ def test_metric_profile_excludes_disabled_diagnostics_but_keeps_active_zeros():
     for key in ("loss_contrastive", "eval_loss_e8_causal", "e8_write_gate_mean",
                 "one_shot_hard_outside_mass", "epoch", "total_flos"):
         assert not trainer._keep_metric(key)
-    for key in ("loss", "eval_loss_recon", "e8_owner_fg_acc", "memory_reader_entropy", "train_runtime"):
+    for key in ("loss", "eval_loss_recon", "e8_owner_fg_acc", "memory_reader_entropy",
+                "loss_latent_distill", "latent_distill_weight_effective",
+                "owner_gradient_scale", "train_runtime"):
         assert trainer._keep_metric(key)

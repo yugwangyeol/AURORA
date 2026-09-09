@@ -337,6 +337,9 @@ def train():
     config.pgot_one_shot_detach_owner_routing = bool(
         model_args.pgot_one_shot_detach_owner_routing
     )
+    config.pgot_one_shot_owner_gradient_ramp_steps = int(
+        model_args.pgot_one_shot_owner_gradient_ramp_steps
+    )
     config.pgot_e8_layers = str(model_args.pgot_e8_layers)
     config.pgot_e8_owner_temperature = float(
         model_args.pgot_e8_owner_temperature
@@ -451,6 +454,7 @@ def train():
     )
     config.pgot_latent_distill_enable = bool(model_args.pgot_latent_distill_enable)
     config.pgot_latent_distill_weight = float(model_args.pgot_latent_distill_weight)
+    config.pgot_latent_distill_ramp_steps = int(model_args.pgot_latent_distill_ramp_steps)
     config.pgot_latent_distill_mse_weight = float(model_args.pgot_latent_distill_mse_weight)
     config.pgot_latent_distill_cos_weight = float(model_args.pgot_latent_distill_cos_weight)
     config.pgot_latent_distill_l1_weight = float(model_args.pgot_latent_distill_l1_weight)
@@ -779,6 +783,9 @@ def train():
     model.config.pgot_one_shot_detach_owner_routing = bool(
         model_args.pgot_one_shot_detach_owner_routing
     )
+    model.config.pgot_one_shot_owner_gradient_ramp_steps = int(
+        model_args.pgot_one_shot_owner_gradient_ramp_steps
+    )
     model.config.pgot_e8_layers = str(model_args.pgot_e8_layers)
     model.config.pgot_e8_owner_temperature = float(
         model_args.pgot_e8_owner_temperature
@@ -894,6 +901,7 @@ def train():
     )
     model.config.pgot_latent_distill_enable = bool(model_args.pgot_latent_distill_enable)
     model.config.pgot_latent_distill_weight = float(model_args.pgot_latent_distill_weight)
+    model.config.pgot_latent_distill_ramp_steps = int(model_args.pgot_latent_distill_ramp_steps)
     model.config.pgot_latent_distill_mse_weight = float(model_args.pgot_latent_distill_mse_weight)
     model.config.pgot_latent_distill_cos_weight = float(model_args.pgot_latent_distill_cos_weight)
     model.config.pgot_latent_distill_l1_weight = float(model_args.pgot_latent_distill_l1_weight)
