@@ -340,6 +340,9 @@ def train():
     config.pgot_one_shot_owner_gradient_ramp_steps = int(
         model_args.pgot_one_shot_owner_gradient_ramp_steps
     )
+    config.pgot_one_shot_writer_softmax_axis = str(
+        model_args.pgot_one_shot_writer_softmax_axis
+    )
     config.pgot_e8_layers = str(model_args.pgot_e8_layers)
     config.pgot_e8_owner_temperature = float(
         model_args.pgot_e8_owner_temperature
@@ -785,6 +788,9 @@ def train():
     )
     model.config.pgot_one_shot_owner_gradient_ramp_steps = int(
         model_args.pgot_one_shot_owner_gradient_ramp_steps
+    )
+    model.config.pgot_one_shot_writer_softmax_axis = str(
+        model_args.pgot_one_shot_writer_softmax_axis
     )
     model.config.pgot_e8_layers = str(model_args.pgot_e8_layers)
     model.config.pgot_e8_owner_temperature = float(

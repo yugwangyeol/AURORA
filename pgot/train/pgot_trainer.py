@@ -213,6 +213,7 @@ class PGOTModelArguments:
     pgot_one_shot_readout_mode: str = field(default="pooled")
     pgot_one_shot_detach_owner_routing: bool = field(default=True)
     pgot_one_shot_owner_gradient_ramp_steps: int = field(default=0)
+    pgot_one_shot_writer_softmax_axis: str = field(default="patch")
     pgot_e8_layers: str = field(default="21,24,27")
     pgot_e8_owner_temperature: float = field(default=1.0)
     pgot_e8_owner_weight: float = field(default=1.0)
@@ -751,6 +752,10 @@ class PGOTTrainer(Trainer):
                 "memory_write_entropy", "memory_object_pair_cosine",
                 "memory_register_pair_cosine", "memory_reader_entropy",
                 "memory_active_tokens",
+                "memory_object_allocation_entropy",
+                "memory_object_allocation_max_share",
+                "memory_register_allocation_entropy",
+                "memory_register_allocation_max_share",
                 "loss_latent_distill", "latent_distill_mse", "latent_distill_cos",
                 "latent_pred_norm", "latent_target_norm",
                 "latent_distill_weight_effective", "owner_gradient_scale",

@@ -948,7 +948,7 @@ class PGOTOneShotMemoryWriter(nn.Module):
 
     def __init__(self, *, dim, raw_value_dim, object_memories_per_owner=4,
                  register_memories_per_owner=16, temperature=1.0,
-                 detach_owner_routing=True):
+                 detach_owner_routing=True, softmax_axis="patch"):
         super().__init__()
         self.dim = int(dim)
         self.object_memories_per_owner = int(object_memories_per_owner)
@@ -959,6 +959,12 @@ class PGOTOneShotMemoryWriter(nn.Module):
                                      self.register_memories_per_owner)
         self.temperature = float(temperature)
         self.detach_owner_routing = bool(detach_owner_routing)
+        self.softmax_axis = str(softmax_axis).strip().lower()
+        if self.softmax_axis not in {"patch", "memory"}:
+            raise ValueError(
+                "one-shot Writer softmax_axis must be 'patch' or 'memory', "
+                f"got {softmax_axis!r}"
+            )
         self.semantic_norm = nn.LayerNorm(dim)
         self.image_norm = nn.LayerNorm(dim)
         self.query = nn.Linear(dim, dim, bias=False)
@@ -1003,15 +1009,41 @@ class PGOTOneShotMemoryWriter(nn.Module):
             routing = detached + scale * (routing - detached)
         routing = routing * slot_valid[..., None].float()
         routing = routing / routing.sum(dim=1, keepdim=True).clamp_min(1e-8)
-        # Normalize over P: each token summarizes patches independently.
         logits = logits + routing.clamp_min(1e-8).log()[:, :, None]
-        weights = F.softmax(logits, dim=-1) * valid[..., None].float()
+        allocation_mass = None
+        if self.softmax_axis == "patch":
+            # Each memory independently selects source patches. This preserves
+            # the behavior of existing one-shot memory checkpoints.
+            weights = F.softmax(logits, dim=-1) * valid[..., None].float()
+        else:
+            # Each patch is allocated competitively among the J memories under
+            # its semantic owner. The owner prior is shared across J, while the
+            # content score decides which memory receives the patch. Normalize
+            # once more over P so every valid memory remains a weighted average.
+            allocation_logits = logits.masked_fill(
+                ~valid[..., None], -1e4
+            )
+            allocation = F.softmax(allocation_logits, dim=2)
+            allocation = allocation * valid[..., None].float()
+            allocation = allocation / allocation.sum(
+                dim=2, keepdim=True
+            ).clamp_min(1e-8)
+            joint_mass = allocation * routing[:, :, None]
+            allocation_mass = joint_mass.sum(dim=-1)
+            weights = joint_mass / allocation_mass[..., None].clamp_min(1e-8)
+            weights = weights * valid[..., None].float()
         raw = raw_value_states.to(self.raw_value.weight.dtype)
         values = self.raw_value(self.raw_value_norm(raw))
         memory = torch.einsum("bsjp,bpd->bsjd", weights.to(values.dtype), values)
         memory = memory.to(semantic_slots.dtype)
-        return {"visual_memory": memory, "memory_valid": valid,
-                "write_weights": weights}
+        result = {
+            "visual_memory": memory,
+            "memory_valid": valid,
+            "write_weights": weights,
+        }
+        if allocation_mass is not None:
+            result["memory_allocation_mass"] = allocation_mass
+        return result
 
 
 class PGOTOneShotMemoryReader(nn.Module):

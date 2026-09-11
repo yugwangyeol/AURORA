@@ -48,6 +48,7 @@ if [[ "${ONE_SHOT_READOUT_MODE:-}" == memory_* ]]; then
     echo "Model: ${MODEL_PATH}"
     echo "Output: ${OUTPUT_DIR}"
     echo "One final write; semantic routing + within-owner attention; RAE self-only"
+    echo "Writer patch allocation softmax axis: ${ONE_SHOT_WRITER_SOFTMAX_AXIS:-patch}"
     echo "Owner reconstruction gradient: detach=${ONE_SHOT_DETACH_OWNER_ROUTING:-True}; ramp=${ONE_SHOT_OWNER_GRADIENT_RAMP_STEPS:-0}"
     echo "Direct feature reconstruction: weight=${PGOT_LATENT_DISTILL_WEIGHT:-0.0}; ramp=${PGOT_LATENT_DISTILL_RAMP_STEPS:-0}"
 else
@@ -102,6 +103,7 @@ fi
     --pgot_one_shot_readout_mode "${ONE_SHOT_READOUT_MODE:-pooled}" \
     --pgot_one_shot_detach_owner_routing "${ONE_SHOT_DETACH_OWNER_ROUTING:-True}" \
     --pgot_one_shot_owner_gradient_ramp_steps "${ONE_SHOT_OWNER_GRADIENT_RAMP_STEPS:-0}" \
+    --pgot_one_shot_writer_softmax_axis "${ONE_SHOT_WRITER_SOFTMAX_AXIS:-patch}" \
     --pgot_e8_layers "${E8_LAYERS:-21,24,27}" \
     --pgot_e8_owner_temperature "${E8_OWNER_TEMPERATURE:-1.0}" \
     --pgot_e8_owner_weight "${E8_OWNER_WEIGHT:-1.0}" \

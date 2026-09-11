@@ -10,6 +10,7 @@ def main():
     parser.add_argument("root", type=Path)
     parser.add_argument("--stage", choices=["train", "eval"], required=True)
     parser.add_argument("--steps", type=int, default=2)
+    parser.add_argument("--softmax-axis", choices=["patch", "memory"], default="patch")
     args = parser.parse_args()
 
     if args.stage == "eval":
@@ -18,6 +19,7 @@ def main():
             assert summary["one_shot_memory_enabled"] is True
             assert summary["memory_reader_key_mode"] == "content"
             assert summary["e11_object_memories_per_owner"] == 4
+            assert summary["memory_writer_softmax_axis"] == args.softmax_axis
             assert summary["teacher_forced_caption"] is (branch == "tf")
             assert summary["num_samples"] == 2
             for key in ("recon_mse", "recon_psnr", "rFID"):
@@ -30,6 +32,7 @@ def main():
     assert cfg["pgot_one_shot_readout_mode"] == "memory_content"
     assert cfg["pgot_one_shot_detach_owner_routing"] is False
     assert cfg["pgot_one_shot_owner_gradient_ramp_steps"] == 2
+    assert cfg["pgot_one_shot_writer_softmax_axis"] == args.softmax_axis
     assert cfg["pgot_latent_distill_enable"] is True
     assert cfg["pgot_latent_distill_weight"] == 0.5
     assert cfg["pgot_latent_distill_ramp_steps"] == 2
@@ -47,6 +50,20 @@ def main():
     for key in required:
         values = [row[key] for row in histories if key in row]
         assert values and all(math.isfinite(x) for x in values), (key, values)
+    if args.softmax_axis == "memory":
+        allocation_metrics = (
+            "memory_object_allocation_entropy",
+            "memory_object_allocation_max_share",
+            "memory_register_allocation_entropy",
+            "memory_register_allocation_max_share",
+            "eval_memory_object_allocation_entropy",
+            "eval_memory_object_allocation_max_share",
+            "eval_memory_register_allocation_entropy",
+            "eval_memory_register_allocation_max_share",
+        )
+        for key in allocation_metrics:
+            values = [row[key] for row in histories if key in row]
+            assert values and all(math.isfinite(x) for x in values), (key, values)
     assert max(row.get("owner_gradient_scale", 0.0) for row in histories) == 1.0
     assert max(row.get("latent_distill_weight_effective", 0.0) for row in histories) == 0.5
 

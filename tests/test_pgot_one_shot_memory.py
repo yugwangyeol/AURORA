@@ -6,10 +6,11 @@ import torch
 from pgot.model.visual_memory import PGOTOneShotMemoryReader, PGOTOneShotMemoryWriter
 
 
-def make_case(mode="memory_content"):
+def make_case(mode="memory_content", softmax_axis="patch"):
     torch.manual_seed(43)
     writer = PGOTOneShotMemoryWriter(dim=8, raw_value_dim=6,
-                                    object_memories_per_owner=2, register_memories_per_owner=4)
+                                    object_memories_per_owner=2, register_memories_per_owner=4,
+                                    softmax_axis=softmax_axis)
     reader = PGOTOneShotMemoryReader(dim=8, num_heads=2, memories_per_owner=4, readout_mode=mode)
     inputs = dict(semantic_slots=torch.randn(2, 3, 8), image_states=torch.randn(2, 9, 8),
                   raw_value_states=torch.randn(2, 9, 6), owner_probs=torch.softmax(torch.randn(2, 3, 9), 1),
@@ -53,6 +54,35 @@ def test_semantic_query_changes_patch_selection_with_fixed_ownership():
     inputs["semantic_slots"] = torch.randn_like(inputs["semantic_slots"])
     after = writer(**inputs)["write_weights"]
     assert (before - after).abs().max() > 0.01
+
+
+def test_memory_axis_competitively_allocates_each_patch_then_pools():
+    writer, _, inputs, _ = make_case(softmax_axis="memory")
+    result = writer(**inputs)
+    valid = result["memory_valid"]
+    weights = result["write_weights"]
+    mass = result["memory_allocation_mass"]
+
+    torch.testing.assert_close(weights.sum(-1), valid.float())
+    assert torch.count_nonzero(weights[~valid]) == 0
+    assert mass is not None and torch.count_nonzero(mass[~valid]) == 0
+
+    dtype = writer.query.weight.dtype
+    query = writer.query(writer.semantic_norm(inputs["semantic_slots"].to(dtype)))[:, :, None]
+    query = query + writer.memory_id_embeddings[None, None]
+    key = writer.key(writer.image_norm(inputs["image_states"].to(dtype)))
+    logits = torch.einsum("bsjd,bpd->bsjp", query.float(), key.float())
+    logits = logits / (writer.dim ** 0.5) / writer.temperature
+    routing = inputs["owner_probs"].float() * inputs["slot_valid"][..., None].float()
+    routing = routing / routing.sum(1, keepdim=True).clamp_min(1e-8)
+    logits = logits + routing.clamp_min(1e-8).log()[:, :, None]
+    allocation = torch.softmax(logits.masked_fill(~valid[..., None], -1e4), dim=2)
+    allocation = allocation * valid[..., None].float()
+    allocation = allocation / allocation.sum(2, keepdim=True).clamp_min(1e-8)
+    joint = allocation * routing[:, :, None]
+    expected = joint / joint.sum(-1, keepdim=True).clamp_min(1e-8)
+    expected = expected * valid[..., None].float()
+    torch.testing.assert_close(weights, expected)
 
 
 def test_owner_gradient_scale_changes_backward_only():

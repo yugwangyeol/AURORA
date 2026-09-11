@@ -1853,7 +1853,13 @@ def main():
             summary["e8_update_mode"] = "one_shot_memory"
             summary["visual_memory_value_source"] = "one final owner-prior patch attention over frozen raw SigLIP values"
             summary["memory_reader_key_mode"] = summary["one_shot_readout_mode"].removeprefix("memory_")
-            summary["memory_writer_softmax_axis"] = "patch"
+            summary["memory_writer_softmax_axis"] = str(
+                getattr(
+                    model.config,
+                    "pgot_one_shot_writer_softmax_axis",
+                    "patch",
+                )
+            )
             summary["memory_reader_owner_routing"] = "soft"
             summary["decoder_condition"] = "semantic owner routing then attention over stored visual memories; no raw-patch Reader access"
         elif summary["one_shot_reader_enabled"]:

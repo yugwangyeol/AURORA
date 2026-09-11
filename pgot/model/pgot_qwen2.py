@@ -716,6 +716,17 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_one_shot_readout_mode = str(
             getattr(self.config, "pgot_one_shot_readout_mode", "pooled")
         ).strip().lower()
+        self.pgot_one_shot_writer_softmax_axis = str(
+            getattr(
+                self.config,
+                "pgot_one_shot_writer_softmax_axis",
+                "patch",
+            )
+        ).strip().lower()
+        if self.pgot_one_shot_writer_softmax_axis not in {"patch", "memory"}:
+            raise ValueError(
+                "pgot_one_shot_writer_softmax_axis must be patch or memory"
+            )
         self.pgot_one_shot_memory_enable = (
             self.pgot_one_shot_reader_enable
             and self.pgot_one_shot_readout_mode in {"memory_content", "memory_id"}
@@ -816,6 +827,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                         register_memories_per_owner=self.pgot_e11_register_memories_per_owner,
                         temperature=float(getattr(self.config, "pgot_e8_owner_temperature", 1.0)),
                         detach_owner_routing=bool(getattr(self.config, "pgot_one_shot_detach_owner_routing", True)),
+                        softmax_axis=self.pgot_one_shot_writer_softmax_axis,
                     )
                     self.pgot_e8_reader = PGOTOneShotMemoryReader(
                         dim=D,
@@ -1047,6 +1059,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 f"[PGOT/Memory] D={D}, OVT/object={self.pgot_n_ovt_per_object}, "
                 f"object={self.pgot_e11_object_memories_per_owner}, "
                 f"register={self.pgot_e11_register_memories_per_owner} x {self.pgot_n_register}, "
+                f"writer_softmax={self.pgot_one_shot_writer_softmax_axis}, "
                 f"readout={self.pgot_one_shot_readout_mode}, RAE=self-only"
             )
         else:
@@ -1862,6 +1875,39 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                     "memory_reader_entropy": reader["memory_reader_entropy"],
                     "memory_active_tokens": valid.float().sum((1, 2)).mean(),
                 }
+                allocation_mass = memory_write.get("memory_allocation_mass")
+                if allocation_mass is not None:
+                    allocation_mass = allocation_mass.float()
+
+                    def allocation_stats(start, end):
+                        owner_valid = valid[:, start:end].any(dim=-1)
+                        owner_mass = allocation_mass[:, start:end]
+                        owner_mass = owner_mass / owner_mass.sum(
+                            dim=-1, keepdim=True
+                        ).clamp_min(1e-8)
+                        entropy = -(
+                            owner_mass
+                            * owner_mass.clamp_min(1e-8).log()
+                        ).sum(dim=-1)
+                        capacity = valid[:, start:end].sum(dim=-1).clamp_min(2)
+                        normalized_entropy = entropy / capacity.float().log()
+                        return (
+                            normalized_entropy[owner_valid].mean(),
+                            owner_mass.max(dim=-1).values[owner_valid].mean(),
+                        )
+
+                    object_entropy, object_max_share = allocation_stats(0, K)
+                    register_entropy, register_max_share = allocation_stats(
+                        K, valid.shape[1]
+                    )
+                    memory_diagnostics.update(
+                        {
+                            "memory_object_allocation_entropy": object_entropy,
+                            "memory_object_allocation_max_share": object_max_share,
+                            "memory_register_allocation_entropy": register_entropy,
+                            "memory_register_allocation_max_share": register_max_share,
+                        }
+                    )
         seq.update(
             {
                 "hidden": hidden,
