@@ -948,7 +948,8 @@ class PGOTOneShotMemoryWriter(nn.Module):
 
     def __init__(self, *, dim, raw_value_dim, object_memories_per_owner=4,
                  register_memories_per_owner=16, temperature=1.0,
-                 detach_owner_routing=True, softmax_axis="patch"):
+                 detach_owner_routing=True, softmax_axis="patch",
+                 use_owner_prior=True):
         super().__init__()
         self.dim = int(dim)
         self.object_memories_per_owner = int(object_memories_per_owner)
@@ -959,6 +960,7 @@ class PGOTOneShotMemoryWriter(nn.Module):
                                      self.register_memories_per_owner)
         self.temperature = float(temperature)
         self.detach_owner_routing = bool(detach_owner_routing)
+        self.use_owner_prior = bool(use_owner_prior)
         self.softmax_axis = str(softmax_axis).strip().lower()
         if self.softmax_axis not in {"patch", "memory"}:
             raise ValueError(
@@ -998,18 +1000,20 @@ class PGOTOneShotMemoryWriter(nn.Module):
         key = self.key(self.image_norm(image_states.to(dtype)))
         logits = torch.einsum("bsjd,bpd->bsjp", query.float(), key.float())
         logits = logits / math.sqrt(D) / max(self.temperature, 1e-6)
-        routing = owner_probs.float()
-        if self.detach_owner_routing:
-            routing = routing.detach()
-        else:
-            # Preserve the forward routing while ramping only the reconstruction
-            # gradient that reaches semantic ownership.
-            scale = min(max(float(owner_gradient_scale), 0.0), 1.0)
-            detached = routing.detach()
-            routing = detached + scale * (routing - detached)
-        routing = routing * slot_valid[..., None].float()
-        routing = routing / routing.sum(dim=1, keepdim=True).clamp_min(1e-8)
-        logits = logits + routing.clamp_min(1e-8).log()[:, :, None]
+        routing = None
+        if self.use_owner_prior:
+            routing = owner_probs.float()
+            if self.detach_owner_routing:
+                routing = routing.detach()
+            else:
+                # Preserve the forward routing while ramping only the reconstruction
+                # gradient that reaches semantic ownership.
+                scale = min(max(float(owner_gradient_scale), 0.0), 1.0)
+                detached = routing.detach()
+                routing = detached + scale * (routing - detached)
+            routing = routing * slot_valid[..., None].float()
+            routing = routing / routing.sum(dim=1, keepdim=True).clamp_min(1e-8)
+            logits = logits + routing.clamp_min(1e-8).log()[:, :, None]
         allocation_mass = None
         if self.softmax_axis == "patch":
             # Each memory independently selects source patches. This preserves
@@ -1028,7 +1032,11 @@ class PGOTOneShotMemoryWriter(nn.Module):
             allocation = allocation / allocation.sum(
                 dim=2, keepdim=True
             ).clamp_min(1e-8)
-            joint_mass = allocation * routing[:, :, None]
+            joint_mass = (
+                allocation * routing[:, :, None]
+                if routing is not None
+                else allocation
+            )
             allocation_mass = joint_mass.sum(dim=-1)
             weights = joint_mass / allocation_mass[..., None].clamp_min(1e-8)
             weights = weights * valid[..., None].float()

@@ -11,6 +11,10 @@ def main():
     parser.add_argument("mode", choices=["content", "id"])
     parser.add_argument("--stage", choices=["train", "eval"], required=True)
     parser.add_argument("--steps", type=int, default=2)
+    parser.add_argument(
+        "--owner-prior", choices=["enabled", "disabled"], default="enabled"
+    )
+    parser.add_argument("--expect-kid", action="store_true")
     args = parser.parse_args()
     run_root = args.root / args.mode
     if args.stage == "eval":
@@ -20,11 +24,25 @@ def main():
             assert summary["e11_object_memories_per_owner"] == 4
             assert summary["background_visual_memories"] == 64
             assert summary["memory_reader_key_mode"] == args.mode
+            assert summary["memory_writer_softmax_axis"] == "patch"
+            assert summary["memory_writer_owner_prior"] is (
+                args.owner_prior == "enabled"
+            )
             assert summary["teacher_forced_caption"] is (branch == "tf")
             assert summary["num_samples"] == 2
             for key in ("recon_mse", "recon_psnr", "rFID"):
                 assert math.isfinite(summary[key]), (branch, key, summary.get(key))
-            print(f"{args.mode} {branch}: reload + reconstruction + rFID PASS (2-image smoke only)")
+            if args.expect_kid:
+                for key in ("KID_x1000", "KID_std_x1000"):
+                    assert math.isfinite(summary[key]), (
+                        branch, key, summary.get(key)
+                    )
+            if branch == "ar":
+                assert math.isfinite(summary["ar_object_count_mae"])
+            print(
+                f"{args.mode} {branch}: reload + reconstruction + rFID/KID"
+                " PASS (2-image smoke only)"
+            )
         return
 
     ckpt = run_root / "train" / f"checkpoint-{args.steps}"
@@ -33,6 +51,10 @@ def main():
     assert cfg["pgot_e11_object_memories_per_owner"] == 4
     assert cfg["pgot_e11_register_memories_per_owner"] == 16
     assert cfg["pgot_n_ovt_per_object"] == 1
+    assert cfg["pgot_one_shot_writer_softmax_axis"] == "patch"
+    assert cfg["pgot_one_shot_writer_owner_prior"] is (
+        args.owner_prior == "enabled"
+    )
     state = json.loads((ckpt / "trainer_state.json").read_text())
     assert state["global_step"] == args.steps
     histories = state["log_history"]
@@ -41,8 +63,12 @@ def main():
                 "eval_loss_recon", "eval_memory_reader_entropy"):
         values = [row[key] for row in histories if key in row]
         assert values and all(math.isfinite(x) for x in values), (key, values)
-    banned = ("loss_contrastive", "loss_e8_causal", "e8_write_gate_mean",
-              "one_shot_hard_outside_mass", "e9_gru", "e12_centroid", "dit_soft_routing")
+    banned = (
+        "loss_contrastive", "loss_e8_causal", "e8_write_gate_mean",
+        "one_shot_hard_outside_mass", "e9_gru", "e12_centroid",
+        "dit_soft_routing", "latent_distill", "owner_gradient_scale",
+        "memory_object_allocation", "memory_register_allocation",
+    )
     for row in histories:
         assert not any(any(b in key for b in banned) for key in row), row
     from safetensors import safe_open

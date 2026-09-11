@@ -208,6 +208,39 @@ class FIDAccumulator:
         return float(self.metric.compute().item())
 
 
+class KIDAccumulator:
+    """Streaming KID on the same Inception features used for rFID."""
+
+    def __init__(
+        self,
+        device="cuda",
+        feature: int = 2048,
+        subsets: int = 100,
+        subset_size: int = 1000,
+    ):
+        from torchmetrics.image.kid import KernelInceptionDistance
+
+        self.metric = KernelInceptionDistance(
+            feature=feature,
+            subsets=int(subsets),
+            subset_size=int(subset_size),
+            normalize=True,
+        ).to(device)
+        self.device = device
+
+    @torch.no_grad()
+    def add(self, real: torch.Tensor, fake: torch.Tensor):
+        """real, fake: (B, 3, H, W) in [0, 1]."""
+        real = real.to(self.device).float().clamp(0, 1)
+        fake = fake.to(self.device).float().clamp(0, 1)
+        self.metric.update(real, real=True)
+        self.metric.update(fake, real=False)
+
+    def compute(self) -> tuple[float, float]:
+        mean, std = self.metric.compute()
+        return float(mean.item()), float(std.item())
+
+
 # ----------------------------------------------------------------------
 # Reconstruction metrics (PSNR/SSIM/MSE/MAE) — optional companion to rFID
 # ----------------------------------------------------------------------

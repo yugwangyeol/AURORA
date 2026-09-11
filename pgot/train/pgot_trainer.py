@@ -214,6 +214,7 @@ class PGOTModelArguments:
     pgot_one_shot_detach_owner_routing: bool = field(default=True)
     pgot_one_shot_owner_gradient_ramp_steps: int = field(default=0)
     pgot_one_shot_writer_softmax_axis: str = field(default="patch")
+    pgot_one_shot_writer_owner_prior: bool = field(default=True)
     pgot_e8_layers: str = field(default="21,24,27")
     pgot_e8_owner_temperature: float = field(default=1.0)
     pgot_e8_owner_weight: float = field(default=1.0)
@@ -1015,12 +1016,33 @@ class PGOTTrainer(Trainer):
         if params:
             groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": llm_lr})
 
+        optimizer_summary = (
+            ("base", len(default), self.args.learning_rate),
+            ("mm_projector", len(mm_projector_names), mm_projector_lr),
+            ("diff_projector", len(projector_names), diff_head_lr),
+            ("dit_adaln", len(dit_adaln_names), diff_head_lr),
+            ("dit_body", len(dit_body_names), dit_body_lr),
+            ("register", len(register_names), register_lr),
+            ("null_bg", len(null_bg_names), register_lr),
+            ("rae_query", len(rae_query_names), rae_query_lr),
+            ("v14", len(v14_names), self.args.learning_rate),
+            ("visual_memory", len(e8_names), self.args.learning_rate),
+            ("v21", len(v21_names), self.args.learning_rate),
+            ("latent_head", len(latent_head_names), latent_head_lr),
+            ("e6_projector", len(e6_projector_names), e6_projector_lr),
+            ("e6_unet", len(e6_unet_names), e6_unet_lr),
+            ("e7_owner", len(e7_owner_names), e7_owner_lr),
+            ("e7_projector", len(e7_projector_names), e7_projector_lr),
+            ("e7_unet", len(e7_unet_names), e7_unet_lr),
+            ("llm", len(llm_names), llm_lr),
+        )
         logger.info(
-            "[PGOT] optimizer | base=%g mm_projector=%g diff_head=%g dit_body=%g latent_head=%g register=%g rae_query=%g llm=%g e6_proj=%g e6_unet=%g e7_owner=%g e7_proj=%g e7_unet=%g | "
-            "mm_projector=%d projector=%d dit_adaln=%d dit_body=%d register=%d null_bg=%d rae_query=%d v14=%d v21=%d latent_head=%d e6_proj=%d e6_unet=%d e7_owner=%d e7_proj=%d e7_unet=%d llm=%d",
-            self.args.learning_rate, mm_projector_lr, diff_head_lr, dit_body_lr, latent_head_lr, register_lr, rae_query_lr, llm_lr, e6_projector_lr, e6_unet_lr, e7_owner_lr, e7_projector_lr, e7_unet_lr,
-            len(mm_projector_names), len(projector_names), len(dit_adaln_names), len(dit_body_names), len(register_names),
-            len(null_bg_names), len(rae_query_names), len(v14_names), len(v21_names), len(latent_head_names), len(e6_projector_names), len(e6_unet_names), len(e7_owner_names), len(e7_projector_names), len(e7_unet_names), len(llm_names),
+            "[PGOT] optimizer | %s",
+            "; ".join(
+                f"{name}: tensors={count}, lr={lr:g}"
+                for name, count, lr in optimizer_summary
+                if count > 0
+            ),
         )
 
         optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(self.args)

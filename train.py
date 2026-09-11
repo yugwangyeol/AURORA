@@ -343,6 +343,9 @@ def train():
     config.pgot_one_shot_writer_softmax_axis = str(
         model_args.pgot_one_shot_writer_softmax_axis
     )
+    config.pgot_one_shot_writer_owner_prior = bool(
+        model_args.pgot_one_shot_writer_owner_prior
+    )
     config.pgot_e8_layers = str(model_args.pgot_e8_layers)
     config.pgot_e8_owner_temperature = float(
         model_args.pgot_e8_owner_temperature
@@ -791,6 +794,9 @@ def train():
     )
     model.config.pgot_one_shot_writer_softmax_axis = str(
         model_args.pgot_one_shot_writer_softmax_axis
+    )
+    model.config.pgot_one_shot_writer_owner_prior = bool(
+        model_args.pgot_one_shot_writer_owner_prior
     )
     model.config.pgot_e8_layers = str(model_args.pgot_e8_layers)
     model.config.pgot_e8_owner_temperature = float(

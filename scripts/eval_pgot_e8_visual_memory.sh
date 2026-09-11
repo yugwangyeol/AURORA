@@ -19,6 +19,13 @@ export LD_LIBRARY_PATH="$(dirname "${PYTHON}")/../lib:${LD_LIBRARY_PATH:-}"
 EXTRA_ARGS=()
 if [[ -n "${MAX_SAMPLES:-}" ]]; then EXTRA_ARGS+=(--max_samples "${MAX_SAMPLES}"); fi
 if [[ "${COMPUTE_RFID:-True}" == True ]]; then EXTRA_ARGS+=(--compute_rfid); fi
+if [[ "${COMPUTE_KID:-False}" == True ]]; then
+    EXTRA_ARGS+=(
+        --compute_kid
+        --kid_subsets "${KID_SUBSETS:-100}"
+        --kid_subset_size "${KID_SUBSET_SIZE:-1000}"
+    )
+fi
 
 "${PYTHON}" -m pgot.eval.run_eval \
     --model_path "${MODEL_PATH}" --val_jsonl "${VAL_JSONL}" --output_dir "${OUTPUT_DIR}" \

@@ -727,6 +727,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             raise ValueError(
                 "pgot_one_shot_writer_softmax_axis must be patch or memory"
             )
+        self.pgot_one_shot_writer_owner_prior = bool(
+            getattr(self.config, "pgot_one_shot_writer_owner_prior", True)
+        )
         self.pgot_one_shot_memory_enable = (
             self.pgot_one_shot_reader_enable
             and self.pgot_one_shot_readout_mode in {"memory_content", "memory_id"}
@@ -828,6 +831,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                         temperature=float(getattr(self.config, "pgot_e8_owner_temperature", 1.0)),
                         detach_owner_routing=bool(getattr(self.config, "pgot_one_shot_detach_owner_routing", True)),
                         softmax_axis=self.pgot_one_shot_writer_softmax_axis,
+                        use_owner_prior=self.pgot_one_shot_writer_owner_prior,
                     )
                     self.pgot_e8_reader = PGOTOneShotMemoryReader(
                         dim=D,
@@ -1060,6 +1064,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 f"object={self.pgot_e11_object_memories_per_owner}, "
                 f"register={self.pgot_e11_register_memories_per_owner} x {self.pgot_n_register}, "
                 f"writer_softmax={self.pgot_one_shot_writer_softmax_axis}, "
+                f"writer_owner_prior={self.pgot_one_shot_writer_owner_prior}, "
                 f"readout={self.pgot_one_shot_readout_mode}, RAE=self-only"
             )
         else:

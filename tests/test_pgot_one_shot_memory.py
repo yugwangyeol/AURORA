@@ -6,11 +6,12 @@ import torch
 from pgot.model.visual_memory import PGOTOneShotMemoryReader, PGOTOneShotMemoryWriter
 
 
-def make_case(mode="memory_content", softmax_axis="patch"):
+def make_case(mode="memory_content", softmax_axis="patch", use_owner_prior=True):
     torch.manual_seed(43)
     writer = PGOTOneShotMemoryWriter(dim=8, raw_value_dim=6,
                                     object_memories_per_owner=2, register_memories_per_owner=4,
-                                    softmax_axis=softmax_axis)
+                                    softmax_axis=softmax_axis,
+                                    use_owner_prior=use_owner_prior)
     reader = PGOTOneShotMemoryReader(dim=8, num_heads=2, memories_per_owner=4, readout_mode=mode)
     inputs = dict(semantic_slots=torch.randn(2, 3, 8), image_states=torch.randn(2, 9, 8),
                   raw_value_states=torch.randn(2, 9, 6), owner_probs=torch.softmax(torch.randn(2, 3, 9), 1),
@@ -54,6 +55,27 @@ def test_semantic_query_changes_patch_selection_with_fixed_ownership():
     inputs["semantic_slots"] = torch.randn_like(inputs["semantic_slots"])
     after = writer(**inputs)["write_weights"]
     assert (before - after).abs().max() > 0.01
+
+
+def test_no_owner_prior_makes_writer_independent_of_owner_map():
+    writer, _, inputs, _ = make_case(use_owner_prior=False)
+    first = writer(**inputs)
+    changed = dict(inputs)
+    changed["owner_probs"] = torch.softmax(
+        torch.randn_like(inputs["owner_probs"]), dim=1
+    )
+    second = writer(**changed)
+    torch.testing.assert_close(first["write_weights"], second["write_weights"])
+    torch.testing.assert_close(first["visual_memory"], second["visual_memory"])
+
+
+def test_no_owner_prior_blocks_reconstruction_gradient_to_owner_map():
+    writer, _, inputs, _ = make_case(use_owner_prior=False)
+    writer.detach_owner_routing = False
+    owner = inputs["owner_probs"].detach().requires_grad_(True)
+    result = writer(**{**inputs, "owner_probs": owner})
+    result["visual_memory"].square().sum().backward()
+    assert owner.grad is None
 
 
 def test_memory_axis_competitively_allocates_each_patch_then_pools():

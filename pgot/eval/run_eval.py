@@ -2,7 +2,7 @@
 
 Computes CODA-comparable metrics on Pix2Cap val:
     fARI / mBO / mIoU              (segmentation)
-    rFID / PSNR / SSIM / MSE / MAE (reconstruction, optional)
+    rFID / KID x 10^3 / PSNR / SSIM / MSE / MAE (reconstruction, optional)
     active_count                   (avg # of OVTs that contributed signal)
     per-object-count split         (1-3, 4-6, 7-10, 11+)
 
@@ -46,6 +46,7 @@ from pgot.eval.pgot_metrics import (
     ovt_logits_to_pred_mask,
     build_pred_mask_spatial_readout,
     FIDAccumulator,
+    KIDAccumulator,
     compute_recon_metrics,
 )
 from pgot.model.pgot_utils import (
@@ -671,6 +672,13 @@ def main():
         ),
     )
     p.add_argument("--compute_rfid", action="store_true", help="Decode + FID (slow)")
+    p.add_argument(
+        "--compute_kid",
+        action="store_true",
+        help="Compute KID on the same decoded images as rFID.",
+    )
+    p.add_argument("--kid_subsets", type=int, default=100)
+    p.add_argument("--kid_subset_size", type=int, default=1000)
     p.add_argument("--dtype", choices=["fp32", "bf16"], default="fp32")
     p.add_argument(
         "--gt_source",
@@ -1045,6 +1053,7 @@ def main():
 
     # rFID accumulators
     fid_acc = None
+    kid_acc = None
     rae_decoder = None
     recon_psnr_list, recon_ssim_list, recon_mse_list, recon_mae_list = [], [], [], []
     splice_gt_fraction_list = []
@@ -1061,6 +1070,8 @@ def main():
                 "--latent_splice needs the Scale-RAE latent path; "
                 "E6/E7 checkpoints reconstruct through SD and have no DiT latents"
             )
+    if args.compute_kid and not args.compute_rfid:
+        p.error("--compute_kid requires --compute_rfid")
     if args.readout == "e6_decoder" and not e6_enabled:
         p.error("--readout e6_decoder requires a pgot_e6_enable checkpoint")
     if args.readout == "e7_owner" and not e7_enabled:
@@ -1092,9 +1103,21 @@ def main():
                 log.warning(f"[rFID] Could not patch diffusion steps: {e}")
         try:
             fid_acc = FIDAccumulator(device=device, feature=2048)
+            if args.compute_kid:
+                kid_subset_size = min(int(args.kid_subset_size), len(val_dataset))
+                if kid_subset_size < 2:
+                    log.warning("KID needs at least two samples; skipping KID.")
+                else:
+                    kid_acc = KIDAccumulator(
+                        device=device,
+                        feature=2048,
+                        subsets=int(args.kid_subsets),
+                        subset_size=kid_subset_size,
+                    )
         except (ImportError, ModuleNotFoundError):
-            log.warning("torchmetrics not available — skipping rFID.")
+            log.warning("torchmetrics not available — skipping rFID/KID.")
             fid_acc = None
+            kid_acc = None
 
     # Image normalization stats (for un-normalizing model input → [0,1] real images)
     img_proc = vt_list[0].image_processor
@@ -1620,6 +1643,8 @@ def main():
                 if src.shape[-2:] != recon_images.shape[-2:]:
                     src = F.interpolate(src, size=recon_images.shape[-2:], mode="bilinear", align_corners=False)
                 fid_acc.add(src, recon_images)
+                if kid_acc is not None:
+                    kid_acc.add(src, recon_images)
                 # Recon metrics
                 rm = compute_recon_metrics(src, recon_images)
                 recon_psnr_list.extend(rm["psnr"].cpu().tolist())
@@ -1851,7 +1876,18 @@ def main():
         summary["one_shot_memory_enabled"] = one_shot_memory
         if one_shot_memory:
             summary["e8_update_mode"] = "one_shot_memory"
-            summary["visual_memory_value_source"] = "one final owner-prior patch attention over frozen raw SigLIP values"
+            writer_owner_prior = bool(
+                getattr(
+                    model.config,
+                    "pgot_one_shot_writer_owner_prior",
+                    True,
+                )
+            )
+            summary["visual_memory_value_source"] = (
+                "one final owner-prior patch attention over frozen raw SigLIP values"
+                if writer_owner_prior
+                else "one final semantic+memory-ID patch attention over frozen raw SigLIP values"
+            )
             summary["memory_reader_key_mode"] = summary["one_shot_readout_mode"].removeprefix("memory_")
             summary["memory_writer_softmax_axis"] = str(
                 getattr(
@@ -1860,6 +1896,7 @@ def main():
                     "patch",
                 )
             )
+            summary["memory_writer_owner_prior"] = writer_owner_prior
             summary["memory_reader_owner_routing"] = "soft"
             summary["decoder_condition"] = "semantic owner routing then attention over stored visual memories; no raw-patch Reader access"
         elif summary["one_shot_reader_enabled"]:
@@ -2119,6 +2156,19 @@ def main():
             summary["rFID"] = fid_acc.compute()
         except Exception as e:
             summary["rFID_error"] = str(e)
+        if kid_acc is not None:
+            try:
+                kid_mean, kid_std = kid_acc.compute()
+                summary["KID_mean"] = kid_mean
+                summary["KID_std"] = kid_std
+                summary["KID_x1000"] = 1000.0 * kid_mean
+                summary["KID_std_x1000"] = 1000.0 * kid_std
+                summary["KID_subsets"] = int(args.kid_subsets)
+                summary["KID_subset_size"] = min(
+                    int(args.kid_subset_size), len(val_dataset)
+                )
+            except Exception as e:
+                summary["KID_error"] = str(e)
         if recon_mse_list:
             summary["recon_psnr"] = _mean(recon_psnr_list)
             summary["recon_ssim"] = _mean(recon_ssim_list)
@@ -2160,6 +2210,12 @@ def main():
             log.info(f"    {bkt:>4}: n={d['n']:>4} fARI={d['fARI']:.4f} mBO={d['mBO']:.4f} mIoU={d['mIoU']:.4f}")
     if "rFID" in summary:
         log.info(f"  rFID:           {summary['rFID']:.4f}")
+        if "KID_x1000" in summary:
+            log.info(
+                "  KID x 10^3:     %.4f +/- %.4f",
+                summary["KID_x1000"],
+                summary["KID_std_x1000"],
+            )
         log.info(f"  PSNR/SSIM:      {summary['recon_psnr']:.3f} / {summary['recon_ssim']:.4f}")
         log.info(f"  MSE/MAE:        {summary['recon_mse']:.4f} / {summary['recon_mae']:.4f}")
     log.info(f"  Register route: {summary['register_eval_route']}")
