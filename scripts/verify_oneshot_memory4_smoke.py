@@ -15,14 +15,19 @@ def main():
         "--owner-prior", choices=["enabled", "disabled"], default="enabled"
     )
     parser.add_argument("--expect-kid", action="store_true")
+    parser.add_argument("--object-memories", type=int, default=4)
+    parser.add_argument("--register-memories", type=int, default=16)
+    parser.add_argument("--semantic-registers", type=int, default=4)
     args = parser.parse_args()
     run_root = args.root / args.mode
     if args.stage == "eval":
         for branch in ("tf", "ar"):
             summary = json.loads((run_root / "eval" / branch / "summary.json").read_text())
             assert summary["one_shot_memory_enabled"] is True
-            assert summary["e11_object_memories_per_owner"] == 4
-            assert summary["background_visual_memories"] == 64
+            assert summary["e11_object_memories_per_owner"] == args.object_memories
+            assert summary["background_visual_memories"] == (
+                args.register_memories * args.semantic_registers
+            )
             assert summary["memory_reader_key_mode"] == args.mode
             assert summary["memory_writer_softmax_axis"] == "patch"
             assert summary["memory_writer_owner_prior"] is (
@@ -48,8 +53,9 @@ def main():
     ckpt = run_root / "train" / f"checkpoint-{args.steps}"
     cfg = json.loads((ckpt / "config.json").read_text())
     assert cfg["pgot_one_shot_readout_mode"] == f"memory_{args.mode}"
-    assert cfg["pgot_e11_object_memories_per_owner"] == 4
-    assert cfg["pgot_e11_register_memories_per_owner"] == 16
+    assert cfg["pgot_e11_object_memories_per_owner"] == args.object_memories
+    assert cfg["pgot_e11_register_memories_per_owner"] == args.register_memories
+    assert cfg["pgot_n_register"] == args.semantic_registers
     assert cfg["pgot_n_ovt_per_object"] == 1
     assert cfg["pgot_one_shot_writer_softmax_axis"] == "patch"
     assert cfg["pgot_one_shot_writer_owner_prior"] is (
@@ -79,7 +85,8 @@ def main():
                 if key.startswith(("pgot_e8_writer.", "pgot_e8_reader.")):
                     weights[key] = handle.get_tensor(key)
     ids = weights["pgot_e8_writer.memory_id_embeddings"]
-    assert ids.shape[0] == 16 and ids[:4].std().item() > 0.01
+    expected_id_count = max(args.object_memories, args.register_memories)
+    assert ids.shape[0] == expected_id_count and ids[:args.object_memories].std().item() > 0.01
     assert not any("gate" in key or "memory_to_query" in key for key in weights)
     if args.mode == "content":
         assert "pgot_e8_reader.content_key.weight" in weights
@@ -91,7 +98,9 @@ def main():
         with safe_open(shard, framework="pt", device="cpu") as handle:
             key = "pgot_e8_writer.memory_id_embeddings"
             if key in handle.keys():
-                delta = (ids - handle.get_tensor(key)).abs().max().item()
+                source_ids = handle.get_tensor(key)
+                shared_rows = min(ids.shape[0], source_ids.shape[0])
+                delta = (ids[:shared_rows] - source_ids[:shared_rows]).abs().max().item()
                 assert delta > 0, "Writer did not update"
                 print(f"{args.mode}: Writer ID max update = {delta:.7g}")
                 break
