@@ -47,7 +47,11 @@ if [[ "${ONE_SHOT_READOUT_MODE:-}" == memory_* ]]; then
     echo "One-shot memory: ${ONE_SHOT_READOUT_MODE}; object=${E11_OBJECT_MEMORIES_PER_OWNER}; register=${E11_REGISTER_MEMORIES_PER_OWNER} x ${E8_N_REGISTER:-4}"
     echo "Model: ${MODEL_PATH}"
     echo "Output: ${OUTPUT_DIR}"
-    echo "One final write; semantic routing + within-owner attention; RAE self-only"
+    if [[ "${ONE_SHOT_DIRECT_RAE_QUERY:-False}" == True ]]; then
+        echo "One final write; semantic routing + within-owner attention; raw RAE query goes directly to Reader (0 MLLM RAE tokens)"
+    else
+        echo "One final write; semantic routing + within-owner attention; RAE self-only in MLLM"
+    fi
     echo "Writer patch allocation softmax axis: ${ONE_SHOT_WRITER_SOFTMAX_AXIS:-patch}"
     echo "Writer ownership log-prior: ${ONE_SHOT_WRITER_OWNER_PRIOR:-True}"
     if [[ "${ONE_SHOT_WRITER_OWNER_PRIOR:-True}" == True ]]; then
@@ -110,6 +114,7 @@ fi
     --pgot_one_shot_owner_gradient_ramp_steps "${ONE_SHOT_OWNER_GRADIENT_RAMP_STEPS:-0}" \
     --pgot_one_shot_writer_softmax_axis "${ONE_SHOT_WRITER_SOFTMAX_AXIS:-patch}" \
     --pgot_one_shot_writer_owner_prior "${ONE_SHOT_WRITER_OWNER_PRIOR:-True}" \
+    --pgot_one_shot_direct_rae_query "${ONE_SHOT_DIRECT_RAE_QUERY:-False}" \
     --pgot_e8_layers "${E8_LAYERS:-21,24,27}" \
     --pgot_e8_owner_temperature "${E8_OWNER_TEMPERATURE:-1.0}" \
     --pgot_e8_owner_weight "${E8_OWNER_WEIGHT:-1.0}" \

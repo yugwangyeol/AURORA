@@ -346,6 +346,9 @@ def train():
     config.pgot_one_shot_writer_owner_prior = bool(
         model_args.pgot_one_shot_writer_owner_prior
     )
+    config.pgot_one_shot_direct_rae_query = bool(
+        model_args.pgot_one_shot_direct_rae_query
+    )
     config.pgot_e8_layers = str(model_args.pgot_e8_layers)
     config.pgot_e8_owner_temperature = float(
         model_args.pgot_e8_owner_temperature
@@ -798,6 +801,9 @@ def train():
     model.config.pgot_one_shot_writer_owner_prior = bool(
         model_args.pgot_one_shot_writer_owner_prior
     )
+    model.config.pgot_one_shot_direct_rae_query = bool(
+        model_args.pgot_one_shot_direct_rae_query
+    )
     model.config.pgot_e8_layers = str(model_args.pgot_e8_layers)
     model.config.pgot_e8_owner_temperature = float(
         model_args.pgot_e8_owner_temperature
@@ -924,10 +930,11 @@ def train():
     model.config.coda_crop_size = int(data_args.coda_crop_size)
     if one_shot_memory:
         logger.info(
-            "[PGOT/Memory] mode=%s; memories object=%d/register=%d; owner loss=%.2f; Reader loss object=%.2f/background=%.2f",
+            "[PGOT/Memory] mode=%s; memories object=%d/register=%d; direct RAE query=%s; owner loss=%.2f; Reader loss object=%.2f/background=%.2f",
             model.config.pgot_one_shot_readout_mode,
             model.config.pgot_e11_object_memories_per_owner,
             model.config.pgot_e11_register_memories_per_owner,
+            model.config.pgot_one_shot_direct_rae_query,
             model.config.pgot_e8_owner_weight,
             model.config.pgot_e8_reader_object_weight,
             model.config.pgot_e8_reader_background_weight,

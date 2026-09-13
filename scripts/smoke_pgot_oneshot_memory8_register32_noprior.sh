@@ -58,7 +58,8 @@ env "${COMMON_EVAL_ENV[@]}" CUDA_VISIBLE_DEVICES=1 OUTPUT_DIR="${RUN_ROOT}/eval/
 
 "${PYTHON}" "${PROJECT_ROOT}/scripts/verify_oneshot_memory4_smoke.py" \
     "${SMOKE_ROOT}" content --stage eval --owner-prior disabled --expect-kid \
-    --object-memories 8 --register-memories 32 --semantic-registers 4
+    --expect-class-metrics --object-memories 8 --register-memories 32 \
+    --semantic-registers 4
 
 "${PYTHON}" - <<'PY'
 import os

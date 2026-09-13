@@ -7,11 +7,18 @@ MODEL_PATH="${MODEL_PATH:-${PROJECT_ROOT}/checkpoints/pgot_e8_1_clean/checkpoint
 VAL_JSONL="${VAL_JSONL:-${PROJECT_ROOT}/data/pgot_pix2cap_generated_val5k.jsonl}"
 OUTPUT_DIR="${OUTPUT_DIR:-${PROJECT_ROOT}/outputs/eval_pgot_e8_1_clean}"
 COCO_MASK_CACHE="${COCO_MASK_CACHE:-${PROJECT_ROOT}/data/coco_inst_mask_cache_coda512}"
+COCO_CATEGORY_MASK_CACHE="${COCO_CATEGORY_MASK_CACHE:-${PROJECT_ROOT}/data/coco_cat_mask_cache_coda512}"
 PYTHON="${PYTHON:-/home/jovyan/.conda/envs/scale_rae/bin/python}"
 
 for path in "${MODEL_PATH}" "${VAL_JSONL}" "${COCO_MASK_CACHE}/meta.json"; do
     test -e "${path}" || { echo "Missing required path: ${path}" >&2; exit 1; }
 done
+if [[ "${COMPUTE_CLASS_METRICS:-True}" == True ]]; then
+    test -e "${COCO_CATEGORY_MASK_CACHE}/meta.json" || {
+        echo "Missing required category cache: ${COCO_CATEGORY_MASK_CACHE}" >&2
+        exit 1
+    }
+fi
 export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH:-}"
 export PYTHONNOUSERSITE=1
 export LD_LIBRARY_PATH="$(dirname "${PYTHON}")/../lib:${LD_LIBRARY_PATH:-}"
@@ -24,6 +31,12 @@ if [[ "${COMPUTE_KID:-False}" == True ]]; then
         --compute_kid
         --kid_subsets "${KID_SUBSETS:-100}"
         --kid_subset_size "${KID_SUBSET_SIZE:-1000}"
+    )
+fi
+if [[ "${COMPUTE_CLASS_METRICS:-True}" == True ]]; then
+    EXTRA_ARGS+=(
+        --compute_class_metrics
+        --coco_category_mask_cache "${COCO_CATEGORY_MASK_CACHE}"
     )
 fi
 

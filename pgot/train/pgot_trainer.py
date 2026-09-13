@@ -215,6 +215,9 @@ class PGOTModelArguments:
     pgot_one_shot_owner_gradient_ramp_steps: int = field(default=0)
     pgot_one_shot_writer_softmax_axis: str = field(default="patch")
     pgot_one_shot_writer_owner_prior: bool = field(default=True)
+    # Keep Scale-RAE latent queries out of the MLLM sequence and use the raw
+    # learnable query table directly as the one-shot Reader query.
+    pgot_one_shot_direct_rae_query: bool = field(default=False)
     pgot_e8_layers: str = field(default="21,24,27")
     pgot_e8_owner_temperature: float = field(default=1.0)
     pgot_e8_owner_weight: float = field(default=1.0)
@@ -760,6 +763,7 @@ class PGOTTrainer(Trainer):
                 "loss_latent_distill", "latent_distill_mse", "latent_distill_cos",
                 "latent_pred_norm", "latent_target_norm",
                 "latent_distill_weight_effective", "owner_gradient_scale",
+                "one_shot_direct_rae_query_enabled", "mllm_rae_query_tokens",
             }
             return normalized in generic or normalized in active
         direct_metrics = {

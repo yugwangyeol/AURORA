@@ -269,6 +269,13 @@ def main():
         own = out["rae_hidden"].float()
         rel = float((identity_cond.float() - own).abs().max() / own.abs().mean().clamp_min(1e-12))
         identity_max_rel = max(identity_max_rel, rel)
+        if rel > args.identity_tolerance:
+            # Fail on the offending batch rather than after the full run: a
+            # mismatch means the rebuilt owner set is not the model's condition.
+            raise RuntimeError(
+                f"Identity check failed on batch {batch_idx}: relative error "
+                f"{rel:.3e} > tolerance {args.identity_tolerance}"
+            )
         if B > 1:
             rq = raw_rae.float()
             rae_rel_std = max(rae_rel_std, float(rq.std(dim=0).max() / rq.abs().mean().clamp_min(1e-12)))

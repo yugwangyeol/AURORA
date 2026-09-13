@@ -14,7 +14,11 @@ def main():
     parser.add_argument(
         "--owner-prior", choices=["enabled", "disabled"], default="enabled"
     )
+    parser.add_argument(
+        "--direct-rae-query", choices=["enabled", "disabled"], default="disabled"
+    )
     parser.add_argument("--expect-kid", action="store_true")
+    parser.add_argument("--expect-class-metrics", action="store_true")
     parser.add_argument("--object-memories", type=int, default=4)
     parser.add_argument("--register-memories", type=int, default=16)
     parser.add_argument("--semantic-registers", type=int, default=4)
@@ -33,6 +37,12 @@ def main():
             assert summary["memory_writer_owner_prior"] is (
                 args.owner_prior == "enabled"
             )
+            assert summary["one_shot_direct_rae_query"] is (
+                args.direct_rae_query == "enabled"
+            )
+            assert summary["mllm_rae_query_tokens"] == (
+                0 if args.direct_rae_query == "enabled" else 256
+            )
             assert summary["teacher_forced_caption"] is (branch == "tf")
             assert summary["num_samples"] == 2
             for key in ("recon_mse", "recon_psnr", "rFID"):
@@ -42,6 +52,15 @@ def main():
                     assert math.isfinite(summary[key]), (
                         branch, key, summary.get(key)
                     )
+            if args.expect_class_metrics:
+                assert summary["class_metrics_enabled"] is True
+                assert summary["class_gt_granularity"] == "category"
+                for key in ("mBO_i", "mIoU_i", "mBO_c", "mIoU_c"):
+                    assert math.isfinite(summary[key]), (
+                        branch, key, summary.get(key)
+                    )
+                assert summary["mBO_c_num_samples"] == 2
+                assert summary["mIoU_c_num_samples"] == 2
             if branch == "ar":
                 assert math.isfinite(summary["ar_object_count_mae"])
             print(
@@ -61,14 +80,28 @@ def main():
     assert cfg["pgot_one_shot_writer_owner_prior"] is (
         args.owner_prior == "enabled"
     )
+    assert cfg["pgot_one_shot_direct_rae_query"] is (
+        args.direct_rae_query == "enabled"
+    )
     state = json.loads((ckpt / "trainer_state.json").read_text())
     assert state["global_step"] == args.steps
     histories = state["log_history"]
     for key in ("loss_recon", "loss_e8_owner", "loss_e8_reader", "memory_write_entropy",
                 "memory_object_pair_cosine", "memory_reader_entropy", "eval_loss",
-                "eval_loss_recon", "eval_memory_reader_entropy"):
+                "eval_loss_recon", "eval_memory_reader_entropy",
+                "one_shot_direct_rae_query_enabled", "mllm_rae_query_tokens"):
         values = [row[key] for row in histories if key in row]
         assert values and all(math.isfinite(x) for x in values), (key, values)
+    expected_direct = 1.0 if args.direct_rae_query == "enabled" else 0.0
+    expected_mllm_tokens = 0.0 if args.direct_rae_query == "enabled" else 256.0
+    assert all(
+        row.get("one_shot_direct_rae_query_enabled", expected_direct) == expected_direct
+        for row in histories
+    )
+    assert all(
+        row.get("mllm_rae_query_tokens", expected_mllm_tokens) == expected_mllm_tokens
+        for row in histories
+    )
     banned = (
         "loss_contrastive", "loss_e8_causal", "e8_write_gate_mean",
         "one_shot_hard_outside_mass", "e9_gru", "e12_centroid",

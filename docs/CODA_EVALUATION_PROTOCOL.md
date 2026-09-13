@@ -30,11 +30,16 @@ were directly comparable.
 - mBO^i: mean, over GT instances, of the best IoU with any predicted region.
 - mIoU^i: Hungarian matching including the background label, normalized by
   the number of GT regions.
+- mBO^c / mIoU^c: the same overlap and Hungarian metrics against thing-category
+  masks, where all instances of the same COCO category are merged. The standard
+  visual-memory evaluator computes these in the same forward pass from
+  `data/coco_cat_mask_cache_coda512`.
 - Metric definitions live in `pgot/eval/pgot_metrics.py` and are matched to
   `/home/jovyan/coda/src/metric/segmentation.py`.
 
-Always report all three metrics together. Also report per-object-count and,
-when available, per-object-size results.
+For current COCO visual-memory evaluations, report FG-ARI, mBO^i, mIoU^i,
+mBO^c, and mIoU^c together. Also report per-object-count and, when available,
+per-object-size results.
 
 ## 3. Required evaluation sets
 

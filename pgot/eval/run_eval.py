@@ -688,6 +688,19 @@ def main():
     p.add_argument("--coco_mask_cache", default="/home/jovyan/PGOT/data/coco_inst_mask_cache_coda256",
                    help="CODA-style mask cache (built by AURORA's coco_mask_cache.py mode=coda)")
     p.add_argument(
+        "--compute_class_metrics",
+        action="store_true",
+        help=(
+            "Also compute CODA category-level mBO^c/mIoU^c from the same "
+            "prediction masks. Requires --gt_source coco_instance."
+        ),
+    )
+    p.add_argument(
+        "--coco_category_mask_cache",
+        default="/home/jovyan/PGOT/data/coco_cat_mask_cache_coda512",
+        help="CODA-style thing-category mask cache for mBO^c/mIoU^c.",
+    )
+    p.add_argument(
         "--image_preprocess_mode",
         choices=["default", "coda_center_crop"],
         default="default",
@@ -1027,6 +1040,7 @@ def main():
     # ---- Metric accumulators
     fari_scores, mbo_scores, miou_scores = [], [], []
     semantic_mbo_scores, semantic_miou_scores = [], []
+    class_mbo_scores, class_miou_scores = [], []
     by_count = defaultdict(lambda: {"fari": [], "mbo": [], "miou": []})
     active_counts = []
     image_ids = []
@@ -1043,13 +1057,34 @@ def main():
 
     # CODA-style GT cache (optional)
     coco_cache = None
+    coco_category_cache = None
     thing_categories = None
     if args.gt_source == "coco_instance":
         coco_cache = CocoInstanceMaskCache(args.coco_mask_cache)
         args.eval_size = coco_cache.size   # honor cache resolution
+        if args.compute_class_metrics:
+            coco_category_cache = CocoInstanceMaskCache(
+                args.coco_category_mask_cache
+            )
+            if coco_category_cache.meta.get("gt_granularity") != "category":
+                raise ValueError(
+                    "--coco_category_mask_cache must have "
+                    "gt_granularity=category"
+                )
+            if coco_category_cache.size != coco_cache.size:
+                raise ValueError(
+                    "Instance/category cache resolutions differ: "
+                    f"{coco_cache.size} vs {coco_category_cache.size}"
+                )
+            log.info(
+                "Class segmentation enabled: mBO^c/mIoU^c from %s",
+                args.coco_category_mask_cache,
+            )
         # When GT is thing-only, filter out stuff OVTs so they don't count as false positives.
         thing_categories = load_thing_categories("/home/jovyan/data/coco/annotations/panoptic_val2017.json")
         log.info(f"Loaded {len(thing_categories)} thing categories for OVT filtering.")
+    elif args.compute_class_metrics:
+        p.error("--compute_class_metrics requires --gt_source coco_instance")
 
     # rFID accumulators
     fid_acc = None
@@ -1461,6 +1496,8 @@ def main():
 
         # GT mask
         B = pred_mask.shape[0]
+        class_gt_masks = [None] * B
+        class_overlap_masks = [None] * B
         if args.gt_source == "dataset_mask":
             gt_mask = batch["gt_mask"].to(device=pred_mask.device)
             overlap_mask = batch.get("overlap_mask")
@@ -1473,7 +1510,8 @@ def main():
                 global_idx = batch_idx * args.batch_size + b
                 samp = samples_iter[global_idx]
                 if args.gt_source == "coco_instance":
-                    gt = coco_cache.get(int(samp["image_id"]))
+                    image_id = int(samp["image_id"])
+                    gt = coco_cache.get(image_id)
                     if gt is None:
                         # Image not in COCO val cache — fall back to panoptic-from-pix2cap
                         seg_ids = [
@@ -1482,10 +1520,23 @@ def main():
                         ]
                         gt = load_gt_panoptic_mask(samp["panoptic_mask_path"], seg_ids, args.eval_size)
                     gt_masks.append(gt)
-                    overlap = coco_cache.get_overlap(int(samp["image_id"]))
+                    overlap = coco_cache.get_overlap(image_id)
                     if overlap is None:
                         overlap = torch.zeros_like(gt, dtype=torch.uint8)
                     overlap_masks.append(overlap)
+                    if coco_category_cache is not None:
+                        class_gt = coco_category_cache.get(image_id)
+                        if class_gt is None:
+                            raise KeyError(
+                                f"Image {image_id} missing from category mask cache"
+                            )
+                        class_overlap = coco_category_cache.get_overlap(image_id)
+                        if class_overlap is None:
+                            class_overlap = torch.zeros_like(
+                                class_gt, dtype=torch.uint8
+                            )
+                        class_gt_masks[b] = class_gt
+                        class_overlap_masks[b] = class_overlap
                 else:
                     seg_ids = [
                         int(s["segment_id"])
@@ -1522,6 +1573,19 @@ def main():
                     semantic_mbo_scores.append(sem_mb)
                 if not np.isnan(sem_mi):
                     semantic_miou_scores.append(sem_mi)
+            if class_gt_masks[b] is not None:
+                class_gt_b = class_gt_masks[b].unsqueeze(0).to(
+                    device=pred_mask.device
+                )
+                class_overlap_b = class_overlap_masks[b].unsqueeze(0).to(
+                    device=pred_mask.device
+                )
+                class_mb = mbo_metric(class_gt_b, pr_b, class_overlap_b)
+                class_mi = miou_metric(class_gt_b, pr_b, class_overlap_b)
+                if not np.isnan(class_mb):
+                    class_mbo_scores.append(class_mb)
+                if not np.isnan(class_mi):
+                    class_miou_scores.append(class_mi)
             # Per-count bucket
             n_obj = batch["n_objects_list"][b]
             bkt = "1-3" if n_obj <= 3 else ("4-6" if n_obj <= 6 else ("7-10" if n_obj <= 10 else "11+"))
@@ -1681,6 +1745,16 @@ def main():
     if semantic_mbo_scores:
         summary["sMBO"] = _mean(semantic_mbo_scores)
         summary["sMIOU"] = _mean(semantic_miou_scores)
+    summary["class_metrics_enabled"] = bool(args.compute_class_metrics)
+    if args.compute_class_metrics:
+        if not class_mbo_scores or not class_miou_scores:
+            raise RuntimeError("Class metrics were requested but no valid samples were scored")
+        summary["mBO_c"] = _mean(class_mbo_scores)
+        summary["mIoU_c"] = _mean(class_miou_scores)
+        summary["mBO_c_num_samples"] = len(class_mbo_scores)
+        summary["mIoU_c_num_samples"] = len(class_miou_scores)
+        summary["class_gt_granularity"] = "category"
+        summary["class_gt_source"] = "coco_thing_category_cache"
     summary["gt_source"] = args.gt_source
     # Instance vs category GT changes what mBO/mIoU mean (^i vs ^c). The mask
     # cache declares its own granularity so the two can never be confused.
@@ -1692,6 +1766,9 @@ def main():
     summary["gt_granularity"] = gt_granularity
     summary["mBO_variant"] = "mBO^c" if gt_granularity == "category" else "mBO^i"
     summary["mIoU_variant"] = "mIoU^c" if gt_granularity == "category" else "mIoU^i"
+    if gt_granularity == "instance":
+        summary["mBO_i"] = summary["mBO"]
+        summary["mIoU_i"] = summary["mIoU"]
     summary["image_preprocess_mode"] = args.image_preprocess_mode
     summary["coda_crop_size"] = int(args.coda_crop_size)
     summary["metric_resolution"] = int(args.eval_size)
@@ -1785,6 +1862,14 @@ def main():
         )
         summary["one_shot_detach_owner_routing"] = bool(
             getattr(model.config, "pgot_one_shot_detach_owner_routing", True)
+        )
+        summary["one_shot_direct_rae_query"] = bool(
+            getattr(model.config, "pgot_one_shot_direct_rae_query", False)
+        )
+        summary["mllm_rae_query_tokens"] = (
+            0
+            if summary["one_shot_direct_rae_query"]
+            else int(model.get_model().latent_queries.shape[0])
         )
         update_mode = str(
             getattr(model.config, "pgot_e8_update_mode", "separate_memory")
@@ -2188,8 +2273,11 @@ def main():
     log.info("=" * 60)
     log.info(f"  Samples:        {summary['num_samples']}")
     log.info(f"  fARI:           {summary['fARI']:.4f}")
-    log.info(f"  mBO:            {summary['mBO']:.4f}")
-    log.info(f"  mIoU:           {summary['mIoU']:.4f}")
+    log.info(f"  {summary['mBO_variant']}:          {summary['mBO']:.4f}")
+    log.info(f"  {summary['mIoU_variant']}:         {summary['mIoU']:.4f}")
+    if summary.get("class_metrics_enabled"):
+        log.info(f"  mBO^c:          {summary['mBO_c']:.4f}")
+        log.info(f"  mIoU^c:         {summary['mIoU_c']:.4f}")
     log.info(f"  Active count:   {summary['active_count_mean']:.2f}")
     if args.caption_mode == "autoregressive":
         log.info(

@@ -730,6 +730,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_one_shot_writer_owner_prior = bool(
             getattr(self.config, "pgot_one_shot_writer_owner_prior", True)
         )
+        self.pgot_one_shot_direct_rae_query = bool(
+            getattr(self.config, "pgot_one_shot_direct_rae_query", False)
+        )
         self.pgot_one_shot_memory_enable = (
             self.pgot_one_shot_reader_enable
             and self.pgot_one_shot_readout_mode in {"memory_content", "memory_id"}
@@ -737,6 +740,10 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         if self.pgot_one_shot_reader_enable and not self.pgot_e8_visual_memory_enable:
             raise ValueError(
                 "pgot_one_shot_reader_enable requires the shared E8 loss/eval path"
+            )
+        if self.pgot_one_shot_direct_rae_query and not self.pgot_one_shot_reader_enable:
+            raise ValueError(
+                "pgot_one_shot_direct_rae_query requires pgot_one_shot_reader_enable"
             )
         self.pgot_e8_update_mode = str(
             getattr(self.config, "pgot_e8_update_mode", "separate_memory")
@@ -1065,7 +1072,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 f"register={self.pgot_e11_register_memories_per_owner} x {self.pgot_n_register}, "
                 f"writer_softmax={self.pgot_one_shot_writer_softmax_axis}, "
                 f"writer_owner_prior={self.pgot_one_shot_writer_owner_prior}, "
-                f"readout={self.pgot_one_shot_readout_mode}, RAE=self-only"
+                f"readout={self.pgot_one_shot_readout_mode}, "
+                f"RAE={'direct-to-Reader' if self.pgot_one_shot_direct_rae_query else 'self-only MLLM'}"
             )
         else:
             print(
@@ -1281,6 +1289,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         caption_attention_mask: torch.Tensor,
         ovt_positions_in_caption: Optional[torch.Tensor] = None,
         ovt_valid_mask: Optional[torch.Tensor] = None,
+        include_rae_queries: bool = True,
     ) -> Dict[str, torch.Tensor]:
         model_device = self._pgot_model_device()
         images = images.to(model_device)
@@ -1327,10 +1336,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         register_embeds = self.pgot_register_embeddings.unsqueeze(0).expand(B, -1, -1).to(
             device=model_device, dtype=dtype
         )
-        n_rae = self.get_model().latent_queries.shape[0]
-        rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1).to(
+        all_rae_embeds = self.get_model().latent_queries.unsqueeze(0).expand(B, -1, -1).to(
             device=model_device, dtype=dtype
         )
+        n_rae = all_rae_embeds.shape[1] if include_rae_queries else 0
+        rae_embeds = all_rae_embeds if include_rae_queries else all_rae_embeds[:, :0]
 
         positions = pgot_positions(
             caption_len=caption_len,
@@ -1721,6 +1731,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             caption_attention_mask=caption_attention_mask,
             ovt_positions_in_caption=ovt_positions_in_caption,
             ovt_valid_mask=ovt_valid_mask,
+            include_rae_queries=not self.pgot_one_shot_direct_rae_query,
         )
         seq["attn_bias"] = self._pgot_e8_block_standard_rae_values(
             seq["attn_bias"], seq["positions"]
@@ -1745,9 +1756,16 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         img_hidden = hidden[
             :, seq["positions"]["img_s"]:seq["positions"]["img_e"], :
         ]
-        raw_rae_hidden = hidden[
-            :, seq["positions"]["rae_s"]:seq["positions"]["rae_e"], :
-        ]
+        if self.pgot_one_shot_direct_rae_query:
+            if seq["positions"]["rae_e"] != seq["positions"]["rae_s"]:
+                raise RuntimeError("direct RAE query path must exclude RAE tokens from MLLM")
+            raw_rae_hidden = self.get_model().latent_queries.unsqueeze(0).expand(
+                hidden.shape[0], -1, -1
+            ).to(device=hidden.device, dtype=hidden.dtype)
+        else:
+            raw_rae_hidden = hidden[
+                :, seq["positions"]["rae_s"]:seq["positions"]["rae_e"], :
+            ]
 
         # This is the same final semantic readout used by segmentation eval.
         # It is now also the only ownership map used by reconstruction.
@@ -6053,6 +6071,12 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "e8_owner_entropy": owner_stats["entropy"],
             "one_shot_reader_enabled": hidden.new_tensor(
                 float(self.pgot_one_shot_reader_enable)
+            ),
+            "one_shot_direct_rae_query_enabled": hidden.new_tensor(
+                float(self.pgot_one_shot_direct_rae_query)
+            ),
+            "mllm_rae_query_tokens": hidden.new_tensor(
+                float(seq["positions"]["rae_e"] - seq["positions"]["rae_s"])
             ),
             "one_shot_pooled_mode": hidden.new_tensor(
                 float(
