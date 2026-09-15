@@ -18,6 +18,40 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class PGOTDirectRAEQueryAdapter(nn.Module):
+    """Small identity-initialized adapter for direct Scale-RAE queries.
+
+    Direct RAE queries bypass Qwen entirely.  This pre-norm residual MLP gives
+    them a cheap learned transformation before the one-shot Reader without
+    restoring the 256 query tokens to the MLLM sequence.
+    """
+
+    def __init__(self, *, dim: int, bottleneck_dim: int, eps: float = 1e-6) -> None:
+        super().__init__()
+        self.dim = int(dim)
+        self.bottleneck_dim = int(bottleneck_dim)
+        if self.dim <= 0 or self.bottleneck_dim <= 0:
+            raise ValueError("RAE query adapter dimensions must be positive")
+        self.norm = nn.RMSNorm(self.dim, eps=float(eps))
+        self.down = nn.Linear(self.dim, self.bottleneck_dim, bias=False)
+        self.act = nn.SiLU()
+        self.up = nn.Linear(self.bottleneck_dim, self.dim, bias=False)
+        self.reset_as_identity()
+
+    def reset_as_identity(self) -> None:
+        nn.init.xavier_uniform_(self.down.weight)
+        nn.init.zeros_(self.up.weight)
+        nn.init.ones_(self.norm.weight)
+
+    def forward(self, queries: torch.Tensor) -> torch.Tensor:
+        if queries.shape[-1] != self.dim:
+            raise ValueError(
+                f"RAE query adapter expected dim={self.dim}, got {queries.shape[-1]}"
+            )
+        residual = self.up(self.act(self.down(self.norm(queries))))
+        return queries + residual.to(queries.dtype)
+
+
 def _build_memory_valid_mask(
     *,
     slot_valid: torch.Tensor,

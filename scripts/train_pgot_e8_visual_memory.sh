@@ -49,11 +49,13 @@ if [[ "${ONE_SHOT_READOUT_MODE:-}" == memory_* ]]; then
     echo "Output: ${OUTPUT_DIR}"
     if [[ "${ONE_SHOT_DIRECT_RAE_QUERY:-False}" == True ]]; then
         echo "One final write; semantic routing + within-owner attention; raw RAE query goes directly to Reader (0 MLLM RAE tokens)"
+        echo "Direct RAE adapter: enabled=${ONE_SHOT_RAE_QUERY_ADAPTER_ENABLE:-False}; bottleneck=${ONE_SHOT_RAE_QUERY_ADAPTER_BOTTLENECK:-384}"
     else
         echo "One final write; semantic routing + within-owner attention; RAE self-only in MLLM"
     fi
     echo "Writer patch allocation softmax axis: ${ONE_SHOT_WRITER_SOFTMAX_AXIS:-patch}"
     echo "Writer ownership log-prior: ${ONE_SHOT_WRITER_OWNER_PRIOR:-True}"
+    echo "CODA object-memory contrastive: enabled=${ONE_SHOT_MEMORY_CONTRASTIVE_ENABLE:-False}; lambda=${PGOT_CONTRASTIVE_TARGET_WEIGHT:-0.0}; mix=${PGOT_CONTRASTIVE_SAMPLING_RATE:-0.5}; warmup=${PGOT_CONTRASTIVE_WARMUP_STEPS:-0}"
     if [[ "${ONE_SHOT_WRITER_OWNER_PRIOR:-True}" == True ]]; then
         echo "Owner reconstruction gradient: detach=${ONE_SHOT_DETACH_OWNER_ROUTING:-True}; ramp=${ONE_SHOT_OWNER_GRADIENT_RAMP_STEPS:-0}"
     fi
@@ -115,6 +117,9 @@ fi
     --pgot_one_shot_writer_softmax_axis "${ONE_SHOT_WRITER_SOFTMAX_AXIS:-patch}" \
     --pgot_one_shot_writer_owner_prior "${ONE_SHOT_WRITER_OWNER_PRIOR:-True}" \
     --pgot_one_shot_direct_rae_query "${ONE_SHOT_DIRECT_RAE_QUERY:-False}" \
+    --pgot_one_shot_rae_query_adapter_enable "${ONE_SHOT_RAE_QUERY_ADAPTER_ENABLE:-False}" \
+    --pgot_one_shot_rae_query_adapter_bottleneck "${ONE_SHOT_RAE_QUERY_ADAPTER_BOTTLENECK:-384}" \
+    --pgot_one_shot_memory_contrastive_enable "${ONE_SHOT_MEMORY_CONTRASTIVE_ENABLE:-False}" \
     --pgot_e8_layers "${E8_LAYERS:-21,24,27}" \
     --pgot_e8_owner_temperature "${E8_OWNER_TEMPERATURE:-1.0}" \
     --pgot_e8_owner_weight "${E8_OWNER_WEIGHT:-1.0}" \
@@ -173,7 +178,9 @@ fi
     --pgot_fvw_enable False --pgot_e6_enable False --pgot_e7_enable False \
     --pgot_e4_rae_isolated True --pgot_rae_attends_caption False --pgot_rae_bidirectional False \
     --pgot_cfg_drop_rate "${PGOT_CFG_DROP_RATE:-0.0}" \
-    --pgot_contrastive_loss_target_weight 0.0 --pgot_contrastive_warmup_steps 0 \
+    --pgot_contrastive_sampling_rate "${PGOT_CONTRASTIVE_SAMPLING_RATE:-0.5}" \
+    --pgot_contrastive_loss_target_weight "${PGOT_CONTRASTIVE_TARGET_WEIGHT:-0.0}" \
+    --pgot_contrastive_warmup_steps "${PGOT_CONTRASTIVE_WARMUP_STEPS:-0}" \
     --pgot_unfreeze_mm_projector True --freeze_vision_tower True \
     --freeze_dit_body True --pgot_dit_unfreeze_last_n_blocks "${DIT_UNFREEZE_LAST_N:-8}" \
     --pgot_lora_enable True --pgot_lora_r 16 --pgot_lora_alpha 32 --pgot_lora_dropout 0.05 \

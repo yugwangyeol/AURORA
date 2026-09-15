@@ -1866,6 +1866,46 @@ def main():
         summary["one_shot_direct_rae_query"] = bool(
             getattr(model.config, "pgot_one_shot_direct_rae_query", False)
         )
+        summary["one_shot_rae_query_adapter_enabled"] = bool(
+            getattr(
+                model.config,
+                "pgot_one_shot_rae_query_adapter_enable",
+                False,
+            )
+        )
+        summary["rae_query_adapter_bottleneck"] = int(
+            getattr(
+                model.config,
+                "pgot_one_shot_rae_query_adapter_bottleneck",
+                0,
+            )
+            if summary["one_shot_rae_query_adapter_enabled"]
+            else 0
+        )
+        summary["one_shot_memory_contrastive_enabled"] = bool(
+            getattr(
+                model.config,
+                "pgot_one_shot_memory_contrastive_enable",
+                False,
+            )
+        )
+        summary["one_shot_memory_contrastive_lambda"] = float(
+            getattr(
+                model.config,
+                "pgot_one_shot_memory_contrastive_target_weight",
+                0.0,
+            )
+        )
+        summary["one_shot_memory_contrastive_sampling_rate"] = float(
+            getattr(model.config, "pgot_contrastive_sampling_rate", 0.5)
+        )
+        summary["one_shot_memory_contrastive_warmup_steps"] = int(
+            getattr(
+                model.config,
+                "pgot_one_shot_memory_contrastive_warmup_steps",
+                0,
+            )
+        )
         summary["mllm_rae_query_tokens"] = (
             0
             if summary["one_shot_direct_rae_query"]

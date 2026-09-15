@@ -218,6 +218,14 @@ class PGOTModelArguments:
     # Keep Scale-RAE latent queries out of the MLLM sequence and use the raw
     # learnable query table directly as the one-shot Reader query.
     pgot_one_shot_direct_rae_query: bool = field(default=False)
+    # Optional cheap replacement for the context-free deep Qwen transform that
+    # direct queries bypass: RMSNorm -> bottleneck SiLU MLP -> residual.
+    pgot_one_shot_rae_query_adapter_enable: bool = field(default=False)
+    pgot_one_shot_rae_query_adapter_bottleneck: int = field(default=384)
+    # CODA-style objective for the one-shot visual-memory path. Object-owner
+    # memory groups are partially replaced across the local batch, while
+    # register memories remain from the original image.
+    pgot_one_shot_memory_contrastive_enable: bool = field(default=False)
     pgot_e8_layers: str = field(default="21,24,27")
     pgot_e8_owner_temperature: float = field(default=1.0)
     pgot_e8_owner_weight: float = field(default=1.0)
@@ -534,7 +542,12 @@ def freeze_for_pgot(
             n_trainable += p.numel()
 
     # E8 competitive image-only writer and typed semantic-key/visual-value reader.
-    for module_name in ("pgot_e8_writer", "pgot_e9_writer", "pgot_e8_reader"):
+    for module_name in (
+        "pgot_e8_writer",
+        "pgot_e9_writer",
+        "pgot_e8_reader",
+        "pgot_rae_query_adapter",
+    ):
         module = getattr(model, module_name, None)
         if module is not None:
             for p in module.parameters():
@@ -764,6 +777,14 @@ class PGOTTrainer(Trainer):
                 "latent_pred_norm", "latent_target_norm",
                 "latent_distill_weight_effective", "owner_gradient_scale",
                 "one_shot_direct_rae_query_enabled", "mllm_rae_query_tokens",
+                "one_shot_rae_query_adapter_enabled",
+                "rae_query_adapter_bottleneck", "rae_query_adapter_delta_rms",
+                "one_shot_memory_contrastive_enabled",
+                "one_shot_memory_contrastive_active", "contrastive_w",
+                "loss_contrastive", "loss_recon_mixed",
+                "loss_recon_objective", "contrastive_lambda_effective",
+                "contrastive_error_gap", "contrastive_mixed_object_fraction",
+                "contrastive_timestep", "contrastive_decoder_stopgrad",
             }
             return normalized in generic or normalized in active
         direct_metrics = {
@@ -875,8 +896,12 @@ class PGOTTrainer(Trainer):
         }
         null_bg_names = {n for n, p in opt_model.named_parameters()
                          if p.requires_grad and "pgot_null_bg_embeddings" in n}
-        rae_query_names = {n for n, p in opt_model.named_parameters()
-                           if p.requires_grad and "latent_queries" in n}
+        rae_query_names = {
+            n
+            for n, p in opt_model.named_parameters()
+            if p.requires_grad
+            and ("latent_queries" in n or "pgot_rae_query_adapter" in n)
+        }
         v14_names = {n for n, p in opt_model.named_parameters()
                      if p.requires_grad and "pgot_v14_router" in n}
         e8_names = {n for n, p in opt_model.named_parameters()

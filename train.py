@@ -129,6 +129,12 @@ def train():
         getattr(config, "pgot_one_shot_readout_mode", "") in {"memory_content", "memory_id"}
     )
     source_one_shot_mode = getattr(config, "pgot_one_shot_readout_mode", "")
+    source_rae_query_adapter = bool(
+        getattr(config, "pgot_one_shot_rae_query_adapter_enable", False)
+    )
+    source_rae_query_adapter_bottleneck = int(
+        getattr(config, "pgot_one_shot_rae_query_adapter_bottleneck", 0)
+    )
     if one_shot_memory and not (source_checkpoint_is_e11 or source_one_shot_memory):
         raise ValueError("one-shot memory must initialize from E11 or a one-shot memory checkpoint to reuse trained Writer IDs")
     if one_shot_memory and source_one_shot_memory and source_one_shot_mode != model_args.pgot_one_shot_readout_mode:
@@ -349,6 +355,21 @@ def train():
     config.pgot_one_shot_direct_rae_query = bool(
         model_args.pgot_one_shot_direct_rae_query
     )
+    config.pgot_one_shot_rae_query_adapter_enable = bool(
+        model_args.pgot_one_shot_rae_query_adapter_enable
+    )
+    config.pgot_one_shot_rae_query_adapter_bottleneck = int(
+        model_args.pgot_one_shot_rae_query_adapter_bottleneck
+    )
+    config.pgot_one_shot_memory_contrastive_enable = bool(
+        model_args.pgot_one_shot_memory_contrastive_enable
+    )
+    config.pgot_one_shot_memory_contrastive_target_weight = float(
+        training_args.pgot_contrastive_loss_target_weight
+    )
+    config.pgot_one_shot_memory_contrastive_warmup_steps = int(
+        training_args.pgot_contrastive_warmup_steps
+    )
     config.pgot_e8_layers = str(model_args.pgot_e8_layers)
     config.pgot_e8_owner_temperature = float(
         model_args.pgot_e8_owner_temperature
@@ -489,6 +510,17 @@ def train():
         ignore_mismatched_sizes=True,
     )
     model.config.use_cache = False
+    if bool(model_args.pgot_one_shot_rae_query_adapter_enable) and (
+        not source_rae_query_adapter
+        or source_rae_query_adapter_bottleneck
+        != int(model_args.pgot_one_shot_rae_query_adapter_bottleneck)
+    ):
+        model.pgot_rae_query_adapter.reset_as_identity()
+        logger.info(
+            "[PGOT/RAE] initialized direct-query RMSNorm residual MLP "
+            "as identity (bottleneck=%d)",
+            int(model_args.pgot_one_shot_rae_query_adapter_bottleneck),
+        )
     if one_shot_memory and model_args.pgot_one_shot_readout_mode == "memory_content":
         if not source_one_shot_memory:
             # Newly introduced content keys start from the trained E11 key
@@ -804,6 +836,21 @@ def train():
     model.config.pgot_one_shot_direct_rae_query = bool(
         model_args.pgot_one_shot_direct_rae_query
     )
+    model.config.pgot_one_shot_rae_query_adapter_enable = bool(
+        model_args.pgot_one_shot_rae_query_adapter_enable
+    )
+    model.config.pgot_one_shot_rae_query_adapter_bottleneck = int(
+        model_args.pgot_one_shot_rae_query_adapter_bottleneck
+    )
+    model.config.pgot_one_shot_memory_contrastive_enable = bool(
+        model_args.pgot_one_shot_memory_contrastive_enable
+    )
+    model.config.pgot_one_shot_memory_contrastive_target_weight = float(
+        training_args.pgot_contrastive_loss_target_weight
+    )
+    model.config.pgot_one_shot_memory_contrastive_warmup_steps = int(
+        training_args.pgot_contrastive_warmup_steps
+    )
     model.config.pgot_e8_layers = str(model_args.pgot_e8_layers)
     model.config.pgot_e8_owner_temperature = float(
         model_args.pgot_e8_owner_temperature
@@ -930,11 +977,17 @@ def train():
     model.config.coda_crop_size = int(data_args.coda_crop_size)
     if one_shot_memory:
         logger.info(
-            "[PGOT/Memory] mode=%s; memories object=%d/register=%d; direct RAE query=%s; owner loss=%.2f; Reader loss object=%.2f/background=%.2f",
+            "[PGOT/Memory] mode=%s; memories object=%d/register=%d; direct RAE query=%s; RAE adapter=%s/%d; contrastive=%s lambda=%.4f mix=%.2f warmup=%d; owner loss=%.2f; Reader loss object=%.2f/background=%.2f",
             model.config.pgot_one_shot_readout_mode,
             model.config.pgot_e11_object_memories_per_owner,
             model.config.pgot_e11_register_memories_per_owner,
             model.config.pgot_one_shot_direct_rae_query,
+            model.config.pgot_one_shot_rae_query_adapter_enable,
+            model.config.pgot_one_shot_rae_query_adapter_bottleneck,
+            model.config.pgot_one_shot_memory_contrastive_enable,
+            model.config.pgot_one_shot_memory_contrastive_target_weight,
+            model.config.pgot_contrastive_sampling_rate,
+            model.config.pgot_one_shot_memory_contrastive_warmup_steps,
             model.config.pgot_e8_owner_weight,
             model.config.pgot_e8_reader_object_weight,
             model.config.pgot_e8_reader_background_weight,

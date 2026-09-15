@@ -3,7 +3,72 @@ import io
 import pytest
 import torch
 
-from pgot.model.visual_memory import PGOTOneShotMemoryReader, PGOTOneShotMemoryWriter
+from pgot.model.visual_memory import (
+    PGOTDirectRAEQueryAdapter,
+    PGOTOneShotMemoryReader,
+    PGOTOneShotMemoryWriter,
+)
+from pgot.model.pgot_qwen2 import PGOTQwen2ForCausalLM
+
+
+def test_direct_rae_query_adapter_starts_as_exact_identity_and_trains():
+    torch.manual_seed(7)
+    adapter = PGOTDirectRAEQueryAdapter(dim=8, bottleneck_dim=2)
+    queries = torch.randn(2, 5, 8)
+    torch.testing.assert_close(adapter(queries), queries, rtol=0, atol=0)
+
+    loss = (adapter(queries) - torch.randn_like(queries)).square().mean()
+    loss.backward()
+    assert adapter.up.weight.grad is not None
+    assert adapter.up.weight.grad.abs().sum() > 0
+    with torch.no_grad():
+        adapter.up.weight.add_(-0.1 * adapter.up.weight.grad)
+    assert not torch.equal(adapter(queries), queries)
+
+
+def test_coda_mixer_swaps_object_groups_and_freezes_register_inputs():
+    torch.manual_seed(19)
+    semantic = torch.arange(2 * 4 * 3, dtype=torch.float32).reshape(2, 4, 3)
+    semantic.requires_grad_()
+    memory = torch.arange(2 * 4 * 2 * 3, dtype=torch.float32).reshape(2, 4, 2, 3)
+    memory.requires_grad_()
+    object_valid = torch.ones(2, 2, dtype=torch.bool)
+    memory_valid = torch.ones(2, 4, 2, dtype=torch.bool)
+
+    mixed = PGOTQwen2ForCausalLM._pgot_one_shot_mix_object_memory_slots(
+        semantic_slots=semantic,
+        visual_memory=memory,
+        object_valid=object_valid,
+        memory_valid=memory_valid,
+        sampling_rate=1.0,
+    )
+    partner = torch.tensor([1, 0])
+    # Donor owners may be permuted, but each semantic owner and its complete
+    # memory group must come from the paired image.
+    for batch_idx in range(2):
+        expected_semantic = {
+            tuple(row.tolist()) for row in semantic[partner[batch_idx], :2]
+        }
+        expected_memory = {
+            tuple(row.flatten().tolist()) for row in memory[partner[batch_idx], :2]
+        }
+        assert {
+            tuple(row.tolist()) for row in mixed["semantic_slots"][batch_idx, :2]
+        } == expected_semantic
+        assert {
+            tuple(row.flatten().tolist())
+            for row in mixed["visual_memory"][batch_idx, :2]
+        } == expected_memory
+    torch.testing.assert_close(mixed["semantic_slots"][:, 2:], semantic[:, 2:])
+    torch.testing.assert_close(mixed["visual_memory"][:, 2:], memory[:, 2:])
+    assert mixed["swap_mask"].all()
+    assert mixed["swapped_object_fraction"].item() == 1.0
+
+    (mixed["semantic_slots"].sum() + mixed["visual_memory"].sum()).backward()
+    assert semantic.grad[:, :2].abs().sum() > 0
+    assert memory.grad[:, :2].abs().sum() > 0
+    torch.testing.assert_close(semantic.grad[:, 2:], torch.zeros_like(semantic.grad[:, 2:]))
+    torch.testing.assert_close(memory.grad[:, 2:], torch.zeros_like(memory.grad[:, 2:]))
 
 
 def make_case(mode="memory_content", softmax_axis="patch", use_owner_prior=True):
@@ -164,10 +229,11 @@ def test_metric_profile_excludes_disabled_diagnostics_but_keeps_active_zeros():
     from pgot.train.pgot_trainer import PGOTTrainer
     trainer = object.__new__(PGOTTrainer)
     trainer._metric_profile = "one_shot_memory"
-    for key in ("loss_contrastive", "eval_loss_e8_causal", "e8_write_gate_mean",
+    for key in ("eval_loss_e8_causal", "e8_write_gate_mean",
                 "one_shot_hard_outside_mass", "epoch", "total_flos"):
         assert not trainer._keep_metric(key)
     for key in ("loss", "eval_loss_recon", "e8_owner_fg_acc", "memory_reader_entropy",
                 "loss_latent_distill", "latent_distill_weight_effective",
-                "owner_gradient_scale", "train_runtime"):
+                "owner_gradient_scale", "loss_contrastive",
+                "contrastive_decoder_stopgrad", "train_runtime"):
         assert trainer._keep_metric(key)

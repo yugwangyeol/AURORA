@@ -46,6 +46,7 @@ from pgot.model.pgot_utils import (
 from pgot.model.coda_direct import PGOTCODADirectBottleneck
 from pgot.model.sd_causal_ownership import PGOTE7SDCausalOwnership
 from pgot.model.visual_memory import (
+    PGOTDirectRAEQueryAdapter,
     PGOTE8TypedRAEReader,
     PGOTE8VisualMemoryWriter,
     PGOTE9UnifiedSlotWriter,
@@ -733,10 +734,60 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_one_shot_direct_rae_query = bool(
             getattr(self.config, "pgot_one_shot_direct_rae_query", False)
         )
+        self.pgot_one_shot_rae_query_adapter_enable = bool(
+            getattr(
+                self.config,
+                "pgot_one_shot_rae_query_adapter_enable",
+                False,
+            )
+        )
+        self.pgot_one_shot_rae_query_adapter_bottleneck = int(
+            getattr(
+                self.config,
+                "pgot_one_shot_rae_query_adapter_bottleneck",
+                max(D // 4, 1),
+            )
+        )
+        if self.pgot_one_shot_rae_query_adapter_bottleneck <= 0:
+            raise ValueError("direct RAE query adapter bottleneck must be positive")
+        if (
+            self.pgot_one_shot_rae_query_adapter_enable
+            and not self.pgot_one_shot_direct_rae_query
+        ):
+            raise ValueError("RAE query adapter requires direct RAE queries")
+        self.pgot_rae_query_adapter = (
+            PGOTDirectRAEQueryAdapter(
+                dim=D,
+                bottleneck_dim=self.pgot_one_shot_rae_query_adapter_bottleneck,
+                eps=float(getattr(self.config, "rms_norm_eps", 1e-6)),
+            )
+            if self.pgot_one_shot_rae_query_adapter_enable
+            else None
+        )
         self.pgot_one_shot_memory_enable = (
             self.pgot_one_shot_reader_enable
             and self.pgot_one_shot_readout_mode in {"memory_content", "memory_id"}
         )
+        self.pgot_one_shot_memory_contrastive_enable = bool(
+            getattr(
+                self.config,
+                "pgot_one_shot_memory_contrastive_enable",
+                False,
+            )
+        )
+        if (
+            self.pgot_one_shot_memory_contrastive_enable
+            and not self.pgot_one_shot_memory_enable
+        ):
+            raise ValueError(
+                "one-shot memory contrastive loss requires a memory_content "
+                "or memory_id Reader"
+            )
+        contrastive_sampling_rate = float(
+            getattr(self.config, "pgot_contrastive_sampling_rate", 0.5)
+        )
+        if not 0.0 < contrastive_sampling_rate <= 1.0:
+            raise ValueError("pgot_contrastive_sampling_rate must be in (0, 1]")
         if self.pgot_one_shot_reader_enable and not self.pgot_e8_visual_memory_enable:
             raise ValueError(
                 "pgot_one_shot_reader_enable requires the shared E8 loss/eval path"
@@ -1073,7 +1124,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 f"writer_softmax={self.pgot_one_shot_writer_softmax_axis}, "
                 f"writer_owner_prior={self.pgot_one_shot_writer_owner_prior}, "
                 f"readout={self.pgot_one_shot_readout_mode}, "
-                f"RAE={'direct-to-Reader' if self.pgot_one_shot_direct_rae_query else 'self-only MLLM'}"
+                f"RAE={'direct-to-Reader' if self.pgot_one_shot_direct_rae_query else 'self-only MLLM'}, "
+                f"RAE_adapter={'RMSNorm-MLP-' + str(self.pgot_one_shot_rae_query_adapter_bottleneck) if self.pgot_one_shot_rae_query_adapter_enable else 'none'}, "
+                f"contrastive={'CODA-object-mix' if self.pgot_one_shot_memory_contrastive_enable else 'none'}"
             )
         else:
             print(
@@ -1762,10 +1815,14 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             raw_rae_hidden = self.get_model().latent_queries.unsqueeze(0).expand(
                 hidden.shape[0], -1, -1
             ).to(device=hidden.device, dtype=hidden.dtype)
+            unadapted_rae_hidden = raw_rae_hidden
+            if self.pgot_rae_query_adapter is not None:
+                raw_rae_hidden = self.pgot_rae_query_adapter(raw_rae_hidden)
         else:
             raw_rae_hidden = hidden[
                 :, seq["positions"]["rae_s"]:seq["positions"]["rae_e"], :
             ]
+            unadapted_rae_hidden = raw_rae_hidden
 
         # This is the same final semantic readout used by segmentation eval.
         # It is now also the only ownership map used by reconstruction.
@@ -1938,6 +1995,13 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 "hidden_states": out.hidden_states if output_hidden_states else None,
                 "img_hidden": img_hidden,
                 "raw_rae_hidden": raw_rae_hidden,
+                "rae_query_adapter_delta_rms": (
+                    (raw_rae_hidden.float() - unadapted_rae_hidden.float())
+                    .square()
+                    .mean()
+                    .sqrt()
+                    .detach()
+                ),
                 "condition_hidden": reader["condition_hidden"],
                 "reader_attention": reader["reader_owner_attention"],
                 "reader_memory_attention": reader.get("reader_memory_attention", reader["reader_patch_attention"]),
@@ -2614,6 +2678,216 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         weighted = values * mask[:, None]
         denom = mask.sum(dim=(1, 2)) * values.shape[1]
         return weighted.sum(dim=(1, 2, 3)) / denom.clamp_min(1.0)
+
+    @staticmethod
+    def _pgot_one_shot_mix_object_memory_slots(
+        *,
+        semantic_slots: torch.Tensor,
+        visual_memory: torch.Tensor,
+        object_valid: torch.Tensor,
+        memory_valid: torch.Tensor,
+        sampling_rate: float,
+    ) -> Dict[str, torch.Tensor]:
+        """Build CODA hard negatives by replacing object-owner memory groups.
+
+        A semantic object owner and all of its within-owner visual memories are
+        one conditioning unit in this model, so they are replaced together.
+        Donors come from the next local-batch example and are sampled from that
+        example's valid object owners. Register owners are neither replaced nor
+        optimized by the negative branch, matching CODA's fixed-register role.
+        """
+        if visual_memory.ndim != 4:
+            raise ValueError("CODA memory mixing expects visual_memory [B,S,J,D]")
+        B, S, J, D = visual_memory.shape
+        K = object_valid.shape[1]
+        if semantic_slots.shape != (B, S, D):
+            raise ValueError("CODA semantic/visual-memory shape mismatch")
+        if memory_valid.shape != (B, S, J):
+            raise ValueError("CODA memory-valid shape mismatch")
+        if not 0.0 < float(sampling_rate) <= 1.0:
+            raise ValueError("CODA sampling_rate must be in (0, 1]")
+
+        if B < 2 or K <= 0:
+            zero = visual_memory.new_zeros(())
+            return {
+                "semantic_slots": semantic_slots,
+                "visual_memory": visual_memory,
+                "memory_valid": memory_valid,
+                "swap_mask": object_valid.new_zeros((B, K)),
+                "swapped_object_fraction": zero,
+            }
+
+        partner = torch.roll(torch.arange(B, device=visual_memory.device), shifts=1)
+        mixed_semantic = []
+        mixed_memory = []
+        mixed_valid = []
+        swap_masks = []
+        swapped_count = 0
+        active_count = 0
+        for batch_idx in range(B):
+            self_indices = torch.nonzero(
+                object_valid[batch_idx], as_tuple=False
+            ).flatten()
+            donor_idx = int(partner[batch_idx].item())
+            donor_indices = torch.nonzero(
+                object_valid[donor_idx], as_tuple=False
+            ).flatten()
+
+            semantic_row = semantic_slots[batch_idx, :K]
+            memory_row = visual_memory[batch_idx, :K]
+            valid_row = memory_valid[batch_idx, :K]
+            swap_mask = object_valid.new_zeros(K)
+            active_count += int(self_indices.numel())
+            if self_indices.numel() > 0 and donor_indices.numel() > 0:
+                replace_count = max(
+                    1,
+                    min(
+                        int(self_indices.numel()),
+                        int(round(float(sampling_rate) * self_indices.numel())),
+                    ),
+                )
+                replacement_indices = self_indices[
+                    torch.randperm(self_indices.numel(), device=self_indices.device)[
+                        :replace_count
+                    ]
+                ]
+                donor_choices = donor_indices[
+                    torch.randint(
+                        donor_indices.numel(),
+                        (replace_count,),
+                        device=donor_indices.device,
+                    )
+                ]
+                semantic_row = torch.index_copy(
+                    semantic_row,
+                    0,
+                    replacement_indices,
+                    semantic_slots[donor_idx, donor_choices],
+                )
+                memory_row = torch.index_copy(
+                    memory_row,
+                    0,
+                    replacement_indices,
+                    visual_memory[donor_idx, donor_choices],
+                )
+                valid_row = torch.index_copy(
+                    valid_row,
+                    0,
+                    replacement_indices,
+                    memory_valid[donor_idx, donor_choices],
+                )
+                swap_mask[replacement_indices] = True
+                swapped_count += replace_count
+            mixed_semantic.append(semantic_row)
+            mixed_memory.append(memory_row)
+            mixed_valid.append(valid_row)
+            swap_masks.append(swap_mask)
+
+        object_semantic = torch.stack(mixed_semantic, dim=0)
+        object_memory = torch.stack(mixed_memory, dim=0)
+        object_memory_valid = torch.stack(mixed_valid, dim=0)
+        # Registers stay numerically identical, but negative-loss gradients do
+        # not train their image-dependent memory contents as anti-evidence.
+        mixed_semantic_all = torch.cat(
+            [object_semantic, semantic_slots[:, K:].detach()], dim=1
+        )
+        mixed_memory_all = torch.cat(
+            [object_memory, visual_memory[:, K:].detach()], dim=1
+        )
+        mixed_valid_all = torch.cat(
+            [object_memory_valid, memory_valid[:, K:]], dim=1
+        )
+        fraction = visual_memory.new_tensor(
+            float(swapped_count) / float(max(active_count, 1))
+        )
+        return {
+            "semantic_slots": mixed_semantic_all,
+            "visual_memory": mixed_memory_all,
+            "memory_valid": mixed_valid_all,
+            "swap_mask": torch.stack(swap_masks, dim=0),
+            "swapped_object_fraction": fraction,
+        }
+
+    def _pgot_one_shot_coda_diffusion_errors(
+        self,
+        *,
+        self_condition: torch.Tensor,
+        mixed_condition: torch.Tensor,
+        target_features: torch.Tensor,
+    ) -> Dict[str, torch.Tensor]:
+        """Evaluate self/mixed errors at identical RF noise and timestep.
+
+        The negative forward freezes the entire DiT and its input projector,
+        but autograd remains enabled for the Reader/Writer/query path. This is
+        the decoder stop-gradient used by CODA; original requires-grad states
+        are restored before the positive reconstruction forward.
+        """
+        self.diff_head = self.diff_head.to(self_condition.device)
+        self.set_diff_fp32()
+        target = target_features.to(device=self_condition.device).float()
+        if getattr(self.diff_head, "normalize_data", False):
+            mean = self.diff_head.data_mean.to(target.device)
+            std = self.diff_head.data_std.to(target.device)
+            while mean.dim() < target.dim():
+                mean = mean.unsqueeze(0)
+                std = std.unsqueeze(0)
+            target = (target - mean) / std
+        else:
+            target = F.layer_norm(target, (target.shape[-1],))
+
+        B, L, C = target.shape
+        side = int(round(float(L) ** 0.5))
+        if side * side != L:
+            raise ValueError(f"CODA diffusion target token count must be square, got {L}")
+        target_grid = target.view(B, side, side, C).permute(0, 3, 1, 2).contiguous()
+        timestep = self.diff_head.train_flow.get_timestep(target_grid)
+        x_end = self.diff_head.train_flow.get_x_end(
+            target_grid.shape, target_grid.device
+        )
+        alpha = self.diff_head.train_flow.get_alphas(timestep).view(B, 1, 1, 1)
+        sigma = self.diff_head.train_flow.get_sigmas(timestep).view(B, 1, 1, 1)
+        noisy = alpha * target_grid + sigma * x_end
+
+        decoder_params = list(self.diff_head.parameters())
+        if getattr(self, "use_diff_head_projector", False):
+            decoder_params.extend(self.diff_head_projector.parameters())
+        unique_params = []
+        seen = set()
+        for parameter in decoder_params:
+            if id(parameter) not in seen:
+                unique_params.append(parameter)
+                seen.add(id(parameter))
+        original_requires_grad = [p.requires_grad for p in unique_params]
+
+        def compute_error(condition: torch.Tensor) -> torch.Tensor:
+            cond = self._captionslot_prepare_diffusion_condition(condition).float()
+            terms = self.diff_head.train_flow.training_losses(
+                self.diff_head.model,
+                target_grid,
+                timestep,
+                model_kwargs={"y": cond},
+                x_end=x_end,
+                x_t=noisy,
+            )
+            return terms["loss"].mean()
+
+        try:
+            for parameter in unique_params:
+                parameter.requires_grad_(False)
+            mixed_error = compute_error(mixed_condition)
+        finally:
+            for parameter, requires_grad in zip(
+                unique_params, original_requires_grad
+            ):
+                parameter.requires_grad_(requires_grad)
+
+        self_error = compute_error(self_condition)
+        return {
+            "self_error": self_error,
+            "mixed_error": mixed_error,
+            "timestep": timestep.mean().detach(),
+            "decoder_stopgrad": self_error.new_ones(()),
+        }
 
     def _pgot_e8_paired_causal_loss(
         self,
@@ -5685,8 +5959,8 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         target_images: torch.Tensor,
         pgot_contrastive_weight: Optional[float] = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
-        """E8.1 clean routing plus optional E8.2 paired causal objective."""
-        del ovt_is_thing, pgot_contrastive_weight
+        """E8.1 clean routing plus optional E8.2/one-shot CODA objectives."""
+        del ovt_is_thing
         seq = self._pgot_e8_forward_features(
             images=images,
             target_images=target_images,
@@ -5782,6 +6056,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
 
         condition_for_diff = condition_hidden
         cfg_drop_rate = float(getattr(self.config, "pgot_cfg_drop_rate", 0.0))
+        drop_mask = None
         if self.training and cfg_drop_rate > 0.0:
             drop_mask = (
                 torch.rand(B, device=condition_hidden.device) < cfg_drop_rate
@@ -5826,7 +6101,28 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "timestep": zero,
         }
         intervention_stats = None
+        contrastive_configured = bool(
+            self.pgot_one_shot_memory_contrastive_enable
+        )
+        contrastive_w = (
+            float(pgot_contrastive_weight)
+            if pgot_contrastive_weight is not None
+            else float(getattr(self.config, "pgot_contrastive_loss_weight", 0.0))
+        )
+        contrastive_w = contrastive_w if contrastive_configured else 0.0
+        contrastive_active = contrastive_w > 0.0 and B >= 2
+        loss_recon_mixed = zero
+        loss_contrastive = zero
+        loss_recon_objective = zero
+        contrastive_swap_fraction = zero
+        contrastive_timestep = zero
+        contrastive_decoder_stopgrad = zero
         if causal_active:
+            if contrastive_active:
+                raise ValueError(
+                    "one-shot CODA contrastive and E8 causal losses cannot be "
+                    "active in the same batch"
+                )
             intervention_stats = self._pgot_e8_intervene_memory(
                 visual_memory=seq["visual_memory"],
                 object_valid=seq["object_valid"],
@@ -5930,6 +6226,50 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 register_slot_bias=register_context_bias,
             )
             loss_recon = causal_stats["recon_loss"]
+            loss_recon_objective = loss_recon
+        elif contrastive_active:
+            if direct_context is not None:
+                raise ValueError(
+                    "one-shot CODA contrastive currently requires direct DiT "
+                    "memory cross-attention to be disabled"
+                )
+            memory_valid = seq["write_records"][-1]["memory_valid"].to(
+                device=seq["visual_memory"].device, dtype=torch.bool
+            )
+            mixed = self._pgot_one_shot_mix_object_memory_slots(
+                semantic_slots=seq["semantic_slots"],
+                visual_memory=seq["visual_memory"],
+                object_valid=seq["object_valid"],
+                memory_valid=memory_valid,
+                sampling_rate=float(
+                    getattr(self.config, "pgot_contrastive_sampling_rate", 0.5)
+                ),
+            )
+            mixed_reader = self.pgot_e8_reader(
+                rae_queries=seq["raw_rae_hidden"],
+                semantic_slots=mixed["semantic_slots"],
+                visual_memory=mixed["visual_memory"],
+                slot_valid=seq["slot_valid"],
+                memory_valid=mixed["memory_valid"],
+            )
+            mixed_condition_for_diff = mixed_reader["condition_hidden"]
+            if drop_mask is not None:
+                keep = (~drop_mask).to(mixed_condition_for_diff.dtype)
+                mixed_condition_for_diff = mixed_condition_for_diff * keep
+            contrastive_errors = self._pgot_one_shot_coda_diffusion_errors(
+                self_condition=condition_for_diff,
+                mixed_condition=mixed_condition_for_diff,
+                target_features=gt_siglip,
+            )
+            loss_recon = contrastive_errors["self_error"]
+            loss_recon_mixed = contrastive_errors["mixed_error"]
+            loss_contrastive = -loss_recon_mixed
+            loss_recon_objective = loss_recon + contrastive_w * loss_contrastive
+            contrastive_swap_fraction = mixed["swapped_object_fraction"]
+            contrastive_timestep = contrastive_errors["timestep"]
+            contrastive_decoder_stopgrad = contrastive_errors[
+                "decoder_stopgrad"
+            ]
         else:
             loss_recon = self._captionslot_compute_diffusion_loss(
                 hidden=condition_for_diff,
@@ -5938,6 +6278,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 slot_mask=direct_mask,
                 slot_bias=direct_bias,
             )
+            loss_recon_objective = loss_recon
 
         latent_target_w = float(
             getattr(self.config, "pgot_latent_distill_weight", 0.0)
@@ -5993,7 +6334,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         loss_mask = owner_w * loss_owner + loss_reader + loss_causal
         total_loss = (
             lm_w * loss_lm
-            + recon_w * loss_recon
+            + recon_w * loss_recon_objective
             + loss_mask
             + latent_effective_w * loss_latent_distill
         )
@@ -6025,7 +6366,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_loss_lm = loss_lm.detach()
         self.pgot_loss_mask = loss_mask.detach()
         self.pgot_loss_recon = loss_recon.detach()
-        self.pgot_loss_contrastive = hidden.new_zeros(())
+        self.pgot_loss_contrastive = (
+            loss_contrastive.detach() if contrastive_active else None
+        )
         self.pgot_n_objects_mean = n_objects_mean.detach()
         self.pgot_loss_details = {
             "lm_first_caption_token_supervised": hidden.new_ones(()),
@@ -6078,6 +6421,36 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "mllm_rae_query_tokens": hidden.new_tensor(
                 float(seq["positions"]["rae_e"] - seq["positions"]["rae_s"])
             ),
+            "one_shot_rae_query_adapter_enabled": hidden.new_tensor(
+                float(self.pgot_one_shot_rae_query_adapter_enable)
+            ),
+            "rae_query_adapter_bottleneck": hidden.new_tensor(
+                float(self.pgot_one_shot_rae_query_adapter_bottleneck)
+            ),
+            "rae_query_adapter_delta_rms": seq.get(
+                "rae_query_adapter_delta_rms", hidden.new_zeros(())
+            ),
+            "one_shot_memory_contrastive_enabled": hidden.new_tensor(
+                float(contrastive_configured)
+            ),
+            "one_shot_memory_contrastive_active": hidden.new_tensor(
+                float(contrastive_active)
+            ),
+            "contrastive_lambda_effective": hidden.new_tensor(
+                float(contrastive_w if contrastive_active else 0.0)
+            ),
+            "loss_recon_mixed": loss_recon_mixed.detach(),
+            "loss_recon_objective": loss_recon_objective.detach(),
+            "contrastive_error_gap": (
+                loss_recon_mixed.detach() - loss_recon.detach()
+                if contrastive_active
+                else zero
+            ),
+            "contrastive_mixed_object_fraction": (
+                contrastive_swap_fraction.detach()
+            ),
+            "contrastive_timestep": contrastive_timestep,
+            "contrastive_decoder_stopgrad": contrastive_decoder_stopgrad,
             "one_shot_pooled_mode": hidden.new_tensor(
                 float(
                     self.pgot_one_shot_reader_enable
