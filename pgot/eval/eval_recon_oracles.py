@@ -189,11 +189,20 @@ def load_model_and_tokenizer(args):
         missing, unexpected = model.load_state_dict(sd, strict=False)
         log.info("[LoRA] loaded checkpoint | missing=%d unexpected=%d", len(missing), len(unexpected))
 
+    # Use the prompt pair the checkpoint was trained with, as run_eval does.
+    # A hardcoded Pix2Cap prompt silently mismatched every coco_instance
+    # checkpoint (all one-shot runs) and changed their OVT/register states.
+    from pgot.constants import get_pgot_prompts
+
+    system_prompt, user_instruction = get_pgot_prompts(
+        getattr(config, "pgot_dataset_format", "pix2cap")
+    )
+    log.info("Prompt format: %s", getattr(config, "pgot_dataset_format", "pix2cap"))
     blocks = {
-        "pgot_system_prefix_ids": "<|im_start|>system\nYou are a vision assistant that describes scenes with grounded objects.",
+        "pgot_system_prefix_ids": f"<|im_start|>system\n{system_prompt}",
         "pgot_system_suffix_ids": "<|im_end|>\n",
         "pgot_user_prefix_ids": "<|im_start|>user\n",
-        "pgot_user_suffix_ids": "\nDescribe all objects and regions in this scene with grounded tokens.<|im_end|>\n",
+        "pgot_user_suffix_ids": f"{user_instruction}<|im_end|>\n",
         "pgot_assistant_prefix_ids": "<|im_start|>assistant\n",
         "pgot_assistant_suffix_ids": "<|im_end|>",
     }

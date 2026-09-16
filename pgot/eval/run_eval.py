@@ -1906,6 +1906,20 @@ def main():
                 0,
             )
         )
+        summary["one_shot_memory_value_source"] = str(
+            getattr(
+                model.config,
+                "pgot_one_shot_memory_value_source",
+                "siglip",
+            )
+        )
+        summary["one_shot_memory_value_dim"] = int(
+            getattr(
+                model.config,
+                "pgot_one_shot_memory_value_dim",
+                getattr(model.config, "mm_hidden_size", 0),
+            )
+        )
         summary["mllm_rae_query_tokens"] = (
             0
             if summary["one_shot_direct_rae_query"]
@@ -2008,10 +2022,15 @@ def main():
                     True,
                 )
             )
+            value_name = (
+                "DINOv2"
+                if summary["one_shot_memory_value_source"] == "dinov2"
+                else "raw SigLIP"
+            )
             summary["visual_memory_value_source"] = (
-                "one final owner-prior patch attention over frozen raw SigLIP values"
+                f"one final owner-prior patch attention over frozen {value_name} values"
                 if writer_owner_prior
-                else "one final semantic+memory-ID patch attention over frozen raw SigLIP values"
+                else f"one final semantic+memory-ID patch attention over frozen {value_name} values"
             )
             summary["memory_reader_key_mode"] = summary["one_shot_readout_mode"].removeprefix("memory_")
             summary["memory_writer_softmax_axis"] = str(

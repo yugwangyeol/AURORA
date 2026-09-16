@@ -1,0 +1,266 @@
+[
+  {
+    "pair_id": 0,
+    "type": "add",
+    "instruction": "Put the bear from the second picture into the first picture.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [],
+      "add_image2": [
+        0
+      ]
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 0,
+    "type": "remove",
+    "instruction": "Remove the tv from the first picture.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [
+        0
+      ],
+      "add_image2": []
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 0,
+    "type": "replace",
+    "instruction": "Replace the tv in the first picture with the bear from the second one.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [
+        0
+      ],
+      "add_image2": [
+        0
+      ]
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 1,
+    "type": "add",
+    "instruction": "Put the person from the second picture into the first picture.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [],
+      "add_image2": [
+        0
+      ]
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 1,
+    "type": "remove",
+    "instruction": "Remove the stop sign from the first picture.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [
+        0
+      ],
+      "add_image2": []
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 1,
+    "type": "replace",
+    "instruction": "Replace the stop sign in the first picture with the person from the second one.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [
+        0
+      ],
+      "add_image2": [
+        0
+      ]
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 2,
+    "type": "add",
+    "instruction": "Put the baseball glove from the second picture into the first picture.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [],
+      "add_image2": [
+        2
+      ]
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 2,
+    "type": "remove",
+    "instruction": "Remove the refrigerator from the first picture.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [
+        0
+      ],
+      "add_image2": []
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 2,
+    "type": "replace",
+    "instruction": "Replace the refrigerator in the first picture with the baseball glove from the second one.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [
+        0
+      ],
+      "add_image2": [
+        2
+      ]
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 3,
+    "type": "add",
+    "instruction": "Put the cell phone from the second picture into the first picture.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [],
+      "add_image2": [
+        1
+      ]
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 3,
+    "type": "remove",
+    "instruction": "Remove the boat from the first picture.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [
+        1
+      ],
+      "add_image2": []
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 3,
+    "type": "replace",
+    "instruction": "Replace the boat in the first picture with the cell phone from the second one.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [
+        1
+      ],
+      "add_image2": [
+        1
+      ]
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 4,
+    "type": "add",
+    "instruction": "Put the dining table from the second picture into the first picture.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [],
+      "add_image2": [
+        0
+      ]
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 4,
+    "type": "remove",
+    "instruction": "Remove the train from the first picture.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [
+        5
+      ],
+      "add_image2": []
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 4,
+    "type": "replace",
+    "instruction": "Replace the train in the first picture with the dining table from the second one.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [
+        5
+      ],
+      "add_image2": [
+        0
+      ]
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 5,
+    "type": "add",
+    "instruction": "Put the tv from the second picture into the first picture.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [],
+      "add_image2": [
+        0
+      ]
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 5,
+    "type": "remove",
+    "instruction": "Remove the person from the first picture.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [
+        0
+      ],
+      "add_image2": []
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  },
+  {
+    "pair_id": 5,
+    "type": "replace",
+    "instruction": "Replace the person in the first picture with the tv from the second one.",
+    "plan": {
+      "background": "image1",
+      "remove_image1": [
+        0
+      ],
+      "add_image2": [
+        0
+      ]
+    },
+    "correct": true,
+    "removal": "masked_pred_dil"
+  }
+]

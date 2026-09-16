@@ -226,6 +226,11 @@ class PGOTModelArguments:
     # memory groups are partially replaced across the local batch, while
     # register memories remain from the original image.
     pgot_one_shot_memory_contrastive_enable: bool = field(default=False)
+    # Select only the frozen patch feature stored as the one-shot memory value.
+    # SigLIP remains the MLLM image encoder and diffusion target when this is
+    # ``dinov2``; the optional third auxiliary tower supplies DINO values.
+    pgot_one_shot_memory_value_source: str = field(default="siglip")
+    pgot_one_shot_memory_value_dim: int = field(default=1152)
     pgot_e8_layers: str = field(default="21,24,27")
     pgot_e8_owner_temperature: float = field(default=1.0)
     pgot_e8_owner_weight: float = field(default=1.0)
@@ -781,6 +786,7 @@ class PGOTTrainer(Trainer):
                 "rae_query_adapter_bottleneck", "rae_query_adapter_delta_rms",
                 "one_shot_memory_contrastive_enabled",
                 "one_shot_memory_contrastive_active", "contrastive_w",
+                "one_shot_memory_value_dinov2_enabled",
                 "loss_contrastive", "loss_recon_mixed",
                 "loss_recon_objective", "contrastive_lambda_effective",
                 "contrastive_error_gap", "contrastive_mixed_object_fraction",

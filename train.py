@@ -135,6 +135,9 @@ def train():
     source_rae_query_adapter_bottleneck = int(
         getattr(config, "pgot_one_shot_rae_query_adapter_bottleneck", 0)
     )
+    source_memory_value_source = str(
+        getattr(config, "pgot_one_shot_memory_value_source", "siglip")
+    ).strip().lower()
     if one_shot_memory and not (source_checkpoint_is_e11 or source_one_shot_memory):
         raise ValueError("one-shot memory must initialize from E11 or a one-shot memory checkpoint to reuse trained Writer IDs")
     if one_shot_memory and source_one_shot_memory and source_one_shot_mode != model_args.pgot_one_shot_readout_mode:
@@ -364,6 +367,12 @@ def train():
     config.pgot_one_shot_memory_contrastive_enable = bool(
         model_args.pgot_one_shot_memory_contrastive_enable
     )
+    config.pgot_one_shot_memory_value_source = str(
+        model_args.pgot_one_shot_memory_value_source
+    ).strip().lower()
+    config.pgot_one_shot_memory_value_dim = int(
+        model_args.pgot_one_shot_memory_value_dim
+    )
     config.pgot_one_shot_memory_contrastive_target_weight = float(
         training_args.pgot_contrastive_loss_target_weight
     )
@@ -528,6 +537,39 @@ def train():
             with torch.no_grad():
                 model.pgot_e8_reader.content_key.weight.copy_(model.pgot_e8_reader.key.weight)
             logger.info("[PGOT/Memory] initialized content-key projection from source Reader key")
+    if (
+        one_shot_memory
+        and str(model_args.pgot_one_shot_memory_value_source).strip().lower()
+        != source_memory_value_source
+    ):
+        # The E11 source contains a trained 1152->D SigLIP value projection.
+        # DINOv2-base has 768 channels, so initialize its replacement explicitly
+        # and deterministically instead of relying on HF mismatched-size init.
+        writer = model.pgot_e8_writer
+        with torch.no_grad():
+            writer.raw_value_norm.weight.fill_(1.0)
+            writer.raw_value_norm.bias.zero_()
+            fan_out, fan_in = writer.raw_value.weight.shape
+            bound = math.sqrt(6.0 / float(fan_in + fan_out))
+            generator = torch.Generator(device="cpu")
+            generator.manual_seed(1301)
+            initialized = torch.empty(
+                tuple(writer.raw_value.weight.shape),
+                dtype=torch.float32,
+                device="cpu",
+            ).uniform_(-bound, bound, generator=generator)
+            writer.raw_value.weight.copy_(
+                initialized.to(
+                    device=writer.raw_value.weight.device,
+                    dtype=writer.raw_value.weight.dtype,
+                )
+            )
+        logger.info(
+            "[PGOT/Memory] deterministically initialized %s value projector (%d->%d)",
+            str(model_args.pgot_one_shot_memory_value_source).strip().lower(),
+            int(model_args.pgot_one_shot_memory_value_dim),
+            int(model.config.hidden_size),
+        )
     target_reader_num_layers = int(config.pgot_e8_reader_num_layers)
     if target_reader_num_layers > source_reader_num_layers:
         refinement_layers = model.pgot_e8_reader.refinement_layers
@@ -844,6 +886,12 @@ def train():
     )
     model.config.pgot_one_shot_memory_contrastive_enable = bool(
         model_args.pgot_one_shot_memory_contrastive_enable
+    )
+    model.config.pgot_one_shot_memory_value_source = str(
+        model_args.pgot_one_shot_memory_value_source
+    ).strip().lower()
+    model.config.pgot_one_shot_memory_value_dim = int(
+        model_args.pgot_one_shot_memory_value_dim
     )
     model.config.pgot_one_shot_memory_contrastive_target_weight = float(
         training_args.pgot_contrastive_loss_target_weight

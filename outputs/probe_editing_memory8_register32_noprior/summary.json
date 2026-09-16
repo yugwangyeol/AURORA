@@ -1,0 +1,1016 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000",
+  "num_images": 8,
+  "object_memories_per_owner": 8,
+  "register_memories_per_owner": 32,
+  "identity_check_max_relative_error": 7.07166645952384e-06,
+  "diffusion_inference_steps": 10,
+  "seed": 1234,
+  "aggregate": {
+    "recon_seed2": {
+      "inside_mean_abs": 0.1359,
+      "outside_mean_abs": 0.1162,
+      "global_mean_abs": 0.1192,
+      "energy_inside_fraction": 0.2539,
+      "mask_area_fraction": 0.1863
+    },
+    "remove": {
+      "inside_mean_abs": 0.1248,
+      "outside_mean_abs": 0.0342,
+      "global_mean_abs": 0.0467,
+      "energy_inside_fraction": 0.5298,
+      "mask_area_fraction": 0.1863
+    },
+    "replace": {
+      "inside_mean_abs": 0.1818,
+      "outside_mean_abs": 0.0879,
+      "global_mean_abs": 0.1028,
+      "energy_inside_fraction": 0.3544,
+      "mask_area_fraction": 0.1863
+    },
+    "text_color": {
+      "inside_mean_abs": 0.0197,
+      "outside_mean_abs": 0.0164,
+      "global_mean_abs": 0.0162,
+      "energy_inside_fraction": 0.3339,
+      "mask_area_fraction": 0.1863
+    },
+    "text_category": {
+      "inside_mean_abs": 0.0701,
+      "outside_mean_abs": 0.0419,
+      "global_mean_abs": 0.0453,
+      "energy_inside_fraction": 0.3088,
+      "mask_area_fraction": 0.1863
+    },
+    "insert_text": {
+      "inside_mean_abs": 0.0202,
+      "outside_mean_abs": 0.0196,
+      "global_mean_abs": 0.0192,
+      "energy_inside_fraction": 0.1667,
+      "mask_area_fraction": 0.1863
+    }
+  },
+  "records": [
+    {
+      "sample_index": 2,
+      "image_id": 632,
+      "object_index": 0,
+      "object_category": "bed",
+      "object_area_fraction_16x16": 0.2165,
+      "num_objects": 14,
+      "donor": {
+        "image_id": 724,
+        "category": "stop sign",
+        "same_category": false
+      },
+      "text_color_edit": "blue -> red",
+      "text_category_edit": "bed -> sofa",
+      "insert_kept_in_caption": true,
+      "stats": {
+        "recon_seed2": {
+          "inside_mean_abs": 0.10848355293273926,
+          "outside_mean_abs": 0.15790393948554993,
+          "global_mean_abs": 0.14665000140666962,
+          "energy_inside_fraction": 0.11559997498989105,
+          "mask_area_fraction": 0.22771842777729034,
+          "inside_rgb_ref": [
+            0.1868,
+            0.2446,
+            0.3568
+          ],
+          "inside_rgb_edit": [
+            0.1079,
+            0.1713,
+            0.2621
+          ]
+        },
+        "remove": {
+          "inside_mean_abs": 0.06161368265748024,
+          "outside_mean_abs": 0.03681078553199768,
+          "global_mean_abs": 0.04245886579155922,
+          "energy_inside_fraction": 0.4238402545452118,
+          "mask_area_fraction": 0.22771842777729034,
+          "inside_rgb_ref": [
+            0.1868,
+            0.2446,
+            0.3568
+          ],
+          "inside_rgb_edit": [
+            0.175,
+            0.2074,
+            0.288
+          ]
+        },
+        "replace": {
+          "inside_mean_abs": 0.05517022684216499,
+          "outside_mean_abs": 0.06827165186405182,
+          "global_mean_abs": 0.06528820842504501,
+          "energy_inside_fraction": 0.13141852617263794,
+          "mask_area_fraction": 0.22771842777729034,
+          "inside_rgb_ref": [
+            0.1868,
+            0.2446,
+            0.3568
+          ],
+          "inside_rgb_edit": [
+            0.1938,
+            0.2416,
+            0.3309
+          ]
+        },
+        "text_color": {
+          "inside_mean_abs": 0.01047380268573761,
+          "outside_mean_abs": 0.018231529742479324,
+          "global_mean_abs": 0.016464952379465103,
+          "energy_inside_fraction": 0.041165273636579514,
+          "mask_area_fraction": 0.22771842777729034,
+          "inside_rgb_ref": [
+            0.1868,
+            0.2446,
+            0.3568
+          ],
+          "inside_rgb_edit": [
+            0.1837,
+            0.2387,
+            0.3496
+          ]
+        },
+        "text_category": {
+          "inside_mean_abs": 0.014039301313459873,
+          "outside_mean_abs": 0.022454116493463516,
+          "global_mean_abs": 0.020537909120321274,
+          "energy_inside_fraction": 0.07674084603786469,
+          "mask_area_fraction": 0.22771842777729034,
+          "inside_rgb_ref": [
+            0.1868,
+            0.2446,
+            0.3568
+          ],
+          "inside_rgb_edit": [
+            0.1903,
+            0.2508,
+            0.3617
+          ]
+        },
+        "insert_text": {
+          "inside_mean_abs": 0.01575366035103798,
+          "outside_mean_abs": 0.03380683809518814,
+          "global_mean_abs": 0.029695797711610794,
+          "energy_inside_fraction": 0.039175789803266525,
+          "mask_area_fraction": 0.22771842777729034,
+          "inside_rgb_ref": [
+            0.1868,
+            0.2446,
+            0.3568
+          ],
+          "inside_rgb_edit": [
+            0.1836,
+            0.2403,
+            0.3517
+          ]
+        }
+      }
+    },
+    {
+      "sample_index": 3,
+      "image_id": 724,
+      "object_index": 0,
+      "object_category": "stop sign",
+      "object_area_fraction_16x16": 0.1159,
+      "num_objects": 3,
+      "donor": {
+        "image_id": 632,
+        "category": "bed",
+        "same_category": false
+      },
+      "text_color_edit": "red -> blue",
+      "text_category_edit": "stop sign -> dog",
+      "insert_kept_in_caption": true,
+      "stats": {
+        "recon_seed2": {
+          "inside_mean_abs": 0.11645001918077469,
+          "outside_mean_abs": 0.1697453260421753,
+          "global_mean_abs": 0.1636463701725006,
+          "energy_inside_fraction": 0.06577832996845245,
+          "mask_area_fraction": 0.11443717777729034,
+          "inside_rgb_ref": [
+            0.4857,
+            0.2205,
+            0.2757
+          ],
+          "inside_rgb_edit": [
+            0.4994,
+            0.2346,
+            0.287
+          ]
+        },
+        "remove": {
+          "inside_mean_abs": 0.27417123317718506,
+          "outside_mean_abs": 0.057050254195928574,
+          "global_mean_abs": 0.08189696818590164,
+          "energy_inside_fraction": 0.5631252527236938,
+          "mask_area_fraction": 0.11443717777729034,
+          "inside_rgb_ref": [
+            0.4857,
+            0.2205,
+            0.2757
+          ],
+          "inside_rgb_edit": [
+            0.3466,
+            0.3888,
+            0.4286
+          ]
+        },
+        "replace": {
+          "inside_mean_abs": 0.21015433967113495,
+          "outside_mean_abs": 0.10825573652982712,
+          "global_mean_abs": 0.11991672962903976,
+          "energy_inside_fraction": 0.2763045132160187,
+          "mask_area_fraction": 0.11443717777729034,
+          "inside_rgb_ref": [
+            0.4857,
+            0.2205,
+            0.2757
+          ],
+          "inside_rgb_edit": [
+            0.2532,
+            0.161,
+            0.205
+          ]
+        },
+        "text_color": {
+          "inside_mean_abs": 0.01003250852227211,
+          "outside_mean_abs": 0.012280255556106567,
+          "global_mean_abs": 0.012023028917610645,
+          "energy_inside_fraction": 0.060659412294626236,
+          "mask_area_fraction": 0.11443717777729034,
+          "inside_rgb_ref": [
+            0.4857,
+            0.2205,
+            0.2757
+          ],
+          "inside_rgb_edit": [
+            0.4884,
+            0.2211,
+            0.276
+          ]
+        },
+        "text_category": {
+          "inside_mean_abs": 0.04465213418006897,
+          "outside_mean_abs": 0.04725172743201256,
+          "global_mean_abs": 0.046954233199357986,
+          "energy_inside_fraction": 0.12054191529750824,
+          "mask_area_fraction": 0.11443717777729034,
+          "inside_rgb_ref": [
+            0.4857,
+            0.2205,
+            0.2757
+          ],
+          "inside_rgb_edit": [
+            0.4986,
+            0.2359,
+            0.2879
+          ]
+        },
+        "insert_text": {
+          "inside_mean_abs": 0.00752307940274477,
+          "outside_mean_abs": 0.01730417273938656,
+          "global_mean_abs": 0.0161848533898592,
+          "energy_inside_fraction": 0.01337281335145235,
+          "mask_area_fraction": 0.11443717777729034,
+          "inside_rgb_ref": [
+            0.4857,
+            0.2205,
+            0.2757
+          ],
+          "inside_rgb_edit": [
+            0.4894,
+            0.2247,
+            0.2792
+          ]
+        }
+      }
+    },
+    {
+      "sample_index": 4,
+      "image_id": 776,
+      "object_index": 1,
+      "object_category": "teddy bear",
+      "object_area_fraction_16x16": 0.3234,
+      "num_objects": 4,
+      "donor": {
+        "image_id": 632,
+        "category": "bed",
+        "same_category": false
+      },
+      "text_color_edit": "brown -> blue",
+      "text_category_edit": "teddy bear -> dog",
+      "insert_kept_in_caption": true,
+      "stats": {
+        "recon_seed2": {
+          "inside_mean_abs": 0.15088523924350739,
+          "outside_mean_abs": 0.12837983667850494,
+          "global_mean_abs": 0.13554508984088898,
+          "energy_inside_fraction": 0.39930474758148193,
+          "mask_area_fraction": 0.31837931275367737,
+          "inside_rgb_ref": [
+            0.6678,
+            0.4966,
+            0.2147
+          ],
+          "inside_rgb_edit": [
+            0.7889,
+            0.6541,
+            0.2936
+          ]
+        },
+        "remove": {
+          "inside_mean_abs": 0.020802734419703484,
+          "outside_mean_abs": 0.023412693291902542,
+          "global_mean_abs": 0.022581735625863075,
+          "energy_inside_fraction": 0.25693562626838684,
+          "mask_area_fraction": 0.31837931275367737,
+          "inside_rgb_ref": [
+            0.6678,
+            0.4966,
+            0.2147
+          ],
+          "inside_rgb_edit": [
+            0.674,
+            0.5081,
+            0.213
+          ]
+        },
+        "replace": {
+          "inside_mean_abs": 0.2383328080177307,
+          "outside_mean_abs": 0.05780046433210373,
+          "global_mean_abs": 0.1152782216668129,
+          "energy_inside_fraction": 0.8555371761322021,
+          "mask_area_fraction": 0.31837931275367737,
+          "inside_rgb_ref": [
+            0.6678,
+            0.4966,
+            0.2147
+          ],
+          "inside_rgb_edit": [
+            0.3416,
+            0.3298,
+            0.3108
+          ]
+        },
+        "text_color": {
+          "inside_mean_abs": 0.03283632546663284,
+          "outside_mean_abs": 0.0664445161819458,
+          "global_mean_abs": 0.055744364857673645,
+          "energy_inside_fraction": 0.12780573964118958,
+          "mask_area_fraction": 0.31837931275367737,
+          "inside_rgb_ref": [
+            0.6678,
+            0.4966,
+            0.2147
+          ],
+          "inside_rgb_edit": [
+            0.6521,
+            0.4936,
+            0.2065
+          ]
+        },
+        "text_category": {
+          "inside_mean_abs": 0.05696897953748703,
+          "outside_mean_abs": 0.08194480091333389,
+          "global_mean_abs": 0.0739930123090744,
+          "energy_inside_fraction": 0.19100964069366455,
+          "mask_area_fraction": 0.31837931275367737,
+          "inside_rgb_ref": [
+            0.6678,
+            0.4966,
+            0.2147
+          ],
+          "inside_rgb_edit": [
+            0.6693,
+            0.5027,
+            0.1902
+          ]
+        },
+        "insert_text": {
+          "inside_mean_abs": 0.031727224588394165,
+          "outside_mean_abs": 0.04261821135878563,
+          "global_mean_abs": 0.039150744676589966,
+          "energy_inside_fraction": 0.20133236050605774,
+          "mask_area_fraction": 0.31837931275367737,
+          "inside_rgb_ref": [
+            0.6678,
+            0.4966,
+            0.2147
+          ],
+          "inside_rgb_edit": [
+            0.653,
+            0.5082,
+            0.2022
+          ]
+        }
+      }
+    },
+    {
+      "sample_index": 5,
+      "image_id": 785,
+      "object_index": 0,
+      "object_category": "person",
+      "object_area_fraction_16x16": 0.1589,
+      "num_objects": 2,
+      "donor": {
+        "image_id": 872,
+        "category": "person",
+        "same_category": true
+      },
+      "text_color_edit": "blue -> red",
+      "text_category_edit": "person -> dog",
+      "insert_kept_in_caption": true,
+      "stats": {
+        "recon_seed2": {
+          "inside_mean_abs": 0.16018304228782654,
+          "outside_mean_abs": 0.046315815299749374,
+          "global_mean_abs": 0.06423237919807434,
+          "energy_inside_fraction": 0.501610279083252,
+          "mask_area_fraction": 0.15734614431858063,
+          "inside_rgb_ref": [
+            0.3148,
+            0.2259,
+            0.2526
+          ],
+          "inside_rgb_edit": [
+            0.3788,
+            0.2692,
+            0.3036
+          ]
+        },
+        "remove": {
+          "inside_mean_abs": 0.19028054177761078,
+          "outside_mean_abs": 0.026282964274287224,
+          "global_mean_abs": 0.05208734795451164,
+          "energy_inside_fraction": 0.7057478427886963,
+          "mask_area_fraction": 0.15734614431858063,
+          "inside_rgb_ref": [
+            0.3148,
+            0.2259,
+            0.2526
+          ],
+          "inside_rgb_edit": [
+            0.4722,
+            0.3504,
+            0.3846
+          ]
+        },
+        "replace": {
+          "inside_mean_abs": 0.19894155859947205,
+          "outside_mean_abs": 0.06918171793222427,
+          "global_mean_abs": 0.08959892392158508,
+          "energy_inside_fraction": 0.394512802362442,
+          "mask_area_fraction": 0.15734614431858063,
+          "inside_rgb_ref": [
+            0.3148,
+            0.2259,
+            0.2526
+          ],
+          "inside_rgb_edit": [
+            0.4655,
+            0.3715,
+            0.4017
+          ]
+        },
+        "text_color": {
+          "inside_mean_abs": 0.025212209671735764,
+          "outside_mean_abs": 0.003456158796325326,
+          "global_mean_abs": 0.006879389751702547,
+          "energy_inside_fraction": 0.8414326310157776,
+          "mask_area_fraction": 0.15734614431858063,
+          "inside_rgb_ref": [
+            0.3148,
+            0.2259,
+            0.2526
+          ],
+          "inside_rgb_edit": [
+            0.3237,
+            0.2322,
+            0.2592
+          ]
+        },
+        "text_category": {
+          "inside_mean_abs": 0.09144560247659683,
+          "outside_mean_abs": 0.018629172816872597,
+          "global_mean_abs": 0.030086558312177658,
+          "energy_inside_fraction": 0.531258225440979,
+          "mask_area_fraction": 0.15734614431858063,
+          "inside_rgb_ref": [
+            0.3148,
+            0.2259,
+            0.2526
+          ],
+          "inside_rgb_edit": [
+            0.3535,
+            0.2453,
+            0.2732
+          ]
+        },
+        "insert_text": {
+          "inside_mean_abs": 0.0445464625954628,
+          "outside_mean_abs": 0.0076038045808672905,
+          "global_mean_abs": 0.013416589237749577,
+          "energy_inside_fraction": 0.5939127206802368,
+          "mask_area_fraction": 0.15734614431858063,
+          "inside_rgb_ref": [
+            0.3148,
+            0.2259,
+            0.2526
+          ],
+          "inside_rgb_edit": [
+            0.3106,
+            0.2188,
+            0.2459
+          ]
+        }
+      }
+    },
+    {
+      "sample_index": 6,
+      "image_id": 802,
+      "object_index": 0,
+      "object_category": "refrigerator",
+      "object_area_fraction_16x16": 0.2978,
+      "num_objects": 2,
+      "donor": {
+        "image_id": 632,
+        "category": "bed",
+        "same_category": false
+      },
+      "text_color_edit": "white -> black",
+      "text_category_edit": "refrigerator -> dog",
+      "insert_kept_in_caption": true,
+      "stats": {
+        "recon_seed2": {
+          "inside_mean_abs": 0.12698860466480255,
+          "outside_mean_abs": 0.10626474022865295,
+          "global_mean_abs": 0.11247413605451584,
+          "energy_inside_fraction": 0.346906453371048,
+          "mask_area_fraction": 0.29962530732154846,
+          "inside_rgb_ref": [
+            0.6839,
+            0.6374,
+            0.6082
+          ],
+          "inside_rgb_edit": [
+            0.5417,
+            0.5311,
+            0.5164
+          ]
+        },
+        "remove": {
+          "inside_mean_abs": 0.0594974048435688,
+          "outside_mean_abs": 0.027948373928666115,
+          "global_mean_abs": 0.03740125894546509,
+          "energy_inside_fraction": 0.6091489195823669,
+          "mask_area_fraction": 0.29962530732154846,
+          "inside_rgb_ref": [
+            0.6839,
+            0.6374,
+            0.6082
+          ],
+          "inside_rgb_edit": [
+            0.712,
+            0.6618,
+            0.6346
+          ]
+        },
+        "replace": {
+          "inside_mean_abs": 0.07542841136455536,
+          "outside_mean_abs": 0.09811709821224213,
+          "global_mean_abs": 0.09131898730993271,
+          "energy_inside_fraction": 0.22372935712337494,
+          "mask_area_fraction": 0.29962530732154846,
+          "inside_rgb_ref": [
+            0.6839,
+            0.6374,
+            0.6082
+          ],
+          "inside_rgb_edit": [
+            0.6228,
+            0.5961,
+            0.6017
+          ]
+        },
+        "text_color": {
+          "inside_mean_abs": 0.009555636905133724,
+          "outside_mean_abs": 0.005251697730273008,
+          "global_mean_abs": 0.006541266571730375,
+          "energy_inside_fraction": 0.5410309433937073,
+          "mask_area_fraction": 0.29962530732154846,
+          "inside_rgb_ref": [
+            0.6839,
+            0.6374,
+            0.6082
+          ],
+          "inside_rgb_edit": [
+            0.6788,
+            0.6331,
+            0.6037
+          ]
+        },
+        "text_category": {
+          "inside_mean_abs": 0.055633507668972015,
+          "outside_mean_abs": 0.039474569261074066,
+          "global_mean_abs": 0.04431619495153427,
+          "energy_inside_fraction": 0.4517692029476166,
+          "mask_area_fraction": 0.29962530732154846,
+          "inside_rgb_ref": [
+            0.6839,
+            0.6374,
+            0.6082
+          ],
+          "inside_rgb_edit": [
+            0.7035,
+            0.6534,
+            0.6281
+          ]
+        },
+        "insert_text": {
+          "inside_mean_abs": 0.004545171279460192,
+          "outside_mean_abs": 0.009467599913477898,
+          "global_mean_abs": 0.007992715574800968,
+          "energy_inside_fraction": 0.09885476529598236,
+          "mask_area_fraction": 0.29962530732154846,
+          "inside_rgb_ref": [
+            0.6839,
+            0.6374,
+            0.6082
+          ],
+          "inside_rgb_edit": [
+            0.6844,
+            0.6367,
+            0.6063
+          ]
+        }
+      }
+    },
+    {
+      "sample_index": 7,
+      "image_id": 872,
+      "object_index": 0,
+      "object_category": "person",
+      "object_area_fraction_16x16": 0.1237,
+      "num_objects": 3,
+      "donor": {
+        "image_id": 785,
+        "category": "person",
+        "same_category": true
+      },
+      "text_color_edit": "white -> black",
+      "text_category_edit": "person -> dog",
+      "insert_kept_in_caption": true,
+      "stats": {
+        "recon_seed2": {
+          "inside_mean_abs": 0.18125765025615692,
+          "outside_mean_abs": 0.10843817889690399,
+          "global_mean_abs": 0.11709650605916977,
+          "energy_inside_fraction": 0.24363136291503906,
+          "mask_area_fraction": 0.11890146136283875,
+          "inside_rgb_ref": [
+            0.5108,
+            0.5209,
+            0.5565
+          ],
+          "inside_rgb_edit": [
+            0.45,
+            0.4641,
+            0.5155
+          ]
+        },
+        "remove": {
+          "inside_mean_abs": 0.2049674689769745,
+          "outside_mean_abs": 0.05384527146816254,
+          "global_mean_abs": 0.07181393355131149,
+          "energy_inside_fraction": 0.5469051599502563,
+          "mask_area_fraction": 0.11890146136283875,
+          "inside_rgb_ref": [
+            0.5108,
+            0.5209,
+            0.5565
+          ],
+          "inside_rgb_edit": [
+            0.4278,
+            0.4691,
+            0.4167
+          ]
+        },
+        "replace": {
+          "inside_mean_abs": 0.23023942112922668,
+          "outside_mean_abs": 0.0856151133775711,
+          "global_mean_abs": 0.10281115025281906,
+          "energy_inside_fraction": 0.36766767501831055,
+          "mask_area_fraction": 0.11890146136283875,
+          "inside_rgb_ref": [
+            0.5108,
+            0.5209,
+            0.5565
+          ],
+          "inside_rgb_edit": [
+            0.456,
+            0.3811,
+            0.3574
+          ]
+        },
+        "text_color": {
+          "inside_mean_abs": 0.014944085851311684,
+          "outside_mean_abs": 0.0054555414244532585,
+          "global_mean_abs": 0.006583742797374725,
+          "energy_inside_fraction": 0.29288357496261597,
+          "mask_area_fraction": 0.11890146136283875,
+          "inside_rgb_ref": [
+            0.5108,
+            0.5209,
+            0.5565
+          ],
+          "inside_rgb_edit": [
+            0.5071,
+            0.5182,
+            0.5519
+          ]
+        },
+        "text_category": {
+          "inside_mean_abs": 0.10771117359399796,
+          "outside_mean_abs": 0.059774547815322876,
+          "global_mean_abs": 0.06547428667545319,
+          "energy_inside_fraction": 0.21849429607391357,
+          "mask_area_fraction": 0.11890146136283875,
+          "inside_rgb_ref": [
+            0.5108,
+            0.5209,
+            0.5565
+          ],
+          "inside_rgb_edit": [
+            0.5315,
+            0.5364,
+            0.5885
+          ]
+        },
+        "insert_text": {
+          "inside_mean_abs": 0.02108553610742092,
+          "outside_mean_abs": 0.010015278123319149,
+          "global_mean_abs": 0.011331547982990742,
+          "energy_inside_fraction": 0.26120930910110474,
+          "mask_area_fraction": 0.11890146136283875,
+          "inside_rgb_ref": [
+            0.5108,
+            0.5209,
+            0.5565
+          ],
+          "inside_rgb_edit": [
+            0.5128,
+            0.522,
+            0.5562
+          ]
+        }
+      }
+    },
+    {
+      "sample_index": 12,
+      "image_id": 1353,
+      "object_index": 0,
+      "object_category": "bench",
+      "object_area_fraction_16x16": 0.1019,
+      "num_objects": 7,
+      "donor": {
+        "image_id": 632,
+        "category": "bed",
+        "same_category": false
+      },
+      "text_color_edit": "red -> blue",
+      "text_category_edit": "bench -> dog",
+      "insert_kept_in_caption": true,
+      "stats": {
+        "recon_seed2": {
+          "inside_mean_abs": 0.1442599594593048,
+          "outside_mean_abs": 0.08460795134305954,
+          "global_mean_abs": 0.09053201228380203,
+          "energy_inside_fraction": 0.2718217670917511,
+          "mask_area_fraction": 0.09931042790412903,
+          "inside_rgb_ref": [
+            0.7614,
+            0.2845,
+            0.191
+          ],
+          "inside_rgb_edit": [
+            0.658,
+            0.2354,
+            0.1632
+          ]
+        },
+        "remove": {
+          "inside_mean_abs": 0.09281077235937119,
+          "outside_mean_abs": 0.018740057945251465,
+          "global_mean_abs": 0.026096051558852196,
+          "energy_inside_fraction": 0.5458574295043945,
+          "mask_area_fraction": 0.09931042790412903,
+          "inside_rgb_ref": [
+            0.7614,
+            0.2845,
+            0.191
+          ],
+          "inside_rgb_edit": [
+            0.7466,
+            0.3516,
+            0.2633
+          ]
+        },
+        "replace": {
+          "inside_mean_abs": 0.3129023611545563,
+          "outside_mean_abs": 0.06703444570302963,
+          "global_mean_abs": 0.09145170450210571,
+          "energy_inside_fraction": 0.5015892386436462,
+          "mask_area_fraction": 0.09931042790412903,
+          "inside_rgb_ref": [
+            0.7614,
+            0.2845,
+            0.191
+          ],
+          "inside_rgb_edit": [
+            0.302,
+            0.3288,
+            0.4326
+          ]
+        },
+        "text_color": {
+          "inside_mean_abs": 0.011368798092007637,
+          "outside_mean_abs": 0.00542373675853014,
+          "global_mean_abs": 0.006014143116772175,
+          "energy_inside_fraction": 0.2780619263648987,
+          "mask_area_fraction": 0.09931042790412903,
+          "inside_rgb_ref": [
+            0.7614,
+            0.2845,
+            0.191
+          ],
+          "inside_rgb_edit": [
+            0.768,
+            0.29,
+            0.1956
+          ]
+        },
+        "text_category": {
+          "inside_mean_abs": 0.09275201708078384,
+          "outside_mean_abs": 0.028358960524201393,
+          "global_mean_abs": 0.03475385904312134,
+          "energy_inside_fraction": 0.3828185498714447,
+          "mask_area_fraction": 0.09931042790412903,
+          "inside_rgb_ref": [
+            0.7614,
+            0.2845,
+            0.191
+          ],
+          "inside_rgb_edit": [
+            0.71,
+            0.331,
+            0.2552
+          ]
+        },
+        "insert_text": {
+          "inside_mean_abs": 0.011184225790202618,
+          "outside_mean_abs": 0.012792444787919521,
+          "global_mean_abs": 0.012632731348276138,
+          "energy_inside_fraction": 0.035084180533885956,
+          "mask_area_fraction": 0.09931042790412903,
+          "inside_rgb_ref": [
+            0.7614,
+            0.2845,
+            0.191
+          ],
+          "inside_rgb_edit": [
+            0.7683,
+            0.2905,
+            0.195
+          ]
+        }
+      }
+    },
+    {
+      "sample_index": 15,
+      "image_id": 1503,
+      "object_index": 1,
+      "object_category": "tv",
+      "object_area_fraction_16x16": 0.1563,
+      "num_objects": 6,
+      "donor": {
+        "image_id": 632,
+        "category": "bed",
+        "same_category": false
+      },
+      "text_color_edit": "prepend 'a bright red'",
+      "text_category_edit": "tv -> laptop",
+      "insert_kept_in_caption": true,
+      "stats": {
+        "recon_seed2": {
+          "inside_mean_abs": 0.09845402836799622,
+          "outside_mean_abs": 0.12795162200927734,
+          "global_mean_abs": 0.12339376658201218,
+          "energy_inside_fraction": 0.08682451397180557,
+          "mask_area_fraction": 0.1545161008834839,
+          "inside_rgb_ref": [
+            0.5574,
+            0.5897,
+            0.6468
+          ],
+          "inside_rgb_edit": [
+            0.5674,
+            0.5864,
+            0.6022
+          ]
+        },
+        "remove": {
+          "inside_mean_abs": 0.09387028962373734,
+          "outside_mean_abs": 0.02937406487762928,
+          "global_mean_abs": 0.03933976963162422,
+          "energy_inside_fraction": 0.5867197513580322,
+          "mask_area_fraction": 0.1545161008834839,
+          "inside_rgb_ref": [
+            0.5574,
+            0.5897,
+            0.6468
+          ],
+          "inside_rgb_edit": [
+            0.6296,
+            0.6357,
+            0.6672
+          ]
+        },
+        "replace": {
+          "inside_mean_abs": 0.13332338631153107,
+          "outside_mean_abs": 0.14927932620048523,
+          "global_mean_abs": 0.14681386947631836,
+          "energy_inside_fraction": 0.08435593545436859,
+          "mask_area_fraction": 0.1545161008834839,
+          "inside_rgb_ref": [
+            0.5574,
+            0.5897,
+            0.6468
+          ],
+          "inside_rgb_edit": [
+            0.4735,
+            0.5392,
+            0.6778
+          ]
+        },
+        "text_color": {
+          "inside_mean_abs": 0.04299236461520195,
+          "outside_mean_abs": 0.014774030074477196,
+          "global_mean_abs": 0.019134216010570526,
+          "energy_inside_fraction": 0.4883359670639038,
+          "mask_area_fraction": 0.1545161008834839,
+          "inside_rgb_ref": [
+            0.5574,
+            0.5897,
+            0.6468
+          ],
+          "inside_rgb_edit": [
+            0.5198,
+            0.5513,
+            0.6062
+          ]
+        },
+        "text_category": {
+          "inside_mean_abs": 0.09776554256677628,
+          "outside_mean_abs": 0.03716210275888443,
+          "global_mean_abs": 0.046526309102773666,
+          "energy_inside_fraction": 0.4977279603481293,
+          "mask_area_fraction": 0.1545161008834839,
+          "inside_rgb_ref": [
+            0.5574,
+            0.5897,
+            0.6468
+          ],
+          "inside_rgb_edit": [
+            0.6253,
+            0.6303,
+            0.6628
+          ]
+        },
+        "insert_text": {
+          "inside_mean_abs": 0.02514795772731304,
+          "outside_mean_abs": 0.02293243631720543,
+          "global_mean_abs": 0.023274770006537437,
+          "energy_inside_fraction": 0.0906568393111229,
+          "mask_area_fraction": 0.1545161008834839,
+          "inside_rgb_ref": [
+            0.5574,
+            0.5897,
+            0.6468
+          ],
+          "inside_rgb_edit": [
+            0.5358,
+            0.5685,
+            0.6249
+          ]
+        }
+      }
+    }
+  ],
+  "elapsed_sec": 173.5
+}

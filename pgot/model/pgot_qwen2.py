@@ -768,6 +768,30 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             self.pgot_one_shot_reader_enable
             and self.pgot_one_shot_readout_mode in {"memory_content", "memory_id"}
         )
+        self.pgot_one_shot_memory_value_source = str(
+            getattr(self.config, "pgot_one_shot_memory_value_source", "siglip")
+        ).strip().lower()
+        if self.pgot_one_shot_memory_value_source not in {"siglip", "dinov2"}:
+            raise ValueError(
+                "pgot_one_shot_memory_value_source must be siglip or dinov2"
+            )
+        self.pgot_one_shot_memory_value_dim = int(
+            getattr(
+                self.config,
+                "pgot_one_shot_memory_value_dim",
+                getattr(self.config, "mm_hidden_size", 0),
+            )
+        )
+        if self.pgot_one_shot_memory_value_dim <= 0:
+            raise ValueError("one-shot memory value dimension must be positive")
+        if self.pgot_one_shot_memory_value_source == "dinov2":
+            tower_names = list(
+                getattr(self.config, "mm_vision_tower_aux_list", []) or []
+            )
+            if len(tower_names) < 3 or "dino" not in str(tower_names[2]).lower():
+                raise ValueError(
+                    "DINO memory values require a DINO auxiliary tower at index 2"
+                )
         self.pgot_one_shot_memory_contrastive_enable = bool(
             getattr(
                 self.config,
@@ -883,7 +907,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                         raise ValueError("one-shot memory uses exactly one hierarchical Reader")
                     self.pgot_e8_writer = PGOTOneShotMemoryWriter(
                         dim=D,
-                        raw_value_dim=int(getattr(self.config, "mm_hidden_size", 0)),
+                        raw_value_dim=(
+                            self.pgot_one_shot_memory_value_dim
+                            if self.pgot_one_shot_memory_value_source == "dinov2"
+                            else int(getattr(self.config, "mm_hidden_size", 0))
+                        ),
                         object_memories_per_owner=self.pgot_e11_object_memories_per_owner,
                         register_memories_per_owner=self.pgot_e11_register_memories_per_owner,
                         temperature=float(getattr(self.config, "pgot_e8_owner_temperature", 1.0)),
@@ -1124,6 +1152,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 f"writer_softmax={self.pgot_one_shot_writer_softmax_axis}, "
                 f"writer_owner_prior={self.pgot_one_shot_writer_owner_prior}, "
                 f"readout={self.pgot_one_shot_readout_mode}, "
+                f"value={self.pgot_one_shot_memory_value_source}, "
                 f"RAE={'direct-to-Reader' if self.pgot_one_shot_direct_rae_query else 'self-only MLLM'}, "
                 f"RAE_adapter={'RMSNorm-MLP-' + str(self.pgot_one_shot_rae_query_adapter_bottleneck) if self.pgot_one_shot_rae_query_adapter_enable else 'none'}, "
                 f"contrastive={'CODA-object-mix' if self.pgot_one_shot_memory_contrastive_enable else 'none'}"
@@ -1332,6 +1361,83 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         if hasattr(self, "pgot_register_embeddings"):
             return self.pgot_register_embeddings.device
         return next(self.parameters()).device
+
+    def _pgot_one_shot_memory_values(
+        self,
+        *,
+        source_images: torch.Tensor,
+        raw_siglip_features: torch.Tensor,
+    ) -> torch.Tensor:
+        """Return frozen, spatially aligned patch values for one-shot memory.
+
+        The normal SigLIP path is unchanged.  For DINOv2, ``source_images``
+        already contain the deterministic CODA crop normalized by the first
+        SigLIP processor.  Invert that normalization, resize the same crop for
+        DINO, apply DINO normalization, and use the optional third frozen tower.
+        Its wrapper resamples the native 37x37 grid to the configured 32x32
+        grid, preserving correspondence with Writer keys and ownership maps.
+        """
+        if self.pgot_one_shot_memory_value_source == "siglip":
+            return raw_siglip_features
+
+        towers = self.get_model().get_vision_tower_aux_list()
+        if towers is None or len(towers) < 3:
+            raise RuntimeError("DINO memory value tower was not initialized")
+        source_tower, value_tower = towers[0], towers[2]
+        source_processor = source_tower.image_processor
+        value_processor = value_tower.image_processor
+
+        device = value_tower.device
+        dtype = value_tower.dtype
+        source_mean = torch.as_tensor(
+            source_processor.image_mean,
+            device=source_images.device,
+            dtype=torch.float32,
+        ).view(1, -1, 1, 1)
+        source_std = torch.as_tensor(
+            source_processor.image_std,
+            device=source_images.device,
+            dtype=torch.float32,
+        ).view(1, -1, 1, 1)
+        pixels = source_images.float() * source_std + source_mean
+        pixels = pixels.clamp(0.0, 1.0)
+        target_size = int(value_tower.image_size)
+        if pixels.shape[-2:] != (target_size, target_size):
+            pixels = F.interpolate(
+                pixels,
+                size=(target_size, target_size),
+                mode="bicubic",
+                align_corners=False,
+                antialias=True,
+            )
+        value_mean = torch.as_tensor(
+            value_processor.image_mean,
+            device=pixels.device,
+            dtype=torch.float32,
+        ).view(1, -1, 1, 1)
+        value_std = torch.as_tensor(
+            value_processor.image_std,
+            device=pixels.device,
+            dtype=torch.float32,
+        ).view(1, -1, 1, 1)
+        value_images = ((pixels - value_mean) / value_std).to(
+            device=device, dtype=dtype
+        )
+        with torch.no_grad():
+            value_features = value_tower(value_images).detach()
+        if value_features.shape[:2] != raw_siglip_features.shape[:2]:
+            raise ValueError(
+                "DINO/SigLIP patch-grid mismatch: "
+                f"dino={tuple(value_features.shape)} "
+                f"siglip={tuple(raw_siglip_features.shape)}"
+            )
+        if value_features.shape[-1] != self.pgot_one_shot_memory_value_dim:
+            raise ValueError(
+                "DINO memory value dim mismatch: "
+                f"expected {self.pgot_one_shot_memory_value_dim}, "
+                f"got {value_features.shape[-1]}"
+            )
+        return value_features
 
     def _pgot_build_sequence_inputs(
         self,
@@ -1858,9 +1964,13 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
 
         memory_write = None
         if self.pgot_one_shot_memory_enable:
+            memory_value_features = self._pgot_one_shot_memory_values(
+                source_images=seq["images"],
+                raw_siglip_features=seq["raw_img_features"],
+            )
             memory_write = self.pgot_e8_writer(
                 semantic_slots=semantic_slots, image_states=img_hidden,
-                raw_value_states=seq["raw_img_features"], owner_probs=owner_probs,
+                raw_value_states=memory_value_features, owner_probs=owner_probs,
                 slot_valid=slot_valid, object_count=K,
                 owner_gradient_scale=float(
                     getattr(
@@ -6430,27 +6540,9 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "rae_query_adapter_delta_rms": seq.get(
                 "rae_query_adapter_delta_rms", hidden.new_zeros(())
             ),
-            "one_shot_memory_contrastive_enabled": hidden.new_tensor(
-                float(contrastive_configured)
+            "one_shot_memory_value_dinov2_enabled": hidden.new_tensor(
+                float(self.pgot_one_shot_memory_value_source == "dinov2")
             ),
-            "one_shot_memory_contrastive_active": hidden.new_tensor(
-                float(contrastive_active)
-            ),
-            "contrastive_lambda_effective": hidden.new_tensor(
-                float(contrastive_w if contrastive_active else 0.0)
-            ),
-            "loss_recon_mixed": loss_recon_mixed.detach(),
-            "loss_recon_objective": loss_recon_objective.detach(),
-            "contrastive_error_gap": (
-                loss_recon_mixed.detach() - loss_recon.detach()
-                if contrastive_active
-                else zero
-            ),
-            "contrastive_mixed_object_fraction": (
-                contrastive_swap_fraction.detach()
-            ),
-            "contrastive_timestep": contrastive_timestep,
-            "contrastive_decoder_stopgrad": contrastive_decoder_stopgrad,
             "one_shot_pooled_mode": hidden.new_tensor(
                 float(
                     self.pgot_one_shot_reader_enable
@@ -6609,6 +6701,30 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "e8_causal_timestep": causal_stats["timestep"],
         }
         self.pgot_loss_details.update(seq.get("memory_diagnostics", {}))
+        if contrastive_configured:
+            self.pgot_loss_details.update(
+                {
+                    "one_shot_memory_contrastive_enabled": hidden.new_ones(()),
+                    "one_shot_memory_contrastive_active": hidden.new_tensor(
+                        float(contrastive_active)
+                    ),
+                    "contrastive_lambda_effective": hidden.new_tensor(
+                        float(contrastive_w if contrastive_active else 0.0)
+                    ),
+                    "loss_recon_mixed": loss_recon_mixed.detach(),
+                    "loss_recon_objective": loss_recon_objective.detach(),
+                    "contrastive_error_gap": (
+                        loss_recon_mixed.detach() - loss_recon.detach()
+                        if contrastive_active
+                        else zero
+                    ),
+                    "contrastive_mixed_object_fraction": (
+                        contrastive_swap_fraction.detach()
+                    ),
+                    "contrastive_timestep": contrastive_timestep,
+                    "contrastive_decoder_stopgrad": contrastive_decoder_stopgrad,
+                }
+            )
         if latent_target_w > 0.0 and latent_stats is not None:
             self.pgot_loss_details.update(
                 {

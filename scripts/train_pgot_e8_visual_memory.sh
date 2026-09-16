@@ -94,8 +94,8 @@ fi
     --nproc_per_node="${NUM_GPUS}" --master_port="${MASTER_PORT:-29548}" \
     "${PROJECT_ROOT}/train.py" \
     --model_name_or_path "${MODEL_PATH}" --use_pgot True \
-    --vision_tower_aux_list '["google/siglip2-so400m-patch16-512","google/siglip2-so400m-patch14-224"]' \
-    --vision_tower_aux_token_len_list '[1024,256]' \
+    --vision_tower_aux_list "${VISION_TOWER_AUX_LIST:-[\"google/siglip2-so400m-patch16-512\",\"google/siglip2-so400m-patch14-224\"]}" \
+    --vision_tower_aux_token_len_list "${VISION_TOWER_AUX_TOKEN_LEN_LIST:-[1024,256]}" \
     --image_feature_token_len 1024 --diffusion_target_token_len 256 \
     --diffusion_norm_stats_path "${DIFFUSION_NORM_STATS_PATH}" \
     --vision_loss diffusion-loss --vision_loss_mode query --vision_coef 1.0 \
@@ -120,6 +120,8 @@ fi
     --pgot_one_shot_rae_query_adapter_enable "${ONE_SHOT_RAE_QUERY_ADAPTER_ENABLE:-False}" \
     --pgot_one_shot_rae_query_adapter_bottleneck "${ONE_SHOT_RAE_QUERY_ADAPTER_BOTTLENECK:-384}" \
     --pgot_one_shot_memory_contrastive_enable "${ONE_SHOT_MEMORY_CONTRASTIVE_ENABLE:-False}" \
+    --pgot_one_shot_memory_value_source "${ONE_SHOT_MEMORY_VALUE_SOURCE:-siglip}" \
+    --pgot_one_shot_memory_value_dim "${ONE_SHOT_MEMORY_VALUE_DIM:-1152}" \
     --pgot_e8_layers "${E8_LAYERS:-21,24,27}" \
     --pgot_e8_owner_temperature "${E8_OWNER_TEMPERATURE:-1.0}" \
     --pgot_e8_owner_weight "${E8_OWNER_WEIGHT:-1.0}" \

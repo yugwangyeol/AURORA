@@ -1,0 +1,414 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000",
+  "num_pairs": 8,
+  "aggregate": {
+    "add": {
+      "donor_mask_area_fraction": 0.181,
+      "donor_location_iou": 0.2392,
+      "energy_in_donor_mask": 0.4283,
+      "energy_in_A_objects": 0.3922,
+      "A_objects_area_fraction": 0.293
+    },
+    "object_on_A_bg": {
+      "donor_mask_area_fraction": 0.181,
+      "donor_location_iou": 0.2365,
+      "energy_in_donor_mask": 0.39,
+      "energy_in_A_objects": 0.4875,
+      "A_objects_area_fraction": 0.293
+    }
+  },
+  "records": [
+    {
+      "prompt": "Put the person from image 2 into image 1.",
+      "image1_id": 632,
+      "image2_id": 9448,
+      "image1_categories": [
+        "bed",
+        "potted plant",
+        "chair",
+        "potted plant",
+        "chair",
+        "book",
+        "bottle",
+        "book",
+        "book",
+        "book",
+        "book",
+        "book",
+        "book",
+        "book"
+      ],
+      "selected_object": {
+        "index": 1,
+        "category": "person"
+      },
+      "stats": {
+        "add": {
+          "donor_mask_area_fraction": 0.29147401452064514,
+          "donor_location_iou": 0.2982689747003995,
+          "energy_in_donor_mask": 0.4375861883163452,
+          "energy_in_A_objects": 0.35478872060775757,
+          "A_objects_area_fraction": 0.27955594658851624,
+          "changed_centroid_xy": [
+            0.564,
+            0.515
+          ],
+          "donor_centroid_xy": [
+            0.449,
+            0.573
+          ]
+        },
+        "object_on_A_bg": {
+          "donor_mask_area_fraction": 0.29147401452064514,
+          "donor_location_iou": 0.37491773996427563,
+          "energy_in_donor_mask": 0.5474297404289246,
+          "energy_in_A_objects": 0.3903909921646118,
+          "A_objects_area_fraction": 0.27955594658851624,
+          "changed_centroid_xy": [
+            0.564,
+            0.576
+          ],
+          "donor_centroid_xy": [
+            0.449,
+            0.573
+          ]
+        }
+      }
+    },
+    {
+      "prompt": "Put the person from image 2 into image 1.",
+      "image1_id": 724,
+      "image2_id": 872,
+      "image1_categories": [
+        "stop sign",
+        "truck",
+        "stop sign"
+      ],
+      "selected_object": {
+        "index": 0,
+        "category": "person"
+      },
+      "stats": {
+        "add": {
+          "donor_mask_area_fraction": 0.11890146136283875,
+          "donor_location_iou": 0.17360086554539195,
+          "energy_in_donor_mask": 0.2559755742549896,
+          "energy_in_A_objects": 0.0932103618979454,
+          "A_objects_area_fraction": 0.11973851919174194,
+          "changed_centroid_xy": [
+            0.459,
+            0.528
+          ],
+          "donor_centroid_xy": [
+            0.439,
+            0.577
+          ]
+        },
+        "object_on_A_bg": {
+          "donor_mask_area_fraction": 0.11890146136283875,
+          "donor_location_iou": 0.11098696461824953,
+          "energy_in_donor_mask": 0.18145225942134857,
+          "energy_in_A_objects": 0.28066378831863403,
+          "A_objects_area_fraction": 0.11973851919174194,
+          "changed_centroid_xy": [
+            0.503,
+            0.431
+          ],
+          "donor_centroid_xy": [
+            0.439,
+            0.577
+          ]
+        }
+      }
+    },
+    {
+      "prompt": "Put the banana from image 2 into image 1.",
+      "image1_id": 776,
+      "image2_id": 3661,
+      "image1_categories": [
+        "teddy bear",
+        "teddy bear",
+        "teddy bear",
+        "couch"
+      ],
+      "selected_object": {
+        "index": 0,
+        "category": "banana"
+      },
+      "stats": {
+        "add": {
+          "donor_mask_area_fraction": 0.3088727593421936,
+          "donor_location_iou": 0.0691225165562914,
+          "energy_in_donor_mask": 0.08924927562475204,
+          "energy_in_A_objects": 0.5241061449050903,
+          "A_objects_area_fraction": 0.7558194994926453,
+          "changed_centroid_xy": [
+            0.625,
+            0.36
+          ],
+          "donor_centroid_xy": [
+            0.426,
+            0.681
+          ]
+        },
+        "object_on_A_bg": {
+          "donor_mask_area_fraction": 0.3088727593421936,
+          "donor_location_iou": 0.13830334190231364,
+          "energy_in_donor_mask": 0.20958192646503448,
+          "energy_in_A_objects": 0.6880822777748108,
+          "A_objects_area_fraction": 0.7558194994926453,
+          "changed_centroid_xy": [
+            0.55,
+            0.463
+          ],
+          "donor_centroid_xy": [
+            0.426,
+            0.681
+          ]
+        }
+      }
+    },
+    {
+      "prompt": "Put the couch from image 2 into image 1.",
+      "image1_id": 785,
+      "image2_id": 3934,
+      "image1_categories": [
+        "person",
+        "skis"
+      ],
+      "selected_object": {
+        "index": 1,
+        "category": "couch"
+      },
+      "stats": {
+        "add": {
+          "donor_mask_area_fraction": 0.14853714406490326,
+          "donor_location_iou": 0.391393633902735,
+          "energy_in_donor_mask": 0.7432680726051331,
+          "energy_in_A_objects": 0.3371102213859558,
+          "A_objects_area_fraction": 0.1584223508834839,
+          "changed_centroid_xy": [
+            0.781,
+            0.616
+          ],
+          "donor_centroid_xy": [
+            0.766,
+            0.585
+          ]
+        },
+        "object_on_A_bg": {
+          "donor_mask_area_fraction": 0.14853714406490326,
+          "donor_location_iou": 0.33458680275763275,
+          "energy_in_donor_mask": 0.6542717814445496,
+          "energy_in_A_objects": 0.28087863326072693,
+          "A_objects_area_fraction": 0.1584223508834839,
+          "changed_centroid_xy": [
+            0.761,
+            0.627
+          ],
+          "donor_centroid_xy": [
+            0.766,
+            0.585
+          ]
+        }
+      }
+    },
+    {
+      "prompt": "Put the kite from image 2 into image 1.",
+      "image1_id": 802,
+      "image2_id": 7784,
+      "image1_categories": [
+        "refrigerator",
+        "oven"
+      ],
+      "selected_object": {
+        "index": 0,
+        "category": "kite"
+      },
+      "stats": {
+        "add": {
+          "donor_mask_area_fraction": 0.18076370656490326,
+          "donor_location_iou": 0.38431013431013433,
+          "energy_in_donor_mask": 0.6944507956504822,
+          "energy_in_A_objects": 0.47233590483665466,
+          "A_objects_area_fraction": 0.4428810477256775,
+          "changed_centroid_xy": [
+            0.428,
+            0.416
+          ],
+          "donor_centroid_xy": [
+            0.421,
+            0.473
+          ]
+        },
+        "object_on_A_bg": {
+          "donor_mask_area_fraction": 0.18076370656490326,
+          "donor_location_iou": 0.297011297011297,
+          "energy_in_donor_mask": 0.4628382921218872,
+          "energy_in_A_objects": 0.7223188281059265,
+          "A_objects_area_fraction": 0.4428810477256775,
+          "changed_centroid_xy": [
+            0.468,
+            0.528
+          ],
+          "donor_centroid_xy": [
+            0.421,
+            0.473
+          ]
+        }
+      }
+    },
+    {
+      "prompt": "Put the banana from image 2 into image 1.",
+      "image1_id": 872,
+      "image2_id": 12667,
+      "image1_categories": [
+        "person",
+        "person",
+        "baseball glove"
+      ],
+      "selected_object": {
+        "index": 0,
+        "category": "banana"
+      },
+      "stats": {
+        "add": {
+          "donor_mask_area_fraction": 0.05843431130051613,
+          "donor_location_iou": 0.23012376756870148,
+          "energy_in_donor_mask": 0.3620130121707916,
+          "energy_in_A_objects": 0.5512361526489258,
+          "A_objects_area_fraction": 0.1483777016401291,
+          "changed_centroid_xy": [
+            0.528,
+            0.352
+          ],
+          "donor_centroid_xy": [
+            0.534,
+            0.334
+          ]
+        },
+        "object_on_A_bg": {
+          "donor_mask_area_fraction": 0.05843431130051613,
+          "donor_location_iou": 0.22909243345210648,
+          "energy_in_donor_mask": 0.28706371784210205,
+          "energy_in_A_objects": 0.4987201392650604,
+          "A_objects_area_fraction": 0.1483777016401291,
+          "changed_centroid_xy": [
+            0.513,
+            0.454
+          ],
+          "donor_centroid_xy": [
+            0.534,
+            0.334
+          ]
+        }
+      }
+    },
+    {
+      "prompt": "Put the truck from image 2 into image 1.",
+      "image1_id": 885,
+      "image2_id": 9769,
+      "image1_categories": [
+        "person",
+        "person",
+        "tennis racket",
+        "person",
+        "person",
+        "person",
+        "person"
+      ],
+      "selected_object": {
+        "index": 0,
+        "category": "truck"
+      },
+      "stats": {
+        "add": {
+          "donor_mask_area_fraction": 0.1981823891401291,
+          "donor_location_iou": 0.26353240152477764,
+          "energy_in_donor_mask": 0.6921221613883972,
+          "energy_in_A_objects": 0.28235816955566406,
+          "A_objects_area_fraction": 0.08739237487316132,
+          "changed_centroid_xy": [
+            0.507,
+            0.434
+          ],
+          "donor_centroid_xy": [
+            0.441,
+            0.582
+          ]
+        },
+        "object_on_A_bg": {
+          "donor_mask_area_fraction": 0.1981823891401291,
+          "donor_location_iou": 0.2978334638475594,
+          "energy_in_donor_mask": 0.5676738023757935,
+          "energy_in_A_objects": 0.39347076416015625,
+          "A_objects_area_fraction": 0.08739237487316132,
+          "changed_centroid_xy": [
+            0.515,
+            0.502
+          ],
+          "donor_centroid_xy": [
+            0.441,
+            0.582
+          ]
+        }
+      }
+    },
+    {
+      "prompt": "Put the bowl from image 2 into image 1.",
+      "image1_id": 1000,
+      "image2_id": 8277,
+      "image1_categories": [
+        "person",
+        "person",
+        "person",
+        "person",
+        "person",
+        "person",
+        "person",
+        "person",
+        "person",
+        "person",
+        "person",
+        "tennis racket"
+      ],
+      "selected_object": {
+        "index": 0,
+        "category": "bowl"
+      },
+      "stats": {
+        "add": {
+          "donor_mask_area_fraction": 0.14303651452064514,
+          "donor_location_iou": 0.10347478474784748,
+          "energy_in_donor_mask": 0.15148639678955078,
+          "energy_in_A_objects": 0.5220637321472168,
+          "A_objects_area_fraction": 0.35174185037612915,
+          "changed_centroid_xy": [
+            0.412,
+            0.487
+          ],
+          "donor_centroid_xy": [
+            0.384,
+            0.302
+          ]
+        },
+        "object_on_A_bg": {
+          "donor_mask_area_fraction": 0.14303651452064514,
+          "donor_location_iou": 0.10944504560210233,
+          "energy_in_donor_mask": 0.20950575172901154,
+          "energy_in_A_objects": 0.6455561518669128,
+          "A_objects_area_fraction": 0.35174185037612915,
+          "changed_centroid_xy": [
+            0.527,
+            0.542
+          ],
+          "donor_centroid_xy": [
+            0.384,
+            0.302
+          ]
+        }
+      }
+    }
+  ],
+  "elapsed_sec": 169.7
+}

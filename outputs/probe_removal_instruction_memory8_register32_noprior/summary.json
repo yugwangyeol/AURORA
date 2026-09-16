@@ -1,0 +1,1368 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000",
+  "num_images": 8,
+  "writer_replication_max_relative_error": 0.0,
+  "removal_aggregate": {
+    "remove_set": {
+      "siglip_cos_to_recon_inside": 0.5931,
+      "siglip_cos_to_recon_outside": 0.8087,
+      "recaption_mentions_object": 0.875
+    },
+    "remove_caption": {
+      "siglip_cos_to_recon_inside": 0.674,
+      "siglip_cos_to_recon_outside": 0.7874,
+      "recaption_mentions_object": 0.875
+    },
+    "remove_masked_pred": {
+      "siglip_cos_to_recon_inside": 0.3932,
+      "siglip_cos_to_recon_outside": 0.7058,
+      "recaption_mentions_object": 0.5
+    },
+    "remove_masked_pred_dil": {
+      "siglip_cos_to_recon_inside": 0.3255,
+      "siglip_cos_to_recon_outside": 0.6485,
+      "recaption_mentions_object": 0.5
+    },
+    "remove_masked_gt": {
+      "siglip_cos_to_recon_inside": 0.4234,
+      "siglip_cos_to_recon_outside": 0.7381,
+      "recaption_mentions_object": 0.75
+    },
+    "remove_prior": {
+      "siglip_cos_to_recon_inside": 0.4631,
+      "siglip_cos_to_recon_outside": 0.7025,
+      "recaption_mentions_object": 0.75
+    },
+    "recon_prior": {
+      "siglip_cos_to_recon_inside": 0.8163,
+      "siglip_cos_to_recon_outside": 0.7838,
+      "recaption_mentions_object": 0.875
+    },
+    "recon": {
+      "siglip_cos_to_recon_inside": null,
+      "siglip_cos_to_recon_outside": null,
+      "recaption_mentions_object": 0.875
+    }
+  },
+  "instruction_aggregate": {
+    "default": {
+      "mentions_object": 0.875,
+      "object_count": 6.375,
+      "format_valid": 0.875,
+      "siglip_cos_to_default_render_inside": null,
+      "siglip_cos_to_default_render_outside": null
+    },
+    "instr_do_not_include": {
+      "mentions_object": 1.0,
+      "object_count": 5.375,
+      "format_valid": 0.875,
+      "siglip_cos_to_default_render_inside": 0.7983,
+      "siglip_cos_to_default_render_outside": 0.7998
+    },
+    "instr_except": {
+      "mentions_object": 1.0,
+      "object_count": 5.875,
+      "format_valid": 0.875,
+      "siglip_cos_to_default_render_inside": 0.8207,
+      "siglip_cos_to_default_render_outside": 0.8144
+    }
+  },
+  "removal_records": [
+    {
+      "image_id": 632,
+      "object": "bed",
+      "k": 0,
+      "area_16x16": 0.217,
+      "masks_patches": {
+        "pred": 235,
+        "pred_dil": 271,
+        "gt": 212
+      },
+      "conditions": {
+        "remove_set": {
+          "siglip_cos_to_recon_inside": 0.7144082188606262,
+          "siglip_cos_to_recon_outside": 0.933980405330658,
+          "recaption_names": [
+            "bed",
+            "potted plant",
+            "potted plant",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_caption": {
+          "siglip_cos_to_recon_inside": 0.7198667526245117,
+          "siglip_cos_to_recon_outside": 0.8897139430046082,
+          "recaption_names": [
+            "bed",
+            "potted plant",
+            "potted plant",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_pred": {
+          "siglip_cos_to_recon_inside": 0.36907726526260376,
+          "siglip_cos_to_recon_outside": 0.8077312707901001,
+          "recaption_names": [
+            "couch",
+            "chair",
+            "potted plant",
+            "potted plant",
+            "book",
+            "potted plant",
+            "book",
+            "potted plant",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book"
+          ],
+          "recaption_mentions_object": false
+        },
+        "remove_masked_pred_dil": {
+          "siglip_cos_to_recon_inside": 0.33074718713760376,
+          "siglip_cos_to_recon_outside": 0.7712913155555725,
+          "recaption_names": [
+            "potted plant",
+            "potted plant",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book"
+          ],
+          "recaption_mentions_object": false
+        },
+        "remove_masked_gt": {
+          "siglip_cos_to_recon_inside": 0.5487963557243347,
+          "siglip_cos_to_recon_outside": 0.8757929801940918,
+          "recaption_names": [
+            "bed",
+            "potted plant",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_prior": {
+          "siglip_cos_to_recon_inside": 0.5979000926017761,
+          "siglip_cos_to_recon_outside": 0.8191384077072144,
+          "recaption_names": [
+            "bed",
+            "potted plant",
+            "book",
+            "book",
+            "book",
+            "potted plant",
+            "potted plant",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book"
+          ],
+          "recaption_mentions_object": true
+        },
+        "recon_prior": {
+          "siglip_cos_to_recon_inside": 0.8091717958450317,
+          "siglip_cos_to_recon_outside": 0.8415719270706177,
+          "recaption_names": [
+            "bed",
+            "potted plant",
+            "book",
+            "book",
+            "potted plant",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book"
+          ],
+          "recaption_mentions_object": true
+        },
+        "recon": {
+          "recaption_names": [
+            "bed",
+            "potted plant",
+            "book",
+            "book",
+            "potted plant",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book"
+          ],
+          "recaption_mentions_object": true
+        }
+      }
+    },
+    {
+      "image_id": 724,
+      "object": "stop sign",
+      "k": 0,
+      "area_16x16": 0.116,
+      "masks_patches": {
+        "pred": 122,
+        "pred_dil": 179,
+        "gt": 123
+      },
+      "conditions": {
+        "remove_set": {
+          "siglip_cos_to_recon_inside": 0.418192595243454,
+          "siglip_cos_to_recon_outside": 0.7366867661476135,
+          "recaption_names": [
+            "stop sign",
+            "person"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_caption": {
+          "siglip_cos_to_recon_inside": 0.8552373647689819,
+          "siglip_cos_to_recon_outside": 0.8131066560745239,
+          "recaption_names": [
+            "stop sign"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_pred": {
+          "siglip_cos_to_recon_inside": 0.23704439401626587,
+          "siglip_cos_to_recon_outside": 0.6670559644699097,
+          "recaption_names": [
+            "bench",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person"
+          ],
+          "recaption_mentions_object": false
+        },
+        "remove_masked_pred_dil": {
+          "siglip_cos_to_recon_inside": 0.2061731517314911,
+          "siglip_cos_to_recon_outside": 0.6309286952018738,
+          "recaption_names": [
+            "person",
+            "person",
+            "person",
+            "person"
+          ],
+          "recaption_mentions_object": false
+        },
+        "remove_masked_gt": {
+          "siglip_cos_to_recon_inside": 0.238703191280365,
+          "siglip_cos_to_recon_outside": 0.6698988080024719,
+          "recaption_names": [
+            "bench",
+            "person",
+            "person",
+            "person",
+            "person"
+          ],
+          "recaption_mentions_object": false
+        },
+        "remove_prior": {
+          "siglip_cos_to_recon_inside": 0.22018678486347198,
+          "siglip_cos_to_recon_outside": 0.6401170492172241,
+          "recaption_names": [
+            "car"
+          ],
+          "recaption_mentions_object": false
+        },
+        "recon_prior": {
+          "siglip_cos_to_recon_inside": 0.9023891091346741,
+          "siglip_cos_to_recon_outside": 0.7932184934616089,
+          "recaption_names": [
+            "stop sign"
+          ],
+          "recaption_mentions_object": true
+        },
+        "recon": {
+          "recaption_names": [
+            "stop sign"
+          ],
+          "recaption_mentions_object": true
+        }
+      }
+    },
+    {
+      "image_id": 776,
+      "object": "teddy bear",
+      "k": 1,
+      "area_16x16": 0.323,
+      "masks_patches": {
+        "pred": 463,
+        "pred_dil": 546,
+        "gt": 327
+      },
+      "conditions": {
+        "remove_set": {
+          "siglip_cos_to_recon_inside": 0.7043629288673401,
+          "siglip_cos_to_recon_outside": 0.8120623826980591,
+          "recaption_names": [
+            "teddy bear",
+            "teddy bear",
+            "teddy bear"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_caption": {
+          "siglip_cos_to_recon_inside": 0.6825246810913086,
+          "siglip_cos_to_recon_outside": 0.7663044929504395,
+          "recaption_names": [
+            "teddy bear",
+            "teddy bear",
+            "teddy bear"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_pred": {
+          "siglip_cos_to_recon_inside": 0.4924179017543793,
+          "siglip_cos_to_recon_outside": 0.6102566719055176,
+          "recaption_names": [
+            "teddy bear",
+            "teddy bear",
+            "teddy bear"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_pred_dil": {
+          "siglip_cos_to_recon_inside": 0.3554796278476715,
+          "siglip_cos_to_recon_outside": 0.5650134682655334,
+          "recaption_names": [
+            "teddy bear",
+            "teddy bear",
+            "teddy bear"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_gt": {
+          "siglip_cos_to_recon_inside": 0.4255438446998596,
+          "siglip_cos_to_recon_outside": 0.6830317974090576,
+          "recaption_names": [
+            "teddy bear",
+            "teddy bear",
+            "teddy bear"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_prior": {
+          "siglip_cos_to_recon_inside": 0.5879865884780884,
+          "siglip_cos_to_recon_outside": 0.6613863110542297,
+          "recaption_names": [
+            "teddy bear",
+            "teddy bear",
+            "teddy bear",
+            "teddy bear",
+            "teddy bear",
+            "teddy bear"
+          ],
+          "recaption_mentions_object": true
+        },
+        "recon_prior": {
+          "siglip_cos_to_recon_inside": 0.797048032283783,
+          "siglip_cos_to_recon_outside": 0.6904693245887756,
+          "recaption_names": [
+            "teddy bear",
+            "teddy bear",
+            "teddy bear",
+            "teddy bear"
+          ],
+          "recaption_mentions_object": true
+        },
+        "recon": {
+          "recaption_names": [
+            "teddy bear",
+            "teddy bear",
+            "teddy bear"
+          ],
+          "recaption_mentions_object": true
+        }
+      }
+    },
+    {
+      "image_id": 785,
+      "object": "person",
+      "k": 0,
+      "area_16x16": 0.159,
+      "masks_patches": {
+        "pred": 193,
+        "pred_dil": 300,
+        "gt": 162
+      },
+      "conditions": {
+        "remove_set": {
+          "siglip_cos_to_recon_inside": 0.6932156682014465,
+          "siglip_cos_to_recon_outside": 0.7737603187561035,
+          "recaption_names": [
+            "person",
+            "skis"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_caption": {
+          "siglip_cos_to_recon_inside": 0.6664004325866699,
+          "siglip_cos_to_recon_outside": 0.7572481632232666,
+          "recaption_names": [
+            "person",
+            "skis"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_pred": {
+          "siglip_cos_to_recon_inside": 0.5414687991142273,
+          "siglip_cos_to_recon_outside": 0.6521941423416138,
+          "recaption_names": [
+            "person",
+            "skis"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_pred_dil": {
+          "siglip_cos_to_recon_inside": 0.4578918516635895,
+          "siglip_cos_to_recon_outside": 0.5707963109016418,
+          "recaption_names": [
+            "person",
+            "skis"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_gt": {
+          "siglip_cos_to_recon_inside": 0.6603549122810364,
+          "siglip_cos_to_recon_outside": 0.7089661359786987,
+          "recaption_names": [
+            "person",
+            "skis"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_prior": {
+          "siglip_cos_to_recon_inside": 0.6020490527153015,
+          "siglip_cos_to_recon_outside": 0.6991637945175171,
+          "recaption_names": [
+            "person",
+            "skis"
+          ],
+          "recaption_mentions_object": true
+        },
+        "recon_prior": {
+          "siglip_cos_to_recon_inside": 0.8885995149612427,
+          "siglip_cos_to_recon_outside": 0.8246575593948364,
+          "recaption_names": [
+            "person",
+            "skis"
+          ],
+          "recaption_mentions_object": true
+        },
+        "recon": {
+          "recaption_names": [
+            "person",
+            "skis"
+          ],
+          "recaption_mentions_object": true
+        }
+      }
+    },
+    {
+      "image_id": 802,
+      "object": "refrigerator",
+      "k": 0,
+      "area_16x16": 0.298,
+      "masks_patches": {
+        "pred": 326,
+        "pred_dil": 400,
+        "gt": 303
+      },
+      "conditions": {
+        "remove_set": {
+          "siglip_cos_to_recon_inside": 0.5850473046302795,
+          "siglip_cos_to_recon_outside": 0.8271607756614685,
+          "recaption_names": [
+            "refrigerator",
+            "oven",
+            "oven"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_caption": {
+          "siglip_cos_to_recon_inside": 0.5722959637641907,
+          "siglip_cos_to_recon_outside": 0.8000722527503967,
+          "recaption_names": [
+            "refrigerator",
+            "oven"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_pred": {
+          "siglip_cos_to_recon_inside": 0.3481024205684662,
+          "siglip_cos_to_recon_outside": 0.7594968676567078,
+          "recaption_names": [
+            "oven",
+            "microwave"
+          ],
+          "recaption_mentions_object": false
+        },
+        "remove_masked_pred_dil": {
+          "siglip_cos_to_recon_inside": 0.313435822725296,
+          "siglip_cos_to_recon_outside": 0.717205286026001,
+          "recaption_names": [
+            "oven"
+          ],
+          "recaption_mentions_object": false
+        },
+        "remove_masked_gt": {
+          "siglip_cos_to_recon_inside": 0.3521345555782318,
+          "siglip_cos_to_recon_outside": 0.7563082575798035,
+          "recaption_names": [
+            "oven",
+            "refrigerator"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_prior": {
+          "siglip_cos_to_recon_inside": 0.3632756769657135,
+          "siglip_cos_to_recon_outside": 0.7548375725746155,
+          "recaption_names": [
+            "refrigerator",
+            "oven"
+          ],
+          "recaption_mentions_object": true
+        },
+        "recon_prior": {
+          "siglip_cos_to_recon_inside": 0.7335801720619202,
+          "siglip_cos_to_recon_outside": 0.8127501606941223,
+          "recaption_names": [
+            "refrigerator",
+            "oven",
+            "clock"
+          ],
+          "recaption_mentions_object": true
+        },
+        "recon": {
+          "recaption_names": [
+            "refrigerator",
+            "oven"
+          ],
+          "recaption_mentions_object": true
+        }
+      }
+    },
+    {
+      "image_id": 872,
+      "object": "person",
+      "k": 0,
+      "area_16x16": 0.124,
+      "masks_patches": {
+        "pred": 161,
+        "pred_dil": 264,
+        "gt": 128
+      },
+      "conditions": {
+        "remove_set": {
+          "siglip_cos_to_recon_inside": 0.600203275680542,
+          "siglip_cos_to_recon_outside": 0.8003721833229065,
+          "recaption_names": [
+            "person",
+            "person",
+            "baseball glove"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_caption": {
+          "siglip_cos_to_recon_inside": 0.815436601638794,
+          "siglip_cos_to_recon_outside": 0.8071977496147156,
+          "recaption_names": [
+            "person",
+            "person",
+            "baseball glove"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_pred": {
+          "siglip_cos_to_recon_inside": 0.4944242238998413,
+          "siglip_cos_to_recon_outside": 0.7033811807632446,
+          "recaption_names": [
+            "person",
+            "baseball glove"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_pred_dil": {
+          "siglip_cos_to_recon_inside": 0.3710382282733917,
+          "siglip_cos_to_recon_outside": 0.5726562738418579,
+          "recaption_names": [
+            "person",
+            "person",
+            "baseball glove"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_gt": {
+          "siglip_cos_to_recon_inside": 0.5184329152107239,
+          "siglip_cos_to_recon_outside": 0.7662333250045776,
+          "recaption_names": [
+            "person",
+            "person",
+            "baseball glove"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_prior": {
+          "siglip_cos_to_recon_inside": 0.5179105401039124,
+          "siglip_cos_to_recon_outside": 0.7075250148773193,
+          "recaption_names": [
+            "person",
+            "person",
+            "baseball glove"
+          ],
+          "recaption_mentions_object": true
+        },
+        "recon_prior": {
+          "siglip_cos_to_recon_inside": 0.856624960899353,
+          "siglip_cos_to_recon_outside": 0.8255599141120911,
+          "recaption_names": [
+            "person",
+            "person",
+            "baseball glove"
+          ],
+          "recaption_mentions_object": true
+        },
+        "recon": {
+          "recaption_names": [
+            "person",
+            "person",
+            "baseball glove"
+          ],
+          "recaption_mentions_object": true
+        }
+      }
+    },
+    {
+      "image_id": 1353,
+      "object": "bench",
+      "k": 0,
+      "area_16x16": 0.102,
+      "masks_patches": {
+        "pred": 106,
+        "pred_dil": 139,
+        "gt": 107
+      },
+      "conditions": {
+        "remove_set": {
+          "siglip_cos_to_recon_inside": 0.4612770676612854,
+          "siglip_cos_to_recon_outside": 0.7894970774650574,
+          "recaption_names": [
+            "chair",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person"
+          ],
+          "recaption_mentions_object": false
+        },
+        "remove_caption": {
+          "siglip_cos_to_recon_inside": 0.5028688907623291,
+          "siglip_cos_to_recon_outside": 0.6925926208496094,
+          "recaption_names": [
+            "train",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person"
+          ],
+          "recaption_mentions_object": false
+        },
+        "remove_masked_pred": {
+          "siglip_cos_to_recon_inside": 0.2650856673717499,
+          "siglip_cos_to_recon_outside": 0.6469656229019165,
+          "recaption_names": [
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person"
+          ],
+          "recaption_mentions_object": false
+        },
+        "remove_masked_pred_dil": {
+          "siglip_cos_to_recon_inside": 0.23985792696475983,
+          "siglip_cos_to_recon_outside": 0.6560941338539124,
+          "recaption_names": [
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person"
+          ],
+          "recaption_mentions_object": false
+        },
+        "remove_masked_gt": {
+          "siglip_cos_to_recon_inside": 0.2691788077354431,
+          "siglip_cos_to_recon_outside": 0.6414784789085388,
+          "recaption_names": [
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person"
+          ],
+          "recaption_mentions_object": false
+        },
+        "remove_prior": {
+          "siglip_cos_to_recon_inside": 0.3603379726409912,
+          "siglip_cos_to_recon_outside": 0.6138207316398621,
+          "recaption_names": [
+            "chair",
+            "person",
+            "person",
+            "person",
+            "person",
+            "chair",
+            "person"
+          ],
+          "recaption_mentions_object": false
+        },
+        "recon_prior": {
+          "siglip_cos_to_recon_inside": 0.7686854004859924,
+          "siglip_cos_to_recon_outside": 0.7039076089859009,
+          "recaption_names": [
+            "person",
+            "person",
+            "person",
+            "person"
+          ],
+          "recaption_mentions_object": false
+        },
+        "recon": {
+          "recaption_names": [
+            "person",
+            "person",
+            "person",
+            "person",
+            "person"
+          ],
+          "recaption_mentions_object": false
+        }
+      }
+    },
+    {
+      "image_id": 1503,
+      "object": "tv",
+      "k": 1,
+      "area_16x16": 0.156,
+      "masks_patches": {
+        "pred": 166,
+        "pred_dil": 226,
+        "gt": 164
+      },
+      "conditions": {
+        "remove_set": {
+          "siglip_cos_to_recon_inside": 0.5677103996276855,
+          "siglip_cos_to_recon_outside": 0.7962892055511475,
+          "recaption_names": [
+            "tv",
+            "keyboard",
+            "laptop",
+            "keyboard",
+            "mouse"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_caption": {
+          "siglip_cos_to_recon_inside": 0.5777376294136047,
+          "siglip_cos_to_recon_outside": 0.7728023529052734,
+          "recaption_names": [
+            "keyboard",
+            "tv",
+            "tv",
+            "cell phone",
+            "mouse"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_pred": {
+          "siglip_cos_to_recon_inside": 0.39834579825401306,
+          "siglip_cos_to_recon_outside": 0.7996901273727417,
+          "recaption_names": [
+            "tv",
+            "keyboard",
+            "laptop",
+            "mouse"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_pred_dil": {
+          "siglip_cos_to_recon_inside": 0.32931432127952576,
+          "siglip_cos_to_recon_outside": 0.7043054699897766,
+          "recaption_names": [
+            "laptop",
+            "keyboard",
+            "tv",
+            "book",
+            "cell phone"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_masked_gt": {
+          "siglip_cos_to_recon_inside": 0.3741700053215027,
+          "siglip_cos_to_recon_outside": 0.8027742505073547,
+          "recaption_names": [
+            "tv",
+            "laptop",
+            "keyboard",
+            "tv",
+            "mouse"
+          ],
+          "recaption_mentions_object": true
+        },
+        "remove_prior": {
+          "siglip_cos_to_recon_inside": 0.45495232939720154,
+          "siglip_cos_to_recon_outside": 0.7237710356712341,
+          "recaption_names": [
+            "tv",
+            "laptop",
+            "keyboard",
+            "mouse",
+            "cell phone"
+          ],
+          "recaption_mentions_object": true
+        },
+        "recon_prior": {
+          "siglip_cos_to_recon_inside": 0.7745688557624817,
+          "siglip_cos_to_recon_outside": 0.7781916856765747,
+          "recaption_names": [
+            "tv",
+            "laptop",
+            "keyboard",
+            "tv",
+            "mouse"
+          ],
+          "recaption_mentions_object": true
+        },
+        "recon": {
+          "recaption_names": [
+            "tv",
+            "laptop",
+            "keyboard",
+            "tv",
+            "mouse"
+          ],
+          "recaption_mentions_object": true
+        }
+      }
+    }
+  ],
+  "instruction_records": [
+    {
+      "image_id": 632,
+      "object": "bed",
+      "variants": {
+        "default": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>.<|im_end|>\n",
+          "caption": "<thing> Bed 1: A large blue bed with a wooden headboard, covered by a neatly made blue comforter. <ovt>. <thing> Potted plant 1: A green plant in a pot placed on the windowsill receiving sunlight. <ovt>. <thing> Potted plant 2: Another green plant placed on top of cabinet adding vibrancy to space. <ovt>. <thing> Book 1: A book with a red cover, placed on the shelf. <ovt>. <thing> Book 2: A book with a yellow cover, placed on the shelf. <ovt>. <thing> Book 3: A book with a green cover, placed on the shelf. <ovt>. <thing> Potted plant 3: A green plant placed on top of cabinet. <ovt>. <thing> Book 4: A book with a blue cover, placed on the shelf. <ovt>. <thing> Book 5: A book with a purple cover, placed on the shelf. <ovt>. <thing> Book 6: A book with a brown cover, placed on the shelf. <ovt>. <thing> Book 7: A book with a gray cover, placed on the shelf. <ovt>. <thing> Book 8: A book with a gray cover, placed on the shelf. <ovt>. <thing> Book 9: A book with a red cover, placed on the shelf. <ovt>. <thing> Book 10: A book with a black cover, placed on the shelf. <ovt>. <thing> Book 11: A book with a white cover, placed on the shelf. <ovt>. <thing> Book 12: A book with a black cover, placed on the shelf. <ovt>. <thing> Book 13: A book with a white cover, placed on the shelf. <ovt>. <thing> Book 14: A book with a black cover, placed on the shelf. <ovt>. <thing> Book 15: A book with a white cover, placed on the shelf. <ovt>. <thing> Book 16: A book with a black cover, placed on the shelf. <ovt>. <thing> Book 17: A book with a white cover, placed on the shelf. <ovt>. <thing> Book 18: A book with a black cover, placed on the shelf. <ovt>. <thing> Book 19: A book with a white cover, placed on the shelf. <ovt><scene_end>",
+          "names": [
+            "bed",
+            "potted plant",
+            "potted plant",
+            "book",
+            "book",
+            "book",
+            "potted plant",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book"
+          ],
+          "mentions_object": true,
+          "object_count": 23,
+          "format_valid": false
+        },
+        "instr_do_not_include": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Do not include the bed in the description.<|im_end|>\n",
+          "caption": "<thing> Bed 1: The bed is covered with a blue comforter, it appears soft and well-used, positioned near the window. <ovt>. <thing> Couch 1: A couch with pillows sits adjacent to the bed offering additional seating space in this cozy room. <ovt>. <thing> Potted plant 1: A green plant in a pot sits on top of cabinet adding a touch of nature to this indoor setting. <ovt>. <thing> Book 1: A book with a red cover sits on the shelf, its pages are white and it appears to be a novel. <ovt>. <thing> Book 2: A book with a green cover sits on the shelf, its pages are white and it appears to be a novel. <ovt>. <thing> Book 3: A book with a yellow cover sits on the shelf, its pages are white and it appears to be a novel. <ovt>. <thing> Book 4: A book with a purple cover sits on the shelf, its pages are white and it appears to be a novel. <ovt>. <thing> Book 5: A book with a blue cover sits on the shelf, its pages are white and it appears to be a novel. <ovt>. <thing> Book 6: A book with a brown cover sits on the shelf, its pages are white and it appears to be a novel. <ovt>. <thing> Book 7: A book with a brown cover sits on the shelf, its pages are white and it appears to be a novel. <ovt>. <thing> Book 8: A book with a brown cover sits on the shelf, its pages are white and it appears to be a novel. <ovt>. <thing> Book 9: A book with a brown cover sits on the shelf, its pages are white and it appears to be a novel. <ovt>. <thing> Book 10: A book with a brown cover sits on the shelf, its pages are white and it appears to be a novel. <ovt>. <thing> Book 11: A book with a brown cover sits on the shelf, its pages are white and it appears to be a novel. <ovt>. <thing> Book 12: A book with a brown cover sits on the shelf, its pages are white and it appears to be a novel. <ovt>. <thing> Book 13: A book with a brown cover sits on the shelf, its pages are white and it appears to be a novel. <ovt><scene_end>",
+          "names": [
+            "bed",
+            "couch",
+            "potted plant",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book"
+          ],
+          "mentions_object": true,
+          "object_count": 16,
+          "format_valid": false,
+          "siglip_cos_to_default_render_inside": 0.7143552303314209,
+          "siglip_cos_to_default_render_outside": 0.8390159010887146
+        },
+        "instr_except": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Exclude the bed.<|im_end|>\n",
+          "caption": "<thing> Bed 1: A large bed covered with a blue quilt, it appears comfortable and inviting, the quilt is neatly spread and looks plush. <ovt>. <thing> Potted plant 1: A green plant in a pot placed on top of the shelf receiving sunlight from window. <ovt>. <thing> Book 1: A book with a green cover and a red spine, it is lying flat on the floor. <ovt>. <thing> Potted plant 2: A small potted plant placed on top of shelf receiving sunlight from window. <ovt>. <thing> Book 3: A book with a black cover and a white spine, it is lying flat on the shelf. <ovt>. <thing> Book 4: A book with a yellow cover and a white spine, it is lying flat on the shelf. <ovt>. <thing> Book 5: A book with a purple cover and a white spine, it is lying flat on the shelf. <ovt>. <thing> Book 6: A book with a blue cover and a white spine, it is lying flat on the shelf. <ovt>. <thing> Book 7: A book with a brown cover and a white spine, it is lying flat on the shelf. <ovt>. <thing> Book 8: A book with a red cover and a white spine, it is lying flat on the shelf. <ovt>. <thing> Book 9: A book with a green cover and a white spine, it is lying flat on the shelf. <ovt>. <thing> Book 10: A book with a blue cover and a white spine, it is lying flat on the shelf. <ovt>. <thing> Book 11: A book with a yellow cover and a white spine, it is lying flat on the shelf. <ovt>. <thing> Book 12: A book with a red cover and a white spine, it is lying flat on the shelf. <ovt>. <thing> Book 13: A book with a blue cover and a white spine, it is lying flat on the shelf. <ovt>. <thing> Book 14: A book with a green cover and a white spine, it is lying flat on the shelf. <ovt>. <thing> Book 15: A book with a yellow cover and a white spine, it is lying flat on the shelf. <ovt>. <thing> Book 16: A book with a red cover and a white spine, it is lying flat on the shelf. <ovt><scene_end>",
+          "names": [
+            "bed",
+            "potted plant",
+            "book",
+            "potted plant",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book",
+            "book"
+          ],
+          "mentions_object": true,
+          "object_count": 18,
+          "format_valid": false,
+          "siglip_cos_to_default_render_inside": 0.8237438797950745,
+          "siglip_cos_to_default_render_outside": 0.8650625348091125
+        }
+      }
+    },
+    {
+      "image_id": 724,
+      "object": "stop sign",
+      "variants": {
+        "default": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>.<|im_end|>\n",
+          "caption": "<thing> Stop sign 1: A red octagonal stop sign with bold white letters stands prominently in front of the trees, serving as a directive for traffic. The stop sign is positioned on the road, near the intersection. <ovt>. <thing> Truck 1: Partially obscured by trees but still visible, indicating that there might be more vehicles ahead. The truck is positioned on the road, near the intersection. <ovt>. <thing> Car 1: Another car parked further down the road, distinguishable from others nearby. The car is positioned on the road, near the intersection. <ovt>. <thing> Car 2: Parked adjacent to car but slightly ahead, showcasing different angles or features. The car is positioned on the road, near the intersection. <ovt>. <scene_end>",
+          "names": [
+            "stop sign",
+            "truck",
+            "car",
+            "car"
+          ],
+          "mentions_object": true,
+          "object_count": 4,
+          "format_valid": true
+        },
+        "instr_do_not_include": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Do not include the stop sign in the description.<|im_end|>\n",
+          "caption": "<thing> Stop sign 1: A red octagonal stop sign with white border and text is prominently displayed in the foreground. <ovt>. <scene_end>",
+          "names": [
+            "stop sign"
+          ],
+          "mentions_object": true,
+          "object_count": 1,
+          "format_valid": true,
+          "siglip_cos_to_default_render_inside": 0.9336623549461365,
+          "siglip_cos_to_default_render_outside": 0.7953174114227295
+        },
+        "instr_except": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Exclude the stop sign.<|im_end|>\n",
+          "caption": "<thing> Stop sign 1: This octagonal sign stands prominently in the foreground, painted in bold red with white lettering spelling \"STOP.\" It's mounted on a pole. <ovt>. <thing> Truck 1: Partially obscured by trees but appears compact and utilitarian in size. <ovt>. <scene_end>",
+          "names": [
+            "stop sign",
+            "truck"
+          ],
+          "mentions_object": true,
+          "object_count": 2,
+          "format_valid": true,
+          "siglip_cos_to_default_render_inside": 0.9290165901184082,
+          "siglip_cos_to_default_render_outside": 0.7816833853721619
+        }
+      }
+    },
+    {
+      "image_id": 776,
+      "object": "teddy bear",
+      "variants": {
+        "default": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>.<|im_end|>\n",
+          "caption": "<thing> Teddy bear 1: This teddy bear is larger, with a fluffy, cream-colored fur. Its eyes are black and shiny, and it wears a stitched nose at the center of its snout. The bear's ears are small and rounded, and it appears to be slightly tilted to its right. <ovt>. <thing> Teddy bear 2: Positioned in the middle, this teddy bear has a darker shade of cream fur. Its eyes are also black and shiny, and it wears a stitched nose in the center of its snout. The bear's ears are medium-sized and rounded, and it is slightly tilted to its left. <ovt>. <thing> Teddy bear 3: This teddy bear has a bright orange fuchsia hue. Its eyes are black and shiny, and it wears a stitched nose at the center of its snout. The bear's ears are medium-sized and rounded, and it is slightly tilted to its right. <ovt>. <thing> Teddy bear 4: This one has a darker shade of cream fur like but is distinguished by its slightly tilted position. Its eyes are black and shiny, and it wears a stitched nose at the center of its snout. The bear's ears are medium-sized and rounded, and it is slightly tilted to its left. <ovt>. <scene_end>",
+          "names": [
+            "teddy bear",
+            "teddy bear",
+            "teddy bear",
+            "teddy bear"
+          ],
+          "mentions_object": true,
+          "object_count": 4,
+          "format_valid": true
+        },
+        "instr_do_not_include": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Do not include the teddy bear in the description.<|im_end|>\n",
+          "caption": "<thing> Teddy bear 1: This teddy bear is larger, with a textured, fluffy appearance and a darker brown color. Its eyes are black and it has a round shape. <ovt>. <thing> Teddy bear 2: This teddy bear is smaller, with a lighter brown, fuzzy texture. It's nestled between the larger teddy bear and appears to be in a relaxed position. <ovt>. <thing> Teddy bear 3: This teddy bear is also large but has a lighter brown color, similar to Teddy bear but is distinguishable by its position slightly turned towards the camera. <ovt>. <thing> Teddy bear 4: This teddy bear is also large and has a darker brown coloration, contrasting with the others. Its face is turned towards the camera, giving it an alert look. <ovt>. <scene_end>",
+          "names": [
+            "teddy bear",
+            "teddy bear",
+            "teddy bear",
+            "teddy bear"
+          ],
+          "mentions_object": true,
+          "object_count": 4,
+          "format_valid": true,
+          "siglip_cos_to_default_render_inside": 0.7941699624061584,
+          "siglip_cos_to_default_render_outside": 0.7436482310295105
+        },
+        "instr_except": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Exclude the teddy bear.<|im_end|>\n",
+          "caption": "<thing> Teddy bear 1: This teddy bear is also orange but appears to be in a more relaxed position compared to others. Its arms are open, and it's slightly turned towards. <ovt>. <thing> Teddy bear 2: This teddy bear is orange and white. It has a round head with small black eyes and a nose. Its body is partially covered by another teddy bear, giving an impression that it's smaller or less dominant in size. <ovt>. <thing> Teddy bear 3: This teddy bear is predominantly orange with a lighter shade on its belly and face. It has black eyes and a nose, and it's positioned slightly tilted to the side. <ovt>. <thing> Teddy bear 4: This teddy bear has a darker orange color, almost burnt orange, with its arms around another teddy bear. <ovt>. <thing> Teddy bear 5: This one is primarily orange but has noticeable wear or staining on its upper body, giving it a distinct appearance. <ovt>. <scene_end>",
+          "names": [
+            "teddy bear",
+            "teddy bear",
+            "teddy bear",
+            "teddy bear",
+            "teddy bear"
+          ],
+          "mentions_object": true,
+          "object_count": 5,
+          "format_valid": true,
+          "siglip_cos_to_default_render_inside": 0.769065260887146,
+          "siglip_cos_to_default_render_outside": 0.7333658337593079
+        }
+      }
+    },
+    {
+      "image_id": 785,
+      "object": "person",
+      "variants": {
+        "default": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>.<|im_end|>\n",
+          "caption": "<thing> Person 1: A person is captured mid-motion while skiing. They are wearing a red jacket with black sleeves, black pants, sunglasses, gloves, and a beanie with stripes. Their face is partially obscured by the goggles. <ovt>. <thing> Skis 1: The skis are white and appear to be in motion, cutting through the snow creating a path behind them. <ovt>. <scene_end>",
+          "names": [
+            "person",
+            "skis"
+          ],
+          "mentions_object": true,
+          "object_count": 2,
+          "format_valid": true
+        },
+        "instr_do_not_include": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Do not include the person in the description.<|im_end|>\n",
+          "caption": "<thing> Person 1: A person is captured mid-motion while skiing. They are wearing a red jacket with black sleeves, black pants, sunglasses, and a white beanie that covers their entire head. They are holding onto black ski poles that are angled slightly backward. <ovt>. <thing> Skis 1: The skis are white with black bindings securing the person's boots to them. They are gliding on top of the snow, leaving behind tracks behind them. <ovt>. <scene_end>",
+          "names": [
+            "person",
+            "skis"
+          ],
+          "mentions_object": true,
+          "object_count": 2,
+          "format_valid": true,
+          "siglip_cos_to_default_render_inside": 0.9194192886352539,
+          "siglip_cos_to_default_render_outside": 0.8743736743927002
+        },
+        "instr_except": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Exclude the person.<|im_end|>\n",
+          "caption": "<thing> Person 1: A person is captured mid-motion while skiing. They are wearing a red jacket with black sleeves, a black beanie, sunglasses, and dark pants. They are holding onto ski poles with white handles and black grips. <ovt>. <thing> Skis 1: The skis are light blue in color and are attached to the person's feet, showing them in action on the snow. <ovt>. <scene_end>",
+          "names": [
+            "person",
+            "skis"
+          ],
+          "mentions_object": true,
+          "object_count": 2,
+          "format_valid": true,
+          "siglip_cos_to_default_render_inside": 0.9485098123550415,
+          "siglip_cos_to_default_render_outside": 0.8848481178283691
+        }
+      }
+    },
+    {
+      "image_id": 802,
+      "object": "refrigerator",
+      "variants": {
+        "default": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>.<|im_end|>\n",
+          "caption": "<thing> Refrigerator 1: A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser. <ovt>. <thing> Oven 1: An oven is embedded in the countertop to the left of the refrigerator. It has multiple dials for temperature control and burners on top and is white in color. <ovt>. <scene_end>",
+          "names": [
+            "refrigerator",
+            "oven"
+          ],
+          "mentions_object": true,
+          "object_count": 2,
+          "format_valid": true
+        },
+        "instr_do_not_include": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Do not include the refrigerator in the description.<|im_end|>\n",
+          "caption": "<thing> Refrigerator 1: A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on its door for opening. <ovt>. <thing> Oven 1: An oven is embedded within the counter, it has digital controls and buttons on top for operation and is white in color contrasting with the orange wall. <ovt>. <thing> Oven 2: Another view of an oven embedded within the counter showing similar features but from another angle. <ovt>. <scene_end>",
+          "names": [
+            "refrigerator",
+            "oven",
+            "oven"
+          ],
+          "mentions_object": true,
+          "object_count": 3,
+          "format_valid": true,
+          "siglip_cos_to_default_render_inside": 0.8097789883613586,
+          "siglip_cos_to_default_render_outside": 0.8975632786750793
+        },
+        "instr_except": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Exclude the refrigerator.<|im_end|>\n",
+          "caption": "<thing> Refrigerator 1: A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser. <ovt>. <thing> Oven 1: An oven is built into the wooden cabinets, its control panel visible on the front, it's white in color matching the cabinets. <ovt>. <scene_end>",
+          "names": [
+            "refrigerator",
+            "oven"
+          ],
+          "mentions_object": true,
+          "object_count": 2,
+          "format_valid": true,
+          "siglip_cos_to_default_render_inside": 0.8537412881851196,
+          "siglip_cos_to_default_render_outside": 0.9162237644195557
+        }
+      }
+    },
+    {
+      "image_id": 872,
+      "object": "person",
+      "variants": {
+        "default": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>.<|im_end|>\n",
+          "caption": "<thing> Person 1: A player in white uniform and blue helmet is in motion, running on the dirt-merged ground towards the right side of the image. The player has a serious expression on their face and appears to be focused on the game. They are wearing black shoes and have a muscular build. <ovt>. <thing> Person 2: Another player in green uniform stands behind the first player, appearing to be in action or ready to react. The second player has a serious expression on their face and appears to be focused on the game. They are wearing a serious look. <ovt>. <thing> Baseball glove 1: The second player holds a brown baseball glove in their hand raised slightly upwards near their face. The glove appears to be well-worn and has a natural leather texture. <ovt>. <scene_end>",
+          "names": [
+            "person",
+            "person",
+            "baseball glove"
+          ],
+          "mentions_object": true,
+          "object_count": 3,
+          "format_valid": true
+        },
+        "instr_do_not_include": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Do not include the person in the description.<|im_end|>\n",
+          "caption": "<thing> Person 1: A person wearing a white uniform with grey pants, a blue cap, and is in motion, possibly running or jumping. <ovt>. <thing> Person 2: This individual is wearing a green uniform and helmet, holding a baseball glove, and appears to be catching or fielding the ball. <ovt>. <thing> Baseball glove 1: Held by person; it's brown leather surface contrasts against their green cap. <ovt>. <scene_end>",
+          "names": [
+            "person",
+            "person",
+            "baseball glove"
+          ],
+          "mentions_object": true,
+          "object_count": 3,
+          "format_valid": true,
+          "siglip_cos_to_default_render_inside": 0.8909336924552917,
+          "siglip_cos_to_default_render_outside": 0.858751654624939
+        },
+        "instr_except": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Exclude the person.<|im_end|>\n",
+          "caption": "<thing> Person 1: A person wearing a white uniform with grey pants, equipped with a helmet and baseball gloves, appears to be in motion, possibly running or jumping. <ovt>. <thing> Person 2: This person is wearing green attire and appears to be stationary or moving slowly compared to person, holding a baseball glove in their right hand. <ovt>. <thing> Baseball glove 1: The glove is worn by person; it's brownish leather, appears well-worn but in good condition, and is open towards someone. <ovt>. <scene_end>",
+          "names": [
+            "person",
+            "person",
+            "baseball glove"
+          ],
+          "mentions_object": true,
+          "object_count": 3,
+          "format_valid": true,
+          "siglip_cos_to_default_render_inside": 0.9139246940612793,
+          "siglip_cos_to_default_render_outside": 0.8824467658996582
+        }
+      }
+    },
+    {
+      "image_id": 1353,
+      "object": "bench",
+      "variants": {
+        "default": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>.<|im_end|>\n",
+          "caption": "<thing> Person 1: A child wearing a black jacket and dark pants is facing forward, their hair is dark and they appear to be looking at something. <ovt>. <thing> Person 2: This person is seated inside the red toy train car, only their lower body is visible showing dark pants. <ovt>. <thing> Person 3: A child in a grey outfit sits at the front of the toy train car, their body posture suggests they are looking ahead. <ovt>. <thing> Person 4: This child is wearing a green jacket and grey pants, they are seated next to an object, facing forward but turned slightly to their right. <ovt>. <thing> Person 5: Dressed in a blue outfit, this child sits beside person, both are inside the toy train car. <ovt>. <thing> Train 1: A colorful toy train car in red and yellow hues sits on a yellow floor. <ovt>. <thing> Person 6: Wearing a yellow outfit, this child is seated behind objects. <ovt>. <thing> Person 7: Dressed in purple, this child sits behind objects. <ovt>. <scene_end>",
+          "names": [
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "train",
+            "person",
+            "person"
+          ],
+          "mentions_object": false,
+          "object_count": 8,
+          "format_valid": true
+        },
+        "instr_do_not_include": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Do not include the bench in the description.<|im_end|>\n",
+          "caption": "<thing> Person 1: A child wearing a black jacket and dark pants is sitting on the left side of the red bench, their body facing forward but their head turned slightly to the right. <ovt>. <thing> Bench 1: A red bench with a shiny surface, it's equipped with metal bars for seating comfort, positioned centrally in the image. <ovt>. <thing> Person 2: This person is seated on the right side of the bench, facing forward but their head turned slightly to their right. <ovt>. <thing> Person 3: Wearing a green jacket and light-colored pants, this person is seated between persons, facing forward attentively. <ovt>. <thing> Person 4: Wearing a white shirt and dark pants, this person is seated at the front of the bench facing forward attentively. <ovt>. <thing> Person 5: Seated behind persons, this individual has a neutral expression and is also looking forward. <ovt>. <thing> Person 6: This individual is seated behind persons, partially obscured but appears focused ahead. <ovt>. <thing> Person 7: Positioned behind persons, this individual has their back turned towards us while looking forward. <ovt>. <scene_end>",
+          "names": [
+            "person",
+            "bench",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person"
+          ],
+          "mentions_object": true,
+          "object_count": 8,
+          "format_valid": true,
+          "siglip_cos_to_default_render_inside": 0.605193018913269,
+          "siglip_cos_to_default_render_outside": 0.6618049144744873
+        },
+        "instr_except": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Exclude the bench.<|im_end|>\n",
+          "caption": "<thing> Bench 1: A red and yellow bench with metal armrests is positioned on the floor, it's partially filled with people sitting on the railroad car. <ovt>. <thing> Person 1: A child wearing a black jacket and pants is sitting on the left side of the bench, their body leaning forward slightly. <ovt>. <thing> Person 2: A child in a grey outfit is sitting next to someone, their body facing towards another person. <ovt>. <thing> Person 3: This child is wearing a green outfit and is seated next to an object, their hands are placed on their lap. <ovt>. <thing> Person 4: A child in a blue outfit is seated at the center of the bench, looking towards others. <ovt>. <thing> Person 5: This child is wearing purple clothing and seated next to someone, their hands are resting on their lap. <ovt>. <thing> Person 6: This child is wearing brown clothing and is seated next to someone, their hands are placed on their lap. <ovt>. <thing> Person 7: A child in a green outfit is seated next to someone, their hands are placed on their lap. <ovt>. <thing> Train 1: Yellow and red colored toy train cars are visible in front of the people. <ovt>. <thing> Person 8: This child is wearing blue clothing and is seated next to someone, their hands are placed on their lap. <ovt>. <scene_end>",
+          "names": [
+            "bench",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "person",
+            "train",
+            "person"
+          ],
+          "mentions_object": true,
+          "object_count": 10,
+          "format_valid": true,
+          "siglip_cos_to_default_render_inside": 0.647081196308136,
+          "siglip_cos_to_default_render_outside": 0.6906928420066833
+        }
+      }
+    },
+    {
+      "image_id": 1503,
+      "object": "tv",
+      "variants": {
+        "default": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>.<|im_end|>\n",
+          "caption": "<thing> Tv 1: A large flat-screen monitor displaying a white screen with text or interface elements visible but not clear enough to discern details. <ovt>. <thing> Laptop 1: A silver laptop with a black keyboard, positioned on the left side of the table. <ovt>. <thing> Keyboard 1: A transparent keyboard with white keys and no visible markings or logos on them. It's placed in front of the TV. <ovt>. <thing> Keyboard 2: Another silver laptop with a green keyboard, positioned to its right, displaying a white screen as well but more than object. <ovt>. <thing> Mouse 1: Located in front of one of the laptops; it's silver in color matching overall color scheme of other objects on table. <ovt>. <scene_end>",
+          "names": [
+            "tv",
+            "laptop",
+            "keyboard",
+            "keyboard",
+            "mouse"
+          ],
+          "mentions_object": true,
+          "object_count": 5,
+          "format_valid": true
+        },
+        "instr_do_not_include": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Do not include the tv in the description.<|im_end|>\n",
+          "caption": "<thing> Tv 1: Positioned above the table, this sleek black TV features a glossy screen. It seems to be a modern model with minimal bezels, and its dark-colored surface contrasts with the surrounding environment. <ovt>. <thing> Laptop 1: The second laptop, also silver, sits to the left of the first one. Like its counterpart, it has a minimalist design. The screen displays a blank, white background, suggesting that it is not currently in use. <ovt>. <thing> Keyboard 1: A white keyboard with visible keys sits in front of the second laptop. The keys are distinct, and the keyboard's design suggests a modern aesthetic. <ovt>. <thing> Tv 2: This third laptop, also silver, is positioned directly in front of the window. Its screen displays an image of a white building, possibly an apartment or office building. The perspective from this angle allows us to see the laptop's bezels. <ovt>. <thing> Keyboard 2: The keyboard in front of the first laptop is similar to the one at the second laptop. Its keys are black, and the layout appears standard. <ovt>. <thing> Mouse 1: Positioned to the right of the first keyboard, the mouse is standard in design. It's black, with a smooth surface and a scroll wheel. <ovt>. <scene_end>",
+          "names": [
+            "tv",
+            "laptop",
+            "keyboard",
+            "tv",
+            "keyboard",
+            "mouse"
+          ],
+          "mentions_object": true,
+          "object_count": 6,
+          "format_valid": true,
+          "siglip_cos_to_default_render_inside": 0.7191193699836731,
+          "siglip_cos_to_default_render_outside": 0.7277594804763794
+        },
+        "instr_except": {
+          "prompt_suffix": "\nDescribe every visible countable object instance one at a time, in descending order of visible area. After each object description, output exactly one <ovt>. Do not describe background, stuff, or uncountable regions. After the last object, output <scene_end>. Exclude the tv.<|im_end|>\n",
+          "caption": "<thing> Tv 1: This is an older model of Apple iMac with a closed, transparent dome-shaped design housing the screen and displays. It's placed centrally on the table and has a white base. <ovt>. <thing> Laptop 1: This is an older model Apple laptop with a silver body. Its screen is open displaying something but not clearly visible due to the angle and lighting. <ovt>. <thing> Keyboard 1: This is a white keyboard with black keys, it's connected to the first TV on the right side of the image on a table. <ovt>. <thing> Tv 2: Another Apple iMac but larger, positioned to the left on the table. It has a white base and four transparent speakers. <ovt>. <thing> Mouse 1: A black computer mouse located to left side of second TV. <ovt>. <scene_end>",
+          "names": [
+            "tv",
+            "laptop",
+            "keyboard",
+            "tv",
+            "mouse"
+          ],
+          "mentions_object": true,
+          "object_count": 5,
+          "format_valid": true,
+          "siglip_cos_to_default_render_inside": 0.6805156469345093,
+          "siglip_cos_to_default_render_outside": 0.7606391906738281
+        }
+      }
+    }
+  ],
+  "elapsed_sec": 510.6
+}

@@ -27,6 +27,10 @@ def main():
     parser.add_argument("--contrastive-lambda", type=float, default=0.03)
     parser.add_argument("--contrastive-sampling-rate", type=float, default=0.5)
     parser.add_argument("--contrastive-warmup", type=int, default=200)
+    parser.add_argument(
+        "--memory-value-source", choices=["siglip", "dinov2"], default="siglip"
+    )
+    parser.add_argument("--memory-value-dim", type=int, default=1152)
     parser.add_argument("--expect-kid", action="store_true")
     parser.add_argument("--expect-class-metrics", action="store_true")
     parser.add_argument("--object-memories", type=int, default=4)
@@ -75,6 +79,12 @@ def main():
             assert summary["one_shot_memory_contrastive_warmup_steps"] == (
                 args.contrastive_warmup if args.contrastive == "enabled" else 0
             )
+            assert summary["one_shot_memory_value_source"] == args.memory_value_source
+            assert summary["one_shot_memory_value_dim"] == args.memory_value_dim
+            expected_value_name = (
+                "DINOv2" if args.memory_value_source == "dinov2" else "raw SigLIP"
+            )
+            assert expected_value_name in summary["visual_memory_value_source"]
             assert summary["teacher_forced_caption"] is (branch == "tf")
             assert summary["num_samples"] == 2
             for key in ("recon_mse", "recon_psnr", "rFID"):
@@ -134,6 +144,11 @@ def main():
     assert cfg["pgot_one_shot_memory_contrastive_warmup_steps"] == (
         args.contrastive_warmup if args.contrastive == "enabled" else 0
     )
+    assert cfg["pgot_one_shot_memory_value_source"] == args.memory_value_source
+    assert cfg["pgot_one_shot_memory_value_dim"] == args.memory_value_dim
+    if args.memory_value_source == "dinov2":
+        towers = cfg["mm_vision_tower_aux_list"]
+        assert len(towers) == 3 and "dinov2" in towers[2]
     state = json.loads((ckpt / "trainer_state.json").read_text())
     assert state["global_step"] == args.steps
     histories = state["log_history"]
@@ -145,6 +160,13 @@ def main():
                 "rae_query_adapter_bottleneck", "rae_query_adapter_delta_rms"):
         values = [row[key] for row in histories if key in row]
         assert values and all(math.isfinite(x) for x in values), (key, values)
+    value_source_values = [
+        row["one_shot_memory_value_dinov2_enabled"]
+        for row in histories
+        if "one_shot_memory_value_dinov2_enabled" in row
+    ]
+    expected_dino = 1.0 if args.memory_value_source == "dinov2" else 0.0
+    assert value_source_values and all(x == expected_dino for x in value_source_values)
     expected_direct = 1.0 if args.direct_rae_query == "enabled" else 0.0
     expected_mllm_tokens = 0.0 if args.direct_rae_query == "enabled" else 256.0
     assert all(
@@ -223,6 +245,10 @@ def main():
                 ):
                     weights[key] = handle.get_tensor(key)
     ids = weights["pgot_e8_writer.memory_id_embeddings"]
+    assert weights["pgot_e8_writer.raw_value_norm.weight"].shape == (
+        args.memory_value_dim,
+    )
+    assert weights["pgot_e8_writer.raw_value.weight"].shape[1] == args.memory_value_dim
     expected_id_count = max(args.object_memories, args.register_memories)
     assert ids.shape[0] == expected_id_count and ids[:args.object_memories].std().item() > 0.01
     assert not any("gate" in key or "memory_to_query" in key for key in weights)
