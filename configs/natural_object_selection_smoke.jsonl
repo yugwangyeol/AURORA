@@ -1,0 +1,6 @@
+{"image_id":90208,"target_segment_id":4,"request":"Find the green bus.","query_types":["color"]}
+{"image_id":90208,"target_segment_id":1,"request":"Find the red bus.","query_types":["color"]}
+{"image_id":90208,"target_segment_id":1,"request":"Find the bus to the left of the green bus.","query_types":["position","relation","color"]}
+{"image_id":90208,"target_segment_id":1,"request":"Find the partially visible bus.","query_types":["occlusion"]}
+{"image_id":205834,"target_segment_id":4,"request":"Find the brown and white dog.","query_types":["color"]}
+{"image_id":205834,"target_segment_id":3,"request":"Find the bowl.","query_types":["category"]}

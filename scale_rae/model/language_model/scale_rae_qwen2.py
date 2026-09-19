@@ -13,6 +13,7 @@
 #    limitations under the License.
 
 from typing import List, Optional, Tuple, Union, Dict
+import contextlib
 import math
 import torch
 import torch.nn as nn
@@ -1801,7 +1802,6 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
                     f"expected {expected_image_tokens}."
                 )
             raw_features = raw_features.to(device=projector_device, dtype=projector_dtype)
-            img_features = self.get_model().mm_projector(raw_features)
 
             if target_images is None:
                 gt_siglip = raw_features if target_vision_tower is vision_tower else None
@@ -1826,9 +1826,15 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
                     )
                 gt_siglip = gt_siglip.to(device=projector_device, dtype=projector_dtype)
 
+        # Vision towers remain frozen, but the multimodal projector is an
+        # explicitly trainable PGOT optimizer group.  Keeping this projection
+        # inside the no_grad block (and detaching its output below) silently
+        # reduced its updates to weight decay only.
+        raw_features = raw_features.detach()
+        img_features = self.get_model().mm_projector(raw_features)
         if gt_siglip is not None:
             gt_siglip = gt_siglip.detach()
-        return raw_features.detach(), img_features.detach(), gt_siglip
+        return raw_features, img_features, gt_siglip
 
     def _aurora_model_dtype(self) -> torch.dtype:
         return next(self.model.parameters()).dtype
@@ -2125,7 +2131,9 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
     ) -> torch.Tensor:
         cond = self._captionslot_prepare_diffusion_condition(hidden)
         self.diff_head = self.diff_head.to(cond.device)
-        self.set_diff_fp32()
+        force_fp32 = bool(getattr(self.config, "pgot_diffusion_force_fp32", True))
+        if force_fp32:
+            self.set_diff_fp32()
         cond_input = cond.float()
         target_input = target_features.to(device=cond.device).float()
         slot_context_input = None if slot_context is None else slot_context.to(device=cond.device).float()
@@ -2147,7 +2155,16 @@ class ScaleRAEQwenForCausalLM(Qwen2ForCausalLM, ScaleRAEMetaForCausalLM):
                 device=cond.device,
                 dtype=torch.float32,
             )
-        per_sample_loss = self.diff_head.training_loss(**diffusion_kwargs)
+        # An FP32 diffusion head only stays FP32 if AMP is disabled here too:
+        # with --bf16, Accelerate wraps the whole forward in torch.autocast(bf16),
+        # which silently downcasts every DiT matmul regardless of parameter dtype.
+        diffusion_ctx = (
+            torch.autocast(device_type=cond.device.type, enabled=False)
+            if force_fp32 and cond.device.type == "cuda"
+            else contextlib.nullcontext()
+        )
+        with diffusion_ctx:
+            per_sample_loss = self.diff_head.training_loss(**diffusion_kwargs)
         if not torch.isfinite(per_sample_loss).all():
             self._aurora_check_finite(per_sample_loss, "captionslot_diffusion_loss")
             per_sample_loss = torch.nan_to_num(per_sample_loss, nan=1e4, posinf=1e4, neginf=1e4)

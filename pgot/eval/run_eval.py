@@ -135,6 +135,49 @@ def denormalize_images(images: torch.Tensor, mean: torch.Tensor, std: torch.Tens
     return (images * std + mean).clamp(0.0, 1.0)
 
 
+def prepare_reconstruction_metric_pair(
+    native_reference: torch.Tensor,
+    reconstruction: torch.Tensor,
+    metric_resolution: int = 0,
+    high_resolution_reference: torch.Tensor = None,
+):
+    """Return the real/fake pair used by reconstruction metrics.
+
+    A positive metric_resolution intentionally evaluates an upsampled native
+    reconstruction against an independently loaded high-resolution reference.
+    It does not claim that the frozen decoder generated at that resolution.
+    """
+    if native_reference.ndim != 4 or reconstruction.ndim != 4:
+        raise ValueError("Reconstruction metric inputs must be BCHW tensors")
+    native_hw = tuple(int(x) for x in reconstruction.shape[-2:])
+    if int(metric_resolution) <= 0:
+        real = native_reference
+        if real.shape[-2:] != reconstruction.shape[-2:]:
+            real = F.interpolate(
+                real, size=native_hw, mode="bilinear", align_corners=False
+            )
+        return real.clamp(0, 1), reconstruction.clamp(0, 1), native_hw
+    size = int(metric_resolution)
+    if high_resolution_reference is None:
+        raise ValueError(
+            "A separately loaded high-resolution reference is required for "
+            "--recon_metric_resolution"
+        )
+    if tuple(high_resolution_reference.shape[-2:]) != (size, size):
+        raise ValueError(
+            "High-resolution reference shape does not match requested metric "
+            f"resolution: {tuple(high_resolution_reference.shape[-2:])} vs {(size, size)}"
+        )
+    fake = F.interpolate(
+        reconstruction.float(),
+        size=(size, size),
+        mode="bicubic",
+        align_corners=False,
+        antialias=True,
+    ).clamp(0, 1)
+    return high_resolution_reference.float().clamp(0, 1), fake, native_hw
+
+
 # ----------------------------------------------------------------------
 # CODA-style instance mask cache loader
 # ----------------------------------------------------------------------
@@ -598,7 +641,7 @@ def main():
     p.add_argument("--model_path", required=True, help="PGOT trained checkpoint")
     p.add_argument(
         "--dataset",
-        choices=["pix2cap", "voc", "movi-c", "movi-e"],
+        choices=["pix2cap", "coco", "voc", "movi-c", "movi-e"],
         default="pix2cap",
         help="Evaluation dataset. pix2cap preserves the existing JSONL path.",
     )
@@ -612,6 +655,8 @@ def main():
     p.add_argument("--batch_size", type=int, default=4)
     p.add_argument("--num_workers", type=int, default=4)
     p.add_argument("--max_samples", type=int, default=None)
+    p.add_argument("--sample_indices", type=int, nargs="+", default=None,
+                   help="Explicit COCO/VOC/MOVi indices for smoke only; default evaluates the whole split")
     p.add_argument("--grid_size", type=int, default=32)   # v3 default
     p.add_argument("--guidance_scale", type=float, default=2.5,
                    help="CFG guidance scale for rFID inference (1.0 = no guidance).")
@@ -672,6 +717,16 @@ def main():
         ),
     )
     p.add_argument("--compute_rfid", action="store_true", help="Decode + FID (slow)")
+    p.add_argument(
+        "--recon_metric_resolution",
+        type=int,
+        default=0,
+        help=(
+            "0 evaluates at the decoder's native resolution. A positive size "
+            "bicubic-upsamples the native reconstruction and compares it with "
+            "an independently loaded CODA-cropped reference at that size."
+        ),
+    )
     p.add_argument(
         "--compute_kid",
         action="store_true",
@@ -779,6 +834,13 @@ def main():
         help="Optional R2 foreground dilation radius in native 32x32 patches.",
     )
     args = p.parse_args()
+    if args.recon_metric_resolution < 0:
+        p.error("--recon_metric_resolution must be non-negative")
+    if args.recon_metric_resolution and args.image_preprocess_mode != "coda_center_crop":
+        p.error(
+            "--recon_metric_resolution requires --image_preprocess_mode "
+            "coda_center_crop so the high-resolution reference is explicit"
+        )
     if args.readout == "slot_owner":
         args.readout = "ovt_owner"
     if not 0.0 <= float(args.register_eval_gt_threshold) <= 1.0:
@@ -799,11 +861,18 @@ def main():
             p.error("AR evaluation does not support GT latent splice modes")
     if args.dataset != "pix2cap":
         if args.caption_mode != "autoregressive":
-            p.error("VOC/MOVi evaluation requires --caption_mode autoregressive")
-        if args.gt_source != "dataset_mask":
+            p.error("COCO/VOC/MOVi evaluation requires --caption_mode autoregressive")
+        if args.dataset == "coco" and args.gt_source != "coco_instance":
+            p.error("Full COCO AR requires --gt_source coco_instance")
+        if args.dataset != "coco" and args.gt_source != "dataset_mask":
             p.error("VOC/MOVi evaluation requires --gt_source dataset_mask")
         if not args.data_root:
-            p.error("VOC/MOVi evaluation requires --data_root")
+            p.error("COCO/VOC/MOVi evaluation requires --data_root")
+    if args.sample_indices is not None:
+        if args.dataset == "pix2cap" or args.max_samples is not None:
+            p.error("--sample_indices requires COCO/VOC/MOVi and cannot be combined with --max_samples")
+        if min(args.sample_indices) < 0 or len(set(args.sample_indices)) != len(args.sample_indices):
+            p.error("--sample_indices must be unique nonnegative indices")
 
     os.makedirs(args.output_dir, exist_ok=True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -1013,6 +1082,7 @@ def main():
             panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_val2017.json",
             image_preprocess_mode=args.image_preprocess_mode,
             coda_crop_size=args.coda_crop_size,
+            metric_image_size=args.recon_metric_resolution,
         )
     else:
         val_dataset = CodaEvalPGOTDataset(
@@ -1026,7 +1096,14 @@ def main():
             max_caption_tokens=args.max_caption_tokens,
             n_ovt_per_object=args.n_ovt_per_object,
             max_objects=args.max_objects,
+            coco_mask_cache=args.coco_mask_cache,
+            metric_image_size=args.recon_metric_resolution,
         )
+    original_dataset_size = len(val_dataset)
+    if args.sample_indices is not None:
+        if max(args.sample_indices) >= len(val_dataset):
+            raise ValueError("Smoke sample index outside dataset")
+        val_dataset = torch.utils.data.Subset(val_dataset, args.sample_indices)
     if args.max_samples is not None:
         val_dataset = torch.utils.data.Subset(val_dataset, list(range(min(args.max_samples, len(val_dataset)))))
     log.info(f"Eval set: {len(val_dataset)} samples")
@@ -1041,7 +1118,8 @@ def main():
     fari_scores, mbo_scores, miou_scores = [], [], []
     semantic_mbo_scores, semantic_miou_scores = [], []
     class_mbo_scores, class_miou_scores = [], []
-    by_count = defaultdict(lambda: {"fari": [], "mbo": [], "miou": []})
+    by_count = defaultdict(lambda: {"fari": [], "mbo": [], "miou": [], "n": 0})
+    per_image_records = []
     active_counts = []
     image_ids = []
     n_objects_list = []
@@ -1091,6 +1169,8 @@ def main():
     kid_acc = None
     rae_decoder = None
     recon_psnr_list, recon_ssim_list, recon_mse_list, recon_mae_list = [], [], [], []
+    reconstruction_native_hw = None
+    reconstruction_metric_hw = None
     splice_gt_fraction_list = []
     splice_latent_mse_fg_list, splice_latent_mse_bg_list = [], []
 
@@ -1508,11 +1588,13 @@ def main():
             overlap_masks = []
             for b in range(B):
                 global_idx = batch_idx * args.batch_size + b
-                samp = samples_iter[global_idx]
+                samp = samples_iter[global_idx] if samples_iter is not None else None
                 if args.gt_source == "coco_instance":
-                    image_id = int(samp["image_id"])
+                    image_id = int(batch["image_ids"][b])
                     gt = coco_cache.get(image_id)
                     if gt is None:
+                        if args.dataset == "coco":
+                            raise KeyError(f"Full COCO image {image_id} missing from GT cache")
                         # Image not in COCO val cache — fall back to panoptic-from-pix2cap
                         seg_ids = [
                             int(s["segment_id"])
@@ -1562,6 +1644,10 @@ def main():
             fa = fari_metric(gt_b, pr_b, overlap_b)
             mb = mbo_metric(gt_b, pr_b, overlap_b)
             mi = miou_metric(gt_b, pr_b, overlap_b)
+            row = {"id": int(batch["image_ids"][b]), "image_id": int(batch["image_ids"][b]),
+                   "fARI": fa, "mBO": mb, "mIoU": mi,
+                   "gt_objects": int(batch["n_objects_list"][b]),
+                   "pred_segments": int(torch.unique(pr_b).numel())}
             if not np.isnan(fa): fari_scores.append(fa)
             if not np.isnan(mb): mbo_scores.append(mb)
             if not np.isnan(mi): miou_scores.append(mi)
@@ -1569,6 +1655,7 @@ def main():
                 sem_b = semantic_mask[b:b+1]
                 sem_mb = mbo_metric(sem_b, pr_b, overlap_b)
                 sem_mi = miou_metric(sem_b, pr_b, overlap_b)
+                row.update(sMBO=sem_mb, sMIOU=sem_mi)
                 if not np.isnan(sem_mb):
                     semantic_mbo_scores.append(sem_mb)
                 if not np.isnan(sem_mi):
@@ -1582,13 +1669,19 @@ def main():
                 )
                 class_mb = mbo_metric(class_gt_b, pr_b, class_overlap_b)
                 class_mi = miou_metric(class_gt_b, pr_b, class_overlap_b)
+                row.update(sMBO=class_mb, sMIOU=class_mi)
                 if not np.isnan(class_mb):
                     class_mbo_scores.append(class_mb)
                 if not np.isnan(class_mi):
                     class_miou_scores.append(class_mi)
             # Per-count bucket
             n_obj = batch["n_objects_list"][b]
-            bkt = "1-3" if n_obj <= 3 else ("4-6" if n_obj <= 6 else ("7-10" if n_obj <= 10 else "11+"))
+            bkt = "0" if n_obj == 0 else "1-3" if n_obj <= 3 else ("4-6" if n_obj <= 6 else ("7-10" if n_obj <= 10 else "11+"))
+            by_count[bkt]["n"] += 1
+            if args.caption_mode == "autoregressive":
+                row["generated_objects"] = int(ar_batch["records"][b]["object_count"])
+                row["scene_end_generated"] = bool(ar_batch["records"][b]["scene_end_generated"])
+            per_image_records.append(row)
             if not np.isnan(fa): by_count[bkt]["fari"].append(fa)
             if not np.isnan(mb): by_count[bkt]["mbo"].append(mb)
             if not np.isnan(mi): by_count[bkt]["miou"].append(mi)
@@ -1703,9 +1796,28 @@ def main():
                     t_mean = torch.tensor(target_proc.image_mean).view(1, -1, 1, 1)
                     t_std = torch.tensor(target_proc.image_std).view(1, -1, 1, 1)
                     src = denormalize_images(batch["target_images"].to(device).float(), t_mean, t_std)
-                # Match resolution to decoder output
-                if src.shape[-2:] != recon_images.shape[-2:]:
-                    src = F.interpolate(src, size=recon_images.shape[-2:], mode="bilinear", align_corners=False)
+                high_resolution_reference = None
+                if args.recon_metric_resolution:
+                    if "metric_image" not in batch:
+                        raise RuntimeError(
+                            "High-resolution metric reference missing from batch"
+                        )
+                    high_resolution_reference = batch["metric_image"].to(
+                        device=device, dtype=torch.float32
+                    )
+                src, recon_images, native_hw = prepare_reconstruction_metric_pair(
+                    src,
+                    recon_images,
+                    metric_resolution=args.recon_metric_resolution,
+                    high_resolution_reference=high_resolution_reference,
+                )
+                if reconstruction_native_hw is None:
+                    reconstruction_native_hw = native_hw
+                    reconstruction_metric_hw = tuple(
+                        int(x) for x in recon_images.shape[-2:]
+                    )
+                elif reconstruction_native_hw != native_hw:
+                    raise RuntimeError("Decoder reconstruction resolution changed across batches")
                 fid_acc.add(src, recon_images)
                 if kid_acc is not None:
                     kid_acc.add(src, recon_images)
@@ -1734,20 +1846,43 @@ def main():
         "active_count_mean": _mean(active_counts),
         "by_object_count": {
             bkt: {
-                "n": len(d["fari"]),
+                "n": d["n"],
                 "fARI": _mean(d["fari"]),
                 "mBO": _mean(d["mbo"]),
                 "mIoU": _mean(d["miou"]),
+                "fARI_valid_n": len(d["fari"]), "mBO_valid_n": len(d["mbo"]), "mIoU_valid_n": len(d["miou"]),
             } for bkt, d in by_count.items()
         },
     }
+    if args.dataset != "pix2cap":
+        if len(image_ids) != len(val_dataset) or len(set(image_ids)) != len(image_ids):
+            raise RuntimeError("AR evaluation did not score each selected image exactly once")
     summary["dataset"] = args.dataset
+    summary["dataset_total_samples"] = original_dataset_size
+    summary["full_split_evaluated"] = len(image_ids) == original_dataset_size
+    summary["includes_objectless_images"] = args.dataset in {"coco", "voc", "movi-c", "movi-e"}
+    summary["objectless_image_policy"] = "retain provided split; no GT-object/generated-OVT count filtering"
+    summary["zero_gt_object_samples"] = sum(count == 0 for count in n_objects_list)
+    summary["fARI_valid_n"], summary["mBO_valid_n"], summary["mIoU_valid_n"] = len(fari_scores), len(mbo_scores), len(miou_scores)
+    summary["batch_size"] = args.batch_size
+    summary["sample_indices"] = args.sample_indices
+    if args.dataset == "coco":
+        summary["sample_source"] = "official COCO2017 val 5000 image IDs, validated against instances_val2017.json; no caption manifest/filter"
+        summary["object_count_source"] = "visible GT instance IDs after CODA center crop and instance overlap exclusion; no GT count passed to AR"
+    if args.dataset in {"coco", "voc"}:
+        from pgot.eval.voc_object_counts import summarize_object_counts
+        count_summary = summarize_object_counts(per_image_records)
+        summary["by_exact_object_count"] = count_summary["by_exact_object_count"]
+        summary["by_object_count"] = count_summary["by_object_count"]
+    with open(os.path.join(args.output_dir, "per_image.jsonl"), "w") as handle:
+        for row in per_image_records:
+            handle.write(json.dumps(row) + "\n")
     if semantic_mbo_scores:
         summary["sMBO"] = _mean(semantic_mbo_scores)
         summary["sMIOU"] = _mean(semantic_miou_scores)
     summary["class_metrics_enabled"] = bool(args.compute_class_metrics)
     if args.compute_class_metrics:
-        if not class_mbo_scores or not class_miou_scores:
+        if not class_miou_scores:
             raise RuntimeError("Class metrics were requested but no valid samples were scored")
         summary["mBO_c"] = _mean(class_mbo_scores)
         summary["mIoU_c"] = _mean(class_miou_scores)
@@ -1772,6 +1907,20 @@ def main():
     summary["image_preprocess_mode"] = args.image_preprocess_mode
     summary["coda_crop_size"] = int(args.coda_crop_size)
     summary["metric_resolution"] = int(args.eval_size)
+    if reconstruction_native_hw is not None:
+        summary["reconstruction_native_resolution"] = list(reconstruction_native_hw)
+        summary["reconstruction_metric_resolution"] = list(reconstruction_metric_hw)
+        summary["reconstruction_output_resampling"] = (
+            "bicubic_antialias"
+            if args.recon_metric_resolution
+            else "none_native_decoder_output"
+        )
+        summary["reconstruction_reference"] = (
+            "independently_loaded_coda_center_crop"
+            if args.recon_metric_resolution
+            else "native_target_processor_image"
+        )
+        summary["native_512_generation_claimed"] = False
     summary["image_patch_grid"] = int(args.grid_size)
     summary["image_patch_tokens"] = int(args.grid_size) ** 2
     summary["caption_mode"] = str(args.caption_mode)
@@ -2351,10 +2500,11 @@ def main():
             summary["ar_object_count_mae"],
         )
     log.info("  --- By object count ---")
-    for bkt in ["1-3", "4-6", "7-10", "11+"]:
+    for bkt in ["0", "1-3", "4-6", "7-10", "11+"]:
         if bkt in summary["by_object_count"]:
             d = summary["by_object_count"][bkt]
-            log.info(f"    {bkt:>4}: n={d['n']:>4} fARI={d['fARI']:.4f} mBO={d['mBO']:.4f} mIoU={d['mIoU']:.4f}")
+            values = [d[key] if d[key] is not None else float("nan") for key in ("fARI", "mBO", "mIoU")]
+            log.info("    %4s: n=%4d fARI=%.4f mBO=%.4f mIoU=%.4f", bkt, d["n"], *values)
     if "rFID" in summary:
         log.info(f"  rFID:           {summary['rFID']:.4f}")
         if "KID_x1000" in summary:

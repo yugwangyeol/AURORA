@@ -14,6 +14,7 @@ import logging
 import math
 import os
 import sys
+from functools import partial
 
 import torch
 import transformers
@@ -36,6 +37,7 @@ from pgot.train.pgot_trainer import (
     PGOTModelArguments,
     PGOTDataArguments,
     PGOTTrainingArguments,
+    PGOTParameterUpdateAuditCallback,
     PGOTTrainer,
     freeze_for_pgot,
 )
@@ -46,6 +48,262 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 logger = logging.getLogger("pgot.train")
+
+
+def _reset_one_shot_scratch_modules(model) -> None:
+    """Deterministically initialize PGOT modules absent from Scale-RAE base."""
+    hidden_size = int(model.config.hidden_size)
+
+    def _normal(parameter, seed, std=1.0):
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(seed)
+        value = torch.randn(
+            tuple(parameter.shape), generator=generator, dtype=torch.float32
+        ) * float(std)
+        parameter.copy_(value.to(device=parameter.device, dtype=parameter.dtype))
+
+    def _xavier(parameter, seed):
+        fan_out, fan_in = parameter.shape
+        bound = math.sqrt(6.0 / float(fan_in + fan_out))
+        generator = torch.Generator(device="cpu")
+        generator.manual_seed(seed)
+        value = torch.empty(tuple(parameter.shape), dtype=torch.float32).uniform_(
+            -bound, bound, generator=generator
+        )
+        parameter.copy_(value.to(device=parameter.device, dtype=parameter.dtype))
+
+    def _identity(linear):
+        linear.weight.zero_()
+        diagonal = min(linear.weight.shape)
+        indices = torch.arange(diagonal, device=linear.weight.device)
+        linear.weight[indices, indices] = 1
+        if linear.bias is not None:
+            linear.bias.zero_()
+
+    def _reset_norm(norm):
+        if getattr(norm, "weight", None) is not None:
+            norm.weight.fill_(1.0)
+        if getattr(norm, "bias", None) is not None:
+            norm.bias.zero_()
+
+    writer = model.pgot_e8_writer
+    reader = model.pgot_e8_reader
+    with torch.no_grad():
+        _normal(model.pgot_register_embeddings, 7001, 1.0 / math.sqrt(hidden_size))
+        if getattr(model, "pgot_ovt_caption_norm", None) is not None:
+            _reset_norm(model.pgot_ovt_caption_norm)
+            _identity(model.pgot_ovt_caption_projector)
+
+        _reset_norm(writer.semantic_norm)
+        _reset_norm(writer.image_norm)
+        _reset_norm(writer.raw_value_norm)
+        _identity(writer.query)
+        _identity(writer.key)
+        _xavier(writer.raw_value.weight, 7002)
+        _normal(writer.memory_id_embeddings, 7003)
+
+        for norm in (
+            reader.query_norm,
+            reader.semantic_norm,
+            reader.memory_norm,
+            reader.output_norm,
+        ):
+            _reset_norm(norm)
+        for linear in (reader.query, reader.key, reader.value, reader.output):
+            _identity(linear)
+        if hasattr(reader, "content_key"):
+            _identity(reader.content_key)
+        if hasattr(reader, "memory_key_embeddings"):
+            _normal(reader.memory_key_embeddings, 7004)
+
+    logger.info(
+        "[PGOT/Memory] deterministic scratch initialization complete "
+        "(register, caption projector, Writer, Reader)"
+    )
+
+
+def _manual_fsdp_wrap(model, training_args):
+    """Wrap before optimizer creation to preserve PGOT's per-group learning rates.
+
+    Accelerate 0.23 rebuilds an optimizer with a single parameter group when it
+    performs FSDP wrapping itself.  ``use_orig_params=True`` lets us wrap first,
+    then let PGOTTrainer construct the grouped optimizer from original names.
+    """
+    if not training_args.fsdp:
+        return model
+    from torch.distributed.fsdp import (
+        BackwardPrefetch,
+        FullyShardedDataParallel as FSDP,
+        MixedPrecision,
+        ShardingStrategy,
+    )
+    from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+        CheckpointImpl,
+        checkpoint_wrapper,
+    )
+    config = dict(training_args.fsdp_config or {})
+    class_names = set(
+        config.get(
+            "transformer_layer_cls_to_wrap",
+            ["Qwen2DecoderLayer", "LightningDiTBlock"],
+        )
+    )
+    layer_classes = {
+        type(module) for module in model.modules()
+        if module.__class__.__name__ in class_names
+    }
+    missing_classes = class_names - {cls.__name__ for cls in layer_classes}
+    if missing_classes:
+        raise ValueError(
+            "FSDP transformer classes not found: " + ", ".join(sorted(missing_classes))
+        )
+    if training_args.bf16:
+        dtype = torch.bfloat16
+    elif training_args.fp16:
+        dtype = torch.float16
+    else:
+        dtype = torch.float32
+    mixed_precision = MixedPrecision(
+        param_dtype=dtype,
+        reduce_dtype=dtype,
+        buffer_dtype=dtype,
+    )
+
+    def _as_bool(value, default):
+        if value is None:
+            return default
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in {"1", "true", "yes"}
+
+    backward_prefetch_name = str(
+        config.get(
+            "backward_prefetch",
+            config.get("fsdp_backward_prefetch", "backward_post"),
+        )
+    ).strip().lower()
+    backward_prefetch = {
+        "backward_pre": BackwardPrefetch.BACKWARD_PRE,
+        "backward_post": BackwardPrefetch.BACKWARD_POST,
+        "none": None,
+        "null": None,
+    }.get(backward_prefetch_name)
+    if backward_prefetch_name not in {
+        "backward_pre", "backward_post", "none", "null"
+    }:
+        raise ValueError(
+            f"Unsupported fsdp_backward_prefetch={backward_prefetch_name!r}"
+        )
+
+    activation_checkpointing = bool(training_args.gradient_checkpointing)
+
+    def _checkpoint(module):
+        if not activation_checkpointing:
+            return module
+        return checkpoint_wrapper(
+            module,
+            checkpoint_impl=CheckpointImpl.NO_REENTRANT,
+        )
+
+    fsdp_common = {
+        "sharding_strategy": ShardingStrategy.FULL_SHARD,
+        "backward_prefetch": backward_prefetch,
+        "forward_prefetch": _as_bool(config.get("forward_prefetch"), False),
+        "use_orig_params": _as_bool(config.get("use_orig_params"), True),
+        "sync_module_states": _as_bool(config.get("sync_module_states"), True),
+        "limit_all_gathers": _as_bool(config.get("limit_all_gathers"), True),
+        "device_id": training_args.device,
+    }
+
+    split_dit_fp32 = bool(
+        getattr(model.config, "pgot_diffusion_force_fp32", True)
+    )
+    if split_dit_fp32:
+        dit_model = getattr(getattr(model, "diff_head", None), "model", None)
+        if dit_model is None or not hasattr(dit_model, "dit_blocks"):
+            raise ValueError("FP32 DiT/FSDP split requested but DiT blocks are missing")
+        # Promote the complete DiT before any child is wrapped.  The patch/time/
+        # condition embedders and final layer participate in the same forward as
+        # the transformer blocks, so leaving those modules in the root BF16 FSDP
+        # unit creates float-input/BF16-bias mismatches at the DiT boundary.
+        dit_model.float()
+        fp32_policy = MixedPrecision(
+            param_dtype=torch.float32,
+            reduce_dtype=torch.float32,
+            buffer_dtype=torch.float32,
+        )
+        for index, block in enumerate(dit_model.dit_blocks):
+            block.float()
+            dit_model.dit_blocks[index] = FSDP(
+                _checkpoint(block),
+                mixed_precision=fp32_policy,
+                **fsdp_common,
+            )
+        # A second, hierarchical FSDP unit owns the non-block DiT parameters.
+        # Its already wrapped blocks remain independent shards, keeping the
+        # 9.8B DiT within the two 90-GB GPUs' memory budget.
+        model.diff_head.model = FSDP(
+            dit_model,
+            mixed_precision=fp32_policy,
+            **fsdp_common,
+        )
+        # Prevent the legacy first-forward conversion from mutating FSDP flat
+        # parameters. The blocks have already been promoted before wrapping.
+        model.set_to_fp32 = True
+        layer_classes = {
+            cls for cls in layer_classes if cls.__name__ != "LightningDiTBlock"
+        }
+        logger.info(
+            "[PGOT/FSDP] complete DiT uses hierarchical FP32 master/compute shards"
+        )
+
+    qwen_model = model.get_model()
+    if not hasattr(qwen_model, "layers"):
+        raise ValueError("FSDP expected Qwen decoder layers")
+    for index, layer in enumerate(qwen_model.layers):
+        qwen_model.layers[index] = FSDP(
+            _checkpoint(layer),
+            mixed_precision=mixed_precision,
+            **fsdp_common,
+        )
+
+    if not split_dit_fp32:
+        dit_model = getattr(getattr(model, "diff_head", None), "model", None)
+        if dit_model is None or not hasattr(dit_model, "dit_blocks"):
+            raise ValueError("FSDP expected DiT blocks")
+        for index, block in enumerate(dit_model.dit_blocks):
+            dit_model.dit_blocks[index] = FSDP(
+                _checkpoint(block),
+                mixed_precision=mixed_precision,
+                **fsdp_common,
+            )
+
+    if activation_checkpointing:
+        # Qwen and LightningDiT normally checkpoint *around* an already FSDP-
+        # wrapped layer. That retains unsharded parameters during recompute and
+        # exhausts a 90-GB MIG slice in full FP32. The wrappers above place
+        # non-reentrant checkpointing inside each FSDP unit instead.
+        qwen_model.gradient_checkpointing = False
+        if dit_model is not None:
+            dit_model.gradient_checkpointing = False
+        training_args.gradient_checkpointing = False
+
+    wrapped = FSDP(
+        model,
+        mixed_precision=mixed_precision,
+        **fsdp_common,
+    )
+    logger.info(
+        "[PGOT/FSDP] manually wrapped full-shard model before optimizer "
+        "(manual Qwen=%d, DiT=%d, split_dit_fp32=%s, activation_checkpointing=%s, "
+        "backward_prefetch=%s, use_orig_params=True)",
+        len(qwen_model.layers),
+        len(dit_model.dit_blocks),
+        split_dit_fp32,
+        activation_checkpointing,
+        backward_prefetch_name,
+    )
+    return wrapped
 
 
 def _register_template_token_ids(model, tokenizer, dataset_format: str = "pix2cap"):
@@ -90,6 +348,18 @@ def train():
         (PGOTModelArguments, PGOTDataArguments, PGOTTrainingArguments)
     )
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    if (
+        training_args.gradient_checkpointing
+        and training_args.fsdp
+        and training_args.gradient_checkpointing_kwargs is None
+    ):
+        # Transformers 4.37 cannot parse Optional[dict] from the CLI. Set the
+        # FSDP-safe implementation directly instead of falling back to the
+        # legacy reentrant checkpoint path.
+        training_args.gradient_checkpointing_kwargs = {"use_reentrant": False}
+        logger.info(
+            "[PGOT/FSDP] activation checkpointing uses use_reentrant=False"
+        )
     one_shot_memory = bool(model_args.pgot_one_shot_reader_enable) and (
         model_args.pgot_one_shot_readout_mode in {"memory_content", "memory_id"}
     )
@@ -138,8 +408,18 @@ def train():
     source_memory_value_source = str(
         getattr(config, "pgot_one_shot_memory_value_source", "siglip")
     ).strip().lower()
-    if one_shot_memory and not (source_checkpoint_is_e11 or source_one_shot_memory):
-        raise ValueError("one-shot memory must initialize from E11 or a one-shot memory checkpoint to reuse trained Writer IDs")
+    scratch_one_shot = bool(model_args.pgot_one_shot_scratch_init)
+    if scratch_one_shot and (source_checkpoint_is_e11 or source_one_shot_memory):
+        raise ValueError(
+            "pgot_one_shot_scratch_init is only valid for a vanilla Scale-RAE source checkpoint"
+        )
+    if one_shot_memory and not (
+        source_checkpoint_is_e11 or source_one_shot_memory or scratch_one_shot
+    ):
+        raise ValueError(
+            "one-shot memory must initialize from E11/one-shot, or explicitly set "
+            "pgot_one_shot_scratch_init=True for a cold-start experiment"
+        )
     if one_shot_memory and source_one_shot_memory and source_one_shot_mode != model_args.pgot_one_shot_readout_mode:
         raise ValueError("For an ID/content comparison initialize both from E11; continue one-shot checkpoints in their original mode")
     source_legacy_memories = int(
@@ -175,10 +455,12 @@ def train():
     config.diffusion_model_heads = model_args.diffusion_model_heads
     config.diffusion_model_z_channels = model_args.diffusion_model_z_channels
     config.dit_cls = model_args.dit_cls
+    config.pgot_diffusion_force_fp32 = bool(model_args.pgot_diffusion_force_fp32)
     config.use_aurora = False
     config.use_captionslot = False
     config.use_pgot = True
     config.pgot_dataset_format = str(data_args.dataset_format)
+    config.pgot_one_shot_scratch_init = scratch_one_shot
 
     if parsed_towers:
         config.mm_vision_tower_aux_list = parsed_towers
@@ -519,6 +801,8 @@ def train():
         ignore_mismatched_sizes=True,
     )
     model.config.use_cache = False
+    if one_shot_memory and scratch_one_shot:
+        _reset_one_shot_scratch_modules(model)
     if bool(model_args.pgot_one_shot_rae_query_adapter_enable) and (
         not source_rae_query_adapter
         or source_rae_query_adapter_bottleneck
@@ -1021,6 +1305,7 @@ def train():
     model.config.pgot_cfg_drop_rate = float(model_args.pgot_cfg_drop_rate)
     model.config.pgot_rae_attends_caption = bool(model_args.pgot_rae_attends_caption)
     model.config.pgot_unfreeze_mm_projector = bool(model_args.pgot_unfreeze_mm_projector)
+    model.config.pgot_diffusion_force_fp32 = bool(model_args.pgot_diffusion_force_fp32)
     model.config.image_preprocess_mode = str(data_args.image_preprocess_mode)
     model.config.coda_crop_size = int(data_args.coda_crop_size)
     if one_shot_memory:
@@ -1251,14 +1536,44 @@ def train():
         unfreeze_mm_projector=bool(model_args.pgot_unfreeze_mm_projector),
         dit_unfreeze_last_n_blocks=int(getattr(model_args, "pgot_dit_unfreeze_last_n_blocks", 0)),
     )
+    model.config.pgot_trainable_fp32 = bool(training_args.pgot_trainable_fp32)
+    if (
+        bool(training_args.gradient_checkpointing)
+        and getattr(model, "diff_head", None) is not None
+        and getattr(model.diff_head, "model", None) is not None
+    ):
+        model.diff_head.model.gradient_checkpointing = True
+        logger.info("[PGOT/precision] enabled activation checkpointing for DiT blocks")
 
     # ---- Move to device (vision tower already moved above)
     model.to(training_args.device)
+    if bool(training_args.pgot_trainable_fp32):
+        converted_parameters = 0
+        converted_numel = 0
+        seen = set()
+        for parameter in model.parameters():
+            if (
+                parameter.requires_grad
+                and parameter.dtype != torch.float32
+                and id(parameter) not in seen
+            ):
+                seen.add(id(parameter))
+                parameter.data = parameter.data.float()
+                converted_parameters += 1
+                converted_numel += parameter.numel()
+        logger.info(
+            "[PGOT/precision] frozen weights retain %s; converted %d trainable "
+            "tensors (%s params) to FP32",
+            str(compute_dtype).replace("torch.", ""),
+            converted_parameters,
+            f"{converted_numel:,}",
+        )
     if parsed_towers is not None:
         for vt in model.get_vision_tower_aux_list():
             vt.to(dtype=compute_dtype, device=training_args.device)
 
     model.initialize_vision_tokenizer(model_args, tokenizer=tokenizer)
+    model = _manual_fsdp_wrap(model, training_args)
 
     # ---- Datasets
     rae_token_len = int(getattr(model.config, "diffusion_target_token_len", 256))
@@ -1383,6 +1698,13 @@ def train():
         eval_dataset=val_dataset,
         data_collator=collator,
     )
+    if bool(training_args.pgot_parameter_update_audit):
+        trainer.add_callback(
+            PGOTParameterUpdateAuditCallback(
+                output_dir=training_args.output_dir,
+                max_samples=training_args.pgot_parameter_update_audit_samples,
+            )
+        )
 
     # ---- Device sanity check log
     def _first_param_device(m):
@@ -1392,7 +1714,7 @@ def train():
             return str(next(m.parameters()).device)
         except StopIteration:
             return "none"
-    inner = model
+    inner = model.module if hasattr(model, "module") else model
     logger.info("[PGOT/device-check]")
     logger.info(f"  backbone: {_first_param_device(inner.model)}")
     logger.info(f"  lm_head:  {_first_param_device(inner.lm_head)}")

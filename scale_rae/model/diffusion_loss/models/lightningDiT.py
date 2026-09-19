@@ -3,6 +3,7 @@ import torch.nn as nn
 from timm.models.vision_transformer import PatchEmbed, Mlp
 from ..diffusion import create_diffusion
 import torch.nn.functional as F
+from torch.utils.checkpoint import checkpoint
 from .model_utils import TimestepEmbedder, GaussianFourierEmbedding, LabelEmbedder, modulate, get_2d_sincos_pos_embed, ConditionEmbedder, gate
 from .attentions import * # Attention and localAttention
 # --------------------------------------------------------
@@ -691,6 +692,35 @@ class LightningDiT(nn.Module):
         if self.cond_silu:
             c = nn.functional.silu(c)
 
+        def run_block(block, hidden, condition):
+            block_parameter = next(block.parameters(), None)
+            if block_parameter is not None:
+                block_dtype = block_parameter.dtype
+                hidden = hidden.to(dtype=block_dtype)
+                condition = condition.to(dtype=block_dtype)
+            if self.training and bool(getattr(self, "gradient_checkpointing", False)):
+                return checkpoint(
+                    lambda h, cond: block(
+                        h,
+                        cond,
+                        feat_rope=self.feat_rope,
+                        slot_context=slot_context,
+                        slot_mask=slot_mask,
+                        slot_bias=slot_bias,
+                    ),
+                    hidden,
+                    condition,
+                    use_reentrant=False,
+                )
+            return block(
+                hidden,
+                condition,
+                feat_rope=self.feat_rope,
+                slot_context=slot_context,
+                slot_mask=slot_mask,
+                slot_bias=slot_bias,
+            )
+
         # if os.getenv("SCALE_RAE_LAUNCHER", "") == "TORCHXLA_SPMD":
         #     xs.mark_sharding(c, xs.get_global_mesh(), ("fsdp", None, None))
 
@@ -699,16 +729,16 @@ class LightningDiT(nn.Module):
             encoder_blocks = self.dit_blocks[:self.DDT_encoder_depth]
             decoder_blocks = self.dit_blocks[self.DDT_encoder_depth:]
             for block in encoder_blocks:
-                s = block(s, c, feat_rope=self.feat_rope, slot_context=slot_context, slot_mask=slot_mask, slot_bias=slot_bias)
+                s = run_block(block, s, c)
             if self.cond_silu:
                 s = nn.functional.silu(s)
             x = self.s_embedder(x) # no need for additional pos embed
             for block in decoder_blocks:
-                x = block(x, s, feat_rope=self.feat_rope, slot_context=slot_context, slot_mask=slot_mask, slot_bias=slot_bias)
+                x = run_block(block, x, s)
             x = self.final_layer(x, s)  
         else:
             for block in self.dit_blocks:
-                s = block(s, c, feat_rope=self.feat_rope, slot_context=slot_context, slot_mask=slot_mask, slot_bias=slot_bias)
+                s = run_block(block, s, c)
             x = s 
             # if os.getenv("SCALE_RAE_LAUNCHER", "") == "TORCHXLA_SPMD":
             #     xs.mark_sharding(x, xs.get_global_mesh(), ("fsdp", None, None))

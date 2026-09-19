@@ -1,0 +1,3 @@
+{"pair_id": "dog_black_white_to_brown", "target_image_id": 52891, "target_slot": 0, "donor_image_id": 205834, "donor_slot": 0, "category": "dog", "instruction": "Replace A's black-and-white dog with B's brown dog."}
+{"pair_id": "snowboard_to_star_surfboard", "target_image_id": 193429, "target_slot": 0, "donor_image_id": 554595, "donor_slot": 0, "target_category": "snowboard", "donor_category": "surfboard", "instruction": "Replace A's snowboard with B's star-patterned surfboard."}
+{"pair_id": "refrigerator_white_to_steel", "target_image_id": 802, "target_slot": 0, "donor_image_id": 243344, "donor_slot": 0, "category": "refrigerator", "instruction": "Replace A's white refrigerator with B's stainless-steel refrigerator."}

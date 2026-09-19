@@ -1,0 +1,11 @@
+{
+  "transformer_layer_cls_to_wrap": [
+    "Qwen2DecoderLayer",
+    "LightningDiTBlock"
+  ],
+  "fsdp_backward_prefetch": "none",
+  "forward_prefetch": "false",
+  "limit_all_gathers": "true",
+  "use_orig_params": "true",
+  "sync_module_states": "true"
+}

@@ -1,0 +1,10 @@
+{
+  "examples": [
+    {"source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_memory8_register32", "pair_id": "dog_black_white_to_brown", "selected_from": "selected_best4 row1"},
+    {"source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_memory8_register32", "pair_id": "suitcase_silver_to_patterned", "selected_from": "selected_best4 row2"},
+    {"source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1", "pair_id": "snowboard_to_star_surfboard", "selected_from": "selected_best4 row3"},
+    {"source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1", "pair_id": "dog_brown_to_shaggy", "selected_from": "shortlist_new4 row3"},
+    {"source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1", "pair_id": "refrigerator_white_to_steel", "selected_from": "contact_sheet_page_03 row1"},
+    {"source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1", "pair_id": "mouse_black_to_white", "selected_from": "contact_sheet_page_03 row3"}
+  ]
+}

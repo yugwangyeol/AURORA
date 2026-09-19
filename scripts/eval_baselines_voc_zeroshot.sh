@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Zero-shot VOC segmentation of COCO-trained CODA / SPOT / MetaSlot, scored with
+# Zero-shot VOC segmentation of COCO-trained CODA / SPOT / MetaSlot / AdaSlot, scored with
 # PGOT's VOC protocol so the rows sit next to PGOT's own zero-shot VOC result.
 #
-#   bash scripts/eval_baselines_voc_zeroshot.sh              # coda spot metaslot, then table
+#   bash scripts/eval_baselines_voc_zeroshot.sh              # coda spot metaslot adaslot, then table
 #   bash scripts/eval_baselines_voc_zeroshot.sh spot         # one model
+#   bash scripts/eval_baselines_voc_zeroshot.sh adaslot      # setup_adaslot_eval.sh first
 #   bash scripts/eval_baselines_voc_zeroshot.sh summary      # table only
 set -euo pipefail
 
@@ -11,12 +12,13 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCALE_RAE_PYTHON="${SCALE_RAE_PYTHON:-/home/jovyan/.conda/envs/scale_rae/bin/python}"
 # MetaSlot needs `astor`; the venv inherits scale_rae's packages and adds only that.
 METASLOT_PYTHON="${METASLOT_PYTHON:-/home/jovyan/.venvs/metaslot_eval/bin/python}"
+ADASLOT_PYTHON="${ADASLOT_PYTHON:-/home/jovyan/.venvs/adaslot_eval/bin/python}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-${PROJECT_ROOT}/outputs/baselines_voc_zeroshot}"
 VOC_ROOT="${VOC_ROOT:-/home/jovyan/data/voc}"
 GPU="${GPU:-0}"
 
 if (( $# == 0 )); then
-    stages=(coda spot metaslot)
+    stages=(coda spot metaslot adaslot)
 else
     stages=("$@")
 fi
@@ -39,16 +41,23 @@ for stage in "${stages[@]}"; do
         coda)     python_bin="${SCALE_RAE_PYTHON}"; stage_args=(--coda_metric_cross_check) ;;
         spot)     python_bin="${SCALE_RAE_PYTHON}"; stage_args=() ;;
         metaslot) python_bin="${METASLOT_PYTHON}";  stage_args=() ;;
+        adaslot)  python_bin="${ADASLOT_PYTHON}"; stage_args=(
+            --adaslot_root "${ADASLOT_ROOT:-/home/jovyan/baselines/AdaSlot}"
+            --adaslot_ckpt "${ADASLOT_CKPT:-/home/jovyan/baselines/ckpt/adaslot-coco.ckpt}"
+        ) ;;
         summary)  continue ;;
-        *) echo "Unknown stage: ${stage} (use coda|spot|metaslot|summary)" >&2; exit 2 ;;
+        *) echo "Unknown stage: ${stage} (use coda|spot|metaslot|adaslot|summary)" >&2; exit 2 ;;
     esac
     test -x "${python_bin}" || { echo "Missing python for ${stage}: ${python_bin}" >&2; exit 1; }
+    default_batch=16
+    if [[ "${stage}" == adaslot ]]; then default_batch=4; fi
     echo "===== [${stage}] zero-shot VOC (COCO checkpoint) ====="
     "${python_bin}" -m pgot.eval.eval_baselines_voc_zeroshot \
         --model "${stage}" \
         --voc_root "${VOC_ROOT}" \
         --output_dir "${OUTPUT_ROOT}/${stage}" \
-        --batch_size "${BATCH_SIZE:-16}" \
+        --batch_size "${BATCH_SIZE:-${default_batch}}" \
+        --seed "${SEED:-0}" \
         --num_workers "${NUM_WORKERS:-2}" \
         "${stage_args[@]}" "${extra_args[@]}" \
         2>&1 | tee "${OUTPUT_ROOT}/${stage}.log"
@@ -64,6 +73,7 @@ rows = [
     ("CODA", f"{root}/coda/summary.json"),
     ("SPOT", f"{root}/spot/summary.json"),
     ("MetaSlot", f"{root}/metaslot/summary.json"),
+    ("AdaSlot", f"{root}/adaslot/summary.json"),
     ("PGOT memory4 noprior (AR)",
      f"{project}/outputs/segeval_pgot_oneshot_memory4_noprior/external_voc_ar/summary.json"),
     ("PGOT memory8 reg32 noprior (AR)",

@@ -1,0 +1,7 @@
+{
+  "scope": "Two recommended additional qualitative candidates selected after reviewing all24; donor appearance attributes only, not exact donor identity or unbiased benchmark success.",
+  "examples": [
+    {"source_root":"/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1","pair_id":"snowboard_to_star_surfboard","label":"NEW1: board color/markings","note":"Donor-like yellow color/markings transfer, with person/snow broadly preserved. Surfboard identity is not established."},
+    {"source_root":"/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1","pair_id":"bus_green_to_white","label":"NEW2: bus white/black exterior","note":"Green target becomes white/black while red neighbor broadly remains; A's double-decker shape is retained."}
+  ]
+}

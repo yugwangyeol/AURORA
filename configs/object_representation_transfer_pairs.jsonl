@@ -1,0 +1,6 @@
+{"pair_id":"dog_brown_to_black_white","target_image_id":205834,"target_slot":0,"donor_image_id":52891,"donor_slot":0,"category":"dog","instruction":"Replace A's brown dog with B's black-and-white dog."}
+{"pair_id":"dog_black_white_to_brown","target_image_id":52891,"target_slot":0,"donor_image_id":205834,"donor_slot":0,"category":"dog","instruction":"Replace A's black-and-white dog with B's brown dog."}
+{"pair_id":"cat_grey_to_tabby","target_image_id":568690,"target_slot":1,"donor_image_id":157807,"donor_slot":0,"category":"cat","instruction":"Replace A's grey cat with B's striped tabby cat."}
+{"pair_id":"cat_tabby_to_grey","target_image_id":157807,"target_slot":0,"donor_image_id":568690,"donor_slot":1,"category":"cat","instruction":"Replace A's striped tabby cat with B's grey cat."}
+{"pair_id":"suitcase_silver_to_patterned","target_image_id":112626,"target_slot":0,"donor_image_id":350019,"donor_slot":0,"category":"suitcase","instruction":"Replace A's silver suitcase with B's brown patterned suitcase."}
+{"pair_id":"bus_white_to_green","target_image_id":243867,"target_slot":0,"donor_image_id":90208,"donor_slot":0,"category":"bus","instruction":"Replace A's white bus with B's green double-decker bus."}

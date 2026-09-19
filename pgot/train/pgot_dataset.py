@@ -102,6 +102,7 @@ class Pix2CapPGOTDataset(Dataset):
         panoptic_categories_json: Optional[str] = None,
         image_preprocess_mode: str = "default",
         coda_crop_size: int = 512,
+        metric_image_size: int = 0,
     ):
         super().__init__()
         self.jsonl_path = jsonl_path
@@ -121,6 +122,9 @@ class Pix2CapPGOTDataset(Dataset):
         self.thing_category_ids = self._load_thing_category_ids(panoptic_categories_json)
         self.image_preprocess_mode = str(image_preprocess_mode)
         self.coda_crop_size = int(coda_crop_size)
+        self.metric_image_size = int(metric_image_size)
+        if self.metric_image_size < 0:
+            raise ValueError("metric_image_size must be non-negative")
         if self.image_preprocess_mode not in {"default", "coda_center_crop"}:
             raise ValueError(f"Unknown image_preprocess_mode={self.image_preprocess_mode}")
 
@@ -284,6 +288,17 @@ class Pix2CapPGOTDataset(Dataset):
             image = _coda_center_crop_image(image, self.coda_crop_size)
         image_tensor = self.image_processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
         target_image_tensor = self.target_image_processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
+        metric_image_tensor = None
+        if self.metric_image_size:
+            metric_image = image
+            if metric_image.size != (self.metric_image_size, self.metric_image_size):
+                metric_image = metric_image.resize(
+                    (self.metric_image_size, self.metric_image_size),
+                    _pil_resample("BICUBIC"),
+                )
+            metric_image_tensor = torch.from_numpy(
+                np.asarray(metric_image, dtype=np.uint8).copy()
+            ).permute(2, 0, 1).float().div_(255.0)
 
         # Decode/sort instance masks before caption construction so caption,
         # OVT positions, and GT masks share exactly the same visible-area order.
@@ -367,7 +382,7 @@ class Pix2CapPGOTDataset(Dataset):
             ovt_pos_padded[i] = p
             ovt_valid[i] = True
 
-        return {
+        result = {
             "image": image_tensor,
             "target_image": target_image_tensor,
             "caption_input_ids": caption_input_ids,
@@ -381,6 +396,9 @@ class Pix2CapPGOTDataset(Dataset):
             "n_objects": n_obj_actual,
             "caption_text": caption_text,
         }
+        if metric_image_tensor is not None:
+            result["metric_image"] = metric_image_tensor
+        return result
 
 
 @dataclass
@@ -421,7 +439,7 @@ class PGOTDataCollator:
             "n_objects_list": [inst["n_objects"] for inst in instances],
             "caption_texts": [inst["caption_text"] for inst in instances],
         }
-        for optional_key in ("gt_mask", "sem_mask", "overlap_mask"):
+        for optional_key in ("gt_mask", "sem_mask", "overlap_mask", "metric_image"):
             if all(optional_key in inst for inst in instances):
                 batch[optional_key] = torch.stack(
                     [inst[optional_key] for inst in instances]

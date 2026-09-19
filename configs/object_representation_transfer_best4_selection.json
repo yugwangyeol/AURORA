@@ -1,0 +1,9 @@
+{
+  "scope": "Keep user-approved original rows 2 and 5, then add two visually selected candidates from the extra24 GPU1 run. Same native pipeline; manual ID operations, not freeform language instruction following.",
+  "examples": [
+    {"source_root":"/home/jovyan/PGOT/outputs/object_representation_transfer_memory8_register32","pair_id":"dog_black_white_to_brown","label":"KEEP: original row2 (user approved)","note":"Brown donor-like coat transfers; original beach/frisbee broadly remain, with some body/pose deformation."},
+    {"source_root":"/home/jovyan/PGOT/outputs/object_representation_transfer_memory8_register32","pair_id":"suitcase_silver_to_patterned","label":"KEEP: original row5 (user approved)","note":"Brown donor-like pattern transfers; couch/background broadly remain. Exact donor shape/brand identity is not claimed."},
+    {"source_root":"/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1","pair_id":"snowboard_to_star_surfboard","label":"NEW: selected board appearance transfer","note":"Donor-like yellow color/markings transfer; person/snow broadly remain. Surfboard category identity is not established."},
+    {"source_root":"/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1","pair_id":"bus_green_to_white","label":"NEW: selected bus exterior transfer","note":"White/black exterior transfers; neighboring red bus/street broadly remain. Source double-decker geometry persists."}
+  ]
+}

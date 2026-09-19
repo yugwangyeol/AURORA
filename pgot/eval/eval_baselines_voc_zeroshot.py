@@ -1,6 +1,6 @@
-"""Zero-shot PASCAL VOC segmentation of COCO-trained object-centric baselines.
+"""COCO/VOC segmentation of COCO-trained object-centric baselines.
 
-CODA, SPOT and MetaSlot checkpoints trained on COCO are scored on VOC2012 val
+CODA, SPOT, MetaSlot and AdaSlot checkpoints trained on COCO are scored on VOC2012 val
 with exactly the ground truth and metric code behind PGOT's VOC row
 (``run_eval --dataset voc``):
 
@@ -15,14 +15,19 @@ preprocessing and contributes only the soft slot masks its paper evaluates.
 Those masks are upsampled bilinearly to 512 and arg-maxed -- the read-out every
 one of these papers uses, at PGOT's metric resolution.
 
-Run one model per process (``--model``): the three repositories ship clashing
+Run one model per process (``--model``): the baseline repositories ship clashing
 top-level module names (SPOT's ``datasets.py`` shadows HuggingFace ``datasets``).
+
+SPOT and SlotDiffusion also support ``--dataset coco`` with the existing PGOT
+512 instance/thing-category caches and separate overlap maps. SlotDiffusion
+always uses the pinned official COCO checkpoint, including when testing VOC.
 """
 import argparse
 import copy
 import json
 import logging
 import math
+import random
 import sys
 import time
 from pathlib import Path
@@ -38,6 +43,8 @@ sys.path.insert(0, "/home/jovyan/PGOT")
 from pgot.eval.coda_datasets import _remap_contiguous
 from pgot.eval.pgot_metrics import fari_metric, mbo_metric, miou_metric
 from pgot.train.pgot_dataset import _coda_center_crop_image, _pil_resample
+from pgot.eval.adaslot_baseline import AdaSlotBaseline
+from pgot.eval.voc_object_counts import count_bucket, summarize_object_counts
 
 logging.basicConfig(
     level=logging.INFO,
@@ -88,13 +95,16 @@ class VOCZeroShot(Dataset):
 
 
 def collate(items):
-    return {
+    result = {
         "id": [it["id"] for it in items],
         "image": [it["image"] for it in items],  # variable-size originals
         "instance": torch.stack([it["instance"] for it in items]),
         "semantic": torch.stack([it["semantic"] for it in items]),
         "overlap": torch.stack([it["overlap"] for it in items]),
     }
+    if "semantic_overlap" in items[0]:
+        result["semantic_overlap"] = torch.stack([it["semantic_overlap"] for it in items])
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -204,7 +214,7 @@ class SpotBaseline:
             "model_input_resolution": 224,
             "eval_permutations": args.spot_eval_permutations,
             "mask_source": "transformer-decoder slot attention (14x14), mean over permutations",
-            "preprocessing": "SPOT PascalVOC val: Resize(224) + CenterCrop(224) + ImageNet normalize",
+            "preprocessing": "SPOT COCO/PascalVOC val: Resize(224) + CenterCrop(224) + ImageNet normalize",
             "load_report": "strict=True",
         }
 
@@ -234,6 +244,22 @@ class MetaSlotBaseline:
         model.load_state_dict(state, strict=True)
         self.model = model.to(device).eval()
         self.omap = list(cfg.model_omap)
+        self._slot_keep_mask = None
+        self._prototype_indices = None
+        self.last_diagnostics = None
+        aggregator = self.model.m.aggregat
+        native_deduplicate = aggregator.from_slots_get_initial_slots
+
+        def record_native_deduplication(slots, indices):
+            # Observe the official pruning mask without changing its inputs,
+            # outputs, attention or decoder. Tensor capacity stays at seven;
+            # this mask records the per-image number of retained slots.
+            result, keep = native_deduplicate(slots, indices)
+            self._slot_keep_mask = keep.detach().clone()
+            self._prototype_indices = indices.detach().reshape(keep.shape).clone()
+            return result, keep
+
+        aggregator.from_slots_get_initial_slots = record_native_deduplication
         self.transform = build_from_config(dict(type="Compose", transforms=cfg.transform_v))
         self.device = device
         self.info = {
@@ -245,6 +271,7 @@ class MetaSlotBaseline:
             "preprocessing": "MetaSlot transform_v: CenterCrop(max square) + Resize + ImageNet normalize (0-255)",
             "autocast": "float16 (as MetaSlot eval.py)",
             "load_report": "strict=True",
+            "object_count_prediction_source": "native prototype duplicate-removal smask.sum; includes retained background-representing slots",
         }
 
     @torch.no_grad()
@@ -258,23 +285,52 @@ class MetaSlotBaseline:
             }
             batch.append(self.transform(**pack)["image"].float())
         x = torch.stack(batch).to(self.device)
+        self._slot_keep_mask = None
+        self._prototype_indices = None
+        self.last_diagnostics = None
         with torch.autocast("cuda", dtype=torch.float16, enabled=x.is_cuda):
             outputs = self.model.m(x)
+        if self._slot_keep_mask is None or self._slot_keep_mask.shape[0] != len(images):
+            raise RuntimeError("MetaSlot native duplicate-removal mask was not recorded")
+        keep = self._slot_keep_mask.cpu().tolist()
+        indices = self._prototype_indices.cpu().tolist()
+        self.last_diagnostics = []
+        for mask_row, index_row in zip(keep, indices):
+            count = sum(mask_row)
+            if count != len(set(index_row)):
+                raise RuntimeError("MetaSlot retained-slot count differs from unique prototype count")
+            self.last_diagnostics.append({
+                "kept_slots": count,
+                "slot_capacity": len(mask_row),
+                "prototype_keep_mask": mask_row,
+                "prototype_indices": index_row,
+            })
         return outputs[self.omap.index("attent2")].float()  # [B, K, 16, 16]
 
 
-BASELINES = {"coda": CodaBaseline, "spot": SpotBaseline, "metaslot": MetaSlotBaseline}
+BASELINES = {"coda": CodaBaseline, "spot": SpotBaseline, "metaslot": MetaSlotBaseline,
+             "adaslot": AdaSlotBaseline}
 
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--model", choices=sorted(BASELINES), required=True)
+    p.add_argument("--model", choices=sorted([*BASELINES, "slotdiffusion"]), required=True)
     p.add_argument("--voc_root", default="/home/jovyan/data/voc")
+    p.add_argument("--dataset", choices=["voc", "coco"], default="voc")
+    p.add_argument("--coco_root", default="/home/jovyan/data/coco")
+    p.add_argument("--coco_instance_cache", default="/home/jovyan/PGOT/data/coco_inst_mask_cache_coda512")
+    p.add_argument("--coco_category_cache", default="/home/jovyan/PGOT/data/coco_cat_mask_cache_coda512")
+    p.add_argument("--slotdiffusion_root", default="/home/jovyan/baselines/SlotDiffusion")
+    p.add_argument("--slotdiffusion_ckpt", default="/home/jovyan/baselines/SlotDiffusion/pretrained/sa_ldm_dino_coco_params-res224.pth")
     p.add_argument("--output_dir", required=True)
     p.add_argument("--eval_size", type=int, default=512)
     p.add_argument("--batch_size", type=int, default=16)
     p.add_argument("--num_workers", type=int, default=4)
     p.add_argument("--max_samples", type=int, default=None)
+    p.add_argument("--seed", type=int, default=0,
+                   help="RNG seed; stochastic slot models require the same seed and batch size for replay.")
+    p.add_argument("--adaslot_root", default="/home/jovyan/baselines/AdaSlot")
+    p.add_argument("--adaslot_ckpt", default="/home/jovyan/baselines/ckpt/adaslot-coco.ckpt")
     p.add_argument("--coda_root", default="/home/jovyan/coda")
     p.add_argument("--coda_ckpt", default="/home/jovyan/coda/pretrained/coda/coco")
     p.add_argument("--coda_metric_cross_check", action="store_true",
@@ -312,10 +368,18 @@ def main():
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    torch.manual_seed(0)
+    torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
+    random.seed(args.seed)
     start = time.time()
 
-    baseline = BASELINES[args.model](args, device)
+    if args.dataset == "coco" and args.model not in {"spot", "slotdiffusion"}:
+        raise ValueError("COCO adapter currently supports SPOT and SlotDiffusion only")
+    if args.model == "slotdiffusion":
+        from pgot.eval.slotdiffusion_baseline import SlotDiffusionBaseline
+        baseline = SlotDiffusionBaseline(args, device)
+    else:
+        baseline = BASELINES[args.model](args, device)
     log.info("%s loaded: %s", baseline.name, baseline.info)
 
     coda_metrics = None
@@ -328,10 +392,15 @@ def main():
 
         coda_metrics = {"fARI": 0.0, "mBO": 0.0, "mIoU": 0.0, "sMBO": 0.0, "sMIOU": 0.0, "n": 0}
 
-    dataset = VOCZeroShot(args.voc_root, args.eval_size, args.max_samples)
+    if args.dataset == "coco":
+        from pgot.eval.coco_baseline_dataset import COCOBaselineDataset
+        dataset = COCOBaselineDataset(args.coco_root, args.coco_instance_cache,
+                                      args.coco_category_cache, args.eval_size, args.max_samples)
+    else:
+        dataset = VOCZeroShot(args.voc_root, args.eval_size, args.max_samples)
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False,
                         num_workers=args.num_workers, collate_fn=collate)
-    log.info("VOC val: %d images | eval_size=%d | batch=%d", len(dataset), args.eval_size, args.batch_size)
+    log.info("%s val: %d images | eval_size=%d | batch=%d", args.dataset.upper(), len(dataset), args.eval_size, args.batch_size)
 
     scores = {k: [] for k in ("fARI", "mBO", "mIoU", "sMBO", "sMIOU")}
     records = []
@@ -353,6 +422,7 @@ def main():
         inst = batch["instance"].to(pred.device)
         sem = batch["semantic"].to(pred.device)
         overlap = batch["overlap"].to(pred.device)
+        semantic_overlap = batch.get("semantic_overlap", batch["overlap"]).to(pred.device)
         for b, sample_id in enumerate(batch["id"]):
             gt_b, pr_b, ov_b, sem_b = inst[b:b + 1], pred[b:b + 1], overlap[b:b + 1], sem[b:b + 1]
             row = {
@@ -360,11 +430,16 @@ def main():
                 "fARI": fari_metric(gt_b, pr_b, ov_b),
                 "mBO": mbo_metric(gt_b, pr_b, ov_b),
                 "mIoU": miou_metric(gt_b, pr_b, ov_b),
-                "sMBO": mbo_metric(sem_b, pr_b, ov_b),
-                "sMIOU": miou_metric(sem_b, pr_b, ov_b),
+                "sMBO": mbo_metric(sem_b, pr_b, semantic_overlap[b:b + 1]),
+                "sMIOU": miou_metric(sem_b, pr_b, semantic_overlap[b:b + 1]),
                 "pred_segments": int(torch.unique(pr_b).numel()),
-                "gt_objects": int(gt_b.max().item()),
+                "gt_objects": int(torch.unique(gt_b.masked_fill(ov_b.bool(), 0)).count_nonzero().item()),
             }
+            diagnostics = getattr(baseline, "last_diagnostics", None)
+            if diagnostics is not None:
+                if len(diagnostics) != len(batch["id"]):
+                    raise RuntimeError("Baseline diagnostics do not match the image batch")
+                row.update(diagnostics[b])
             for key in scores:
                 scores[key].append(row[key])
             segments.append(row["pred_segments"])
@@ -386,11 +461,14 @@ def main():
     }
 
     summary = {
-        "task": "voc_zero_shot_segmentation",
+        "task": "voc_zero_shot_segmentation" if args.dataset == "voc" else "coco_segmentation",
         "model": baseline.name,
         "train_dataset": "COCO",
-        "dataset": "voc",
+        "dataset": args.dataset,
         "caption_mode": "not_applicable",
+        "seed": args.seed,
+        "batch_size": args.batch_size,
+        "device": device,
         "protocol": ("PGOT VOC protocol: sets/val.txt order, CODA 512 center crop GT, 255 -> overlap, "
                      "pgot_metrics per-image NaN-skipped means; model masks bilinear-upsampled to "
                      "eval_size then argmax"),
@@ -412,6 +490,38 @@ def main():
         "peak_gpu_memory_GiB": (torch.cuda.max_memory_allocated() / 2 ** 30
                                 if torch.cuda.is_available() else None),
     }
+    summary.update(summarize_object_counts(records))
+    for key, values in scores.items():
+        summary[f"{key}_valid_n"] = sum(math.isfinite(value) for value in values)
+    if args.dataset == "coco":
+        summary["protocol"] = ("COCO2017 val cache image_ids order; existing PGOT CODA 512 center-crop instance/thing-category GT; "
+                               "instance/category overlaps excluded separately; pgot_metrics per-image NaN-skipped means; "
+                               "model masks bilinear-upsampled to eval_size then argmax")
+        summary["object_count_source"] = "GT instances after CODA COCO center crop and instance overlap exclusion; background excluded"
+        summary["gt_source"] = "coco_instance"
+        summary["coco_instance_cache"] = args.coco_instance_cache
+        summary["coco_category_cache"] = args.coco_category_cache
+        summary["mBO_c"], summary["mIoU_c"] = summary["sMBO"], summary["sMIOU"]
+    if records and all("kept_slots" in row for row in records):
+        kept = [row["kept_slots"] for row in records]
+        summary["kept_slots_mean"] = float(np.mean(kept))
+        summary["kept_slots_min"] = min(kept)
+        summary["kept_slots_max"] = max(kept)
+        summary["zero_kept_slots_count"] = sum(count == 0 for count in kept)
+        summary["object_count_mae"] = float(np.mean([
+            abs(row["kept_slots"] - row["gt_objects"]) for row in records
+        ]))
+        summary["object_count_prediction_source"] = baseline.info.get(
+            "object_count_prediction_source", "native selected/kept slots"
+        )
+        for bucket, scores_by_count in summary["by_object_count"].items():
+            selected = [row for row in records if count_bucket(row["gt_objects"]) == bucket]
+            scores_by_count["object_count_mae"] = float(np.mean([
+                abs(row["kept_slots"] - row["gt_objects"]) for row in selected
+            ]))
+        log.info("%s native kept-slot Count MAE=%.6f | count mean=%.4f range=%d..%d",
+                 baseline.name, summary["object_count_mae"], summary["kept_slots_mean"],
+                 summary["kept_slots_min"], summary["kept_slots_max"])
     if coda_metrics is not None and coda_metrics["n"]:
         n = coda_metrics.pop("n")
         summary["coda_metric_cross_check"] = {k: v / n for k, v in coda_metrics.items()}

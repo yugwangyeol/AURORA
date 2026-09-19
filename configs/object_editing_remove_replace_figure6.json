@@ -1,0 +1,12 @@
+{
+  "filename": "object_editing_remove_replace_3x2",
+  "column_titles": ["Remove", "Replace"],
+  "examples": [
+    {"mode": "remove", "pair_id": "remove_cup_323151", "source_dir": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/03_323151"},
+    {"mode": "replace", "pair_id": "dog_black_white_to_brown", "source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_memory8_register32"},
+    {"mode": "remove", "pair_id": "remove_bench_261161", "source_dir": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/05_261161"},
+    {"mode": "replace", "pair_id": "snowboard_to_star_surfboard", "source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1"},
+    {"mode": "remove", "pair_id": "remove_giraffe_449909", "source_dir": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/06_449909"},
+    {"mode": "replace", "pair_id": "refrigerator_white_to_steel", "source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1"}
+  ]
+}

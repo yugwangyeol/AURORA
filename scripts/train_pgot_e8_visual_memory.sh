@@ -43,6 +43,12 @@ if [[ -n "${RESUME_FROM_CHECKPOINT:-}" ]]; then
     export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1
 fi
 
+FSDP_ARGS=()
+if [[ -n "${FSDP_CONFIG:-}" ]]; then
+    test -f "${FSDP_CONFIG}" || { echo "Missing FSDP config: ${FSDP_CONFIG}" >&2; exit 1; }
+    FSDP_ARGS+=(--fsdp "${FSDP_MODE:-full_shard auto_wrap}" --fsdp_config "${FSDP_CONFIG}")
+fi
+
 if [[ "${ONE_SHOT_READOUT_MODE:-}" == memory_* ]]; then
     echo "One-shot memory: ${ONE_SHOT_READOUT_MODE}; object=${E11_OBJECT_MEMORIES_PER_OWNER}; register=${E11_REGISTER_MEMORIES_PER_OWNER} x ${E8_N_REGISTER:-4}"
     echo "Model: ${MODEL_PATH}"
@@ -92,16 +98,20 @@ fi
 
 "${PYTHON}" -m torch.distributed.run \
     --nproc_per_node="${NUM_GPUS}" --master_port="${MASTER_PORT:-29548}" \
-    "${PROJECT_ROOT}/train.py" \
+    "${TRAIN_ENTRYPOINT:-${PROJECT_ROOT}/train.py}" \
     --model_name_or_path "${MODEL_PATH}" --use_pgot True \
     --vision_tower_aux_list "${VISION_TOWER_AUX_LIST:-[\"google/siglip2-so400m-patch16-512\",\"google/siglip2-so400m-patch14-224\"]}" \
     --vision_tower_aux_token_len_list "${VISION_TOWER_AUX_TOKEN_LEN_LIST:-[1024,256]}" \
-    --image_feature_token_len 1024 --diffusion_target_token_len 256 \
+    --image_feature_token_len "${IMAGE_FEATURE_TOKEN_LEN:-1024}" \
+    --diffusion_target_token_len "${DIFFUSION_TARGET_TOKEN_LEN:-256}" \
     --diffusion_norm_stats_path "${DIFFUSION_NORM_STATS_PATH}" \
     --vision_loss diffusion-loss --vision_loss_mode query --vision_coef 1.0 \
-    --diffusion_model_hidden_size 2048 --diffusion_model_channels 1152 \
-    --diffusion_model_z_channels 2048 --diffusion_model_depth 32 \
-    --diffusion_model_heads 32 --dit_cls DiT \
+    --diffusion_model_hidden_size "${DIFFUSION_MODEL_HIDDEN_SIZE:-2048}" \
+    --diffusion_model_channels "${DIFFUSION_MODEL_CHANNELS:-1152}" \
+    --diffusion_model_z_channels "${DIFFUSION_MODEL_Z_CHANNELS:-2048}" \
+    --diffusion_model_depth "${DIFFUSION_MODEL_DEPTH:-32}" \
+    --diffusion_model_heads "${DIFFUSION_MODEL_HEADS:-32}" --dit_cls "${DIT_CLS:-DiT}" \
+    --pgot_diffusion_force_fp32 "${PGOT_DIFFUSION_FORCE_FP32:-True}" \
     --dataset_format coco_instance \
     --pgot_n_register "${E8_N_REGISTER:-4}" --pgot_n_null_bg 0 \
     --pgot_n_ovt_per_object 1 --pgot_max_objects 50 \
@@ -112,6 +122,7 @@ fi
     --pgot_e8_visual_memory_enable True \
     --pgot_one_shot_reader_enable "${ONE_SHOT_READER_ENABLE:-False}" \
     --pgot_one_shot_readout_mode "${ONE_SHOT_READOUT_MODE:-pooled}" \
+    --pgot_one_shot_scratch_init "${ONE_SHOT_SCRATCH_INIT:-False}" \
     --pgot_one_shot_detach_owner_routing "${ONE_SHOT_DETACH_OWNER_ROUTING:-True}" \
     --pgot_one_shot_owner_gradient_ramp_steps "${ONE_SHOT_OWNER_GRADIENT_RAMP_STEPS:-0}" \
     --pgot_one_shot_writer_softmax_axis "${ONE_SHOT_WRITER_SOFTMAX_AXIS:-patch}" \
@@ -183,10 +194,11 @@ fi
     --pgot_contrastive_sampling_rate "${PGOT_CONTRASTIVE_SAMPLING_RATE:-0.5}" \
     --pgot_contrastive_loss_target_weight "${PGOT_CONTRASTIVE_TARGET_WEIGHT:-0.0}" \
     --pgot_contrastive_warmup_steps "${PGOT_CONTRASTIVE_WARMUP_STEPS:-0}" \
-    --pgot_unfreeze_mm_projector True --freeze_vision_tower True \
+    --pgot_unfreeze_mm_projector "${UNFREEZE_MM_PROJECTOR:-True}" --freeze_vision_tower True \
     --freeze_dit_body True --pgot_dit_unfreeze_last_n_blocks "${DIT_UNFREEZE_LAST_N:-8}" \
-    --pgot_lora_enable True --pgot_lora_r 16 --pgot_lora_alpha 32 --pgot_lora_dropout 0.05 \
-    --pgot_lora_target_modules q_proj,k_proj,v_proj,o_proj \
+    --pgot_lora_enable True --pgot_lora_r "${PGOT_LORA_R:-16}" \
+    --pgot_lora_alpha "${PGOT_LORA_ALPHA:-32}" --pgot_lora_dropout "${PGOT_LORA_DROPOUT:-0.05}" \
+    --pgot_lora_target_modules "${PGOT_LORA_TARGET_MODULES:-q_proj,k_proj,v_proj,o_proj}" \
     --train_jsonl "${TRAIN_JSONL}" --val_jsonl "${VAL_JSONL}" \
     --image_preprocess_mode coda_center_crop --coda_crop_size 512 \
     --max_caption_tokens 1024 --grid_size 32 --eval_num_images "${EVAL_NUM_IMAGES:-32}" \
@@ -202,12 +214,20 @@ fi
     --pgot_llm_lr "${LLM_LR:-1e-4}" --weight_decay 0.01 \
     --warmup_ratio "${WARMUP_RATIO:-0.03}" --lr_scheduler_type constant_with_warmup \
     --pgot_use_cosine_min_lr_schedule False --pgot_use_wsd_schedule False \
-    --max_grad_norm 1.0 --bf16 False --fp16 False --tf32 False \
-    --model_max_length 4096 --gradient_checkpointing False \
+    --max_grad_norm 1.0 --optim "${OPTIM:-adamw_torch}" \
+    --bf16 "${BF16:-False}" --fp16 "${FP16:-False}" --tf32 "${TF32:-False}" \
+    --model_max_length "${MODEL_MAX_LENGTH:-4096}" \
+    --gradient_checkpointing "${GRADIENT_CHECKPOINTING:-False}" \
+    --pgot_trainable_fp32 "${PGOT_TRAINABLE_FP32:-False}" \
+    --pgot_parameter_update_audit "${PGOT_PARAMETER_UPDATE_AUDIT:-False}" \
+    --pgot_parameter_update_audit_samples "${PGOT_PARAMETER_UPDATE_AUDIT_SAMPLES:-16384}" \
+    --pgot_activation_cpu_offload "${PGOT_ACTIVATION_CPU_OFFLOAD:-False}" \
+    --pgot_cuda_memory_diagnostics "${PGOT_CUDA_MEMORY_DIAGNOSTICS:-False}" \
+    --pgot_fsdp_sync_each_microbatch "${PGOT_FSDP_SYNC_EACH_MICROBATCH:-False}" \
     --save_strategy steps --save_steps "${SAVE_STEPS:-500}" --save_total_limit "${SAVE_TOTAL_LIMIT:-3}" \
     --save_only_model "${SAVE_ONLY_MODEL:-False}" \
     --evaluation_strategy steps --eval_steps "${EVAL_STEPS:-500}" --prediction_loss_only True \
     --pgot_eval_log_recon_images "${PGOT_EVAL_LOG_RECON_IMAGES:-4}" \
     --logging_steps "${LOGGING_STEPS:-10}" --report_to "${REPORT_TO:-wandb}" \
     --dataloader_num_workers "${DATALOADER_NUM_WORKERS:-4}" --remove_unused_columns False \
-    --ddp_find_unused_parameters True "${RESUME_ARGS[@]}"
+    --ddp_find_unused_parameters True "${FSDP_ARGS[@]}" "${RESUME_ARGS[@]}"

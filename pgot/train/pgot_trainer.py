@@ -3,6 +3,9 @@
 import logging
 import math
 import os
+import json
+import re
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence
 
@@ -10,11 +13,94 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import transformers
-from transformers import Trainer
+from transformers import Trainer, TrainerCallback
 from transformers.trainer_pt_utils import get_parameter_names
 from transformers.pytorch_utils import ALL_LAYERNORM_LAYERS
 
 logger = logging.getLogger(__name__)
+
+
+def _enable_fsdp_sync_each_microbatch(accelerator):
+    """Backport Accelerate's sync_each_batch without changing step boundaries.
+
+    Accelerate 0.23 lacks that option. FSDP.no_sync retains *full*, not sharded,
+    gradients and can OOM on the first accumulation microbatch. Skip only the
+    FSDP no_sync context; Accelerator still scales loss and advances the
+    optimizer/scheduler only at the original accumulation boundary.
+    """
+    from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
+    original_no_sync = accelerator.no_sync
+
+    def sharded_no_sync(model):
+        if isinstance(model, FSDP):
+            return nullcontext()
+        return original_no_sync(model)
+
+    accelerator.no_sync = sharded_no_sync
+
+
+def _fsdp_full_state_dict(model):
+    """Collect reloadable CPU weights on rank 0 with all ranks participating."""
+    from torch.distributed.fsdp import (
+        FullStateDictConfig,
+        FullyShardedDataParallel as FSDP,
+        StateDictType,
+    )
+
+    with FSDP.state_dict_type(
+        model, StateDictType.FULL_STATE_DICT,
+        FullStateDictConfig(offload_to_cpu=True, rank0_only=True),
+    ):
+        return model.state_dict()
+
+
+class _FSDPCompatibleAdamW(torch.optim.AdamW):
+    """Bridge PyTorch 2.11 optimizer defaults to Accelerate 0.23.
+
+    Accelerate reconstructs the optimizer after FSDP wrapping from
+    ``optimizer.defaults``.  PyTorch 2.11 records the internal
+    ``decoupled_weight_decay`` key there although AdamW's public constructor
+    does not accept it.
+    """
+
+    def __init__(self, params, *args, **kwargs):
+        kwargs.pop("decoupled_weight_decay", None)
+        super().__init__(params, *args, **kwargs)
+        self.pgot_audit_gradients = False
+        self.pgot_last_gradient_audit = {}
+
+    def step(self, closure=None):
+        if self.pgot_audit_gradients:
+            audit = {}
+            for index, group in enumerate(self.param_groups):
+                name = str(group.get("pgot_group", f"group_{index}"))
+                finite_all = True
+                nonzero_any = False
+                max_abs = 0.0
+                tensor_count = 0
+                for parameter in group["params"]:
+                    gradient = parameter.grad
+                    if gradient is None:
+                        continue
+                    tensor_count += 1
+                    detached = gradient.detach()
+                    finite_all = finite_all and bool(
+                        torch.isfinite(detached).all().item()
+                    )
+                    nonzero_any = nonzero_any or bool(
+                        torch.count_nonzero(detached).item() > 0
+                    )
+                    if detached.numel():
+                        max_abs = max(max_abs, float(detached.abs().max().item()))
+                audit[name] = {
+                    "gradient_tensor_count": tensor_count,
+                    "gradient_finite": bool(tensor_count and finite_all),
+                    "gradient_nonzero": bool(nonzero_any),
+                    "gradient_max_abs": max_abs,
+                }
+            self.pgot_last_gradient_audit = audit
+        return super().step(closure=closure)
 
 
 # ============================================================================
@@ -211,6 +297,10 @@ class PGOTModelArguments:
     # multi-layer Writer is constructed.
     pgot_one_shot_reader_enable: bool = field(default=False)
     pgot_one_shot_readout_mode: str = field(default="pooled")
+    # Explicit opt-in for constructing one-shot Writer/Reader directly from a
+    # vanilla Scale-RAE checkpoint.  Normal experiments still require an E11
+    # or existing one-shot checkpoint so accidental cold starts are rejected.
+    pgot_one_shot_scratch_init: bool = field(default=False)
     pgot_one_shot_detach_owner_routing: bool = field(default=True)
     pgot_one_shot_owner_gradient_ramp_steps: int = field(default=0)
     pgot_one_shot_writer_softmax_axis: str = field(default="patch")
@@ -382,6 +472,9 @@ class PGOTModelArguments:
     diffusion_model_z_channels: int = field(default=0)
     dit_cls: str = field(default="LightningDiT")
     diffusion_norm_stats_path: Optional[str] = field(default=None)
+    # Legacy captionslot training promotes the DiT body to FP32 on its first
+    # forward. Disable for a true BF16/FSDP run; default preserves old runs.
+    pgot_diffusion_force_fp32: bool = field(default=True)
 
     # Image processing
     image_aspect_ratio: str = field(default="square")
@@ -464,10 +557,74 @@ class PGOTTrainingArguments(transformers.TrainingArguments):
     pgot_use_cosine_min_lr_schedule: bool = field(default=True)
     pgot_min_lr_ratio: float = field(default=0.10)
 
+    # Precision pilot helpers.  The audit samples representative trainable
+    # tensors before/after optimizer steps and records gradient/update health.
+    pgot_parameter_update_audit: bool = field(default=False)
+    pgot_parameter_update_audit_samples: int = field(default=16384)
+    # Fallback for BF16 base weights when direct BF16 optimizer updates are
+    # quantized away: retain frozen weights in BF16, but train parameters FP32.
+    pgot_trainable_fp32: bool = field(default=False)
+    # Exact-dtype activation transfers for large FP32 FSDP runs. This does not
+    # offload optimizer parameters or change the model's precision/loss.
+    pgot_activation_cpu_offload: bool = field(default=False)
+    pgot_cuda_memory_diagnostics: bool = field(default=False)
+    pgot_fsdp_sync_each_microbatch: bool = field(default=False)
+
 
 # ============================================================================
 # Freeze policy
 # ============================================================================
+def _install_token_row_gradient_mask(module, token_ids):
+    """Mask the live weight view, not the Parameter replaced by FSDP.
+
+    Forward-pre-hooks run after FSDP unshards weights. Registering on that
+    actual autograd view masks gradients before reduction and clipping. This
+    also works without FSDP and does not change existing AdamW weight decay.
+    """
+    ids = tuple(sorted({int(i) for i in token_ids}))
+    vocab_size = module.weight.shape[0]
+    if not ids or any(i < 0 or i >= vocab_size for i in ids):
+        raise ValueError("Token-row mask needs valid, nonempty vocabulary IDs")
+    keep_cpu = torch.zeros(vocab_size, dtype=torch.bool)
+    keep_cpu[list(ids)] = True
+    masks = {}
+    audit = {"hook_calls": 0, "gradient_finite_all_sampled": True,
+             "old_gradient_nonzero_any_sampled": False,
+             "new_gradient_nonzero_any_sampled": False}
+    module._pgot_token_row_mask_audit = audit
+    audit_enabled = os.environ.get("PGOT_PARAMETER_UPDATE_AUDIT", "").lower() in ("1", "true")
+    old_ids = [i for i in range(min(vocab_size, 32)) if i not in ids][:8]
+
+    def mask_gradient(grad):
+        mask = masks.get(grad.device)
+        if mask is None:
+            mask = keep_cpu.to(grad.device).unsqueeze(-1)
+            masks[grad.device] = mask
+        # masked_fill guarantees exact zeros even if an old-row gradient is NaN.
+        masked = grad.masked_fill(~mask, 0)
+        audit["hook_calls"] += 1
+        if audit_enabled:
+            new = masked[list(ids)]
+            old = masked[old_ids]
+            audit["gradient_finite_all_sampled"] &= bool(torch.isfinite(new).all())
+            audit["old_gradient_nonzero_any_sampled"] |= bool(torch.count_nonzero(old))
+            audit["new_gradient_nonzero_any_sampled"] |= bool(torch.count_nonzero(new))
+        return masked
+
+    def install_on_live_weight(layer, inputs):
+        weight = layer.weight
+        if not torch.is_grad_enabled() or not weight.requires_grad:
+            return
+        if getattr(weight, "_pgot_masked_token_ids", None) == ids:
+            return
+        if weight.ndim != 2 or weight.shape[0] != vocab_size:
+            raise RuntimeError("Token mask must run on the full unsharded weight view")
+        weight.register_hook(mask_gradient)
+        weight._pgot_masked_token_ids = ids
+
+    return module.register_forward_pre_hook(install_on_live_weight)
+
+
 def freeze_for_pgot(
     model,
     freeze_dit_body: bool = True,
@@ -673,13 +830,7 @@ def freeze_for_pgot(
                         n_unfreeze_last, start_idx, total_blocks - 1, total_blocks, n_dit_body_blocks,
                     )
 
-    # Embedding rows for <ovt> and <scene_end> — we unfreeze the full embed_tokens
-    # weight (the LM loss only generates gradient at <ovt>/<scene_end> rows in
-    # practice because the rest of vocab is supervised by next-token labels via
-    # LM loss, but those rows are usually well-trained already). To match the
-    # constraint "LoRA only", we keep embed_tokens frozen and rely on LoRA in
-    # the attention layers. New rows for <ovt>, <scene_end> are unfrozen
-    # selectively below.
+    # Only newly added PGOT token rows receive embedding/head gradients.
     new_tokens = []
     if hasattr(model, "pgot_ovt_token_id") and model.pgot_ovt_token_id is not None:
         new_tokens.append(model.pgot_ovt_token_id)
@@ -697,24 +848,9 @@ def freeze_for_pgot(
         if hasattr(model, "lm_head") and model.lm_head is not None:
             model.lm_head.weight.requires_grad_(True)
 
-        # Register a backward hook that zeros out gradient for all rows except
-        # the new tokens.
-        vocab_size = embed.weight.shape[0]
-        new_token_ids = set(new_tokens)
-        keep_mask = torch.zeros(vocab_size, dtype=torch.bool, device=embed.weight.device)
-        for tid in new_token_ids:
-            keep_mask[int(tid)] = True
-
-        def _embed_hook(grad):
-            if grad is None:
-                return grad
-            mask = keep_mask.to(device=grad.device, dtype=grad.dtype).unsqueeze(-1)
-            return grad * mask
-
-        embed.weight.register_hook(_embed_hook)
+        _install_token_row_gradient_mask(embed, new_tokens)
         if hasattr(model, "lm_head") and model.lm_head is not None:
-            # lm_head.weight has shape (vocab, hidden) — same mask works
-            model.lm_head.weight.register_hook(_embed_hook)
+            _install_token_row_gradient_mask(model.lm_head, new_tokens)
 
     # Vision tower: leave frozen (already requires_grad_(False))
 
@@ -730,6 +866,252 @@ def freeze_for_pgot(
 
 
 # ============================================================================
+# BF16 parameter-update audit
+# ============================================================================
+class PGOTParameterUpdateAuditCallback(TrainerCallback):
+    """Record sampled gradients and exact optimizer updates by parameter group.
+
+    This is intentionally opt-in and lightweight enough for a short precision
+    pilot.  Each group uses one representative trainable tensor.  Samples are
+    spread uniformly across that tensor, so the report catches BF16 updates
+    that are computed but round back to the original stored value.
+    """
+
+    def __init__(self, output_dir: str, max_samples: int = 16384):
+        self._output_dir = output_dir
+        self.output_path = os.path.join(output_dir, "parameter_update_audit.json")
+        self.max_samples = max(int(max_samples), 1)
+        self.parameters = {}
+        self.sample_indices = {}
+        self.before = {}
+        self.current_grad = {}
+        self.steps = []
+        self.losses = []
+        self._handles = []
+        self._enabled = False
+
+    @staticmethod
+    def _unwrap(model):
+        return model.module if hasattr(model, "module") else model
+
+    @staticmethod
+    def _block_index(name: str):
+        match = re.search(
+            r"diff_head\.model\.(?:_fsdp_wrapped_module\.)?"
+            r"dit_blocks\.(\d+)\.",
+            name,
+        )
+        return int(match.group(1)) if match else None
+
+    def _choose_parameters(self, model):
+        named = [(name, p) for name, p in self._unwrap(model).named_parameters()
+                 if p.requires_grad and p.numel() > 0]
+        block_indices = [self._block_index(name) for name, _ in named]
+        block_indices = [idx for idx in block_indices if idx is not None]
+        last_start = max(block_indices) - 15 if block_indices else 10 ** 9
+
+        predicates = {
+            "qwen_lora": lambda n: "lora_B" in n,
+            "mm_projector": lambda n: "mm_projector" in n,
+            "dit_adaln": lambda n: (
+                "diff_head.model." in n and "adaLN_modulation" in n
+            ),
+            "dit_last16_body": lambda n: (
+                self._block_index(n) is not None
+                and self._block_index(n) >= last_start
+                and "adaLN_modulation" not in n
+            ),
+            "register": lambda n: "pgot_register_embeddings" in n,
+            "rae_query": lambda n: "latent_queries" in n,
+            "writer": lambda n: "pgot_e8_writer" in n,
+            "reader": lambda n: "pgot_e8_reader" in n,
+        }
+        preferred = {
+            "mm_projector": ("weight",),
+            "dit_adaln": ("weight",),
+            "dit_last16_body": ("attn", "weight"),
+            "writer": ("raw_value.weight",),
+            "reader": ("output.weight",),
+        }
+        for group, predicate in predicates.items():
+            candidates = [(name, p) for name, p in named if predicate(name)]
+            if not candidates:
+                continue
+            hints = preferred.get(group, ())
+            candidates.sort(
+                key=lambda item: (
+                    -sum(hint in item[0] for hint in hints),
+                    item[0],
+                )
+            )
+            name, parameter = candidates[0]
+            self.parameters[group] = (name, parameter)
+            count = min(parameter.numel(), self.max_samples)
+            if count == parameter.numel():
+                indices = torch.arange(count, dtype=torch.long)
+            else:
+                indices = torch.linspace(
+                    0, parameter.numel() - 1, steps=count, dtype=torch.float64
+                ).round().to(torch.long).unique()
+            self.sample_indices[group] = indices
+
+    def _sample(self, group, tensor):
+        flat = tensor.detach().reshape(-1)
+        indices = self.sample_indices[group].to(flat.device)
+        return flat.index_select(0, indices).float().cpu()
+
+    def _write(self, state):
+        if not self._enabled:
+            return
+        os.makedirs(os.path.dirname(self.output_path), exist_ok=True)
+        groups = {}
+        for group, (name, parameter) in self.parameters.items():
+            group_steps = [step["groups"].get(group, {}) for step in self.steps]
+            groups[group] = {
+                "parameter": name,
+                "dtype": str(parameter.dtype).replace("torch.", ""),
+                "numel": int(parameter.numel()),
+                "sample_count": int(self.sample_indices[group].numel()),
+                "gradient_finite_all_sampled": bool(
+                    group_steps and all(s.get("gradient_finite", False) for s in group_steps)
+                ),
+                "gradient_nonzero_any_sampled": bool(
+                    any(s.get("gradient_nonzero", False) for s in group_steps)
+                ),
+                "update_nonzero_any_sampled": bool(
+                    any(s.get("changed_count", 0) > 0 for s in group_steps)
+                ),
+                "max_abs_update": max(
+                    (float(s.get("max_abs_update", 0.0)) for s in group_steps),
+                    default=0.0,
+                ),
+            }
+        finite_losses = [math.isfinite(v) for v in self.losses]
+        payload = {
+            "global_step": int(state.global_step),
+            "loss_finite_all_logged": bool(finite_losses and all(finite_losses)),
+            "logged_losses": self.losses,
+            "all_selected_groups_updated": bool(
+                groups and all(v["update_nonzero_any_sampled"] for v in groups.values())
+            ),
+            "groups": groups,
+            "steps": self.steps,
+        }
+        temporary = self.output_path + ".tmp"
+        with open(temporary, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, sort_keys=True)
+            handle.write("\n")
+        os.replace(temporary, self.output_path)
+
+    def on_train_begin(self, args, state, control, model=None, **kwargs):
+        self._enabled = model is not None
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
+            rank = torch.distributed.get_rank()
+            world_size = torch.distributed.get_world_size()
+        else:
+            rank = 0
+            world_size = 1
+        if world_size > 1:
+            self.output_path = os.path.join(
+                self._output_dir, f"parameter_update_audit.rank{rank}.json"
+            )
+        if not self._enabled or model is None:
+            return
+        self._choose_parameters(model)
+        for group, (_, parameter) in self.parameters.items():
+            def capture(gradient, group_name=group):
+                sampled = self._sample(group_name, gradient)
+                self.current_grad[group_name] = {
+                    "gradient_finite": bool(torch.isfinite(sampled).all().item()),
+                    "gradient_nonzero": bool(torch.count_nonzero(sampled).item() > 0),
+                    "gradient_max_abs": float(sampled.abs().max().item()),
+                }
+                return gradient
+            self._handles.append(parameter.register_hook(capture))
+        logger.info(
+            "[PGOT/Audit] rank=%d tracking sampled parameter updates: %s",
+            rank,
+            ", ".join(f"{group}={name}" for group, (name, _) in self.parameters.items()),
+        )
+
+    def on_step_begin(self, args, state, control, **kwargs):
+        if not self._enabled:
+            return
+        self.current_grad = {}
+        self.before = {
+            group: self._sample(group, parameter)
+            for group, (_, parameter) in self.parameters.items()
+        }
+        import time
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+        self._step_started = time.perf_counter()
+
+    def on_step_end(self, args, state, control, **kwargs):
+        if not self._enabled:
+            return
+        optimizer = kwargs.get("optimizer")
+        while optimizer is not None and not hasattr(
+            optimizer, "pgot_last_gradient_audit"
+        ) and hasattr(optimizer, "optimizer"):
+            optimizer = optimizer.optimizer
+        optimizer_audit = getattr(
+            optimizer, "pgot_last_gradient_audit", {}
+        ) if optimizer is not None else {}
+        audit_group = {
+            "qwen_lora": "llm",
+            "mm_projector": "mm_projector",
+            "dit_adaln": "dit_adaln",
+            "dit_last16_body": "dit_body",
+            "register": "register",
+            "rae_query": "rae_query",
+            "writer": "visual_memory",
+            "reader": "visual_memory",
+        }
+        import time
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+        result = {"step": int(state.global_step), "groups": {},
+                  "seconds": time.perf_counter() - self._step_started}
+        for group, (_, parameter) in self.parameters.items():
+            current = self._sample(group, parameter)
+            previous = self.before.get(group, current)
+            delta = current - previous
+            stats = dict(optimizer_audit.get(audit_group.get(group, ""),
+                                             self.current_grad.get(group, {
+                "gradient_finite": False,
+                "gradient_nonzero": False,
+                "gradient_max_abs": 0.0,
+            })))
+            stats.update({
+                "changed_count": int(torch.count_nonzero(delta).item()),
+                "max_abs_update": float(delta.abs().max().item()),
+                "mean_abs_update": float(delta.abs().mean().item()),
+            })
+            result["groups"][group] = stats
+        self.steps.append(result)
+        self._write(state)
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        if self._enabled and logs and "loss" in logs:
+            self.losses.append(float(logs["loss"]))
+            self._write(state)
+
+    def on_train_end(self, args, state, control, **kwargs):
+        if self._enabled:
+            self._write(state)
+            rows = {name: module._pgot_token_row_mask_audit
+                    for name, module in kwargs["model"].named_modules()
+                    if hasattr(module, "_pgot_token_row_mask_audit")}
+            rank = int(args.process_index)
+            with open(os.path.join(self._output_dir, f"token_row_mask_audit.rank{rank}.json"), "w") as f:
+                json.dump(rows, f, indent=2)
+        for handle in self._handles:
+            handle.remove()
+        self._handles.clear()
+
+
+# ============================================================================
 # Trainer
 # ============================================================================
 class PGOTTrainer(Trainer):
@@ -737,6 +1119,14 @@ class PGOTTrainer(Trainer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if bool(getattr(self.args, "pgot_fsdp_sync_each_microbatch", False)):
+            if not self.args.fsdp:
+                raise ValueError("pgot_fsdp_sync_each_microbatch requires FSDP")
+            _enable_fsdp_sync_each_microbatch(self.accelerator)
+            logger.info(
+                "[PGOT/FSDP] sync each microbatch; accumulation=%d unchanged",
+                self.args.gradient_accumulation_steps,
+            )
         self._metric_profile = str(
             getattr(self.args, "pgot_log_metric_profile", "all")
         ).lower()
@@ -748,6 +1138,20 @@ class PGOTTrainer(Trainer):
         self._eval_sub_loss_count: int = 0
         self._last_eval_sub_metrics: Dict[str, float] = {}
         self._eval_decoder = None  # lazy-loaded siglip2 decoder for image recon logging
+
+    def save_model(self, output_dir=None, _internal_call=False):
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
+        if not isinstance(self.model, FSDP):
+            return super().save_model(output_dir, _internal_call=_internal_call)
+        # Transformers 4.37 silently skips FSDP save_model for Accelerate <=
+        # 0.24.1. Gather explicitly so checkpoint staging, final save, and the
+        # standalone from_pretrained TF/AR path all receive full weights.
+        state_dict = _fsdp_full_state_dict(self.model)
+        if self.args.should_save:
+            self._save(output_dir or self.args.output_dir, state_dict=state_dict)
+        if self.args.push_to_hub and not _internal_call:
+            self.push_to_hub(commit_message="Model save")
 
     def _keep_metric(self, key: str) -> bool:
         if self._metric_profile not in {"e6", "e7", "one_shot_memory"}:
@@ -994,62 +1398,53 @@ class PGOTTrainer(Trainer):
                 params.append(p)
             return params
 
+        def _add_group(name, params, weight_decay, lr):
+            if params:
+                groups.append({
+                    "params": params,
+                    "weight_decay": weight_decay,
+                    "lr": lr,
+                    "pgot_group": name,
+                })
+
         # default group (e.g., embed_tokens trainable rows, lm_head)
         default = _take_params(None)
-        if default:
-            groups.append({"params": default, "weight_decay": self.args.weight_decay, "lr": self.args.learning_rate})
+        _add_group("base", default, self.args.weight_decay, self.args.learning_rate)
 
         params = _take_params(mm_projector_names)
-        if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": mm_projector_lr})
+        _add_group("mm_projector", params, self.args.weight_decay, mm_projector_lr)
         params = _take_params(projector_names)
-        if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": diff_head_lr})
+        _add_group("diff_projector", params, self.args.weight_decay, diff_head_lr)
         params = _take_params(dit_adaln_names)
-        if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": diff_head_lr})
+        _add_group("dit_adaln", params, self.args.weight_decay, diff_head_lr)
         params = _take_params(dit_body_names)
-        if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": dit_body_lr})
+        _add_group("dit_body", params, self.args.weight_decay, dit_body_lr)
         params = _take_params(register_names)
-        if params:
-            groups.append({"params": params, "weight_decay": 0.0, "lr": register_lr})
+        _add_group("register", params, 0.0, register_lr)
         params = _take_params(null_bg_names)
-        if params:
-            groups.append({"params": params, "weight_decay": 0.0, "lr": register_lr})
+        _add_group("null_bg", params, 0.0, register_lr)
         params = _take_params(rae_query_names)
-        if params:
-            groups.append({"params": params, "weight_decay": 0.0, "lr": rae_query_lr})
+        _add_group("rae_query", params, 0.0, rae_query_lr)
         params = _take_params(v14_names)
-        if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": self.args.learning_rate})
+        _add_group("v14", params, self.args.weight_decay, self.args.learning_rate)
         params = _take_params(e8_names)
-        if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": self.args.learning_rate})
+        _add_group("visual_memory", params, self.args.weight_decay, self.args.learning_rate)
         params = _take_params(v21_names)
-        if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": self.args.learning_rate})
+        _add_group("v21", params, self.args.weight_decay, self.args.learning_rate)
         params = _take_params(latent_head_names)
-        if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": latent_head_lr})
+        _add_group("latent_head", params, self.args.weight_decay, latent_head_lr)
         params = _take_params(e6_projector_names)
-        if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": e6_projector_lr})
+        _add_group("e6_projector", params, self.args.weight_decay, e6_projector_lr)
         params = _take_params(e6_unet_names)
-        if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": e6_unet_lr})
+        _add_group("e6_unet", params, self.args.weight_decay, e6_unet_lr)
         params = _take_params(e7_owner_names)
-        if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": e7_owner_lr})
+        _add_group("e7_owner", params, self.args.weight_decay, e7_owner_lr)
         params = _take_params(e7_projector_names)
-        if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": e7_projector_lr})
+        _add_group("e7_projector", params, self.args.weight_decay, e7_projector_lr)
         params = _take_params(e7_unet_names)
-        if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": e7_unet_lr})
+        _add_group("e7_unet", params, self.args.weight_decay, e7_unet_lr)
         params = _take_params(llm_names)
-        if params:
-            groups.append({"params": params, "weight_decay": self.args.weight_decay, "lr": llm_lr})
+        _add_group("llm", params, self.args.weight_decay, llm_lr)
 
         optimizer_summary = (
             ("base", len(default), self.args.learning_rate),
@@ -1081,7 +1476,18 @@ class PGOTTrainer(Trainer):
         )
 
         optimizer_cls, optimizer_kwargs = Trainer.get_optimizer_cls_and_kwargs(self.args)
+        if self.args.fsdp and issubclass(optimizer_cls, torch.optim.AdamW):
+            optimizer_cls = _FSDPCompatibleAdamW
+            # The foreach Adam path materializes a temporary sqrt tensor for
+            # every second-moment shard.  With the trainable half of the 9.8B
+            # DiT in FP32 this transient allocation exceeds a 90-GB MIG slice
+            # even though forward/backward and persistent optimizer states fit.
+            optimizer_kwargs.setdefault("foreach", False)
         self.optimizer = optimizer_cls(groups, **optimizer_kwargs)
+        if isinstance(self.optimizer, _FSDPCompatibleAdamW):
+            self.optimizer.pgot_audit_gradients = bool(
+                getattr(self.args, "pgot_parameter_update_audit", False)
+            )
         return self.optimizer
 
     # ----- Scheduler -----
@@ -1244,20 +1650,40 @@ class PGOTTrainer(Trainer):
 
         images = inputs.pop("images")
         target_images = inputs.pop("target_images")
-        outputs = model(
-            images=images,
-            target_images=target_images,
-            caption_input_ids=inputs["caption_input_ids"],
-            caption_attention_mask=inputs["caption_attention_mask"],
-            caption_labels=inputs.get("caption_labels"),
-            ovt_positions_in_caption=inputs["ovt_positions_in_caption"],
-            ovt_valid_mask=inputs["ovt_valid_mask"],
-            ovt_is_thing=inputs.get("ovt_is_thing"),
-            ovt_category_ids=inputs.get("ovt_category_ids"),
-            gt_masks_per_ovt=inputs["gt_masks_per_ovt"],
-            gt_rae_masks_per_ovt=inputs.get("gt_rae_masks_per_ovt"),
-            pgot_contrastive_weight=contrastive_w,
+        offload_activations = (
+            model.training
+            and bool(getattr(self.args, "pgot_activation_cpu_offload", False))
+            and torch.cuda.is_available()
         )
+        activation_context = (
+            torch.autograd.graph.save_on_cpu(pin_memory=True)
+            if offload_activations else nullcontext()
+        )
+        with activation_context:
+            outputs = model(
+                images=images,
+                target_images=target_images,
+                caption_input_ids=inputs["caption_input_ids"],
+                caption_attention_mask=inputs["caption_attention_mask"],
+                caption_labels=inputs.get("caption_labels"),
+                ovt_positions_in_caption=inputs["ovt_positions_in_caption"],
+                ovt_valid_mask=inputs["ovt_valid_mask"],
+                ovt_is_thing=inputs.get("ovt_is_thing"),
+                ovt_category_ids=inputs.get("ovt_category_ids"),
+                gt_masks_per_ovt=inputs["gt_masks_per_ovt"],
+                gt_rae_masks_per_ovt=inputs.get("gt_rae_masks_per_ovt"),
+                pgot_contrastive_weight=contrastive_w,
+            )
+        if bool(getattr(self.args, "pgot_cuda_memory_diagnostics", False)) and torch.cuda.is_available():
+            gib = 1024 ** 3
+            print(
+                f"[PGOT/CUDA rank={self.args.process_index} step={global_step}] "
+                f"after_forward allocated={torch.cuda.memory_allocated() / gib:.2f}GiB "
+                f"reserved={torch.cuda.memory_reserved() / gib:.2f}GiB "
+                f"peak={torch.cuda.max_memory_allocated() / gib:.2f}GiB "
+                f"activation_cpu_offload={offload_activations}",
+                flush=True,
+            )
         loss = outputs.loss
 
         # Record per-loss metrics for logging

@@ -1,0 +1,9 @@
+{
+  "scope": "Two recommended additional cases followed by two strong alternatives from the same24-candidate native GPU1 batch. Qualitative selection, not a measured success rate.",
+  "examples": [
+    {"source_root":"/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1","pair_id":"snowboard_to_star_surfboard","label":"RECOMMENDED: board appearance","note":"Yellow donor-like color/markings transfer. Broad snow/person preservation; exact board identity not claimed."},
+    {"source_root":"/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1","pair_id":"bus_green_to_white","label":"RECOMMENDED: white bus exterior","note":"White/black exterior replaces green, with red neighbor broadly kept; target double-decker shape persists."},
+    {"source_root":"/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1","pair_id":"dog_brown_to_shaggy","label":"ALTERNATIVE: shaggy coat and clothing","note":"Long/shaggy hair and donor-like cloth transfer; bowl broadly stays. Anatomy and exact identity are not verified."},
+    {"source_root":"/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1","pair_id":"suitcase_patterned_to_silver","label":"ALTERNATIVE: reverse suitcase transfer","note":"Patterned surface becomes silver with donor-like seams; child/room broadly remain, but size/handle changes."}
+  ]
+}
