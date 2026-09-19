@@ -1,0 +1,71 @@
+{
+  "date_utc": "2026-09-16",
+  "configuration": {
+    "world_size": 4,
+    "global_batch_size": 32,
+    "object_memories_per_owner": 8,
+    "register_memories_per_owner": 32,
+    "register_owners": 4,
+    "mllm_rae_query_tokens": 256,
+    "direct_rae": false,
+    "adapter": false,
+    "contrastive": false,
+    "value_source": "siglip",
+    "bf16": false,
+    "fp16": false,
+    "tf32": true,
+    "activation_cpu_offload": false
+  },
+  "original_training": {
+    "last_completed_optimizer_step": 81,
+    "checkpoint_saved": false,
+    "status": "stopped by requested diagnostic; log preserved; not restarted",
+    "log": "../eval_pgot_oneshot_memory8_register32_noprior_7b_fp32_scratch/train.log"
+  },
+  "throughput": [
+    {"batch_per_device": 1, "accumulation": 8, "prefetch": "none", "seconds_per_update": 66.6, "hours_for_5000_updates": 92.5, "source": "original training progress, approximate"},
+    {"batch_per_device": 2, "accumulation": 4, "prefetch": "none", "seconds_per_update": 35.717551863053814, "hours_for_5000_updates": 49.607710920908075, "measured_steps": [3, 4], "peak_allocated_gib": 71.39966297149658, "peak_reserved_gib": 81.27734375},
+    {"batch_per_device": 4, "accumulation": 2, "prefetch": "none", "seconds_per_update": 20.492203456000425, "hours_for_5000_updates": 28.46139368888948, "measured_steps": [3, 4]},
+    {"batch_per_device": 4, "accumulation": 2, "prefetch": "backward_post", "seconds_per_update": 19.297023875056766, "hours_for_5000_updates": 26.801422048689953, "measured_steps": [6, 7], "peak_allocated_gib_including_stress": 71.50143957138062, "peak_reserved_gib_including_stress": 86.1796875}
+  ],
+  "measurement_notes": [
+    "Per-step maximum elapsed time across four ranks; median of listed optimizer updates.",
+    "Excludes initialization, first two warm-up updates, profiler collection/export, checkpoints and TF/AR evaluation.",
+    "B4 includes parameter-update audit overhead; the prefetch switch update5 is excluded.",
+    "Short pilots, not a long-run ETA guarantee; global batch is unchanged but variable-length loss averaging does not guarantee identical gradients."
+  ],
+  "stress_test": {
+    "completed_update": 8,
+    "batch_per_device": 4,
+    "accumulation": 2,
+    "prefetch": "backward_post",
+    "caption_token_range": [804, 964],
+    "maximum_object_count": 38,
+    "selection": "longest packed captions among 128 longest manifest captions, distinct per rank",
+    "oom": false,
+    "all_eight_audited_groups_fp32_finite_gradients_and_nonzero_updates": true
+  },
+  "communication_diagnostic": {
+    "gpu_all_peer_access_pairs": false,
+    "transport": "SHM/direct/direct",
+    "profile": "b2_a4/profile.rank3.json",
+    "gpu_timeline_seconds": 35.60037948242187,
+    "communication_kernel_union_seconds": 30.253744556640626,
+    "all_gather_kernel_sum_seconds": 23.364117737999994,
+    "reduce_scatter_kernel_sum_seconds": 6.887157313,
+    "cpu_cuda_event_synchronize_seconds": 28.706,
+    "simple_protocol_microbenchmark": "No improvement vs auto at 64/256 MiB FP32 shards; not applied."
+  },
+  "blocking_correctness_diagnostic": {
+    "status": "reproduced in miniature; actual PGOT uses the same pre-FSDP original-Parameter hook registration",
+    "issue": "Pre-wrap embedding/lm_head token-row gradient hooks are not invoked by use_orig_params=True FSDP views.",
+    "source": "token_mask_probe.json",
+    "plain_changed_frozen_rows": {"embed.weight": 0, "head.weight": 0},
+    "fsdp_changed_frozen_rows": {"embed.weight": 2, "head.weight": 6},
+    "fsdp_hook_calls_all_ranks": 0,
+    "optimizer": "SGD without weight decay, so changes cannot be explained by decay",
+    "production_fix_applied": true,
+    "followup_validation": "maskfix_validation.json",
+    "recommendation": "Live-view masks and full batch4/accum2 BACKWARD_POST smoke now pass. Use the fresh _fast run wrapper; no production restart was launched automatically."
+  }
+}

@@ -1,0 +1,270 @@
+{
+  "protocol": "RefCOCO one supplied human expression per pass; cached query mask, no new inference",
+  "target_hit_definition": "Positive strictly highest query-mask IoU against all nonempty noncrowd GT instance masks in the image; ties within 1e-12 and zero overlap count as misses. NOT original CTRL-O all-slot Hungarian Binding Hits.",
+  "subset_definition": "Exclude image IDs in the actual DeOR Pix2Cap training JSONL; does not audit earlier pretraining or CTRL-O training exposure.",
+  "source": "/home/jovyan/PGOT/outputs/eval_deor_ctrlo_refcoco_direct",
+  "train": "/home/jovyan/PGOT/data/pgot_pix2cap_thing_train.jsonl",
+  "train_images": 16477,
+  "aggregation": "expression-weighted; no expressions dropped; percentages",
+  "subsets": {
+    "full": {
+      "val": {
+        "expressions": 10834,
+        "images": 1500,
+        "references": 3811,
+        "deor": {
+          "mIoU": 48.647695615564565,
+          "oIoU": 44.50737930160738,
+          "P50": 49.316965109839394,
+          "target_hit_at_1": 66.06055011999261,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        },
+        "ctrlo": {
+          "mIoU": 23.234260585771153,
+          "oIoU": 23.99479027216399,
+          "P50": 10.84548643160421,
+          "target_hit_at_1": 52.473693926527595,
+          "empty_masks": 156,
+          "positive_top_ties": 0
+        }
+      },
+      "testA": {
+        "expressions": 5657,
+        "images": 750,
+        "references": 1975,
+        "deor": {
+          "mIoU": 50.87486669364287,
+          "oIoU": 46.91778125621348,
+          "P50": 53.10235106947145,
+          "target_hit_at_1": 69.31235637263568,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        },
+        "ctrlo": {
+          "mIoU": 25.08314343284225,
+          "oIoU": 26.114273121441574,
+          "P50": 13.629132048789112,
+          "target_hit_at_1": 58.54693300335867,
+          "empty_masks": 65,
+          "positive_top_ties": 0
+        }
+      },
+      "testB": {
+        "expressions": 5095,
+        "images": 750,
+        "references": 1810,
+        "deor": {
+          "mIoU": 46.85662009445979,
+          "oIoU": 42.13713076894069,
+          "P50": 46.162904808635915,
+          "target_hit_at_1": 62.374877330716394,
+          "empty_masks": 1,
+          "positive_top_ties": 0
+        },
+        "ctrlo": {
+          "mIoU": 22.378005819439334,
+          "oIoU": 23.427755494722437,
+          "P50": 8.243375858684985,
+          "target_hit_at_1": 47.57605495583906,
+          "empty_masks": 90,
+          "positive_top_ties": 0
+        }
+      },
+      "all": {
+        "expressions": 21586,
+        "images": 3000,
+        "references": 7596,
+        "deor": {
+          "mIoU": 48.80861366470105,
+          "oIoU": 44.50022097549461,
+          "P50": 49.564532567404804,
+          "target_hit_at_1": 66.04280552209765,
+          "empty_masks": 1,
+          "positive_top_ties": 0
+        },
+        "ctrlo": {
+          "mIoU": 23.516689578239443,
+          "oIoU": 24.350822877610273,
+          "P50": 10.960807931066432,
+          "target_hit_at_1": 52.90929306031688,
+          "empty_masks": 311,
+          "positive_top_ties": 0
+        }
+      }
+    },
+    "nonoverlap": {
+      "val": {
+        "expressions": 9530,
+        "images": 1309,
+        "references": 3354,
+        "deor": {
+          "mIoU": 48.39944370144475,
+          "oIoU": 44.23101056946642,
+          "P50": 48.85624344176286,
+          "target_hit_at_1": 65.7292759706191,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        },
+        "ctrlo": {
+          "mIoU": 23.25643263149712,
+          "oIoU": 24.006771515481415,
+          "P50": 10.807974816369361,
+          "target_hit_at_1": 52.18258132214061,
+          "empty_masks": 139,
+          "positive_top_ties": 0
+        }
+      },
+      "testA": {
+        "expressions": 5048,
+        "images": 662,
+        "references": 1761,
+        "deor": {
+          "mIoU": 50.69948002863506,
+          "oIoU": 46.67193199558822,
+          "P50": 52.71394611727417,
+          "target_hit_at_1": 69.17591125198098,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        },
+        "ctrlo": {
+          "mIoU": 25.01351959880811,
+          "oIoU": 26.022011726993345,
+          "P50": 13.827258320126784,
+          "target_hit_at_1": 57.82488114104596,
+          "empty_masks": 56,
+          "positive_top_ties": 0
+        }
+      },
+      "testB": {
+        "expressions": 4328,
+        "images": 629,
+        "references": 1539,
+        "deor": {
+          "mIoU": 46.2408696310964,
+          "oIoU": 41.344117068685584,
+          "P50": 45.28650646950093,
+          "target_hit_at_1": 61.714417744916815,
+          "empty_masks": 1,
+          "positive_top_ties": 0
+        },
+        "ctrlo": {
+          "mIoU": 22.12484424222333,
+          "oIoU": 23.013520331511003,
+          "P50": 7.717190388170056,
+          "target_hit_at_1": 47.15804066543438,
+          "empty_masks": 86,
+          "positive_top_ties": 0
+        }
+      },
+      "all": {
+        "expressions": 18906,
+        "images": 2600,
+        "references": 6654,
+        "deor": {
+          "mIoU": 48.51942015353345,
+          "oIoU": 44.12603213340725,
+          "P50": 49.06907859938644,
+          "target_hit_at_1": 65.73045593991326,
+          "empty_masks": 1,
+          "positive_top_ties": 0
+        },
+        "ctrlo": {
+          "mIoU": 23.46653844246765,
+          "oIoU": 24.243926904372533,
+          "P50": 10.906590500370253,
+          "target_hit_at_1": 52.5388765471279,
+          "empty_masks": 281,
+          "positive_top_ties": 0
+        }
+      }
+    },
+    "overlap": {
+      "val": {
+        "expressions": 1304,
+        "images": 191,
+        "references": 457,
+        "deor": {
+          "mIoU": 50.46199066277446,
+          "oIoU": 46.43308419500163,
+          "P50": 52.6840490797546,
+          "target_hit_at_1": 68.48159509202453,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        },
+        "ctrlo": {
+          "mIoU": 23.072221018464038,
+          "oIoU": 23.912242364008442,
+          "P50": 11.11963190184049,
+          "target_hit_at_1": 54.601226993865026,
+          "empty_masks": 17,
+          "positive_top_ties": 0
+        }
+      },
+      "testA": {
+        "expressions": 609,
+        "images": 88,
+        "references": 214,
+        "deor": {
+          "mIoU": 52.32864647190135,
+          "oIoU": 48.54964430763255,
+          "P50": 56.32183908045977,
+          "target_hit_at_1": 70.44334975369459,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        },
+        "ctrlo": {
+          "mIoU": 25.660255278826366,
+          "oIoU": 26.774307380530324,
+          "P50": 11.986863711001643,
+          "target_hit_at_1": 64.5320197044335,
+          "empty_masks": 9,
+          "positive_top_ties": 0
+        }
+      },
+      "testB": {
+        "expressions": 767,
+        "images": 121,
+        "references": 271,
+        "deor": {
+          "mIoU": 50.331154651743674,
+          "oIoU": 46.18100231347854,
+          "P50": 51.10821382007823,
+          "target_hit_at_1": 66.10169491525424,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        },
+        "ctrlo": {
+          "mIoU": 23.80653685749783,
+          "oIoU": 25.486877092842363,
+          "P50": 11.21251629726206,
+          "target_hit_at_1": 49.934810951760106,
+          "empty_masks": 4,
+          "positive_top_ties": 0
+        }
+      },
+      "all": {
+        "expressions": 2680,
+        "images": 400,
+        "references": 942,
+        "deor": {
+          "mIoU": 50.8487228147512,
+          "oIoU": 46.862178313846194,
+          "P50": 53.059701492537314,
+          "target_hit_at_1": 68.24626865671641,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        },
+        "ctrlo": {
+          "mIoU": 23.870479642754923,
+          "oIoU": 25.027723549543577,
+          "P50": 11.343283582089553,
+          "target_hit_at_1": 55.52238805970149,
+          "empty_masks": 30,
+          "positive_top_ties": 0
+        }
+      }
+    }
+  },
+  "elapsed_seconds": 184.46552563505247
+}

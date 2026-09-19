@@ -1,0 +1,238 @@
+{
+  "exact_llm_selection_execution_validated": true,
+  "checked_requests": 8,
+  "generated": 8,
+  "manual_corrections": 0,
+  "selector_image_input": false,
+  "selector_gt_input": false,
+  "semantic_edit_success_not_asserted": true,
+  "requests": [
+    {
+      "id": "edit_001",
+      "request": "Remove the cup from image A.",
+      "selection_status": "ok",
+      "plan": {
+        "operation": "remove",
+        "target_id": "obj_a32d6bf62dbd",
+        "donor_id": null
+      },
+      "generation_status": "generated",
+      "selected": {
+        "operation": "remove",
+        "target": {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Cup",
+          "normalized_category": "cup",
+          "description": "A glass cup filled with a golden liquid, possibly beer, with some foam on top is placed to the right of the pizza. The cup has a cylindrical shape and is approximately 6 inches tall.",
+          "parsed": true,
+          "id": "obj_a32d6bf62dbd"
+        },
+        "donor": null
+      }
+    },
+    {
+      "id": "edit_002",
+      "request": "Transfer the brown dog's appearance from image B to the dog in image A.",
+      "selection_status": "ok",
+      "plan": {
+        "operation": "transfer",
+        "target_id": "obj_e742cde13bfd",
+        "donor_id": "obj_f2c2ca473dd6"
+      },
+      "generation_status": "generated",
+      "selected": {
+        "operation": "transfer",
+        "target": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement.",
+          "parsed": true,
+          "id": "obj_e742cde13bfd"
+        },
+        "donor": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine.",
+          "parsed": true,
+          "id": "obj_f2c2ca473dd6"
+        }
+      }
+    },
+    {
+      "id": "edit_003",
+      "request": "Remove the bench from image A.",
+      "selection_status": "ok",
+      "plan": {
+        "operation": "remove",
+        "target_id": "obj_1a47f44f2598",
+        "donor_id": null
+      },
+      "generation_status": "generated",
+      "selected": {
+        "operation": "remove",
+        "target": {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Bench",
+          "normalized_category": "bench",
+          "description": "A red bench with wooden slats on its seat and backrest, it appears worn but still sturdy. The bench is positioned on the left side of the image and is facing the tree.",
+          "parsed": true,
+          "id": "obj_1a47f44f2598"
+        },
+        "donor": null
+      }
+    },
+    {
+      "id": "edit_004",
+      "request": "Replace the snowboard in image A with the surfboard from image B.",
+      "selection_status": "ok",
+      "plan": {
+        "operation": "replace",
+        "target_id": "obj_af492ec5af8f",
+        "donor_id": "obj_c6456e937620"
+      },
+      "generation_status": "generated",
+      "selected": {
+        "operation": "replace",
+        "target": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Snowboard",
+          "normalized_category": "snowboard",
+          "description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+          "parsed": true,
+          "id": "obj_af492ec5af8f"
+        },
+        "donor": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Surfboard",
+          "normalized_category": "surfboard",
+          "description": "A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact.",
+          "parsed": true,
+          "id": "obj_c6456e937620"
+        }
+      }
+    },
+    {
+      "id": "edit_005",
+      "request": "Remove the giraffe from image A.",
+      "selection_status": "ok",
+      "plan": {
+        "operation": "remove",
+        "target_id": "obj_28d369b1e0c0",
+        "donor_id": null
+      },
+      "generation_status": "generated",
+      "selected": {
+        "operation": "remove",
+        "target": {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Giraffe",
+          "normalized_category": "giraffe",
+          "description": "Partially obscured by the person, a giraffe stands in the background. Its long neck extends upward, and its brown and white coat catches the light. The giraffe's presence adds an element of exotic wonder to the scene.",
+          "parsed": true,
+          "id": "obj_28d369b1e0c0"
+        },
+        "donor": null
+      }
+    },
+    {
+      "id": "edit_006",
+      "request": "Transfer the refrigerator's appearance from image B to the refrigerator in image A.",
+      "selection_status": "ok",
+      "plan": {
+        "operation": "transfer",
+        "target_id": "obj_1eb4b22d65ba",
+        "donor_id": "obj_866188538541"
+      },
+      "generation_status": "generated",
+      "selected": {
+        "operation": "transfer",
+        "target": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Refrigerator",
+          "normalized_category": "refrigerator",
+          "description": "A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser.",
+          "parsed": true,
+          "id": "obj_1eb4b22d65ba"
+        },
+        "donor": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Refrigerator",
+          "normalized_category": "refrigerator",
+          "description": "A modern, stainless steel refrigerator with magnets and papers attached to its surface, located on top of the counter.",
+          "parsed": true,
+          "id": "obj_866188538541"
+        }
+      }
+    },
+    {
+      "id": "edit_007",
+      "request": "Remove the airplane from image A.",
+      "selection_status": "ok",
+      "plan": {
+        "operation": "remove",
+        "target_id": "obj_2bff221c0d13",
+        "donor_id": null
+      },
+      "generation_status": "generated",
+      "selected": {
+        "operation": "remove",
+        "target": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Pizza",
+          "normalized_category": "pizza",
+          "description": "A freshly baked pizza with a golden-brown crust, topped with melted cheese, black olives, and pieces of meat is placed on a white plate. The pizza has a diameter of approximately 10 inches.",
+          "parsed": true,
+          "id": "obj_2bff221c0d13"
+        },
+        "donor": null
+      }
+    },
+    {
+      "id": "edit_008",
+      "request": "Remove the dog from image A.",
+      "selection_status": "ok",
+      "plan": {
+        "operation": "remove",
+        "target_id": "obj_c87f2b158516",
+        "donor_id": null
+      },
+      "generation_status": "generated",
+      "selected": {
+        "operation": "remove",
+        "target": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A black and white dog with a shiny coat, its ears are perked up, and it's wearing a leash around its neck. The dog appears to be a medium-sized breed and is standing on the pavement-merged object.",
+          "parsed": true,
+          "id": "obj_c87f2b158516"
+        },
+        "donor": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,178 @@
+{
+  "protocol": "RefCOCO one supplied human expression per pass; cached query mask, no new inference",
+  "target_hit_definition": "Positive strictly highest query-mask IoU against all nonempty noncrowd GT instance masks in the image; ties within 1e-12 and zero overlap count as misses. NOT original CTRL-O all-slot Hungarian Binding Hits.",
+  "subset_definition": "Exclude image IDs in the actual DeOR Pix2Cap training JSONL; does not audit earlier pretraining or CTRL-O training exposure.",
+  "source": "outputs/eval_deor_woreader_refcoco_ours_only",
+  "train": "/home/jovyan/PGOT/data/pgot_pix2cap_thing_train.jsonl",
+  "train_images": 16477,
+  "aggregation": "expression-weighted; no expressions dropped; percentages",
+  "evaluated_models": [
+    "deor"
+  ],
+  "subsets": {
+    "full": {
+      "val": {
+        "expressions": 10834,
+        "images": 1500,
+        "references": 3811,
+        "deor": {
+          "mIoU": 50.16625009462632,
+          "oIoU": 46.50451187056944,
+          "P50": 51.929112054642786,
+          "target_hit_at_1": 67.94351116854347,
+          "empty_masks": 5,
+          "positive_top_ties": 0
+        }
+      },
+      "testA": {
+        "expressions": 5657,
+        "images": 750,
+        "references": 1975,
+        "deor": {
+          "mIoU": 52.50611468435443,
+          "oIoU": 48.84518713720553,
+          "P50": 56.2312179600495,
+          "target_hit_at_1": 70.86795121088917,
+          "empty_masks": 1,
+          "positive_top_ties": 0
+        }
+      },
+      "testB": {
+        "expressions": 5095,
+        "images": 750,
+        "references": 1810,
+        "deor": {
+          "mIoU": 48.002990507320575,
+          "oIoU": 44.16295371123298,
+          "P50": 47.92934249263984,
+          "target_hit_at_1": 63.57212953876349,
+          "empty_masks": 1,
+          "positive_top_ties": 0
+        }
+      },
+      "all": {
+        "expressions": 21586,
+        "images": 3000,
+        "references": 7596,
+        "deor": {
+          "mIoU": 50.26885392983289,
+          "oIoU": 46.49191987162784,
+          "P50": 52.11248031131289,
+          "target_hit_at_1": 67.67812471046048,
+          "empty_masks": 7,
+          "positive_top_ties": 0
+        }
+      }
+    },
+    "nonoverlap": {
+      "val": {
+        "expressions": 9530,
+        "images": 1309,
+        "references": 3354,
+        "deor": {
+          "mIoU": 49.86879870559094,
+          "oIoU": 46.14696077630258,
+          "P50": 51.532004197271775,
+          "target_hit_at_1": 67.4501573976915,
+          "empty_masks": 5,
+          "positive_top_ties": 0
+        }
+      },
+      "testA": {
+        "expressions": 5048,
+        "images": 662,
+        "references": 1761,
+        "deor": {
+          "mIoU": 52.27831009892285,
+          "oIoU": 48.57117019544026,
+          "P50": 55.90332805071315,
+          "target_hit_at_1": 70.38431061806656,
+          "empty_masks": 1,
+          "positive_top_ties": 0
+        }
+      },
+      "testB": {
+        "expressions": 4328,
+        "images": 629,
+        "references": 1539,
+        "deor": {
+          "mIoU": 47.543231621088026,
+          "oIoU": 43.6175903958558,
+          "P50": 47.27356746765249,
+          "target_hit_at_1": 63.12384473197782,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        }
+      },
+      "all": {
+        "expressions": 18906,
+        "images": 2600,
+        "references": 6654,
+        "deor": {
+          "mIoU": 49.979777187121186,
+          "oIoU": 46.13418974930325,
+          "P50": 51.72432032159103,
+          "target_hit_at_1": 67.2432032159103,
+          "empty_masks": 6,
+          "positive_top_ties": 0
+        }
+      }
+    },
+    "overlap": {
+      "val": {
+        "expressions": 1304,
+        "images": 191,
+        "references": 457,
+        "deor": {
+          "mIoU": 52.34010878903362,
+          "oIoU": 49.021676391182105,
+          "P50": 54.831288343558285,
+          "target_hit_at_1": 71.54907975460122,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        }
+      },
+      "testA": {
+        "expressions": 609,
+        "images": 88,
+        "references": 214,
+        "deor": {
+          "mIoU": 54.3943865189334,
+          "oIoU": 50.666424399202896,
+          "P50": 58.94909688013136,
+          "target_hit_at_1": 74.8768472906404,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        }
+      },
+      "testB": {
+        "expressions": 767,
+        "images": 121,
+        "references": 271,
+        "deor": {
+          "mIoU": 50.597301406426745,
+          "oIoU": 46.88152710418664,
+          "P50": 51.62972620599739,
+          "target_hit_at_1": 66.10169491525424,
+          "empty_masks": 1,
+          "positive_top_ties": 0
+        }
+      },
+      "all": {
+        "expressions": 2680,
+        "images": 400,
+        "references": 942,
+        "deor": {
+          "mIoU": 52.30813933942522,
+          "oIoU": 48.74634395969048,
+          "P50": 54.850746268656714,
+          "target_hit_at_1": 70.74626865671641,
+          "empty_masks": 1,
+          "positive_top_ties": 0
+        }
+      }
+    }
+  },
+  "source_fingerprint": "473dad85e8c619620c60e166a1eb158ff6310121c143786335bd8ac1f5d89bc4",
+  "elapsed_seconds": 103.81064502499066
+}

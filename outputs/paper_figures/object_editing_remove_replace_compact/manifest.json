@@ -1,0 +1,686 @@
+{
+  "layout": "3 rows x 2 examples, row-major; remove:4 images / replace:4 images",
+  "composer": "matplotlib (no AI image generation)",
+  "canvas_inches": [
+    22.92,
+    9.15
+  ],
+  "dpi": 200,
+  "header_font_pt": 21,
+  "prompt_font_pt": 23,
+  "existing_image_tiles_reused": true,
+  "image_retouched": false,
+  "prompts_are_manual_operation_labels": true,
+  "freeform_instruction_following_claim": false,
+  "column_titles": null,
+  "compact": true,
+  "outer_margin_inches": 0.0,
+  "center_gap_inches": 0.28,
+  "removal_mask_panel": true,
+  "show_prompts": false,
+  "headers_top_only": true,
+  "replacement_outline": {
+    "color": "#22b84a",
+    "linewidth_pt": 1.2
+  },
+  "row_pitch_inches": 2.89,
+  "center_line": true,
+  "red_operation_verbs": false,
+  "editing_protocols_differ_by_operation": true,
+  "examples": [
+    {
+      "mode": "remove",
+      "pair_id": "remove_cup_323151",
+      "source_dir": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/03_323151",
+      "grid_position": [
+        1,
+        1
+      ],
+      "prompt": "Remove the cup from image A.",
+      "rendered_prompt": "",
+      "source_metadata": {
+        "task_id": "remove_12_323151",
+        "mode": "remove",
+        "target_id": "323151",
+        "target_slot": 1,
+        "target_category": "cup",
+        "target_prediction_label": 2,
+        "donor_id": null,
+        "donor_slot": null,
+        "donor_category": null,
+        "donor_prediction_label": null,
+        "placement": "donor native location; no text-controlled repositioning",
+        "stats": {
+          "inside_change": 0.21881882612432896,
+          "outside_change": 0.04219984921326968,
+          "change_energy_inside_fraction": 0.4010188673246327,
+          "region_fraction": 0.06425382653061225,
+          "screening_score": 0.18716893921437672
+        },
+        "identity_relative_error": 6.892589226481505e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "visual_success_verified": true,
+        "visual_review": {
+          "status": "success",
+          "note": "Beer glass disappears while pizza and salad remain."
+        }
+      },
+      "panel_count": 4,
+      "source_panels": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/03_323151/original.png",
+          "sha256": "25abaec06a07fdbc846e64fb9b5e063a6f9be7122c9c5860135da643a35ea23b"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/03_323151/panel_1.png",
+          "sha256": "b49ea740d414f4331141d2fae7f4780046f51cc4a2bc4ed916098da9b4b3261d"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/03_323151/reconstruction_native.png",
+          "sha256": "29a65cda1c3f5453a4868eb1a55e4de7990b5de3a6a1915266ce95916a85dd90"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/03_323151/edited_native.png",
+          "sha256": "f8671eaf6bc2f3a2841bcb27352adfb48b238ff378b705b39a44628ce3d59be1"
+        }
+      ],
+      "result_condition": "remove_with_predicted_patch_exclusion_and_writer_rewrite",
+      "writer_rewrite": true
+    },
+    {
+      "mode": "replace",
+      "pair_id": "dog_black_white_to_brown",
+      "source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_memory8_register32",
+      "grid_position": [
+        1,
+        2
+      ],
+      "prompt": "Replace A's black-and-white dog with B's brown dog.",
+      "rendered_prompt": "",
+      "source_metadata": {
+        "pair_id": "dog_black_white_to_brown",
+        "target_image_id": 52891,
+        "target_slot": 0,
+        "donor_image_id": 205834,
+        "donor_slot": 0,
+        "category": "dog",
+        "instruction": "Replace A's black-and-white dog with B's brown dog.",
+        "target_description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement.",
+        "target_prediction_label": 1,
+        "donor_description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine.",
+        "donor_prediction_label": 1,
+        "text_only_caption": "<thing> Dog 1: A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine. <ovt>. <thing> Frisbee 1: A bright yellow frisbee lies on the sand close to the dog. It's in good condition, with visible wear marks suggesting it has been used multiple times. <ovt>. <scene_end>",
+        "fingerprint": "5c44bcb823efbe5ea8441cdcc302d6d80924f16c90b5d7dff1a4e65e1e74f866",
+        "identity_relative_error": 6.165715149109019e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "target_region_pixels": 77907,
+        "donor_region_pixels": 126492,
+        "change_diagnostics": {
+          "reconstruction": {
+            "inside_change": 0.0,
+            "outside_change": 0.0,
+            "change_energy_inside_fraction": 0.0,
+            "region_fraction": 0.5858179209183674,
+            "screening_score": 0.0
+          },
+          "text_only": {
+            "inside_change": 0.014538336710928955,
+            "outside_change": 0.006662062380529154,
+            "change_energy_inside_fraction": 0.8773646758710196,
+            "region_fraction": 0.5858179209183674,
+            "screening_score": 0.00954178992553209
+          },
+          "semantic_only": {
+            "inside_change": 0.09309418444295911,
+            "outside_change": 0.025613480242769163,
+            "change_energy_inside_fraction": 0.9315546900562396,
+            "region_fraction": 0.5858179209183674,
+            "screening_score": 0.07388407426088224
+          },
+          "visual_only": {
+            "inside_change": 0.11471880126707643,
+            "outside_change": 0.042456235694162174,
+            "change_energy_inside_fraction": 0.9310461004320615,
+            "region_fraction": 0.5858179209183674,
+            "screening_score": 0.0828766244964548
+          },
+          "bundle_swap": {
+            "inside_change": 0.15754844815157243,
+            "outside_change": 0.05259006820256091,
+            "change_energy_inside_fraction": 0.9351714531650113,
+            "region_fraction": 0.5858179209183674,
+            "screening_score": 0.11810589699965174
+          }
+        },
+        "target_only_change_diagnostics": {
+          "reconstruction": {
+            "inside_change": 0.0,
+            "outside_change": 0.0,
+            "change_energy_inside_fraction": 0.0,
+            "region_fraction": 0.29691485969387754,
+            "screening_score": 0.0
+          },
+          "text_only": {
+            "inside_change": 0.01734373258857398,
+            "outside_change": 0.00871375706016859,
+            "change_energy_inside_fraction": 0.525110429859697,
+            "region_fraction": 0.29691485969387754,
+            "screening_score": 0.010808414793447536
+          },
+          "semantic_only": {
+            "inside_change": 0.1191150805872087,
+            "outside_change": 0.04235311903547065,
+            "change_energy_inside_fraction": 0.6301553909794599,
+            "region_fraction": 0.29691485969387754,
+            "screening_score": 0.0873502413106057
+          },
+          "visual_only": {
+            "inside_change": 0.17357201080638102,
+            "outside_change": 0.047295598323234274,
+            "change_energy_inside_fraction": 0.8202281260150927,
+            "region_fraction": 0.29691485969387754,
+            "screening_score": 0.13810031206395532
+          },
+          "bundle_swap": {
+            "inside_change": 0.18897522762629013,
+            "outside_change": 0.08244665063712428,
+            "change_energy_inside_fraction": 0.5497029985789074,
+            "region_fraction": 0.29691485969387754,
+            "screening_score": 0.12714023964844692
+          }
+        },
+        "reader_condition_mean_abs_change": {
+          "reconstruction": 0.0,
+          "text_only": 0.012806425802409649,
+          "semantic_only": 0.10568074882030487,
+          "visual_only": 0.19310347735881805,
+          "bundle_swap": 0.25058895349502563
+        },
+        "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+        "visual_success_verified": false,
+        "seconds": 4.349625999107957
+      },
+      "panel_count": 4,
+      "source_figure": "/home/jovyan/PGOT/outputs/object_representation_transfer_memory8_register32/pairs/dog_black_white_to_brown/figure.png",
+      "source_sha256": "577733854d1e183afc6f759eb45f3bbc1fa7013531e058f23405a6c1d69a2caf",
+      "overview_columns": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "crop_boxes": [
+        [
+          0,
+          86,
+          256,
+          342
+        ],
+        [
+          256,
+          86,
+          512,
+          342
+        ],
+        [
+          512,
+          86,
+          768,
+          342
+        ],
+        [
+          1024,
+          86,
+          1280,
+          342
+        ]
+      ],
+      "result_condition": "visual_only",
+      "writer_rewrite": false
+    },
+    {
+      "mode": "remove",
+      "pair_id": "remove_bench_261161",
+      "source_dir": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/05_261161",
+      "grid_position": [
+        2,
+        1
+      ],
+      "prompt": "Remove the bench from image A.",
+      "rendered_prompt": "",
+      "source_metadata": {
+        "task_id": "remove_08_261161",
+        "mode": "remove",
+        "target_id": "261161",
+        "target_slot": 1,
+        "target_category": "bench",
+        "target_prediction_label": 2,
+        "donor_id": null,
+        "donor_slot": null,
+        "donor_category": null,
+        "donor_prediction_label": null,
+        "placement": "donor native location; no text-controlled repositioning",
+        "stats": {
+          "inside_change": 0.22173257699467183,
+          "outside_change": 0.07084290273765177,
+          "change_energy_inside_fraction": 0.5316625922619546,
+          "region_fraction": 0.15961814413265307,
+          "screening_score": 0.168600399941433
+        },
+        "identity_relative_error": 5.995064839225961e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "visual_success_verified": true,
+        "visual_review": {
+          "status": "success",
+          "note": "Bench disappears; dog and tree remain recognizable."
+        }
+      },
+      "panel_count": 4,
+      "source_panels": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/05_261161/original.png",
+          "sha256": "ef9c7b1bae0a1d877d2e33708e641bb28b1c7e80ad05f398eae8a15521c5cdac"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/05_261161/panel_1.png",
+          "sha256": "044f20ff662ff365d85d79be6452e07c17ff923900bd180408a70f8b7b402e28"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/05_261161/reconstruction_native.png",
+          "sha256": "2af1368d139df5191a0ceb33076612028883a8cae668558fe8bbd1fba4d4a95c"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/05_261161/edited_native.png",
+          "sha256": "d901bbc4fd4379cc1a8540926fbc901bd587ede3cf72a6eecedd0026aff8534a"
+        }
+      ],
+      "result_condition": "remove_with_predicted_patch_exclusion_and_writer_rewrite",
+      "writer_rewrite": true
+    },
+    {
+      "mode": "replace",
+      "pair_id": "snowboard_to_star_surfboard",
+      "source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1",
+      "grid_position": [
+        2,
+        2
+      ],
+      "prompt": "Replace A's snowboard with B's star-patterned surfboard.",
+      "rendered_prompt": "",
+      "source_metadata": {
+        "pair_id": "snowboard_to_star_surfboard",
+        "target_image_id": 193429,
+        "target_slot": 0,
+        "donor_image_id": 554595,
+        "donor_slot": 0,
+        "target_category": "Snowboard",
+        "donor_category": "Surfboard",
+        "instruction": "Replace A's snowboard with B's star-patterned surfboard.",
+        "target_description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+        "target_prediction_label": 1,
+        "donor_description": "A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact.",
+        "donor_prediction_label": 1,
+        "category": "Snowboard -> Surfboard",
+        "cross_category": true,
+        "text_only_caption": "<thing> Surfboard 1: A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact. <ovt>. <thing> Person 1: A person wearing a green jacket, black pants, a white helmet, and goggles is sitting on the snowboard. <ovt>. <scene_end>",
+        "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+        "identity_relative_error": 6.729482265654951e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "target_region_pixels": 34242,
+        "donor_region_pixels": 19253,
+        "change_diagnostics": {
+          "reconstruction": {
+            "inside_change": 0.0,
+            "outside_change": 0.0,
+            "change_energy_inside_fraction": 0.0,
+            "region_fraction": 0.14522879464285715,
+            "screening_score": 0.0
+          },
+          "text_only": {
+            "inside_change": 0.03815712644327664,
+            "outside_change": 0.007791750615702457,
+            "change_energy_inside_fraction": 0.7455412213844498,
+            "region_fraction": 0.14522879464285715,
+            "screening_score": 0.032313313481499795
+          },
+          "semantic_only": {
+            "inside_change": 0.12726092037839792,
+            "outside_change": 0.025348821863765362,
+            "change_energy_inside_fraction": 0.707606175119931,
+            "region_fraction": 0.14522879464285715,
+            "screening_score": 0.1082493039805739
+          },
+          "visual_only": {
+            "inside_change": 0.27234604376492827,
+            "outside_change": 0.038470336178647514,
+            "change_energy_inside_fraction": 0.8088685248513032,
+            "region_fraction": 0.14522879464285715,
+            "screening_score": 0.24349329163094263
+          },
+          "bundle_swap": {
+            "inside_change": 0.1821270038595009,
+            "outside_change": 0.03775896953634835,
+            "change_energy_inside_fraction": 0.6381780722176086,
+            "region_fraction": 0.14522879464285715,
+            "screening_score": 0.15380777670723964
+          }
+        },
+        "target_only_change_diagnostics": {
+          "reconstruction": {
+            "inside_change": 0.0,
+            "outside_change": 0.0,
+            "change_energy_inside_fraction": 0.0,
+            "region_fraction": 0.1304607780612245,
+            "screening_score": 0.0
+          },
+          "text_only": {
+            "inside_change": 0.040107115256735146,
+            "outside_change": 0.008014902500078648,
+            "change_energy_inside_fraction": 0.7216993842145089,
+            "region_fraction": 0.1304607780612245,
+            "screening_score": 0.03409593838167616
+          },
+          "semantic_only": {
+            "inside_change": 0.1166781490068275,
+            "outside_change": 0.02866744864345004,
+            "change_energy_inside_fraction": 0.5417827377830298,
+            "region_fraction": 0.1304607780612245,
+            "screening_score": 0.09517756252423998
+          },
+          "visual_only": {
+            "inside_change": 0.2909962477709283,
+            "outside_change": 0.03964424550475703,
+            "change_energy_inside_fraction": 0.7826324179897546,
+            "region_fraction": 0.1304607780612245,
+            "screening_score": 0.2612630636423605
+          },
+          "bundle_swap": {
+            "inside_change": 0.1755150578410405,
+            "outside_change": 0.041202896010570166,
+            "change_energy_inside_fraction": 0.5225502151006861,
+            "region_fraction": 0.1304607780612245,
+            "screening_score": 0.14461288583311288
+          }
+        },
+        "reader_condition_mean_abs_change": {
+          "reconstruction": 0.0,
+          "text_only": 0.016527533531188965,
+          "semantic_only": 0.051997192203998566,
+          "visual_only": 0.10188566893339157,
+          "bundle_swap": 0.10845670104026794
+        },
+        "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+        "visual_success_verified": false,
+        "seconds": 5.348843806888908
+      },
+      "panel_count": 4,
+      "source_figure": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1/pairs/snowboard_to_star_surfboard/figure.png",
+      "source_sha256": "89cdad7b40efce7a55b100e0109062682536c8f942b6f29a1dfd827cf59a8a2b",
+      "overview_columns": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "crop_boxes": [
+        [
+          0,
+          86,
+          256,
+          342
+        ],
+        [
+          256,
+          86,
+          512,
+          342
+        ],
+        [
+          512,
+          86,
+          768,
+          342
+        ],
+        [
+          1024,
+          86,
+          1280,
+          342
+        ]
+      ],
+      "result_condition": "visual_only",
+      "writer_rewrite": false
+    },
+    {
+      "mode": "remove",
+      "pair_id": "remove_giraffe_449909",
+      "source_dir": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/06_449909",
+      "grid_position": [
+        3,
+        1
+      ],
+      "prompt": "Remove the giraffe from image A.",
+      "rendered_prompt": "",
+      "source_metadata": {
+        "task_id": "remove_13_449909",
+        "mode": "remove",
+        "target_id": "449909",
+        "target_slot": 1,
+        "target_category": "giraffe",
+        "target_prediction_label": 2,
+        "donor_id": null,
+        "donor_slot": null,
+        "donor_category": null,
+        "donor_prediction_label": null,
+        "placement": "donor native location; no text-controlled repositioning",
+        "stats": {
+          "inside_change": 0.19312432829729909,
+          "outside_change": 0.045337177345252264,
+          "change_energy_inside_fraction": 0.6454585866678842,
+          "region_fraction": 0.12193080357142858,
+          "screening_score": 0.1591214452883599
+        },
+        "identity_relative_error": 6.213971573743038e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "visual_success_verified": true,
+        "visual_review": {
+          "status": "success",
+          "note": "Giraffe disappears while the foreground person remains."
+        }
+      },
+      "panel_count": 4,
+      "source_panels": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/06_449909/original.png",
+          "sha256": "c295cd268052b0414a77b2be3abf3dfd2eb7554b64adaf55693ea476852a5649"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/06_449909/panel_1.png",
+          "sha256": "b7e2679ebd37621a821b9df57e72eb4af19a3c14da31d74d62c00ba946845bc5"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/06_449909/reconstruction_native.png",
+          "sha256": "d6e4806e1d415a5abd082d5c4d795c75737acdae3fbb7e9bd866c3e04e06ceb7"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/06_449909/edited_native.png",
+          "sha256": "a20895cc708607b2af52bb152ea3f3e8f4a08af494656d97747b967e513188c7"
+        }
+      ],
+      "result_condition": "remove_with_predicted_patch_exclusion_and_writer_rewrite",
+      "writer_rewrite": true
+    },
+    {
+      "mode": "replace",
+      "pair_id": "refrigerator_white_to_steel",
+      "source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1",
+      "grid_position": [
+        3,
+        2
+      ],
+      "prompt": "Replace A's white refrigerator with B's stainless-steel refrigerator.",
+      "rendered_prompt": "",
+      "source_metadata": {
+        "pair_id": "refrigerator_white_to_steel",
+        "target_image_id": 802,
+        "target_slot": 0,
+        "donor_image_id": 243344,
+        "donor_slot": 0,
+        "category": "refrigerator",
+        "instruction": "Replace A's white refrigerator with B's stainless-steel refrigerator.",
+        "target_description": "A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser.",
+        "target_category": "Refrigerator",
+        "target_prediction_label": 1,
+        "donor_description": "A modern, stainless steel refrigerator with magnets and papers attached to its surface, located on top of the counter.",
+        "donor_category": "Refrigerator",
+        "donor_prediction_label": 1,
+        "cross_category": false,
+        "text_only_caption": "<thing> Refrigerator 1: A modern, stainless steel refrigerator with magnets and papers attached to its surface, located on top of the counter. <ovt>. <thing> Oven 1: An oven is embedded in the countertop to the left of the refrigerator. It has multiple dials for temperature control and burners on top and is white in color. <ovt>. <scene_end>",
+        "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+        "identity_relative_error": 6.763024430256337e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "target_region_pixels": 80828,
+        "donor_region_pixels": 84356,
+        "change_diagnostics": {
+          "reconstruction": {
+            "inside_change": 0.0,
+            "outside_change": 0.0,
+            "change_energy_inside_fraction": 0.0,
+            "region_fraction": 0.449039381377551,
+            "screening_score": 0.0
+          },
+          "text_only": {
+            "inside_change": 0.014086039191318976,
+            "outside_change": 0.006011747919762347,
+            "change_energy_inside_fraction": 0.8106620804491692,
+            "region_fraction": 0.449039381377551,
+            "screening_score": 0.009577228251497216
+          },
+          "semantic_only": {
+            "inside_change": 0.055200866315487485,
+            "outside_change": 0.018045031722220446,
+            "change_energy_inside_fraction": 0.8360932256512464,
+            "region_fraction": 0.449039381377551,
+            "screening_score": 0.04166709252382215
+          },
+          "visual_only": {
+            "inside_change": 0.1710397555379763,
+            "outside_change": 0.023895396465694257,
+            "change_energy_inside_fraction": 0.9529056467568556,
+            "region_fraction": 0.449039381377551,
+            "screening_score": 0.15311820818870558
+          },
+          "bundle_swap": {
+            "inside_change": 0.18234049644890132,
+            "outside_change": 0.03449396349846383,
+            "change_energy_inside_fraction": 0.9436135355776433,
+            "region_fraction": 0.449039381377551,
+            "screening_score": 0.15647002382505346
+          }
+        },
+        "target_only_change_diagnostics": {
+          "reconstruction": {
+            "inside_change": 0.0,
+            "outside_change": 0.0,
+            "change_energy_inside_fraction": 0.0,
+            "region_fraction": 0.30857382015306123,
+            "screening_score": 0.0
+          },
+          "text_only": {
+            "inside_change": 0.0162720318595263,
+            "outside_change": 0.006676489521816856,
+            "change_energy_inside_fraction": 0.6426109056138496,
+            "region_fraction": 0.30857382015306123,
+            "screening_score": 0.011264664718163658
+          },
+          "semantic_only": {
+            "inside_change": 0.06178549613132514,
+            "outside_change": 0.02265473681473858,
+            "change_energy_inside_fraction": 0.686173204948697,
+            "region_fraction": 0.30857382015306123,
+            "screening_score": 0.044794443520271204
+          },
+          "visual_only": {
+            "inside_change": 0.23249340727485637,
+            "outside_change": 0.026362365390241838,
+            "change_energy_inside_fraction": 0.9338954913382278,
+            "region_fraction": 0.30857382015306123,
+            "screening_score": 0.212721633232175
+          },
+          "bundle_swap": {
+            "inside_change": 0.23332898532187313,
+            "outside_change": 0.04177403702956407,
+            "change_energy_inside_fraction": 0.8844644687280415,
+            "region_fraction": 0.30857382015306123,
+            "screening_score": 0.20199845754970008
+          }
+        },
+        "reader_condition_mean_abs_change": {
+          "reconstruction": 0.0,
+          "text_only": 0.010751771740615368,
+          "semantic_only": 0.09946106374263763,
+          "visual_only": 0.20827941596508026,
+          "bundle_swap": 0.25008222460746765
+        },
+        "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+        "visual_success_verified": false,
+        "seconds": 5.040035763988271
+      },
+      "panel_count": 4,
+      "source_figure": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1/pairs/refrigerator_white_to_steel/figure.png",
+      "source_sha256": "0634717cd10505a7de5dfaa568c15d6b04d5860f7d68b5850db226b07f1366d0",
+      "overview_columns": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "crop_boxes": [
+        [
+          0,
+          86,
+          256,
+          342
+        ],
+        [
+          256,
+          86,
+          512,
+          342
+        ],
+        [
+          512,
+          86,
+          768,
+          342
+        ],
+        [
+          1024,
+          86,
+          1280,
+          342
+        ]
+      ],
+      "result_condition": "visual_only",
+      "writer_rewrite": false
+    }
+  ]
+}

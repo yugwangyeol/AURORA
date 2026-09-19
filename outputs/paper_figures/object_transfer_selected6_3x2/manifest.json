@@ -1,0 +1,293 @@
+{
+  "layout": "3 rows x 2 examples, row-major; four images per example",
+  "composer": "matplotlib (no AI image generation)",
+  "canvas_inches": [
+    24.0,
+    13.0
+  ],
+  "dpi": 200,
+  "header_font_pt": 21,
+  "prompt_font_pt": 23,
+  "existing_image_tiles_reused": true,
+  "image_retouched": false,
+  "prompts_are_manual_operation_labels": true,
+  "freeform_instruction_following_claim": false,
+  "examples": [
+    {
+      "source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_memory8_register32",
+      "pair_id": "dog_black_white_to_brown",
+      "selected_from": "selected_best4 row1",
+      "grid_position": [
+        1,
+        1
+      ],
+      "prompt": "Replace A's black-and-white dog with B's brown dog.",
+      "rendered_prompt": "Replace A's black-and-white dog with B's brown dog.",
+      "source_figure": "/home/jovyan/PGOT/outputs/object_representation_transfer_memory8_register32/pairs/dog_black_white_to_brown/figure.png",
+      "source_sha256": "577733854d1e183afc6f759eb45f3bbc1fa7013531e058f23405a6c1d69a2caf",
+      "overview_columns": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "crop_boxes": [
+        [
+          0,
+          86,
+          256,
+          342
+        ],
+        [
+          256,
+          86,
+          512,
+          342
+        ],
+        [
+          512,
+          86,
+          768,
+          342
+        ],
+        [
+          1024,
+          86,
+          1280,
+          342
+        ]
+      ],
+      "result_condition": "visual_only"
+    },
+    {
+      "source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_memory8_register32",
+      "pair_id": "suitcase_silver_to_patterned",
+      "selected_from": "selected_best4 row2",
+      "grid_position": [
+        1,
+        2
+      ],
+      "prompt": "Replace A's silver suitcase with B's brown patterned suitcase.",
+      "rendered_prompt": "Replace A's silver suitcase with B's brown patterned suitcase.",
+      "source_figure": "/home/jovyan/PGOT/outputs/object_representation_transfer_memory8_register32/pairs/suitcase_silver_to_patterned/figure.png",
+      "source_sha256": "6caf6fb11f026a8ba2e810b6a130370e79a7d1c290e2594ea4fe81ce34f2c2be",
+      "overview_columns": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "crop_boxes": [
+        [
+          0,
+          86,
+          256,
+          342
+        ],
+        [
+          256,
+          86,
+          512,
+          342
+        ],
+        [
+          512,
+          86,
+          768,
+          342
+        ],
+        [
+          1024,
+          86,
+          1280,
+          342
+        ]
+      ],
+      "result_condition": "visual_only"
+    },
+    {
+      "source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1",
+      "pair_id": "snowboard_to_star_surfboard",
+      "selected_from": "selected_best4 row3",
+      "grid_position": [
+        2,
+        1
+      ],
+      "prompt": "Replace A's snowboard with B's star-patterned surfboard.",
+      "rendered_prompt": "Replace A's snowboard with B's star-patterned surfboard.",
+      "source_figure": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1/pairs/snowboard_to_star_surfboard/figure.png",
+      "source_sha256": "89cdad7b40efce7a55b100e0109062682536c8f942b6f29a1dfd827cf59a8a2b",
+      "overview_columns": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "crop_boxes": [
+        [
+          0,
+          86,
+          256,
+          342
+        ],
+        [
+          256,
+          86,
+          512,
+          342
+        ],
+        [
+          512,
+          86,
+          768,
+          342
+        ],
+        [
+          1024,
+          86,
+          1280,
+          342
+        ]
+      ],
+      "result_condition": "visual_only"
+    },
+    {
+      "source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1",
+      "pair_id": "dog_brown_to_shaggy",
+      "selected_from": "shortlist_new4 row3",
+      "grid_position": [
+        2,
+        2
+      ],
+      "prompt": "Replace A's brown dog with B's shaggy dog wearing a yellow bandana.",
+      "rendered_prompt": "Replace A's brown dog with B's shaggy\ndog wearing a yellow bandana.",
+      "source_figure": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1/pairs/dog_brown_to_shaggy/figure.png",
+      "source_sha256": "deaf896a907923457712098924cd20cb618a0e146645f2f4e8269b52f50d5288",
+      "overview_columns": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "crop_boxes": [
+        [
+          0,
+          86,
+          256,
+          342
+        ],
+        [
+          256,
+          86,
+          512,
+          342
+        ],
+        [
+          512,
+          86,
+          768,
+          342
+        ],
+        [
+          1024,
+          86,
+          1280,
+          342
+        ]
+      ],
+      "result_condition": "visual_only"
+    },
+    {
+      "source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1",
+      "pair_id": "refrigerator_white_to_steel",
+      "selected_from": "contact_sheet_page_03 row1",
+      "grid_position": [
+        3,
+        1
+      ],
+      "prompt": "Replace A's white refrigerator with B's stainless-steel refrigerator.",
+      "rendered_prompt": "Replace A's white refrigerator with B's stainless-steel refrigerator.",
+      "source_figure": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1/pairs/refrigerator_white_to_steel/figure.png",
+      "source_sha256": "0634717cd10505a7de5dfaa568c15d6b04d5860f7d68b5850db226b07f1366d0",
+      "overview_columns": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "crop_boxes": [
+        [
+          0,
+          86,
+          256,
+          342
+        ],
+        [
+          256,
+          86,
+          512,
+          342
+        ],
+        [
+          512,
+          86,
+          768,
+          342
+        ],
+        [
+          1024,
+          86,
+          1280,
+          342
+        ]
+      ],
+      "result_condition": "visual_only"
+    },
+    {
+      "source_root": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1",
+      "pair_id": "mouse_black_to_white",
+      "selected_from": "contact_sheet_page_03 row3",
+      "grid_position": [
+        3,
+        2
+      ],
+      "prompt": "Replace A's black computer mouse with B's white mouse.",
+      "rendered_prompt": "Replace A's black computer mouse with B's white mouse.",
+      "source_figure": "/home/jovyan/PGOT/outputs/object_representation_transfer_extra24_gpu1/pairs/mouse_black_to_white/figure.png",
+      "source_sha256": "08ee926039067230b0964554dba55ec83b4bb3a8c010f4fd16328ae0babbd217",
+      "overview_columns": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "crop_boxes": [
+        [
+          0,
+          86,
+          256,
+          342
+        ],
+        [
+          256,
+          86,
+          512,
+          342
+        ],
+        [
+          512,
+          86,
+          768,
+          342
+        ],
+        [
+          1024,
+          86,
+          1280,
+          342
+        ]
+      ],
+      "result_condition": "visual_only"
+    }
+  ]
+}

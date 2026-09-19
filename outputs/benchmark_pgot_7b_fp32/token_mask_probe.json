@@ -1,0 +1,33 @@
+{
+  "fsdp_hook_calls_by_rank": [
+    {
+      "embed.weight": 0,
+      "head.weight": 0
+    },
+    {
+      "embed.weight": 0,
+      "head.weight": 0
+    },
+    {
+      "embed.weight": 0,
+      "head.weight": 0
+    },
+    {
+      "embed.weight": 0,
+      "head.weight": 0
+    }
+  ],
+  "plain_hook_calls": {
+    "embed.weight": 1,
+    "head.weight": 1
+  },
+  "fsdp_changed_frozen_rows": {
+    "embed.weight": 2,
+    "head.weight": 6
+  },
+  "plain_changed_frozen_rows": {
+    "embed.weight": 0,
+    "head.weight": 0
+  },
+  "optimizer": "SGD, no weight decay"
+}

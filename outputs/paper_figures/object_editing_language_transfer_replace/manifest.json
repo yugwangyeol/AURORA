@@ -1,0 +1,333 @@
+{
+  "source_experiment": "8b02842bed2c0551e26761e0e7295d88b43d9fbfd8f94572248a481a0051b94f",
+  "actual_recorded_llm_decisions": true,
+  "native_edits_regenerated_from_selected_ids": true,
+  "pixels_retouched": false,
+  "generated_image_pixels_retouched": false,
+  "display_overlays": {
+    "mask_source": "actual selected owner's predicted mask (not GT)",
+    "remove_source_fill_alpha": 0.38,
+    "replace_fill_alpha": 0,
+    "contour_color": [
+      0,
+      185,
+      50
+    ],
+    "contour_inside_pixels": 4,
+    "contour_outside_pixels": 2
+  },
+  "manual_corrections": false,
+  "prompts_are_actual_selector_inputs": true,
+  "figure_requests": [
+    {
+      "query": {
+        "id": "edit_001",
+        "image_A": 323151,
+        "image_B": null,
+        "request": "Remove the cup from image A."
+      },
+      "selection": {
+        "operation": "remove",
+        "target_id": "obj_a32d6bf62dbd",
+        "donor_id": null
+      },
+      "resolved": {
+        "operation": "remove",
+        "target": {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Cup",
+          "normalized_category": "cup",
+          "description": "A glass cup filled with a golden liquid, possibly beer, with some foam on top is placed to the right of the pizza. The cup has a cylindrical shape and is approximately 6 inches tall.",
+          "parsed": true,
+          "id": "obj_a32d6bf62dbd"
+        },
+        "donor": null
+      },
+      "status": "generated",
+      "execution_mode": "remove",
+      "source_selection": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/plans/edit_001.json",
+      "selection_sha256": "1d611c2bf5cff46858eb0680afd2c27a80e1b390091ede58f00615ac0404e277",
+      "native_panels": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_001/source_A.png",
+          "sha256": "25abaec06a07fdbc846e64fb9b5e063a6f9be7122c9c5860135da643a35ea23b"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_001/reconstruction_native.png",
+          "sha256": "66cc35496a3d59ec79680ef5eb5610435eb806e508578b855beb7916b5b13c03"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_001/edited_native.png",
+          "sha256": "b1629f9b7c8fe50a0c2c5f4dcd39b607e587a11872761c4c28530474dad11be3"
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "edit_002",
+        "image_A": 52891,
+        "image_B": 205834,
+        "request": "Transfer the brown dog's appearance from image B to the dog in image A."
+      },
+      "selection": {
+        "operation": "transfer",
+        "target_id": "obj_e742cde13bfd",
+        "donor_id": "obj_f2c2ca473dd6"
+      },
+      "resolved": {
+        "operation": "transfer",
+        "target": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement.",
+          "parsed": true,
+          "id": "obj_e742cde13bfd"
+        },
+        "donor": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine.",
+          "parsed": true,
+          "id": "obj_f2c2ca473dd6"
+        }
+      },
+      "status": "generated",
+      "execution_mode": "transfer",
+      "source_selection": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/plans/edit_002.json",
+      "selection_sha256": "b006f9bd6d419e8061213285964413e9f2267d24540a244bd0eef6cdffc80c30",
+      "native_panels": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_002/source_A.png",
+          "sha256": "5d15a5ab7b32fb177b77c35436791ff1c516ab9703dfa0dd31c162be676db20d"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_002/donor_B.png",
+          "sha256": "179dde21ab60a15e5850421c9e8ef3d86649588cde53ad57065fc164a7663e70"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_002/reconstruction_native.png",
+          "sha256": "495f47894ca1ba6ffe636d9c431baaf814e573347e055aa3bba1704219b97290"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_002/edited_native.png",
+          "sha256": "467c9fe21650769bfb43625721f96109ba3d9f4172d36b351f31dd967ff89995"
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "edit_003",
+        "image_A": 261161,
+        "image_B": null,
+        "request": "Remove the bench from image A."
+      },
+      "selection": {
+        "operation": "remove",
+        "target_id": "obj_1a47f44f2598",
+        "donor_id": null
+      },
+      "resolved": {
+        "operation": "remove",
+        "target": {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Bench",
+          "normalized_category": "bench",
+          "description": "A red bench with wooden slats on its seat and backrest, it appears worn but still sturdy. The bench is positioned on the left side of the image and is facing the tree.",
+          "parsed": true,
+          "id": "obj_1a47f44f2598"
+        },
+        "donor": null
+      },
+      "status": "generated",
+      "execution_mode": "remove",
+      "source_selection": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/plans/edit_003.json",
+      "selection_sha256": "7184307c30b5f6045a4aa58aad03178985cd218f243a6fa2a67c349df3bba28a",
+      "native_panels": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_003/source_A.png",
+          "sha256": "a38310240c9084870b3011617ca61aeef5fa4c3186447599ee976b79b9fcc043"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_003/reconstruction_native.png",
+          "sha256": "9f39f27f71b62936394cb41f63bb3692fff968e0b3fa5fc92afd3b9547151f0f"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_003/edited_native.png",
+          "sha256": "7d1fbc29e997977b89585c22b52fcfb5b8dbf3edeb8cca8b54ac8486e1cd4e4f"
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "edit_004",
+        "image_A": 193429,
+        "image_B": 554595,
+        "request": "Replace the snowboard in image A with the surfboard from image B."
+      },
+      "selection": {
+        "operation": "replace",
+        "target_id": "obj_af492ec5af8f",
+        "donor_id": "obj_c6456e937620"
+      },
+      "resolved": {
+        "operation": "replace",
+        "target": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Snowboard",
+          "normalized_category": "snowboard",
+          "description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+          "parsed": true,
+          "id": "obj_af492ec5af8f"
+        },
+        "donor": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Surfboard",
+          "normalized_category": "surfboard",
+          "description": "A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact.",
+          "parsed": true,
+          "id": "obj_c6456e937620"
+        }
+      },
+      "status": "generated",
+      "execution_mode": "full_bundle",
+      "source_selection": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/plans/edit_004.json",
+      "selection_sha256": "29d1ab9d5bb99798ca8603a504e3bde09844e848a2f5ed5c1ad8fb3992b4509c",
+      "native_panels": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_004/source_A.png",
+          "sha256": "c767c921f980be82e92676991660f932e2de2b9697e20f56e5a1d2774891ab5a"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_004/donor_B.png",
+          "sha256": "64adfdcb8f2a737e61e2c0d555dc01ea2d80dde04bcc04bf8da564e08f6e5667"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_004/reconstruction_native.png",
+          "sha256": "13c50934aa10421c9691c6f871509c311e32591fff402fd54f4500ecf1be537d"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_004/edited_native.png",
+          "sha256": "417d8572b02abc01cc23bc69f390655e9d1d442ada0e17f54fd233078635ab6a"
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "edit_005",
+        "image_A": 449909,
+        "image_B": null,
+        "request": "Remove the giraffe from image A."
+      },
+      "selection": {
+        "operation": "remove",
+        "target_id": "obj_28d369b1e0c0",
+        "donor_id": null
+      },
+      "resolved": {
+        "operation": "remove",
+        "target": {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Giraffe",
+          "normalized_category": "giraffe",
+          "description": "Partially obscured by the person, a giraffe stands in the background. Its long neck extends upward, and its brown and white coat catches the light. The giraffe's presence adds an element of exotic wonder to the scene.",
+          "parsed": true,
+          "id": "obj_28d369b1e0c0"
+        },
+        "donor": null
+      },
+      "status": "generated",
+      "execution_mode": "remove",
+      "source_selection": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/plans/edit_005.json",
+      "selection_sha256": "a9e584e4091e1b892cfa8902073f908e2a8c893f4afd3ff0ca032e2e8b4d705f",
+      "native_panels": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_005/source_A.png",
+          "sha256": "32b0891fda7c8618f58d5d6a94bd63c1cbbaa9e3b3c43e7562eb42bdea9135b6"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_005/reconstruction_native.png",
+          "sha256": "5c865175f3e21d7922a1e2b0f33cb59f587bc04e565474d6af1e7d9e12c1cad6"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_005/edited_native.png",
+          "sha256": "2d869151fdc893bddcf6680581771ae10238f80ac3c87a3a70c1e08acd3de664"
+        }
+      ]
+    },
+    {
+      "query": {
+        "id": "edit_006",
+        "image_A": 802,
+        "image_B": 243344,
+        "request": "Transfer the refrigerator's appearance from image B to the refrigerator in image A."
+      },
+      "selection": {
+        "operation": "transfer",
+        "target_id": "obj_1eb4b22d65ba",
+        "donor_id": "obj_866188538541"
+      },
+      "resolved": {
+        "operation": "transfer",
+        "target": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Refrigerator",
+          "normalized_category": "refrigerator",
+          "description": "A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser.",
+          "parsed": true,
+          "id": "obj_1eb4b22d65ba"
+        },
+        "donor": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Refrigerator",
+          "normalized_category": "refrigerator",
+          "description": "A modern, stainless steel refrigerator with magnets and papers attached to its surface, located on top of the counter.",
+          "parsed": true,
+          "id": "obj_866188538541"
+        }
+      },
+      "status": "generated",
+      "execution_mode": "transfer",
+      "source_selection": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/plans/edit_006.json",
+      "selection_sha256": "e2eea227d594cbc060ef810620854c8517773f6c30e1d913ffd35db313a4a2b6",
+      "native_panels": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_006/source_A.png",
+          "sha256": "e55f6d35f83b57076ecdd694d92ab3b9e7f97b2dbf0a2266cdeca87e7fc3808e"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_006/donor_B.png",
+          "sha256": "3919855f2d144a3f6b45ca4ff70220ce5b6965c3c7f06063feb59d3ff33da232"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_006/reconstruction_native.png",
+          "sha256": "10686fcd3c344d3aa1e9c9734d47868e2de8f4038b5abfd6a970142bcd982095"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_006/edited_native.png",
+          "sha256": "60871a3ac6f579abfb49ac93f614a743aded688324d9965142659270a145c6f3"
+        }
+      ]
+    }
+  ],
+  "all_requests_review": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/review_all_requests.jpg"
+}

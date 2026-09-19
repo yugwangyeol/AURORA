@@ -1,0 +1,39 @@
+{
+  "query": {
+    "id": "edit_004",
+    "image_A": 193429,
+    "image_B": 554595,
+    "request": "Replace the snowboard in image A with the surfboard from image B."
+  },
+  "actual_selection": {
+    "operation": "replace",
+    "target_id": "obj_af492ec5af8f",
+    "donor_id": "obj_c6456e937620"
+  },
+  "same_initial_noise": true,
+  "unchanged_other_owners": true,
+  "visual_only": "source semantic + donor visual memory",
+  "full_bundle": "donor semantic + donor visual memory",
+  "native_panels": [
+    {
+      "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_004/source_A.png",
+      "sha256": "c767c921f980be82e92676991660f932e2de2b9697e20f56e5a1d2774891ab5a"
+    },
+    {
+      "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_004/donor_B.png",
+      "sha256": "64adfdcb8f2a737e61e2c0d555dc01ea2d80dde04bcc04bf8da564e08f6e5667"
+    },
+    {
+      "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_004/reconstruction_native.png",
+      "sha256": "13c50934aa10421c9691c6f871509c311e32591fff402fd54f4500ecf1be537d"
+    },
+    {
+      "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_004/visual_only_native.png",
+      "sha256": "7e75df43382667f021f900b2063d119a32e8162c92b91844090cbc18587788a4"
+    },
+    {
+      "path": "/home/jovyan/PGOT/outputs/language_object_editing_transfer_replace_gpu0/edits/edit_004/full_bundle_native.png",
+      "sha256": "417d8572b02abc01cc23bc69f390655e9d1d442ada0e17f54fd233078635ab6a"
+    }
+  ]
+}
