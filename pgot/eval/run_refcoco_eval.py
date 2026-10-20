@@ -114,6 +114,8 @@ def prepare(args):
         config_keys = tuple(key for key in config_keys if key not in
                             {'ctrlo_repo','checkpoint_dir','llm2vec_base','llm2vec_adapter','embedding_max_length'})
     config = {key: getattr(args, key) for key in config_keys}
+    if args.supervision_label != 'frozen checkpoints, no additional RefCOCO training':
+        config['supervision_label'] = args.supervision_label
     config.update(version=VERSION, annotation_hashes={'refs': file_hash(refs_path),
                   'instances': file_hash(instances_path)})
     if args.ours_only:
@@ -172,7 +174,7 @@ def prepare(args):
         target='the exact referred annotation; no class matching, Hungarian matching, or other-object repair',
         inference_gt_inputs='none: no target class, mask, box, coordinates, or other object descriptions',
         metrics='expression-weighted mIoU, pixel-aggregated oIoU, P@0.5/0.6/0.7/0.8/0.9; empty predictions retained',
-        supervision='frozen checkpoints, no additional RefCOCO training',
+        supervision=args.supervision_label,
         limitations='COCO-trained checkpoints may have seen these images during COCO training; NOT unseen-image zero-shot. Released CTRL-O VG+COCO checkpoint is not a reproduction of Table 3 VG checkpoints.',
         full_split_evaluated=not (args.max_refs or args.max_samples))
     if args.ours_only:
@@ -251,6 +253,7 @@ def ours(args):
     manifest = load_manifest(args)
     root = Path(args.output_dir)/'ours'
     pending = [s for s in manifest['samples'] if not completed(root/s['id'], manifest, s)]
+    pending = pending[args.shard_index::args.num_shards]
     if not pending:
         print('All DeOR expressions already completed.', flush=True)
         return
@@ -262,27 +265,54 @@ def ours(args):
         register_memory=getattr(model.config, 'pgot_e11_register_memories_per_owner', None),
         writer_prior=getattr(model.config, 'pgot_one_shot_writer_owner_prior', None),
         gt_class_input=False, gt_mask_input=False, gt_point_input=False, dtype=args.dtype))
-    for sample in tqdm(pending, desc='DeOR original referring expressions'):
-        query = inference_query(sample)
-        caption = torch.tensor(tokenizer.encode(query['text'], add_special_tokens=False))[None]
-        if caption.shape[1] > args.max_caption_tokens:
+    ovt_id = tokenizer.convert_tokens_to_ids('<ovt>')
+    pad_id = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else 0
+    # Caption padding shifts the RoPE positions of the register/RAE blocks that
+    # follow the caption, which changes ownership. Batch only equal-length
+    # captions so every query sees exactly its batch-1 sequence.
+    lengths = [len(tokenizer.encode(inference_query(s)['text'], add_special_tokens=False)) for s in pending]
+    chunks, bucket = [], []
+    for i in sorted(range(len(pending)), key=lambda i: (lengths[i], i)):
+        if bucket and (len(bucket) == args.batch_size or lengths[bucket[0]] != lengths[i]):
+            chunks.append(bucket)
+            bucket = []
+        bucket.append(i)
+    if bucket:
+        chunks.append(bucket)
+    progress = tqdm(total=len(pending), desc='DeOR original referring expressions')
+    for indices in chunks:
+        chunk = [pending[i] for i in indices]
+        queries = [inference_query(sample) for sample in chunk]
+        captions = [torch.tensor(tokenizer.encode(q['text'], add_special_tokens=False)) for q in queries]
+        if max(len(c) for c in captions) > args.max_caption_tokens:
             raise ValueError('Expression exceeds caption token limit; no truncation')
-        positions = (caption[0] == tokenizer.convert_tokens_to_ids('<ovt>')).nonzero().flatten()
-        if len(positions) != 1:
-            raise ValueError('Exactly one query OVT is required')
-        valid = torch.zeros((1, args.max_objects), dtype=torch.bool)
-        pos = torch.zeros((1, args.max_objects), dtype=torch.long)
-        valid[0, 0], pos[0, 0] = True, positions[0]
-        image = load_full_image(query, args.eval_size)
-        inputs = towers[0].image_processor.preprocess(image, return_tensors='pt')['pixel_values']
-        target = (towers[1] if len(towers)>1 else towers[0]).image_processor.preprocess(image, return_tensors='pt')['pixel_values']
+        B, length = len(chunk), len(captions[0])
+        if any(len(c) != length for c in captions):
+            raise ValueError('DeOR batches must not contain caption padding')
+        caption = torch.full((B, length), pad_id, dtype=torch.long)
+        attention = torch.zeros((B, length), dtype=torch.bool)
+        valid = torch.zeros((B, args.max_objects), dtype=torch.bool)
+        pos = torch.zeros((B, args.max_objects), dtype=torch.long)
+        for i, c in enumerate(captions):
+            positions = (c == ovt_id).nonzero().flatten()
+            if len(positions) != 1:
+                raise ValueError('Exactly one query OVT is required')
+            caption[i, :len(c)], attention[i, :len(c)] = c, True
+            valid[i, 0], pos[i, 0] = True, positions[0]
+        images = [load_full_image(q, args.eval_size) for q in queries]
+        inputs = towers[0].image_processor.preprocess(images, return_tensors='pt')['pixel_values']
+        target = (towers[1] if len(towers)>1 else towers[0]).image_processor.preprocess(images, return_tensors='pt')['pixel_values']
         with torch.inference_mode():
             result = pgot_forward_eval(model, images=inputs, target_images=target,
-                caption_input_ids=caption, caption_attention_mask=torch.ones_like(caption, dtype=torch.bool),
+                caption_input_ids=caption, caption_attention_mask=attention,
                 ovt_positions_in_caption=pos, ovt_valid_mask=valid)
-            mask = deor_native_mask(result['ovt_object_probs'], result['ovt_void_probs'], query['height'], query['width'])
+            masks = [deor_native_mask(result['ovt_object_probs'][i:i+1], result['ovt_void_probs'][i:i+1],
+                                      q['height'], q['width']) for i, q in enumerate(queries)]
         del result
-        save_prediction(root/sample['id'], mask, manifest, sample, query_ovt_index=0, native_readout=True)
+        for sample, mask in zip(chunk, masks):
+            save_prediction(root/sample['id'], mask, manifest, sample, query_ovt_index=0, native_readout=True)
+        progress.update(B)
+    progress.close()
 
 
 def ctrlo(args):
@@ -434,6 +464,9 @@ def parse_args(argv=None):
     parser.add_argument('--eval_size',type=int,default=512)
     parser.add_argument('--dtype',choices=['fp32','bf16'],default='fp32')
     parser.add_argument('--seed',type=int,default=0)
+    parser.add_argument('--batch_size',type=int,default=1,help='DeOR queries per forward; only equal-length captions are batched (no padding)')
+    parser.add_argument('--num_shards',type=int,default=1,help='Split pending DeOR queries across processes')
+    parser.add_argument('--shard_index',type=int,default=0)
     parser.add_argument('--max_objects',type=int,default=50)
     parser.add_argument('--max_caption_tokens',type=int,default=4096)
     parser.add_argument('--llm2vec_base',default='McGill-NLP/LLM2Vec-Meta-Llama-3-8B-Instruct-mntp')
@@ -441,6 +474,11 @@ def parse_args(argv=None):
     parser.add_argument('--embedding_batch_size',type=int,default=4)
     parser.add_argument('--embedding_max_length',type=int,default=1024)
     parser.add_argument('--ours_only',action='store_true',help='Prepare provenance for DeOR-only evaluation')
+    parser.add_argument(
+        '--supervision_label',
+        default='frozen checkpoints, no additional RefCOCO training',
+        help='Provenance text only; does not change model inputs or scoring.',
+    )
     args=parser.parse_args(argv)
     args.split_by=args.split_by or ('umd' if args.dataset=='refcocog' else 'unc')
     args.splits=args.splits or (['val','test'] if args.dataset=='refcocog' else ['val','testA','testB'])
@@ -449,8 +487,10 @@ def parse_args(argv=None):
         parser.error('Invalid/duplicate splits for this dataset')
     if args.dataset=='refcoco+' and args.split_by!='unc' or args.dataset=='refcocog' and args.split_by=='unc' or args.dataset=='refcoco' and args.split_by=='umd':
         parser.error('Invalid split convention for dataset')
-    if min(args.max_refs,args.max_samples,args.seed)<0 or min(args.eval_size,args.max_objects,args.max_caption_tokens,args.embedding_batch_size,args.embedding_max_length)<1:
+    if min(args.max_refs,args.max_samples,args.seed)<0 or min(args.eval_size,args.max_objects,args.max_caption_tokens,args.embedding_batch_size,args.embedding_max_length,args.batch_size,args.num_shards)<1:
         parser.error('Invalid limits/resolution/seed')
+    if not 0<=args.shard_index<args.num_shards:
+        parser.error('shard_index must be in [0, num_shards)')
     if args.max_refs and args.max_samples:
         parser.error('Choose at most one deterministic subset limit')
     args.text_mode='description'  # Exact original expression, never category-only.

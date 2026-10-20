@@ -1,0 +1,50 @@
+{
+  "task": "voc_zero_shot_segmentation",
+  "model": "CODA",
+  "train_dataset": "COCO",
+  "dataset": "voc",
+  "caption_mode": "not_applicable",
+  "protocol": "PGOT VOC protocol: sets/val.txt order, CODA 512 center crop GT, 255 -> overlap, pgot_metrics per-image NaN-skipped means; model masks bilinear-upsampled to eval_size then argmax",
+  "num_samples": 1449,
+  "metric_resolution": 512,
+  "fARI": 0.3079281015958945,
+  "mBO": 0.5741412244313586,
+  "mIoU": 0.5241437272417434,
+  "mBO_i": 0.5741412244313586,
+  "mIoU_i": 0.5241437272417434,
+  "sMBO": 0.5884661338995214,
+  "sMIOU": 0.5418862917809506,
+  "mBO_variant": "mBO^i",
+  "mIoU_variant": "mIoU^i",
+  "pred_segments_mean": 6.875086266390614,
+  "native_mask_shape": [
+    7,
+    32,
+    32
+  ],
+  "model_info": {
+    "checkpoint": "/home/jovyan/coda/pretrained/coda/coco",
+    "num_slots": 7,
+    "model_input_resolution": 512,
+    "mask_source": "encoder slot attention (dino_sample_size x dino_sample_size)",
+    "preprocessing": "CODA experiment.dataset.voc.VOCTransforms(512, val=True)",
+    "load_report": {
+      "missing_frozen_dinov2_keys": 175,
+      "other_missing": 0,
+      "unexpected": 0
+    },
+    "timing_sec": {
+      "model_and_preprocess": 35.8,
+      "metrics": 18.31
+    }
+  },
+  "elapsed_sec": 76.55239868164062,
+  "peak_gpu_memory_GiB": 1.488454818725586,
+  "coda_metric_cross_check": {
+    "fARI": 0.3079281007322136,
+    "mBO": 0.5741412176437588,
+    "mIoU": 0.5241437232179222,
+    "sMBO": 0.5884661306752428,
+    "sMIOU": 0.5418862848959766
+  }
+}

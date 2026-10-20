@@ -1,0 +1,201 @@
+{
+  "revision": "v11",
+  "model": "Reader-supervised DeOR-B",
+  "selector": "Qwen3-VL-4B-Instruct (text-only)",
+  "selector_image_input": false,
+  "selector_gt_input": false,
+  "manual_plan_correction": false,
+  "layout": "One six-row table with one shared column-header row.",
+  "group_titles_displayed": false,
+  "unified_six_rows": true,
+  "header_font_size": 36,
+  "panel_pixels": 360,
+  "examples": [
+    {
+      "block": 1,
+      "row": 1,
+      "side": "left",
+      "id": "appendix_v2_remove_tv",
+      "request": "Remove the television from image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v2",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "remove",
+        "target_id": "obj_46cffaf5f011",
+        "donor_id": null
+      },
+      "visual_review": "pass"
+    },
+    {
+      "block": 1,
+      "row": 1,
+      "side": "right",
+      "id": "appendix_v7b_plane_white_to_blue",
+      "request": "Transfer B's blue paint to A's white airplane.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v7b_candidates",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "transfer",
+        "target_id": "obj_c1251cbd47e4",
+        "donor_id": "obj_0fa2dd8edbd0"
+      },
+      "visual_review": "pass",
+      "replacement_mode": "transfer"
+    },
+    {
+      "block": 1,
+      "row": 2,
+      "side": "left",
+      "id": "appendix_v2_remove_dog",
+      "request": "Remove the dog from image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v2",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "remove",
+        "target_id": "obj_2a4ab63f4e7b",
+        "donor_id": null
+      },
+      "visual_review": "pass"
+    },
+    {
+      "block": 1,
+      "row": 2,
+      "side": "right",
+      "id": "appendix_v7b_sheep_white_to_black",
+      "request": "Transfer B's black wool to A's white sheep.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v7b_candidates",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "transfer",
+        "target_id": "obj_dd5754bcf6a6",
+        "donor_id": "obj_30df8594ca39"
+      },
+      "visual_review": "pass",
+      "replacement_mode": "transfer"
+    },
+    {
+      "block": 1,
+      "row": 3,
+      "side": "left",
+      "id": "appendix_v4_remove_bus",
+      "request": "Remove the bus from image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v4_candidates",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "remove",
+        "target_id": "obj_84c1e076ee30",
+        "donor_id": null
+      },
+      "visual_review": "pass"
+    },
+    {
+      "block": 1,
+      "row": 3,
+      "side": "right",
+      "id": "appendix_v2_transfer_suitcase",
+      "request": "Transfer the patterned suitcase's appearance from image B to the suitcase in image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v2",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "transfer",
+        "target_id": "obj_d5823714e95b",
+        "donor_id": "obj_ed0be774a9c7"
+      },
+      "visual_review": "pass",
+      "replacement_mode": "transfer"
+    },
+    {
+      "block": 2,
+      "row": 1,
+      "side": "left",
+      "id": "appendix_v9_remove_bicycle",
+      "request": "Remove the bicycle from image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v9_remove_candidates",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "remove",
+        "target_id": "obj_90b932657c5d",
+        "donor_id": null
+      },
+      "visual_review": "pass"
+    },
+    {
+      "block": 2,
+      "row": 1,
+      "side": "right",
+      "id": "appendix_v8_replace_bicycle_motorcycle",
+      "request": "Replace the bicycle in image A with the motorcycle from image B.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v8_cross_category_candidates",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "replace",
+        "target_id": "obj_8e91fe7b88f6",
+        "donor_id": "obj_c9389fd4c8c2"
+      },
+      "visual_review": "pass",
+      "replacement_mode": "full_bundle"
+    },
+    {
+      "block": 2,
+      "row": 2,
+      "side": "left",
+      "id": "appendix_v9_remove_suitcase",
+      "request": "Remove the suitcase from image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v9_remove_candidates",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "remove",
+        "target_id": "obj_22b914aae0b3",
+        "donor_id": null
+      },
+      "visual_review": "pass"
+    },
+    {
+      "block": 2,
+      "row": 2,
+      "side": "right",
+      "id": "appendix_v8_replace_cup_vase",
+      "request": "Replace the cup in image A with the vase from image B.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v8_cross_category_candidates",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "replace",
+        "target_id": "obj_5082b75ae7d2",
+        "donor_id": "obj_ad827db83b7f"
+      },
+      "visual_review": "pass",
+      "replacement_mode": "full_bundle"
+    },
+    {
+      "block": 2,
+      "row": 3,
+      "side": "left",
+      "id": "appendix_v9b_remove_clock",
+      "request": "Remove the clock from image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v9b_remove_candidates",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "remove",
+        "target_id": "obj_6ac93378ce0f",
+        "donor_id": null
+      },
+      "visual_review": "pass"
+    },
+    {
+      "block": 2,
+      "row": 3,
+      "side": "right",
+      "id": "appendix_v8_replace_horse_cow",
+      "request": "Replace the horse in image A with the cow from image B.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v8_cross_category_candidates",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "replace",
+        "target_id": "obj_978cdda57fa8",
+        "donor_id": "obj_63707d4d7e42"
+      },
+      "visual_review": "pass",
+      "replacement_mode": "full_bundle"
+    }
+  ]
+}

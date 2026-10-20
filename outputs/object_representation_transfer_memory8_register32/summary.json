@@ -1,0 +1,646 @@
+{
+  "version": "native-object-representation-transfer-v1",
+  "fingerprint": "5c44bcb823efbe5ea8441cdcc302d6d80924f16c90b5d7dff1a4e65e1e74f866",
+  "completed_pairs": 6,
+  "planned_pairs": 6,
+  "quantitative_edit_success_claimed": false,
+  "note": "Pixel change is diagnostic, not donor identity/appearance success. Review all fixed pairs including failures.",
+  "pairs": [
+    {
+      "pair_id": "dog_brown_to_black_white",
+      "target_image_id": 205834,
+      "target_slot": 0,
+      "donor_image_id": 52891,
+      "donor_slot": 0,
+      "category": "dog",
+      "instruction": "Replace A's brown dog with B's black-and-white dog.",
+      "target_description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine.",
+      "target_prediction_label": 1,
+      "donor_description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement.",
+      "donor_prediction_label": 1,
+      "text_only_caption": "<thing> Dog 1: A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement. <ovt>. <thing> Bowl 1: A metallic bowl with a curved rim is positioned on the pavement. It's small and shallow, likely designed for dogs to eat or drink from. <ovt>. <scene_end>",
+      "fingerprint": "5c44bcb823efbe5ea8441cdcc302d6d80924f16c90b5d7dff1a4e65e1e74f866",
+      "identity_relative_error": 8.264708412752952e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 126492,
+      "donor_region_pixels": 77907,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.5858179209183674,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.014967618219182164,
+          "outside_change": 0.00958584697793402,
+          "change_energy_inside_fraction": 0.8117785508931429,
+          "region_fraction": 0.5858179209183674,
+          "screening_score": 0.007778232985731649
+        },
+        "semantic_only": {
+          "inside_change": 0.08572124229701407,
+          "outside_change": 0.060243058503996985,
+          "change_energy_inside_fraction": 0.7669813449420089,
+          "region_fraction": 0.5858179209183674,
+          "screening_score": 0.04053894841901633
+        },
+        "visual_only": {
+          "inside_change": 0.2261015431098161,
+          "outside_change": 0.07785288047788967,
+          "change_energy_inside_fraction": 0.931165379919717,
+          "region_fraction": 0.5858179209183674,
+          "screening_score": 0.16771188275139884
+        },
+        "bundle_swap": {
+          "inside_change": 0.21595612638922795,
+          "outside_change": 0.08603247028128289,
+          "change_energy_inside_fraction": 0.9057997441701808,
+          "region_fraction": 0.5858179209183674,
+          "screening_score": 0.1514317736782658
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.4829599808673469,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.014651980271055862,
+          "outside_change": 0.010951308789329246,
+          "change_energy_inside_fraction": 0.6930563562159565,
+          "region_fraction": 0.4829599808673469,
+          "screening_score": 0.006438498679058928
+        },
+        "semantic_only": {
+          "inside_change": 0.07582319685601308,
+          "outside_change": 0.07455721807411371,
+          "change_energy_inside_fraction": 0.4645184668584069,
+          "region_fraction": 0.4829599808673469,
+          "screening_score": 0.01990528330042779
+        },
+        "visual_only": {
+          "inside_change": 0.25048611667393544,
+          "outside_change": 0.08456760031229853,
+          "change_energy_inside_fraction": 0.8876576285005432,
+          "region_fraction": 0.4829599808673469,
+          "screening_score": 0.18706041643971155
+        },
+        "bundle_swap": {
+          "inside_change": 0.2313945036328951,
+          "outside_change": 0.09745820336640483,
+          "change_energy_inside_fraction": 0.8332112158904992,
+          "region_fraction": 0.4829599808673469,
+          "screening_score": 0.15830085110809147
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.012521302327513695,
+        "semantic_only": 0.10025370121002197,
+        "visual_only": 0.2908762991428375,
+        "bundle_swap": 0.2872020900249481
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 5.038260086905211
+    },
+    {
+      "pair_id": "dog_black_white_to_brown",
+      "target_image_id": 52891,
+      "target_slot": 0,
+      "donor_image_id": 205834,
+      "donor_slot": 0,
+      "category": "dog",
+      "instruction": "Replace A's black-and-white dog with B's brown dog.",
+      "target_description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement.",
+      "target_prediction_label": 1,
+      "donor_description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine.",
+      "donor_prediction_label": 1,
+      "text_only_caption": "<thing> Dog 1: A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine. <ovt>. <thing> Frisbee 1: A bright yellow frisbee lies on the sand close to the dog. It's in good condition, with visible wear marks suggesting it has been used multiple times. <ovt>. <scene_end>",
+      "fingerprint": "5c44bcb823efbe5ea8441cdcc302d6d80924f16c90b5d7dff1a4e65e1e74f866",
+      "identity_relative_error": 6.165715149109019e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 77907,
+      "donor_region_pixels": 126492,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.5858179209183674,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.014538336710928955,
+          "outside_change": 0.006662062380529154,
+          "change_energy_inside_fraction": 0.8773646758710196,
+          "region_fraction": 0.5858179209183674,
+          "screening_score": 0.00954178992553209
+        },
+        "semantic_only": {
+          "inside_change": 0.09309418444295911,
+          "outside_change": 0.025613480242769163,
+          "change_energy_inside_fraction": 0.9315546900562396,
+          "region_fraction": 0.5858179209183674,
+          "screening_score": 0.07388407426088224
+        },
+        "visual_only": {
+          "inside_change": 0.11471880126707643,
+          "outside_change": 0.042456235694162174,
+          "change_energy_inside_fraction": 0.9310461004320615,
+          "region_fraction": 0.5858179209183674,
+          "screening_score": 0.0828766244964548
+        },
+        "bundle_swap": {
+          "inside_change": 0.15754844815157243,
+          "outside_change": 0.05259006820256091,
+          "change_energy_inside_fraction": 0.9351714531650113,
+          "region_fraction": 0.5858179209183674,
+          "screening_score": 0.11810589699965174
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.29691485969387754,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.01734373258857398,
+          "outside_change": 0.00871375706016859,
+          "change_energy_inside_fraction": 0.525110429859697,
+          "region_fraction": 0.29691485969387754,
+          "screening_score": 0.010808414793447536
+        },
+        "semantic_only": {
+          "inside_change": 0.1191150805872087,
+          "outside_change": 0.04235311903547065,
+          "change_energy_inside_fraction": 0.6301553909794599,
+          "region_fraction": 0.29691485969387754,
+          "screening_score": 0.0873502413106057
+        },
+        "visual_only": {
+          "inside_change": 0.17357201080638102,
+          "outside_change": 0.047295598323234274,
+          "change_energy_inside_fraction": 0.8202281260150927,
+          "region_fraction": 0.29691485969387754,
+          "screening_score": 0.13810031206395532
+        },
+        "bundle_swap": {
+          "inside_change": 0.18897522762629013,
+          "outside_change": 0.08244665063712428,
+          "change_energy_inside_fraction": 0.5497029985789074,
+          "region_fraction": 0.29691485969387754,
+          "screening_score": 0.12714023964844692
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.012806425802409649,
+        "semantic_only": 0.10568074882030487,
+        "visual_only": 0.19310347735881805,
+        "bundle_swap": 0.25058895349502563
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.349625999107957
+    },
+    {
+      "pair_id": "cat_grey_to_tabby",
+      "target_image_id": 568690,
+      "target_slot": 1,
+      "donor_image_id": 157807,
+      "donor_slot": 0,
+      "category": "cat",
+      "instruction": "Replace A's grey cat with B's striped tabby cat.",
+      "target_description": "A grey cat with lighter fur near its belly is sitting on top of the toilet seat, looking forward with an attentive expression.",
+      "target_prediction_label": 2,
+      "donor_description": "A tabby cat with a mix of dark and light fur, consisting of stripes and spots, is standing on a toilet. Its green eyes are looking directly ahead. The cat has a fluffy tail and appears to be in a relaxed but alert state.",
+      "donor_prediction_label": 1,
+      "text_only_caption": "<thing> Toilet 1: A white, ceramic toilet with an oval shape and an open lid, it appears clean but is not in use. <ovt>. <thing> Cat 1: A tabby cat with a mix of dark and light fur, consisting of stripes and spots, is standing on a toilet. Its green eyes are looking directly ahead. The cat has a fluffy tail and appears to be in a relaxed but alert state. <ovt>. <scene_end>",
+      "fingerprint": "5c44bcb823efbe5ea8441cdcc302d6d80924f16c90b5d7dff1a4e65e1e74f866",
+      "identity_relative_error": 7.464985174010508e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 18740,
+      "donor_region_pixels": 61759,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.283203125,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.010278226233021945,
+          "outside_change": 0.004764085470700541,
+          "change_energy_inside_fraction": 0.6655883305615059,
+          "region_fraction": 0.283203125,
+          "screening_score": 0.006705162129996539
+        },
+        "semantic_only": {
+          "inside_change": 0.087215391903888,
+          "outside_change": 0.0314264852171568,
+          "change_energy_inside_fraction": 0.8112818714644439,
+          "region_fraction": 0.283203125,
+          "screening_score": 0.0636455279910204
+        },
+        "visual_only": {
+          "inside_change": 0.049196690170321,
+          "outside_change": 0.01900698517372435,
+          "change_energy_inside_fraction": 0.7717997897673285,
+          "region_fraction": 0.283203125,
+          "screening_score": 0.034941451290027736
+        },
+        "bundle_swap": {
+          "inside_change": 0.14220777966358955,
+          "outside_change": 0.03693691827321301,
+          "change_energy_inside_fraction": 0.9035098847021354,
+          "region_fraction": 0.283203125,
+          "screening_score": 0.11450509095867979
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.07164779974489796,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.02412210132082504,
+          "outside_change": 0.004952228130827838,
+          "change_energy_inside_fraction": 0.49949236091641774,
+          "region_fraction": 0.07164779974489796,
+          "screening_score": 0.020407930222704162
+        },
+        "semantic_only": {
+          "inside_change": 0.09812139227503704,
+          "outside_change": 0.043298110410805946,
+          "change_energy_inside_fraction": 0.2180050139136872,
+          "region_fraction": 0.07164779974489796,
+          "screening_score": 0.06564780946693258
+        },
+        "visual_only": {
+          "inside_change": 0.10384030107174996,
+          "outside_change": 0.021669442771204788,
+          "change_energy_inside_fraction": 0.40381613773395664,
+          "region_fraction": 0.07164779974489796,
+          "screening_score": 0.08758821899334637
+        },
+        "bundle_swap": {
+          "inside_change": 0.11806630487150817,
+          "outside_change": 0.06278949326164993,
+          "change_energy_inside_fraction": 0.10933584224486403,
+          "region_fraction": 0.07164779974489796,
+          "screening_score": 0.07097418492527072
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.005575048737227917,
+        "semantic_only": 0.09647977352142334,
+        "visual_only": 0.04265446588397026,
+        "bundle_swap": 0.10984452068805695
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.685354494955391
+    },
+    {
+      "pair_id": "cat_tabby_to_grey",
+      "target_image_id": 157807,
+      "target_slot": 0,
+      "donor_image_id": 568690,
+      "donor_slot": 1,
+      "category": "cat",
+      "instruction": "Replace A's striped tabby cat with B's grey cat.",
+      "target_description": "A tabby cat with a mix of dark and light fur, consisting of stripes and spots, is standing on a toilet. Its green eyes are looking directly ahead. The cat has a fluffy tail and appears to be in a relaxed but alert state.",
+      "target_prediction_label": 1,
+      "donor_description": "A grey cat with lighter fur near its belly is sitting on top of the toilet seat, looking forward with an attentive expression.",
+      "donor_prediction_label": 2,
+      "text_only_caption": "<thing> Cat 1: A grey cat with lighter fur near its belly is sitting on top of the toilet seat, looking forward with an attentive expression. <ovt>. <thing> Toilet 1: The toilet is white and has a round shape with a closed lid that's not currently up. It has a smooth surface and appears to be in good condition. <ovt>. <scene_end>",
+      "fingerprint": "5c44bcb823efbe5ea8441cdcc302d6d80924f16c90b5d7dff1a4e65e1e74f866",
+      "identity_relative_error": 7.958546120789833e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 61759,
+      "donor_region_pixels": 18740,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.283203125,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.012905760005151486,
+          "outside_change": 0.007631608501711312,
+          "change_energy_inside_fraction": 0.18219497319473277,
+          "region_fraction": 0.283203125,
+          "screening_score": 0.007182053628868002
+        },
+        "semantic_only": {
+          "inside_change": 0.1252540556452466,
+          "outside_change": 0.040590586825102436,
+          "change_energy_inside_fraction": 0.7489465557222376,
+          "region_fraction": 0.283203125,
+          "screening_score": 0.09481111552641978
+        },
+        "visual_only": {
+          "inside_change": 0.10075285286528403,
+          "outside_change": 0.04070776357772901,
+          "change_energy_inside_fraction": 0.6066167936911823,
+          "region_fraction": 0.283203125,
+          "screening_score": 0.07022203018198728
+        },
+        "bundle_swap": {
+          "inside_change": 0.13357876483926906,
+          "outside_change": 0.04409447702786837,
+          "change_energy_inside_fraction": 0.7314269912175508,
+          "region_fraction": 0.283203125,
+          "screening_score": 0.10050790706836779
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.23565051020408162,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.014696595823715141,
+          "outside_change": 0.007407611911403416,
+          "change_energy_inside_fraction": 0.18076925911696934,
+          "region_fraction": 0.23565051020408162,
+          "screening_score": 0.00914088689016258
+        },
+        "semantic_only": {
+          "inside_change": 0.1296377369170492,
+          "outside_change": 0.04450627281923756,
+          "change_energy_inside_fraction": 0.6655914547972576,
+          "region_fraction": 0.23565051020408162,
+          "screening_score": 0.09625803230262102
+        },
+        "visual_only": {
+          "inside_change": 0.11521818921524407,
+          "outside_change": 0.03998366694751883,
+          "change_energy_inside_fraction": 0.6000268582167703,
+          "region_fraction": 0.23565051020408162,
+          "screening_score": 0.08523043900460495
+        },
+        "bundle_swap": {
+          "inside_change": 0.14033095421298875,
+          "outside_change": 0.04757986562724103,
+          "change_energy_inside_fraction": 0.6574030405736007,
+          "region_fraction": 0.23565051020408162,
+          "screening_score": 0.10464605499255797
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.011180883273482323,
+        "semantic_only": 0.1379237025976181,
+        "visual_only": 0.13461075723171234,
+        "bundle_swap": 0.16738562285900116
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 3.909629044122994
+    },
+    {
+      "pair_id": "suitcase_silver_to_patterned",
+      "target_image_id": 112626,
+      "target_slot": 0,
+      "donor_image_id": 350019,
+      "donor_slot": 0,
+      "category": "suitcase",
+      "instruction": "Replace A's silver suitcase with B's brown patterned suitcase.",
+      "target_description": "A large, metallic silver suitcase with a smooth texture and multiple compartments is placed on the floor. It has zippered closures for security and is equipped with wheels for easy mobility.",
+      "target_prediction_label": 1,
+      "donor_description": "A large, brown Louis Vuitton suitcase with a pattern of small, intricate designs in multiple colors including black, brown, and white. It has golden buttons at the top and is standing upright on the wooden floor.",
+      "donor_prediction_label": 1,
+      "text_only_caption": "<thing> Suitcase 1: A large, brown Louis Vuitton suitcase with a pattern of small, intricate designs in multiple colors including black, brown, and white. It has golden buttons at the top and is standing upright on the wooden floor. <ovt>. <thing> Couch 1: A large, brown couch with cushions is positioned against the wall, featuring a comfortable design for seating or lounging. <ovt>. <thing> Bottle 1: A small bottle with an unclear label sits on top of what appears to be a table or similar surface near the wall. <ovt>. <thing> Book 1: A book with an unclear cover design sits on top of what appears to be a table or similar surface near the wall. <ovt>. <scene_end>",
+      "fingerprint": "5c44bcb823efbe5ea8441cdcc302d6d80924f16c90b5d7dff1a4e65e1e74f866",
+      "identity_relative_error": 9.781124390428886e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 101388,
+      "donor_region_pixels": 91301,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.4291294642857143,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.013748377547811497,
+          "outside_change": 0.004591866071941973,
+          "change_energy_inside_fraction": 0.8995898023492696,
+          "region_fraction": 0.4291294642857143,
+          "screening_score": 0.010304477993855017
+        },
+        "semantic_only": {
+          "inside_change": 0.05835127288886945,
+          "outside_change": 0.028149161261115718,
+          "change_energy_inside_fraction": 0.7493500190413318,
+          "region_fraction": 0.4291294642857143,
+          "screening_score": 0.037239401943032664
+        },
+        "visual_only": {
+          "inside_change": 0.1407531456449073,
+          "outside_change": 0.03987539623213247,
+          "change_energy_inside_fraction": 0.8892844059259419,
+          "region_fraction": 0.4291294642857143,
+          "screening_score": 0.11084659847080794
+        },
+        "bundle_swap": {
+          "inside_change": 0.12383265399788004,
+          "outside_change": 0.03329404097905046,
+          "change_energy_inside_fraction": 0.8893097315617632,
+          "region_fraction": 0.4291294642857143,
+          "screening_score": 0.0988621232635922
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.38693797831632654,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.013657117753101758,
+          "outside_change": 0.0052796247179126956,
+          "change_energy_inside_fraction": 0.7582661017119895,
+          "region_fraction": 0.38693797831632654,
+          "screening_score": 0.009697399214667236
+        },
+        "semantic_only": {
+          "inside_change": 0.057799457666146546,
+          "outside_change": 0.030575979728172054,
+          "change_energy_inside_fraction": 0.6655463333849935,
+          "region_fraction": 0.38693797831632654,
+          "screening_score": 0.034867472870017506
+        },
+        "visual_only": {
+          "inside_change": 0.14839829725348808,
+          "outside_change": 0.04199260883985813,
+          "change_energy_inside_fraction": 0.8620464864851932,
+          "region_fraction": 0.38693797831632654,
+          "screening_score": 0.11690384062359448
+        },
+        "bundle_swap": {
+          "inside_change": 0.13294599048306766,
+          "outside_change": 0.03377305063091305,
+          "change_energy_inside_fraction": 0.876850028921066,
+          "region_fraction": 0.38693797831632654,
+          "screening_score": 0.10761620250988287
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.006690362002700567,
+        "semantic_only": 0.041956134140491486,
+        "visual_only": 0.2986310124397278,
+        "bundle_swap": 0.30171316862106323
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.701426540967077
+    },
+    {
+      "pair_id": "bus_white_to_green",
+      "target_image_id": 243867,
+      "target_slot": 0,
+      "donor_image_id": 90208,
+      "donor_slot": 0,
+      "category": "bus",
+      "instruction": "Replace A's white bus with B's green double-decker bus.",
+      "target_description": "The bus is a large vehicle with a white body. It has tinted windows, making it difficult to see inside. The bus is parked on the road, its wheels touching the surface.",
+      "target_prediction_label": 1,
+      "donor_description": "A vintage green double-decker bus labeled \"GREEN LINE\" and \"BELHUS\" is parked. It has a shiny surface reflecting the surrounding environment, and the registration label is clearly visible.",
+      "donor_prediction_label": 1,
+      "text_only_caption": "<thing> Bus 1: A vintage green double-decker bus labeled \"GREEN LINE\" and \"BELHUS\" is parked. It has a shiny surface reflecting the surrounding environment, and the registration label is clearly visible. <ovt>. <thing> Car 1: This car is a silver sedan with a sleek design. Its body is shiny and well-maintained, reflecting the surrounding environment subtly. The car is positioned in front of the bus, occupying part of its path. <ovt>. <scene_end>",
+      "fingerprint": "5c44bcb823efbe5ea8441cdcc302d6d80924f16c90b5d7dff1a4e65e1e74f866",
+      "identity_relative_error": 5.697677806892898e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 97544,
+      "donor_region_pixels": 133266,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.5845224808673469,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.015538792829689414,
+          "outside_change": 0.005726439534097005,
+          "change_energy_inside_fraction": 0.8270693498424894,
+          "region_fraction": 0.5845224808673469,
+          "screening_score": 0.01124396317911666
+        },
+        "semantic_only": {
+          "inside_change": 0.05475782184400236,
+          "outside_change": 0.018816832628384014,
+          "change_energy_inside_fraction": 0.8971285403500286,
+          "region_fraction": 0.5845224808673469,
+          "screening_score": 0.04064519737271435
+        },
+        "visual_only": {
+          "inside_change": 0.18496961560943603,
+          "outside_change": 0.04331006702740257,
+          "change_energy_inside_fraction": 0.9514890212926084,
+          "region_fraction": 0.5845224808673469,
+          "screening_score": 0.15248706533888412
+        },
+        "bundle_swap": {
+          "inside_change": 0.20498852660274905,
+          "outside_change": 0.04106438725215866,
+          "change_energy_inside_fraction": 0.959575644290884,
+          "region_fraction": 0.5845224808673469,
+          "screening_score": 0.17419023616363005
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.372249681122449,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.020865202989501473,
+          "outside_change": 0.0058859635034406175,
+          "change_energy_inside_fraction": 0.7645175275971704,
+          "region_fraction": 0.372249681122449,
+          "screening_score": 0.01645073036192101
+        },
+        "semantic_only": {
+          "inside_change": 0.059901376405221765,
+          "outside_change": 0.027920145982917473,
+          "change_energy_inside_fraction": 0.6362213249037612,
+          "region_fraction": 0.372249681122449,
+          "screening_score": 0.03896126691803366
+        },
+        "visual_only": {
+          "inside_change": 0.25839801745018953,
+          "outside_change": 0.04766971406421903,
+          "change_energy_inside_fraction": 0.915877766579758,
+          "region_fraction": 0.372249681122449,
+          "screening_score": 0.22264573190202525
+        },
+        "bundle_swap": {
+          "inside_change": 0.2732306085870833,
+          "outside_change": 0.05602820720643328,
+          "change_energy_inside_fraction": 0.8838397479936084,
+          "region_fraction": 0.372249681122449,
+          "screening_score": 0.23120945318225836
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.013065613806247711,
+        "semantic_only": 0.08919202536344528,
+        "visual_only": 0.2761226296424866,
+        "bundle_swap": 0.3129504323005676
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.6554222668055445
+    }
+  ]
+}

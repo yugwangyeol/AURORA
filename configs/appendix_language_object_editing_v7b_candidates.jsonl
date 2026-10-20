@@ -1,0 +1,6 @@
+{"id":"appendix_v7b_plane_white_to_blue","image_A":497568,"image_B":579158,"request":"Transfer B's blue paint to A's white airplane."}
+{"id":"appendix_v7b_plane_blue_to_white","image_A":579158,"image_B":497568,"request":"Transfer B's white paint to A's blue airplane."}
+{"id":"appendix_v7b_clock_gold_to_white","image_A":184762,"image_B":140929,"request":"Transfer B's white face to A's gold clock."}
+{"id":"appendix_v7b_clock_white_to_gold","image_A":140929,"image_B":184762,"request":"Transfer B's gold face to A's white clock."}
+{"id":"appendix_v7b_sheep_white_to_black","image_A":278353,"image_B":428562,"request":"Transfer B's black wool to A's white sheep."}
+{"id":"appendix_v7b_sheep_black_to_white","image_A":428562,"image_B":278353,"request":"Transfer B's white wool to A's black sheep."}

@@ -125,6 +125,7 @@ class PGOTModelArguments:
     pgot_lm_loss_weight: float = field(default=1.0)
     pgot_mask_loss_weight: float = field(default=0.5)
     pgot_recon_loss_weight: float = field(default=1.0)
+    pgot_refcoco_direct_finetune: bool = field(default=False)
     pgot_contrastive_loss_weight: float = field(default=0.0)  # config baseline (kept for back-compat)
     pgot_contrastive_sampling_rate: float = field(default=0.5)
 
@@ -321,6 +322,12 @@ class PGOTModelArguments:
     # ``dinov2``; the optional third auxiliary tower supplies DINO values.
     pgot_one_shot_memory_value_source: str = field(default="siglip")
     pgot_one_shot_memory_value_dim: int = field(default=1152)
+    # Matched structural baseline: preserve the caption/LM branch and the
+    # complete Writer/Reader/DiT stack, but replace variable AR object owners
+    # with a fixed bank of learned queries.  GT is used only by the existing
+    # training loss (Hungarian assignment), never as an inference input.
+    pgot_fixed_query_owner_enable: bool = field(default=False)
+    pgot_fixed_query_owner_count: int = field(default=16)
     pgot_e8_layers: str = field(default="21,24,27")
     pgot_e8_owner_temperature: float = field(default=1.0)
     pgot_e8_owner_weight: float = field(default=1.0)
@@ -502,6 +509,8 @@ class PGOTDataArguments:
     image_preprocess_mode: str = field(default="default")
     coda_crop_size: int = field(default=512)
     dataset_format: str = field(default="pix2cap")
+    rebuild_caption: bool = field(default=True)
+    coco_instances_json: Optional[str] = field(default=None)
     is_multimodal: bool = field(default=True)
     # image_processor_aux_list / vision_tower_aux_token_len_list are populated
     # at runtime by train.py (they are not CLI args).
@@ -681,6 +690,12 @@ def freeze_for_pgot(
     ):
         model.pgot_register_embeddings.requires_grad_(True)
         n_trainable += model.pgot_register_embeddings.numel()
+
+    # Fixed-query matched baseline object owners.
+    fixed_queries = getattr(model, "pgot_fixed_object_queries", None)
+    if fixed_queries is not None:
+        fixed_queries.requires_grad_(True)
+        n_trainable += fixed_queries.numel()
 
     # V7 null-bg segmentation owner
     if hasattr(model, "pgot_null_bg_embeddings"):
@@ -1073,6 +1088,9 @@ class PGOTParameterUpdateAuditCallback(TrainerCallback):
             torch.cuda.synchronize()
         result = {"step": int(state.global_step), "groups": {},
                   "seconds": time.perf_counter() - self._step_started}
+        if torch.cuda.is_available():
+            result.update(peak_allocated_gib=torch.cuda.max_memory_allocated() / 2**30,
+                          peak_reserved_gib=torch.cuda.max_memory_reserved() / 2**30)
         for group, (_, parameter) in self.parameters.items():
             current = self._sample(group, parameter)
             previous = self.before.get(group, current)

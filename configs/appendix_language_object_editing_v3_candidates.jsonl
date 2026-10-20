@@ -1,0 +1,7 @@
+{"id":"appendix_v3_remove_mouse","image_A":68765,"image_B":null,"request":"Remove the computer mouse from image A."}
+{"id":"appendix_v3_remove_cat","image_A":530099,"image_B":null,"request":"Remove the cat from image A."}
+{"id":"appendix_v3_transfer_zebra_sheep","image_A":66561,"image_B":93965,"request":"Transfer the zebra's striped appearance from image B to the sheep in image A."}
+{"id":"appendix_v3_replace_tv_microwave","image_A":84431,"image_B":98839,"request":"Replace the television in image A with the microwave from image B."}
+{"id":"appendix_v3_replace_dog_teddy","image_A":579321,"image_B":174018,"request":"Replace the dog in image A with the teddy bear from image B."}
+{"id":"appendix_v3_transfer_keyboard","image_A":335658,"image_B":68765,"request":"Transfer the white keyboard's appearance from image B to the keyboard in image A."}
+{"id":"appendix_v3_replace_pizza_clock","image_A":197022,"image_B":217425,"request":"Replace the front pizza in image A with the clock from image B."}

@@ -1,0 +1,11 @@
+{
+  "checkpoint": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000",
+  "missing_parameters": [],
+  "unexpected": [],
+  "dtype": "fp32",
+  "object_memory": 8,
+  "register_memory": 32,
+  "query_in_mllm": true,
+  "ar_generation": "native PGOT image-only greedy decoder",
+  "gpu": "NVIDIA B200 MIG 4g.90gb"
+}

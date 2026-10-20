@@ -1,0 +1,148 @@
+{
+  "model": "Reader-supervised DeOR-B",
+  "selection": "observed failures; not a frequency estimate",
+  "examples": [
+    {
+      "type": "description",
+      "image_id": 19402,
+      "object": "Cake",
+      "note": "Generated an object for a background illustration, not a physical cake."
+    },
+    {
+      "type": "description",
+      "image_id": 164602,
+      "object": "Toothbrush 2",
+      "note": "Generated a second toothbrush while explicitly stating it is not visible."
+    },
+    {
+      "type": "decomposition",
+      "dataset": "coco",
+      "id": "42628",
+      "note": "Several small people are missed/merged.",
+      "scores": {
+        "fARI": 0.9045023055653931,
+        "mIoU": 0.6299286421637835,
+        "mBO": 0.5831703976410813,
+        "pred_segments": 10,
+        "significant_gt_objects": 6,
+        "split_count": 0,
+        "merge_count": 0,
+        "split_gt_labels": [],
+        "merged_pred_labels": [],
+        "merge_gt_labels": {},
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 10,
+        "caption_sha256": "5d93074c63b105afdfcb0c673255ad861416a188447b1936d8a6af4b82b036c5"
+      }
+    },
+    {
+      "type": "decomposition",
+      "dataset": "voc",
+      "id": "2009_002372",
+      "note": "Crowded people are merged into coarse regions.",
+      "scores": {
+        "fARI": 0.8155649572527494,
+        "mIoU": 0.6225127914232518,
+        "mBO": 0.6311008676566452,
+        "pred_segments": 11,
+        "significant_gt_objects": 9,
+        "split_count": 1,
+        "merge_count": 0,
+        "split_gt_labels": [
+          5
+        ],
+        "merged_pred_labels": [],
+        "merge_gt_labels": {},
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 10,
+        "caption_sha256": "000fb4761334d83b81bb21940a279e019a8e6067acad3e3b85ed796c1ecf7392"
+      }
+    },
+    {
+      "type": "editing",
+      "directory": "/home/jovyan/PGOT/outputs/figure_model_editing_retry_add_background/final_native/background/08_530099",
+      "note": "Background transfer duplicates/ghosts the cat.",
+      "metadata": {
+        "task_id": "background_native_04_0_530099",
+        "mode": "background",
+        "variant": "native",
+        "target_id": "530099",
+        "target_slot": 0,
+        "target_category": "car",
+        "target_prediction_label": 1,
+        "donor_id": "508602",
+        "donor_slot": 0,
+        "donor_category": "car",
+        "donor_prediction_label": 1,
+        "reader_prior_strength": 0.0,
+        "object_writer_cleanup": false,
+        "placement": "donor native predicted location; no prompt-controlled placement",
+        "stats": {
+          "inside_change": 0.39963393295464605,
+          "outside_change": 0.147520336208119,
+          "change_energy_inside_fraction": 0.9190170290668412,
+          "region_fraction": 0.6564492984693877,
+          "screening_score": 0.2889936807985568
+        },
+        "identity_relative_error": 6.130490874056704e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "visual_success_verified": false,
+        "inference_intervention": {
+          "variant": "native",
+          "reader_prior_strength": 0.0
+        },
+        "visual_review": {
+          "status": "failure",
+          "note": "Outdoor background transfers but cat is duplicated/ghosted."
+        }
+      }
+    },
+    {
+      "type": "editing",
+      "directory": "/home/jovyan/PGOT/outputs/figure_model_editing_retry_add_background/final_native/background/04_335658",
+      "note": "Transferred desk context distorts and repositions the keyboard and mouse.",
+      "metadata": {
+        "task_id": "background_native_07_0_335658",
+        "mode": "background",
+        "variant": "native",
+        "target_id": "335658",
+        "target_slot": 0,
+        "target_category": "keyboard",
+        "target_prediction_label": 1,
+        "donor_id": "68765",
+        "donor_slot": 0,
+        "donor_category": "keyboard",
+        "donor_prediction_label": 1,
+        "reader_prior_strength": 0.0,
+        "object_writer_cleanup": false,
+        "placement": "donor native predicted location; no prompt-controlled placement",
+        "stats": {
+          "inside_change": 0.24826130831811805,
+          "outside_change": 0.22408243481655982,
+          "change_energy_inside_fraction": 0.7380082581903279,
+          "region_fraction": 0.7317641900510204,
+          "screening_score": 0.08019948220569817
+        },
+        "identity_relative_error": 4.895901838608552e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "visual_success_verified": false,
+        "inference_intervention": {
+          "variant": "native",
+          "reader_prior_strength": 0.0
+        },
+        "visual_review": {
+          "status": "partial",
+          "note": "Desk background changes but keyboard/mouse become distorted and repositioned."
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+{
+  "layout": "2x2 sets; each set Image / description-region 1 / description-region 2",
+  "model_display_name": "DeOR",
+  "input": "image-only AR; NOT external text queries",
+  "caption_display": "verbatim generated first sentences; no object-name headings",
+  "image_heading_position": "immediately above original photo",
+  "prediction_panels_modified": false,
+  "rank_order": [
+    2,
+    6,
+    10,
+    4
+  ],
+  "canvas_size": [
+    3184,
+    1592
+  ],
+  "sets": [
+    {
+      "rank": 2,
+      "dataset": "coco",
+      "id": "90208",
+      "grid_position": [
+        0,
+        0
+      ],
+      "descriptions": [
+        "A vintage green double-decker bus labeled \"GREEN LINE\" and \"BELHUS\" is parked.",
+        "Another double-decker bus, red in color with a classic design is partially visible to the left of the green bus, appearing to be stationary."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/02_coco_90208/image.png",
+          "source_sha256": "399e82afdf47dd81b35eea75d3cebf6785e926b3acd5493a5959e3a85039154d",
+          "box": [
+            16,
+            258,
+            528,
+            770
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/02_coco_90208/object_01_overlay.png",
+          "source_sha256": "8106a99f8f7dc9ac3c4af12a48e30e7373ff3d1a50155c23aff1de8c9a5777d7",
+          "box": [
+            536,
+            258,
+            1048,
+            770
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/02_coco_90208/object_02_overlay.png",
+          "source_sha256": "9e9d062fa579e222d557e1733aa6912bf69f4fea5a48f5352652b046d6118882",
+          "box": [
+            1056,
+            258,
+            1568,
+            770
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "dataset": "coco",
+      "id": "450686",
+      "grid_position": [
+        0,
+        1
+      ],
+      "descriptions": [
+        "A person's hand is visible holding a cell phone.",
+        "A modern smartphone held by the person, displaying various app icons on its screen."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/06_coco_450686/image.png",
+          "source_sha256": "82dd636f73af627a9eb49a1d642461c711326912df517051781313a630cae627",
+          "box": [
+            1616,
+            258,
+            2128,
+            770
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/06_coco_450686/object_01_overlay.png",
+          "source_sha256": "822e162d379ccc3bd48e99a42db6542e5a7856c09d1dac3f437e9b27bc0abe3c",
+          "box": [
+            2136,
+            258,
+            2648,
+            770
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/06_coco_450686/object_02_overlay.png",
+          "source_sha256": "4fd07cfaf24031a2c57fc05ea9afe4f89b4aec23737931c57ea358aa73969655",
+          "box": [
+            2656,
+            258,
+            3168,
+            770
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 10,
+      "dataset": "voc",
+      "id": "2010_004165",
+      "grid_position": [
+        1,
+        0
+      ],
+      "descriptions": [
+        "A person with glasses and a red jacket is smiling, holding a white fluffy dog in their arms.",
+        "The person is holding a white fluffy dog tightly, its fur appearing soft and well-groomed."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/10_voc_2010_004165/image.png",
+          "source_sha256": "2eab91ca27371c01ab09f60dc8251be80e2007fa763ea488c0b88d7b85e48d90",
+          "box": [
+            16,
+            1064,
+            528,
+            1576
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/10_voc_2010_004165/object_01_overlay.png",
+          "source_sha256": "28a6d7c395e7f5d7bb582d219b9b9424b61732cd6308e2fc5837f450935148d6",
+          "box": [
+            536,
+            1064,
+            1048,
+            1576
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/10_voc_2010_004165/object_02_overlay.png",
+          "source_sha256": "f5120026580dcc48394ebda31d88b073d2189f1f1f3f31257171f8fd84deb1bd",
+          "box": [
+            1056,
+            1064,
+            1568,
+            1576
+          ]
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "dataset": "coco",
+      "id": "339823",
+      "grid_position": [
+        1,
+        1
+      ],
+      "descriptions": [
+        "A black umbrella with intricate black lace patterns and a curved handle.",
+        "A person is visible from the waist up, wearing a vibrant orange dress adorned with white and blue patterns."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/04_coco_339823/image.png",
+          "source_sha256": "df565d548b51154b313081c81d1f2b9f7ccfa31171159910eab14db7398fab4b",
+          "box": [
+            1616,
+            1064,
+            2128,
+            1576
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/04_coco_339823/object_01_overlay.png",
+          "source_sha256": "bf1b2da989fe0814cb23f88021420cf87eab253936ae2869e2ffe25545d625c5",
+          "box": [
+            2136,
+            1064,
+            2648,
+            1576
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/04_coco_339823/object_02_overlay.png",
+          "source_sha256": "b771f6c70d20fe158ca784fab0eaf31402983a1f428caaac3d47f741a69e4a13",
+          "box": [
+            2656,
+            1064,
+            3168,
+            1576
+          ]
+        }
+      ]
+    }
+  ]
+}

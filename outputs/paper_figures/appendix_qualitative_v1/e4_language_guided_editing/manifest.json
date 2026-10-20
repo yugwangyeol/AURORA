@@ -1,0 +1,152 @@
+{
+  "model": "Reader-supervised DeOR-B",
+  "selector": "Qwen3-VL-4B-Instruct (text-only)",
+  "selector_image_input": false,
+  "selector_gt_input": false,
+  "manual_plan_correction": false,
+  "examples": [
+    {
+      "id": "appendix_retry_001",
+      "request": "Remove the child from image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_retry",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "remove",
+        "target_id": "obj_1a6523ac6099",
+        "donor_id": null
+      },
+      "executed": {
+        "operation": "remove",
+        "target": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A child wearing a pink outfit stands near the shower area, holding something in their hands. The child is approximately 1.5 meters tall and 0.5 meters wide. The child's skin tone is light, and their hair is short and black. The child's clothing has a smooth texture, and they appear to be standing upright. The child's position is slightly to the right of the center of the image.",
+          "parsed": true,
+          "id": "obj_1a6523ac6099"
+        },
+        "donor": null
+      }
+    },
+    {
+      "id": "appendix_retry_002",
+      "request": "Remove the zebra on the left from image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_retry",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "remove",
+        "target_id": "obj_d884d8f46f08",
+        "donor_id": null
+      },
+      "executed": {
+        "operation": "remove",
+        "target": {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Zebra",
+          "normalized_category": "zebra",
+          "description": "This zebra is facing right, partially obscured by the first zebra in view, also showcasing its distinct stripe pattern.",
+          "parsed": true,
+          "id": "obj_d884d8f46f08"
+        },
+        "donor": null
+      }
+    },
+    {
+      "id": "appendix_retry_003",
+      "request": "Remove the dog from image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_retry",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "remove",
+        "target_id": "obj_2a4ab63f4e7b",
+        "donor_id": null
+      },
+      "executed": {
+        "operation": "remove",
+        "target": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A medium-sized dog with light brown fur and darker ears and nose commands attention. Its posture suggests curiosity as it leans over the rim of a white toilet bowl. The dog's eyes are alert, and its mouth is slightly open, hinting at anticipation.",
+          "parsed": true,
+          "id": "obj_2a4ab63f4e7b"
+        },
+        "donor": null
+      }
+    },
+    {
+      "id": "appendix_edit_003",
+      "request": "Transfer the pizza's appearance from image B to the pizza in image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_raw",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "transfer",
+        "target_id": "obj_7e123d9dbd78",
+        "donor_id": "obj_969b563eb1ed"
+      },
+      "executed": {
+        "operation": "transfer",
+        "target": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Pizza",
+          "normalized_category": "pizza",
+          "description": "A slice of pizza with a golden-brown crust, topped with melted cheese and pieces of meat (possibly pepperoni), is placed on a plate. The cheese is melted and has a slightly browned appearance.",
+          "parsed": true,
+          "id": "obj_7e123d9dbd78"
+        },
+        "donor": {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Pizza",
+          "normalized_category": "pizza",
+          "description": "This slice of pizza has melted cheese, meat toppings, and appears to be freshly served. The cheese is yellowish, with a slightly browned surface. The toppings include chunks of meat, possibly pepperoni or sausage, and shredded lettuce. The crust is golden brown, with a slightly crispy texture. The pizza is circular in shape, with a diameter of approximately 8 inches. The crust is slightly thicker than the rest. The toppings are evenly distributed, and the pizza looks fresh and appetizing.",
+          "parsed": true,
+          "id": "obj_969b563eb1ed"
+        }
+      }
+    },
+    {
+      "id": "appendix_edit_004",
+      "request": "Transfer the patterned suitcase's appearance from image B to the suitcase in image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_raw",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "transfer",
+        "target_id": "obj_d5823714e95b",
+        "donor_id": "obj_ed0be774a9c7"
+      },
+      "executed": {
+        "operation": "transfer",
+        "target": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Suitcase",
+          "normalized_category": "suitcase",
+          "description": "A large, metallic silver suitcase with a smooth texture and multiple compartments is placed on the floor. It has zippered closures for security and is equipped with wheels for easy mobility.",
+          "parsed": true,
+          "id": "obj_d5823714e95b"
+        },
+        "donor": {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Suitcase",
+          "normalized_category": "suitcase",
+          "description": "A large, brown Louis Vuitton suitcase with a pattern of small, intricate designs in multiple colors including black, brown, and white. It has golden buttons at the top and is standing upright on the wooden floor.",
+          "parsed": true,
+          "id": "obj_ed0be774a9c7"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "status": "complete",
+  "protocol": "deor-vqav2-ctrl-o-style-v1",
+  "mode": "coupling",
+  "num_questions": 512,
+  "vqa_soft_accuracy": 0.25390625,
+  "normalized_exact_match": 0.20703125,
+  "mean_selected_object_tokens": 1.892578125,
+  "elapsed_seconds": 1.1518165390007198,
+  "checkpoint_reload_verified": true
+}

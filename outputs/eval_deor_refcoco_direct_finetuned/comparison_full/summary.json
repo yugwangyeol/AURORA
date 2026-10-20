@@ -1,0 +1,100 @@
+{
+  "protocol": {
+    "task": "RefCOCO referring-expression segmentation",
+    "input": "one image and one original human expression; model-native fixed wrapper",
+    "gt_inference_inputs": "none",
+    "mask": "released mask logit thresholded at zero and resized by each native SAM decoder",
+    "aggregation": "expression-weighted mIoU/P@t/TargetHit@1; foreground pixel-aggregated oIoU",
+    "target_hit": "positive unique highest IoU against all nonempty noncrowd GT instances",
+    "same_category_target_hit": "positive unique highest IoU among target-category GT instances",
+    "subset": "full"
+  },
+  "manifest": "/home/jovyan/PGOT/outputs/eval_deor_refcoco_direct_finetuned/manifest.json",
+  "source_fingerprint": "903b08e1089670b0ce4517237003484d8959e6f96ed2ace22fb9dd909dbd01c9",
+  "models": {
+    "deor_refcoco_ft": "/home/jovyan/PGOT/outputs/eval_deor_refcoco_direct_finetuned/ours"
+  },
+  "by_split": {
+    "val": {
+      "expressions": 10834,
+      "images": 1500,
+      "references": 3811,
+      "deor_refcoco_ft": {
+        "mIoU": 62.424013140138214,
+        "oIoU": 61.427071514768066,
+        "precision_at_iou": {
+          "0.5": 72.56784197895514,
+          "0.6": 62.47923204725863,
+          "0.7": 46.72327856747277,
+          "0.8": 25.586117777367544,
+          "0.9": 5.325826103009046
+        },
+        "target_hit_at_1": 87.93612700756877,
+        "same_category_target_hit_at_1": 89.8375484585564,
+        "same_category_expressions": 10834,
+        "empty_masks": 0
+      }
+    },
+    "testA": {
+      "expressions": 5657,
+      "images": 750,
+      "references": 1975,
+      "deor_refcoco_ft": {
+        "mIoU": 64.98036371698201,
+        "oIoU": 64.96598954369074,
+        "precision_at_iou": {
+          "0.5": 78.66360261622768,
+          "0.6": 68.87042602085911,
+          "0.7": 50.91037652465972,
+          "0.8": 26.339048965882977,
+          "0.9": 4.4193035177656
+        },
+        "target_hit_at_1": 90.27753226091568,
+        "same_category_target_hit_at_1": 91.42655117553473,
+        "same_category_expressions": 5657,
+        "empty_masks": 0
+      }
+    },
+    "testB": {
+      "expressions": 5095,
+      "images": 750,
+      "references": 1810,
+      "deor_refcoco_ft": {
+        "mIoU": 60.67396477366338,
+        "oIoU": 58.779393786180485,
+        "precision_at_iou": {
+          "0.5": 67.4386653581943,
+          "0.6": 57.68400392541707,
+          "0.7": 44.749754661432775,
+          "0.8": 28.066732090284592,
+          "0.9": 6.732090284592738
+        },
+        "target_hit_at_1": 83.297350343474,
+        "same_category_target_hit_at_1": 86.1432777232581,
+        "same_category_expressions": 5095,
+        "empty_masks": 0
+      }
+    },
+    "all": {
+      "expressions": 21586,
+      "images": 3000,
+      "references": 7596,
+      "deor_refcoco_ft": {
+        "mIoU": 62.680882351016386,
+        "oIoU": 61.6483466718886,
+        "precision_at_iou": {
+          "0.5": 72.95469285648105,
+          "0.6": 63.02232928750116,
+          "0.7": 47.35476697859724,
+          "0.8": 26.36894283331789,
+          "0.9": 5.420179746131752
+        },
+        "target_hit_at_1": 87.4548318354489,
+        "same_category_target_hit_at_1": 89.38200685629575,
+        "same_category_expressions": 21586,
+        "empty_masks": 0
+      }
+    }
+  },
+  "elapsed_seconds": 121.87060417095199
+}

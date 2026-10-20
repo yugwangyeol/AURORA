@@ -728,6 +728,17 @@ def main():
         ),
     )
     p.add_argument(
+        "--also_recon_metric_resolution",
+        type=int,
+        default=0,
+        help=(
+            "While keeping the primary reconstruction metrics at native "
+            "resolution, also bicubic-upsample each reconstruction and score "
+            "it against an independently loaded CODA-cropped reference at "
+            "this size. This reuses the same diffusion sample/AR pass."
+        ),
+    )
+    p.add_argument(
         "--compute_kid",
         action="store_true",
         help="Compute KID on the same decoded images as rFID.",
@@ -836,11 +847,26 @@ def main():
     args = p.parse_args()
     if args.recon_metric_resolution < 0:
         p.error("--recon_metric_resolution must be non-negative")
+    if args.also_recon_metric_resolution < 0:
+        p.error("--also_recon_metric_resolution must be non-negative")
     if args.recon_metric_resolution and args.image_preprocess_mode != "coda_center_crop":
         p.error(
             "--recon_metric_resolution requires --image_preprocess_mode "
             "coda_center_crop so the high-resolution reference is explicit"
         )
+    if args.also_recon_metric_resolution:
+        if not args.compute_rfid:
+            p.error("--also_recon_metric_resolution requires --compute_rfid")
+        if args.recon_metric_resolution:
+            p.error(
+                "--also_recon_metric_resolution is the secondary metric for "
+                "a native primary evaluation; keep --recon_metric_resolution 0"
+            )
+        if args.image_preprocess_mode != "coda_center_crop":
+            p.error(
+                "--also_recon_metric_resolution requires "
+                "--image_preprocess_mode coda_center_crop"
+            )
     if args.readout == "slot_owner":
         args.readout = "ovt_owner"
     if not 0.0 <= float(args.register_eval_gt_threshold) <= 1.0:
@@ -1082,7 +1108,10 @@ def main():
             panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_val2017.json",
             image_preprocess_mode=args.image_preprocess_mode,
             coda_crop_size=args.coda_crop_size,
-            metric_image_size=args.recon_metric_resolution,
+            metric_image_size=(
+                args.recon_metric_resolution
+                or args.also_recon_metric_resolution
+            ),
         )
     else:
         val_dataset = CodaEvalPGOTDataset(
@@ -1097,7 +1126,10 @@ def main():
             n_ovt_per_object=args.n_ovt_per_object,
             max_objects=args.max_objects,
             coco_mask_cache=args.coco_mask_cache,
-            metric_image_size=args.recon_metric_resolution,
+            metric_image_size=(
+                args.recon_metric_resolution
+                or args.also_recon_metric_resolution
+            ),
         )
     original_dataset_size = len(val_dataset)
     if args.sample_indices is not None:
@@ -1167,10 +1199,15 @@ def main():
     # rFID accumulators
     fid_acc = None
     kid_acc = None
+    additional_fid_acc = None
+    additional_kid_acc = None
     rae_decoder = None
     recon_psnr_list, recon_ssim_list, recon_mse_list, recon_mae_list = [], [], [], []
+    additional_recon_psnr_list, additional_recon_ssim_list = [], []
+    additional_recon_mse_list, additional_recon_mae_list = [], []
     reconstruction_native_hw = None
     reconstruction_metric_hw = None
+    additional_reconstruction_metric_hw = None
     splice_gt_fraction_list = []
     splice_latent_mse_fg_list, splice_latent_mse_bg_list = [], []
 
@@ -1218,6 +1255,8 @@ def main():
                 log.warning(f"[rFID] Could not patch diffusion steps: {e}")
         try:
             fid_acc = FIDAccumulator(device=device, feature=2048)
+            if args.also_recon_metric_resolution:
+                additional_fid_acc = FIDAccumulator(device=device, feature=2048)
             if args.compute_kid:
                 kid_subset_size = min(int(args.kid_subset_size), len(val_dataset))
                 if kid_subset_size < 2:
@@ -1229,10 +1268,19 @@ def main():
                         subsets=int(args.kid_subsets),
                         subset_size=kid_subset_size,
                     )
+                    if args.also_recon_metric_resolution:
+                        additional_kid_acc = KIDAccumulator(
+                            device=device,
+                            feature=2048,
+                            subsets=int(args.kid_subsets),
+                            subset_size=kid_subset_size,
+                        )
         except (ImportError, ModuleNotFoundError):
             log.warning("torchmetrics not available — skipping rFID/KID.")
             fid_acc = None
             kid_acc = None
+            additional_fid_acc = None
+            additional_kid_acc = None
 
     # Image normalization stats (for un-normalizing model input → [0,1] real images)
     img_proc = vt_list[0].image_processor
@@ -1796,8 +1844,10 @@ def main():
                     t_mean = torch.tensor(target_proc.image_mean).view(1, -1, 1, 1)
                     t_std = torch.tensor(target_proc.image_std).view(1, -1, 1, 1)
                     src = denormalize_images(batch["target_images"].to(device).float(), t_mean, t_std)
+                native_reference = src
+                native_reconstruction = recon_images
                 high_resolution_reference = None
-                if args.recon_metric_resolution:
+                if args.recon_metric_resolution or args.also_recon_metric_resolution:
                     if "metric_image" not in batch:
                         raise RuntimeError(
                             "High-resolution metric reference missing from batch"
@@ -1827,6 +1877,34 @@ def main():
                 recon_ssim_list.extend(rm["ssim"].cpu().tolist())
                 recon_mse_list.extend(rm["mse"].cpu().tolist())
                 recon_mae_list.extend(rm["mae"].cpu().tolist())
+                if additional_fid_acc is not None:
+                    additional_src, additional_recon, _ = prepare_reconstruction_metric_pair(
+                        native_reference,
+                        native_reconstruction,
+                        metric_resolution=args.also_recon_metric_resolution,
+                        high_resolution_reference=high_resolution_reference,
+                    )
+                    additional_reconstruction_metric_hw = tuple(
+                        int(x) for x in additional_recon.shape[-2:]
+                    )
+                    additional_fid_acc.add(additional_src, additional_recon)
+                    if additional_kid_acc is not None:
+                        additional_kid_acc.add(additional_src, additional_recon)
+                    additional_rm = compute_recon_metrics(
+                        additional_src, additional_recon
+                    )
+                    additional_recon_psnr_list.extend(
+                        additional_rm["psnr"].cpu().tolist()
+                    )
+                    additional_recon_ssim_list.extend(
+                        additional_rm["ssim"].cpu().tolist()
+                    )
+                    additional_recon_mse_list.extend(
+                        additional_rm["mse"].cpu().tolist()
+                    )
+                    additional_recon_mae_list.extend(
+                        additional_rm["mae"].cpu().tolist()
+                    )
             except Exception as e:
                 log.exception(f"rFID batch failed: {type(e).__name__}: {e}")
 
@@ -2467,6 +2545,42 @@ def main():
             summary["recon_ssim"] = _mean(recon_ssim_list)
             summary["recon_mse"] = _mean(recon_mse_list)
             summary["recon_mae"] = _mean(recon_mae_list)
+    if additional_fid_acc is not None:
+        resolution_key = str(int(args.also_recon_metric_resolution))
+        additional_metrics = {
+            "metric_resolution": (
+                list(additional_reconstruction_metric_hw)
+                if additional_reconstruction_metric_hw is not None
+                else None
+            ),
+            "output_resampling": "bicubic_antialias",
+            "reference": "independently_loaded_coda_center_crop",
+        }
+        try:
+            additional_metrics["rFID"] = additional_fid_acc.compute()
+        except Exception as e:
+            additional_metrics["rFID_error"] = str(e)
+        if additional_kid_acc is not None:
+            try:
+                additional_kid_mean, additional_kid_std = additional_kid_acc.compute()
+                additional_metrics["KID_mean"] = additional_kid_mean
+                additional_metrics["KID_std"] = additional_kid_std
+                additional_metrics["KID_x1000"] = 1000.0 * additional_kid_mean
+                additional_metrics["KID_std_x1000"] = 1000.0 * additional_kid_std
+                additional_metrics["KID_subsets"] = int(args.kid_subsets)
+                additional_metrics["KID_subset_size"] = min(
+                    int(args.kid_subset_size), len(val_dataset)
+                )
+            except Exception as e:
+                additional_metrics["KID_error"] = str(e)
+        if additional_recon_mse_list:
+            additional_metrics["recon_psnr"] = _mean(additional_recon_psnr_list)
+            additional_metrics["recon_ssim"] = _mean(additional_recon_ssim_list)
+            additional_metrics["recon_mse"] = _mean(additional_recon_mse_list)
+            additional_metrics["recon_mae"] = _mean(additional_recon_mae_list)
+        summary.setdefault("additional_reconstruction_metrics", {})[
+            resolution_key
+        ] = additional_metrics
     summary_path = os.path.join(args.output_dir, "summary.json")
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)

@@ -1,0 +1,120 @@
+{
+  "fingerprint": "98e845940b4dae89a53dd898ef1643a8dd8886def4973c8521b0dbb212d638e3",
+  "config": {
+    "model_path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_scratch_noinit_noattn/checkpoint-5000",
+    "data_root": "/home/jovyan/data/coco",
+    "image_root": "/home/jovyan/data/coco",
+    "dataset": "refcoco",
+    "split_by": "unc",
+    "splits": [
+      "val",
+      "testA",
+      "testB"
+    ],
+    "max_refs": 0,
+    "max_samples": 0,
+    "eval_size": 512,
+    "dtype": "fp32",
+    "seed": 0,
+    "max_objects": 50,
+    "max_caption_tokens": 4096,
+    "text_mode": "description",
+    "version": 1,
+    "annotation_hashes": {
+      "refs": "d4a8dd3152f130127924f9d0f0ea30f4dc43ec19e1b47bc55af972f90614f8ba",
+      "instances": "7f86adb7f4c39db19c7f02a3cc604d17f8016e4c4e8312652d0acc4eae3a2cbd"
+    },
+    "evaluation_models": [
+      "deor"
+    ],
+    "deor_checkpoint_hashes": {
+      "model-00001-of-00004.safetensors": "0af00a01aa580b1af33a76b0e63d86193de82bd900bab2bca7951276c690a1c5",
+      "model-00002-of-00004.safetensors": "57b0da58c633a558620ba978e81fe3071721922ce6c9409a7e986763640353b3",
+      "model-00003-of-00004.safetensors": "d2c0b8835dcc5036f6dd6d2e2cf9ca0682624d8a5c0872f47fabdc150ab152e5",
+      "model-00004-of-00004.safetensors": "ff4f8afad5d1f5084ea84ecc6ec36404a4de9eb9d97bbec415e882240ca8a764"
+    },
+    "deor_config_sha256": "575f5b58e5efee957743420a7d80e936bdb8784ce2de8bb3a36b50b3ab87b4fd"
+  },
+  "protocol": {
+    "task": "referring_expression_segmentation",
+    "query_source": "original human referring expressions; every sentence, no rewriting",
+    "selection": "full official split or deterministic ref-ID/sentence-ID prefix; no quality filtering",
+    "deor": "one external expression in fixed Object 1 structural header, one OVT; NOT image-only AR",
+    "image": "entire image resized to 512 square, no crop or flip; native model processors afterward",
+    "mask": "bilinear ownership probability resize to ORIGINAL H,W, then argmax against all valid competitors",
+    "target": "the exact referred annotation; no class matching, Hungarian matching, or other-object repair",
+    "inference_gt_inputs": "none: no target class, mask, box, coordinates, or other object descriptions",
+    "metrics": "expression-weighted mIoU, pixel-aggregated oIoU, P@0.5/0.6/0.7/0.8/0.9; empty predictions retained",
+    "supervision": "frozen checkpoints, no additional RefCOCO training",
+    "limitations": "COCO-trained checkpoints may have seen these images during COCO training; NOT unseen-image zero-shot. Released CTRL-O VG+COCO checkpoint is not a reproduction of Table 3 VG checkpoints.",
+    "full_split_evaluated": true,
+    "evaluated_models": "DeOR only; CTRL-O inference and LLM2Vec encoding skipped"
+  },
+  "model_info": {
+    "deor": {
+      "checkpoint": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_scratch_noinit_noattn/checkpoint-5000",
+      "caption_mode": "external_original_referring_expression",
+      "structural_header": "Object 1",
+      "object_memory": 8,
+      "register_memory": 32,
+      "writer_prior": false,
+      "gt_class_input": false,
+      "gt_mask_input": false,
+      "gt_point_input": false,
+      "dtype": "fp32"
+    }
+  },
+  "by_split": {
+    "val": {
+      "deor": {
+        "num_expressions": 10834,
+        "num_images": 1500,
+        "num_references": 3811,
+        "mIoU": 0.24377954998095552,
+        "oIoU": 0.23491654033826978,
+        "empty_masks": 1,
+        "precision_at_iou": {
+          "0.50": 0.12793058888683773,
+          "0.60": 0.07901052242938895,
+          "0.70": 0.04458187188480709,
+          "0.80": 0.02095255676573749,
+          "0.90": 0.00526121469448034
+        }
+      }
+    },
+    "testA": {
+      "deor": {
+        "num_expressions": 5657,
+        "num_images": 750,
+        "num_references": 1975,
+        "mIoU": 0.24151829159001298,
+        "oIoU": 0.24170814484563038,
+        "empty_masks": 10,
+        "precision_at_iou": {
+          "0.50": 0.1149018914619056,
+          "0.60": 0.06664309704790525,
+          "0.70": 0.037298921689941665,
+          "0.80": 0.01714689764893053,
+          "0.90": 0.004596075658476224
+        }
+      }
+    },
+    "testB": {
+      "deor": {
+        "num_expressions": 5095,
+        "num_images": 750,
+        "num_references": 1810,
+        "mIoU": 0.25228831709356997,
+        "oIoU": 0.23939336255327823,
+        "empty_masks": 2,
+        "precision_at_iou": {
+          "0.50": 0.13169774288518155,
+          "0.60": 0.08282630029440628,
+          "0.70": 0.049263984298331696,
+          "0.80": 0.02688910696761531,
+          "0.90": 0.00549558390578999
+        }
+      }
+    }
+  }
+}

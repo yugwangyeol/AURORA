@@ -1,0 +1,15 @@
+{
+  "checkpoint": "/home/jovyan/coda/pretrained/coda/coco",
+  "num_slots": 7,
+  "model_input_resolution": 512,
+  "mask_source": "encoder slot attention (dino_sample_size x dino_sample_size)",
+  "preprocessing": "CODA experiment.dataset.voc.VOCTransforms(512, val=True)",
+  "load_report": {
+    "missing_frozen_dinov2_keys": 175,
+    "other_missing": 0,
+    "unexpected": 0
+  },
+  "seed": 0,
+  "batch_size": 1,
+  "randomness": "fixed per-image seed, no retry or best-seed selection"
+}

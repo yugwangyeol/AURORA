@@ -1,0 +1,44 @@
+{
+  "task": "voc_zero_shot_segmentation",
+  "model": "MetaSlot",
+  "train_dataset": "COCO",
+  "dataset": "voc",
+  "caption_mode": "not_applicable",
+  "protocol": "PGOT VOC protocol: sets/val.txt order, CODA 512 center crop GT, 255 -> overlap, pgot_metrics per-image NaN-skipped means; model masks bilinear-upsampled to eval_size then argmax",
+  "num_samples": 1449,
+  "metric_resolution": 512,
+  "fARI": 0.2673727826578285,
+  "mBO": 0.43011022751775374,
+  "mIoU": 0.4244589116629997,
+  "mBO_i": 0.43011022751775374,
+  "mIoU_i": 0.4244589116629997,
+  "sMBO": 0.455705466205529,
+  "sMIOU": 0.45438952667907323,
+  "mBO_variant": "mBO^i",
+  "mIoU_variant": "mIoU^i",
+  "pred_segments_mean": 4.9061421670117324,
+  "native_mask_shape": [
+    7,
+    16,
+    16
+  ],
+  "model_info": {
+    "checkpoint": "/home/jovyan/baselines/ckpt/metaslot-dinosaur-coco.pth",
+    "config": "/home/jovyan/baselines/MetaSlot/Config/config-metaslot/dinosaur_r-coco.py",
+    "num_slots": 7,
+    "model_input_resolution": [
+      256,
+      256
+    ],
+    "mask_source": "BroadcastMLPDecoder alpha masks (output.attent2)",
+    "preprocessing": "MetaSlot transform_v: CenterCrop(max square) + Resize + ImageNet normalize (0-255)",
+    "autocast": "float16 (as MetaSlot eval.py)",
+    "load_report": "strict=True",
+    "timing_sec": {
+      "model_and_preprocess": 4.76,
+      "metrics": 12.78
+    }
+  },
+  "elapsed_sec": 37.026368618011475,
+  "peak_gpu_memory_GiB": 0.5895304679870605
+}

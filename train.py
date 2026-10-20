@@ -350,7 +350,7 @@ def train():
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
     if (
         training_args.gradient_checkpointing
-        and training_args.fsdp
+        and (training_args.fsdp or model_args.pgot_refcoco_direct_finetune)
         and training_args.gradient_checkpointing_kwargs is None
     ):
         # Transformers 4.37 cannot parse Optional[dict] from the CLI. Set the
@@ -408,6 +408,9 @@ def train():
     source_memory_value_source = str(
         getattr(config, "pgot_one_shot_memory_value_source", "siglip")
     ).strip().lower()
+    source_fixed_query_owner = bool(
+        getattr(config, "pgot_fixed_query_owner_enable", False)
+    )
     scratch_one_shot = bool(model_args.pgot_one_shot_scratch_init)
     if scratch_one_shot and (source_checkpoint_is_e11 or source_one_shot_memory):
         raise ValueError(
@@ -655,6 +658,12 @@ def train():
     config.pgot_one_shot_memory_value_dim = int(
         model_args.pgot_one_shot_memory_value_dim
     )
+    config.pgot_fixed_query_owner_enable = bool(
+        model_args.pgot_fixed_query_owner_enable
+    )
+    config.pgot_fixed_query_owner_count = int(
+        model_args.pgot_fixed_query_owner_count
+    )
     config.pgot_one_shot_memory_contrastive_target_weight = float(
         training_args.pgot_contrastive_loss_target_weight
     )
@@ -785,6 +794,7 @@ def train():
     config.pgot_lm_loss_weight = model_args.pgot_lm_loss_weight
     config.pgot_mask_loss_weight = model_args.pgot_mask_loss_weight
     config.pgot_recon_loss_weight = model_args.pgot_recon_loss_weight
+    config.pgot_refcoco_direct_finetune = bool(model_args.pgot_refcoco_direct_finetune)
     config.pgot_contrastive_loss_weight = model_args.pgot_contrastive_loss_weight  # start at 0
     config.pgot_contrastive_sampling_rate = model_args.pgot_contrastive_sampling_rate
     config.pgot_unfreeze_mm_projector = bool(model_args.pgot_unfreeze_mm_projector)
@@ -801,6 +811,28 @@ def train():
         ignore_mismatched_sizes=True,
     )
     model.config.use_cache = False
+    if bool(model_args.pgot_fixed_query_owner_enable) and not source_fixed_query_owner:
+        # A source DeOR checkpoint has no fixed-query parameter.  Initialize it
+        # explicitly so the baseline is reproducible and does not depend on
+        # transformers' missing-key initialization details.
+        with torch.no_grad():
+            generator = torch.Generator(device="cpu")
+            generator.manual_seed(1701)
+            initialized = torch.randn(
+                model.pgot_fixed_object_queries.shape,
+                generator=generator,
+                dtype=torch.float32,
+            ) / math.sqrt(float(model.config.hidden_size))
+            model.pgot_fixed_object_queries.copy_(
+                initialized.to(
+                    device=model.pgot_fixed_object_queries.device,
+                    dtype=model.pgot_fixed_object_queries.dtype,
+                )
+            )
+        logger.info(
+            "[PGOT/FixedQuery] initialized K=%d learned object owners (seed=1701)",
+            int(model_args.pgot_fixed_query_owner_count),
+        )
     if one_shot_memory and scratch_one_shot:
         _reset_one_shot_scratch_modules(model)
     if bool(model_args.pgot_one_shot_rae_query_adapter_enable) and (
@@ -1177,6 +1209,12 @@ def train():
     model.config.pgot_one_shot_memory_value_dim = int(
         model_args.pgot_one_shot_memory_value_dim
     )
+    model.config.pgot_fixed_query_owner_enable = bool(
+        model_args.pgot_fixed_query_owner_enable
+    )
+    model.config.pgot_fixed_query_owner_count = int(
+        model_args.pgot_fixed_query_owner_count
+    )
     model.config.pgot_one_shot_memory_contrastive_target_weight = float(
         training_args.pgot_contrastive_loss_target_weight
     )
@@ -1537,6 +1575,21 @@ def train():
         dit_unfreeze_last_n_blocks=int(getattr(model_args, "pgot_dit_unfreeze_last_n_blocks", 0)),
     )
     model.config.pgot_trainable_fp32 = bool(training_args.pgot_trainable_fp32)
+    if model_args.pgot_refcoco_direct_finetune:
+        if (model_args.pgot_lm_loss_weight != 0 or model_args.pgot_recon_loss_weight != 0
+                or model_args.pgot_e8_reader_object_weight != 0
+                or model_args.pgot_e8_reader_background_weight != 0
+                or data_args.rebuild_caption or data_args.image_preprocess_mode != "default"):
+            raise ValueError("Direct RefCOCO tuning requires external captions, full images and ownership-only loss")
+        # Ownership is computed from final MLLM states, before Writer/Reader.
+        # Freeze generation modules and token tables, including weight decay.
+        for name, parameter in model.named_parameters():
+            parameter.requires_grad_(any(key in name for key in (
+                "lora_", "mm_projector", "pgot_register_embeddings",
+                "pgot_ovt_caption_norm", "pgot_ovt_caption_projector",
+            )))
+        logger.info("[RefCOCO] ownership-only fine-tuning | trainable=%d",
+                    sum(p.numel() for p in model.parameters() if p.requires_grad))
     if (
         bool(training_args.gradient_checkpointing)
         and getattr(model, "diff_head", None) is not None
@@ -1600,6 +1653,8 @@ def train():
         panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_train2017.json",
         image_preprocess_mode=data_args.image_preprocess_mode,
         coda_crop_size=data_args.coda_crop_size,
+        rebuild_caption=data_args.rebuild_caption,
+        coco_instances_json=data_args.coco_instances_json,
     )
     val_dataset = Pix2CapPGOTDataset(
         jsonl_path=data_args.val_jsonl,
@@ -1618,6 +1673,8 @@ def train():
         panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_val2017.json",
         image_preprocess_mode=data_args.image_preprocess_mode,
         coda_crop_size=data_args.coda_crop_size,
+        rebuild_caption=data_args.rebuild_caption,
+        coco_instances_json=data_args.coco_instances_json,
     )
     # Cap eval size
     if len(val_dataset) > data_args.eval_num_images:
@@ -1629,6 +1686,10 @@ def train():
 
     # ---- Optional: batch-size sweep mode
     if os.environ.get("PGOT_TUNE_BATCH"):
+        if model_args.pgot_refcoco_direct_finetune:
+            from pgot.train.refcoco_benchmark import benchmark
+            benchmark(model, train_dataset, collator, training_args)
+            return
         import gc, traceback
         candidates = [int(x) for x in os.environ["PGOT_TUNE_BATCH"].split(",")]
         print(f"\n{'='*60}\n[PGOT/Tune] Trying per_device_train_batch_size = {candidates}\n{'='*60}\n")

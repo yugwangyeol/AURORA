@@ -11,12 +11,26 @@ OUTPUT_ROOT="${OUTPUT_ROOT:-${default_output}}"
 DATA_ROOT="${DATA_ROOT:-/home/jovyan/data}"
 COCO_MASK_CACHE="${COCO_MASK_CACHE:-${PROJECT_ROOT}/data/coco_inst_mask_cache_coda512}"
 COCO_CATEGORY_MASK_CACHE="${COCO_CATEGORY_MASK_CACHE:-${PROJECT_ROOT}/data/coco_cat_mask_cache_coda512}"
+COMPUTE_RFID="${COMPUTE_RFID:-False}"
+COMPUTE_KID="${COMPUTE_KID:-False}"
+RECON_METRIC_RESOLUTION="${RECON_METRIC_RESOLUTION:-0}"
+ALSO_RECON_METRIC_RESOLUTION="${ALSO_RECON_METRIC_RESOLUTION:-0}"
 export PYTHONPATH="${PROJECT_ROOT}:${PYTHONPATH:-}"
 export PYTHONNOUSERSITE=1
 export LD_LIBRARY_PATH="$(dirname "${PYTHON}")/../lib:${LD_LIBRARY_PATH:-}"
 export CUDA_VISIBLE_DEVICES="${GPU:-0}"
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-3}"
 export MKL_NUM_THREADS="${MKL_NUM_THREADS:-3}"
+case "${COMPUTE_RFID}" in True|False|true|false|1|0) ;; *) echo "COMPUTE_RFID must be a boolean" >&2; exit 2;; esac
+case "${COMPUTE_KID}" in True|False|true|false|1|0) ;; *) echo "COMPUTE_KID must be a boolean" >&2; exit 2;; esac
+[[ "${RECON_METRIC_RESOLUTION}" =~ ^[0-9]+$ ]] || { echo "RECON_METRIC_RESOLUTION must be non-negative" >&2; exit 2; }
+[[ "${ALSO_RECON_METRIC_RESOLUTION}" =~ ^[0-9]+$ ]] || { echo "ALSO_RECON_METRIC_RESOLUTION must be non-negative" >&2; exit 2; }
+if [[ "${COMPUTE_KID,,}" =~ ^(true|1)$ && ! "${COMPUTE_RFID,,}" =~ ^(true|1)$ ]]; then
+    echo "COMPUTE_KID requires COMPUTE_RFID" >&2; exit 2
+fi
+if (( ALSO_RECON_METRIC_RESOLUTION > 0 )) && [[ ! "${COMPUTE_RFID,,}" =~ ^(true|1)$ ]]; then
+    echo "ALSO_RECON_METRIC_RESOLUTION requires COMPUTE_RFID" >&2; exit 2
+fi
 if (( $# == 0 )); then stages=(coco voc); else stages=("$@"); fi
 test -f "${MODEL_PATH}/config.json"
 mkdir -p "${OUTPUT_ROOT}"
@@ -54,6 +68,14 @@ PY
     if [[ -n "${MAX_SAMPLES:-}" ]]; then
         [[ "${SMOKE:-0}" != 1 ]] || { echo "SMOKE cannot be combined with MAX_SAMPLES" >&2; exit 2; }
         extra_args+=(--max_samples "${MAX_SAMPLES}")
+    fi
+    if [[ "${COMPUTE_RFID,,}" =~ ^(true|1)$ ]]; then extra_args+=(--compute_rfid); fi
+    if [[ "${COMPUTE_KID,,}" =~ ^(true|1)$ ]]; then extra_args+=(--compute_kid); fi
+    if (( RECON_METRIC_RESOLUTION > 0 )); then
+        extra_args+=(--recon_metric_resolution "${RECON_METRIC_RESOLUTION}")
+    fi
+    if (( ALSO_RECON_METRIC_RESOLUTION > 0 )); then
+        extra_args+=(--also_recon_metric_resolution "${ALSO_RECON_METRIC_RESOLUTION}")
     fi
     "${PYTHON}" -m pgot.eval.run_eval \
         --model_path "${MODEL_PATH}" --dataset "${stage}" --data_root "${DATA_ROOT}/${stage}" \

@@ -1,0 +1,2392 @@
+[
+  {
+    "dataset": "coco",
+    "id": "411817",
+    "source_image_id": 411817,
+    "screening_type": "dense_11plus",
+    "prior_metrics": {
+      "id": 411817,
+      "image_id": 411817,
+      "fARI": 0.8692686557769775,
+      "mBO": 0.5838675498962402,
+      "mIoU": 0.5608102679252625,
+      "gt_objects": 11,
+      "pred_segments": 14,
+      "sMBO": 0.4528737962245941,
+      "sMIOU": 0.5671119689941406,
+      "generated_objects": 14,
+      "scene_end_generated": false
+    },
+    "ar_caption": {
+      "text": "<thing> Tv 1: Positioned on the left side of the image, this TV displays a bowling alley game. The colorful graphics and on-screen text suggest an enjoyable gaming experience. <ovt>. <thing> Person 1: A person stands on the right side of the image, their posture slightly leaning forward. They wear a striped shirt with the sleeves rolled up to the elbows. Their short hair indicates a casual appearance. The person seems engaged, perhaps watching TV or observing the surroundings. <ovt>. <thing> Tv 2: Another TV, similar to the one on the left, is mounted on the wall behind the person. This one also displays a bowling alley game, reinforcing the entertainment atmosphere. <ovt>. <thing> Person 2: A child stands in front of the television, their attention focused on the screen. The child's features are not clearly visible due to the distance and angle. <ovt>. <thing> Tv 3: Positioned in front of the person, this TV displays another bowling alley game. The colors and graphics are consistent with the previous TV. <ovt>. <thing> Tv 4: Similar to the previous TVs, this one is mounted on the wall behind the person. Its screen shows the same bowling alley game. <ovt>. <thing> Tv 5: Adjacent to the previous TV, another TV is mounted on the wall. Like its counterpart, it displays a bowling alley game. <ovt>. <thing> Tv 6: Positioned next to the child, this TV is turned off or turned down, as no content is visible on its screen. <ovt>. <thing> Tv 7: This TV is also turned off or down, as no content is displayed on its screen. <ovt>. <thing> Remote 1: A remote control rests on top of the cabinet. Its buttons are visible, suggesting functionality. <ovt>. <thing> Person 3: A person stands near the TVs, their face obscured. They wear a striped shirt similar to the child. Their presence adds to the lively ambiance. <ovt>. <thing> Remote 2: A second remote control lies nearby, possibly belonging to another person. <ovt>. <thing> Tv 8: Positioned next to the previous TV, this one is also off or turned down, as no content is visible on its screen. <ovt>. <thing> Remote 3: A third remote control rests on the cabinet, its button layout not clearly visible. <ovt><scene_end>",
+      "token_count": 493,
+      "ovt_count": 14,
+      "object_count": 14,
+      "scene_end_generated": false,
+      "has_object_marker": true,
+      "format_valid": false,
+      "image_id": 411817,
+      "gt_object_count": 11
+    },
+    "caption_source": "/home/jovyan/PGOT/outputs/segeval_pgot_memory8_full_coco_voc_ar/coco_ar/generated_captions.jsonl",
+    "caption_sha256": "eeef731151e9ef85627b22e205bf68ca87b4c38def4937de657edbc5a238d06a",
+    "scores": {
+      "adaslot": {
+        "fARI": 0.49685444084256664,
+        "mIoU": 0.11008866891855201,
+        "mBO": 0.13882650998969773,
+        "pred_segments": 6,
+        "significant_gt_objects": 9,
+        "split_count": 2,
+        "merge_count": 3,
+        "split_gt_labels": [
+          3,
+          8
+        ],
+        "merged_pred_labels": [
+          11,
+          14,
+          27
+        ],
+        "merge_gt_labels": {
+          "11": [
+            1,
+            8
+          ],
+          "14": [
+            2,
+            4
+          ],
+          "27": [
+            3,
+            6,
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 523621228,
+        "kept_slots": 6,
+        "slot_keep_probability_mean": 0.18371285498142242
+      },
+      "metaslot": {
+        "fARI": 0.4382614689844533,
+        "mIoU": 0.1499000432166858,
+        "mBO": 0.15673677966318983,
+        "pred_segments": 5,
+        "significant_gt_objects": 9,
+        "split_count": 2,
+        "merge_count": 1,
+        "split_gt_labels": [
+          3,
+          11
+        ],
+        "merged_pred_labels": [
+          2
+        ],
+        "merge_gt_labels": {
+          "2": [
+            1,
+            3,
+            6,
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 523621228,
+        "kept_slots": 5,
+        "slot_capacity": 7,
+        "prototype_keep_mask": [
+          true,
+          true,
+          true,
+          false,
+          true,
+          true,
+          false
+        ],
+        "prototype_indices": [
+          32,
+          323,
+          459,
+          32,
+          16,
+          445,
+          16
+        ]
+      },
+      "coda": {
+        "fARI": 0.5463415741752579,
+        "mIoU": 0.19293547057617155,
+        "mBO": 0.21037995920411606,
+        "pred_segments": 7,
+        "significant_gt_objects": 9,
+        "split_count": 3,
+        "merge_count": 2,
+        "split_gt_labels": [
+          1,
+          3,
+          11
+        ],
+        "merged_pred_labels": [
+          0,
+          3
+        ],
+        "merge_gt_labels": {
+          "0": [
+            1,
+            3,
+            8,
+            9,
+            10,
+            11
+          ],
+          "3": [
+            6,
+            11
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 523621228
+      },
+      "ours": {
+        "fARI": 0.8697791138017648,
+        "mIoU": 0.5713512669873516,
+        "mBO": 0.5888874695373012,
+        "pred_segments": 13,
+        "significant_gt_objects": 9,
+        "split_count": 3,
+        "merge_count": 1,
+        "split_gt_labels": [
+          2,
+          9,
+          11
+        ],
+        "merged_pred_labels": [
+          4
+        ],
+        "merge_gt_labels": {
+          "4": [
+            2,
+            3
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 14,
+        "caption_sha256": "eeef731151e9ef85627b22e205bf68ca87b4c38def4937de657edbc5a238d06a"
+      }
+    }
+  },
+  {
+    "dataset": "coco",
+    "id": "85376",
+    "source_image_id": 85376,
+    "screening_type": "dense_11plus",
+    "prior_metrics": {
+      "id": 85376,
+      "image_id": 85376,
+      "fARI": 0.8569316267967224,
+      "mBO": 0.5201550126075745,
+      "mIoU": 0.5371875762939453,
+      "gt_objects": 11,
+      "pred_segments": 12,
+      "sMBO": 0.6111741662025452,
+      "sMIOU": 0.6753135919570923,
+      "generated_objects": 11,
+      "scene_end_generated": false
+    },
+    "ar_caption": {
+      "text": "<thing> Motorcycle 1: A sleek green motorcycle rests on the pavement, its chrome accents gleaming in the sunlight. The rider, clad in a black leather jacket, grips the handlebars with anticipation. Their posture suggests confidence and familiarity with the road. <ovt>. <thing> Car 1: A silver SUV stands parked, its metallic surface reflecting the ambient light. The car's design is modern, with sharp angles and a sloping roof. It bears a license plate, a faded black square with red characters. <ovt>. <thing> Car 2: A white sedan, parked beside the motorcycle, shares the parking area with the SUV. Its windows are tinted, concealing the interior. The car's wheels rest on the asphalt, and the driver's side faces the road. <ovt>. <thing> Car 3: A red car, parked further away from the main group, blends into the background. Its color contrasts with the grey parking lot. The car's roof is clean, and the windows are tinted. <ovt>. <thing> Car 4: A silver sedan, partially obscured by other cars, reveals only its rear section. The trunk is closed, and the headlights rest on the pavement. <ovt>. <thing> Car 5: A black sedan, parked adjacent to the red car, faces away from the camera. Its side mirrors are brushed black, and the wheels have a matte finish. The car seems unoccupied. <ovt>. <thing> Car 6: A white SUV, parked adjacent to the silver sedan, has tinted windows. Its roof is sloped, and the wheels are slightly blurred due to distance. The car's bumper is black. <ovt>. <thing> Car 7: A silver sedan, parked next to the black SUV, has tinted windows. Its side mirrors are black, and the wheels are slightly blurred due to distance. The car's license plate is visible. <ovt>. <thing> Person 1: A person stands near the parked cars, their silhouette partially obscured by shadows. They wear dark clothing, and their posture suggests they might be waiting or observing. <ovt>. <thing> Person 2: Another person, closer to the camera, appears as a small dark silhouette. Their posture is relaxed, perhaps taking in the surroundings. <ovt>. <thing> Car 8: A white sedan, parked behind the silver SUV, has tinted windows. Its side mirrors are black, and the wheels are slightly blurred due to distance. <ovt><scene_end>",
+      "token_count": 507,
+      "ovt_count": 11,
+      "object_count": 11,
+      "scene_end_generated": false,
+      "has_object_marker": true,
+      "format_valid": false,
+      "image_id": 85376,
+      "gt_object_count": 11
+    },
+    "caption_source": "/home/jovyan/PGOT/outputs/segeval_pgot_memory8_full_coco_voc_ar/coco_ar/generated_captions.jsonl",
+    "caption_sha256": "1413d74ce38d541342d744b1e2b6cf102f50ca7661f28736a191bc61c5e1572c",
+    "scores": {
+      "adaslot": {
+        "fARI": 0.6630846948431142,
+        "mIoU": 0.17285201095455208,
+        "mBO": 0.17575541739260625,
+        "pred_segments": 8,
+        "significant_gt_objects": 9,
+        "split_count": 3,
+        "merge_count": 4,
+        "split_gt_labels": [
+          2,
+          4,
+          8
+        ],
+        "merged_pred_labels": [
+          12,
+          13,
+          24,
+          27
+        ],
+        "merge_gt_labels": {
+          "12": [
+            10,
+            11
+          ],
+          "13": [
+            6,
+            8
+          ],
+          "24": [
+            1,
+            2,
+            4
+          ],
+          "27": [
+            2,
+            4
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3672110506,
+        "kept_slots": 8,
+        "slot_keep_probability_mean": 0.22897467017173767
+      },
+      "metaslot": {
+        "fARI": 0.5598175414850766,
+        "mIoU": 0.1286878513842646,
+        "mBO": 0.103153823645449,
+        "pred_segments": 5,
+        "significant_gt_objects": 9,
+        "split_count": 0,
+        "merge_count": 1,
+        "split_gt_labels": [],
+        "merged_pred_labels": [
+          0
+        ],
+        "merge_gt_labels": {
+          "0": [
+            1,
+            2,
+            4,
+            6,
+            8,
+            10,
+            11
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3672110506,
+        "kept_slots": 5,
+        "slot_capacity": 7,
+        "prototype_keep_mask": [
+          true,
+          false,
+          false,
+          true,
+          true,
+          true,
+          true
+        ],
+        "prototype_indices": [
+          32,
+          32,
+          32,
+          426,
+          243,
+          12,
+          253
+        ]
+      },
+      "coda": {
+        "fARI": 0.8222621581874184,
+        "mIoU": 0.1647632885146784,
+        "mBO": 0.17344983637464859,
+        "pred_segments": 7,
+        "significant_gt_objects": 9,
+        "split_count": 2,
+        "merge_count": 4,
+        "split_gt_labels": [
+          1,
+          4
+        ],
+        "merged_pred_labels": [
+          1,
+          2,
+          3,
+          5
+        ],
+        "merge_gt_labels": {
+          "1": [
+            2,
+            3,
+            4
+          ],
+          "2": [
+            1,
+            4,
+            8
+          ],
+          "3": [
+            1,
+            10,
+            11
+          ],
+          "5": [
+            4,
+            6
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3672110506
+      },
+      "ours": {
+        "fARI": 0.8560075756914742,
+        "mIoU": 0.523251679890089,
+        "mBO": 0.49693973483262344,
+        "pred_segments": 12,
+        "significant_gt_objects": 9,
+        "split_count": 2,
+        "merge_count": 2,
+        "split_gt_labels": [
+          1,
+          2
+        ],
+        "merged_pred_labels": [
+          0,
+          5
+        ],
+        "merge_gt_labels": {
+          "0": [
+            1,
+            6
+          ],
+          "5": [
+            1,
+            2
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 11,
+        "caption_sha256": "1413d74ce38d541342d744b1e2b6cf102f50ca7661f28736a191bc61c5e1572c"
+      }
+    }
+  },
+  {
+    "dataset": "coco",
+    "id": "280710",
+    "source_image_id": 280710,
+    "screening_type": "dense_11plus",
+    "prior_metrics": {
+      "id": 280710,
+      "image_id": 280710,
+      "fARI": 0.7845035791397095,
+      "mBO": 0.5044386386871338,
+      "mIoU": 0.5326043367385864,
+      "gt_objects": 12,
+      "pred_segments": 13,
+      "sMBO": 0.36036238074302673,
+      "sMIOU": 0.4513727128505707,
+      "generated_objects": 12,
+      "scene_end_generated": true
+    },
+    "ar_caption": {
+      "text": "<thing> Person 1: A person wearing a dark jacket and pants is walking on the pavement, their head turned slightly to their left. <ovt>. <thing> Bus 1: A sightseeing tour bus, maroon and cream in color, parked by the roadside. <ovt>. <thing> Person 2: This individual is also on the bus but isn't clearly visible due to distance and angle. <ovt>. <thing> Person 3: Wearing a dark jacket and pants similar to person but appears closer to the camera's perspective. <ovt>. <thing> Person 4: This person is standing on the pavement, wearing a light-colored jacket and dark pants. <ovt>. <thing> Person 5: Standing on the pavement, wearing a dark-colored jacket and pants. <ovt>. <thing> Person 6: Standing on the pavement, wearing a light-colored jacket and dark pants. <ovt>. <thing> Person 7: Standing on the pavement, wearing a dark-colored jacket and dark pants. <ovt>. <thing> Bus 2: Another bus but not clearly visible due to being obscured by people and vehicles. <ovt>. <thing> Backpack 1: A backpack can be seen worn by person, it's dark in color. <ovt>. <thing> Backpack 2: A backpack can be seen worn by person, it's also dark in color. <ovt>. <thing> Bus 3: This bus is partially visible behind person, details aren't clear due to obstruction. <ovt>. <scene_end>",
+      "token_count": 306,
+      "ovt_count": 12,
+      "object_count": 12,
+      "scene_end_generated": true,
+      "has_object_marker": true,
+      "format_valid": true,
+      "image_id": 280710,
+      "gt_object_count": 12
+    },
+    "caption_source": "/home/jovyan/PGOT/outputs/segeval_pgot_memory8_full_coco_voc_ar/coco_ar/generated_captions.jsonl",
+    "caption_sha256": "a6f7fb6a01e9770cffac41a3dc1f526f31141b8581f809e0f6186cbdb3bd8b18",
+    "scores": {
+      "adaslot": {
+        "fARI": 0.4061559544970285,
+        "mIoU": 0.1187691635035498,
+        "mBO": 0.13626826381007362,
+        "pred_segments": 8,
+        "significant_gt_objects": 10,
+        "split_count": 2,
+        "merge_count": 4,
+        "split_gt_labels": [
+          7,
+          8
+        ],
+        "merged_pred_labels": [
+          3,
+          7,
+          14,
+          23
+        ],
+        "merge_gt_labels": {
+          "3": [
+            3,
+            4,
+            7,
+            8,
+            13
+          ],
+          "7": [
+            1,
+            12
+          ],
+          "14": [
+            2,
+            7,
+            8
+          ],
+          "23": [
+            5,
+            9
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3103066244,
+        "kept_slots": 8,
+        "slot_keep_probability_mean": 0.20424219965934753
+      },
+      "metaslot": {
+        "fARI": 0.43746603967807624,
+        "mIoU": 0.0804630648672963,
+        "mBO": 0.08676525313419456,
+        "pred_segments": 4,
+        "significant_gt_objects": 10,
+        "split_count": 3,
+        "merge_count": 3,
+        "split_gt_labels": [
+          3,
+          4,
+          9
+        ],
+        "merged_pred_labels": [
+          0,
+          4,
+          5
+        ],
+        "merge_gt_labels": {
+          "0": [
+            1,
+            2,
+            3,
+            4,
+            7,
+            8,
+            9
+          ],
+          "4": [
+            3,
+            4,
+            13
+          ],
+          "5": [
+            5,
+            9,
+            12
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3103066244,
+        "kept_slots": 4,
+        "slot_capacity": 7,
+        "prototype_keep_mask": [
+          true,
+          false,
+          true,
+          false,
+          true,
+          true,
+          false
+        ],
+        "prototype_indices": [
+          32,
+          32,
+          449,
+          32,
+          299,
+          287,
+          32
+        ]
+      },
+      "coda": {
+        "fARI": 0.7028783535810705,
+        "mIoU": 0.20180851520280413,
+        "mBO": 0.2020787739905208,
+        "pred_segments": 7,
+        "significant_gt_objects": 10,
+        "split_count": 1,
+        "merge_count": 5,
+        "split_gt_labels": [
+          8
+        ],
+        "merged_pred_labels": [
+          1,
+          2,
+          3,
+          5,
+          6
+        ],
+        "merge_gt_labels": {
+          "1": [
+            3,
+            13
+          ],
+          "2": [
+            7,
+            9
+          ],
+          "3": [
+            1,
+            8
+          ],
+          "5": [
+            5,
+            8
+          ],
+          "6": [
+            4,
+            12
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3103066244
+      },
+      "ours": {
+        "fARI": 0.7791157318459632,
+        "mIoU": 0.47961856132427144,
+        "mBO": 0.4492304482080437,
+        "pred_segments": 13,
+        "significant_gt_objects": 10,
+        "split_count": 5,
+        "merge_count": 2,
+        "split_gt_labels": [
+          5,
+          7,
+          8,
+          9,
+          12
+        ],
+        "merged_pred_labels": [
+          0,
+          2
+        ],
+        "merge_gt_labels": {
+          "0": [
+            9,
+            12
+          ],
+          "2": [
+            2,
+            7,
+            9
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 12,
+        "caption_sha256": "a6f7fb6a01e9770cffac41a3dc1f526f31141b8581f809e0f6186cbdb3bd8b18"
+      }
+    }
+  },
+  {
+    "dataset": "coco",
+    "id": "410456",
+    "source_image_id": 410456,
+    "screening_type": "dense_11plus",
+    "prior_metrics": {
+      "id": 410456,
+      "image_id": 410456,
+      "fARI": 0.8231748938560486,
+      "mBO": 0.4945114552974701,
+      "mIoU": 0.5269868969917297,
+      "gt_objects": 11,
+      "pred_segments": 12,
+      "sMBO": 0.28244003653526306,
+      "sMIOU": 0.49045681953430176,
+      "generated_objects": 11,
+      "scene_end_generated": true
+    },
+    "ar_caption": {
+      "text": "<thing> Person 1: A person wearing a black wetsuit and sunglasses is standing on a surfboard, holding onto ropes for balance. <ovt>. <thing> Person 2: This individual is also in a black wetsuit but appears to be in motion, walking on the beach with one hand raised. <ovt>. <thing> Person 3: A person in a black wetsuit is standing still, holding onto a rope that extends from their left hand. <ovt>. <thing> Person 4: This person is wearing a green wetsuit and appears to be in motion as well, walking towards the right side of the image. <ovt>. <thing> Surfboard 1: A blue surfboard with white edges is under person, it's partially submerged in sand showing its flat surface. <ovt>. <thing> Surfboard 2: A green surfboard with white edges under person, contrasting against the sandy beach. <ovt>. <thing> Surfboard 3: A blue surfboard with white edges under person, contrasting against the sandy beach. <ovt>. <thing> Person 5: A person wearing a red wetsuit is standing near the water's edge, looking at others or observing their actions. <ovt>. <thing> Surfboard 4: A red surfboard with white edges under person, contrasting against the sandy beach. <ovt>. <thing> Person 6: A person wearing a yellow wetsuit is standing still and appears to be observing something. <ovt>. <thing> Surfboard 5: A blue surfboard with white edges under person, it's partially submerged in sand showing its flat surface. <ovt>. <scene_end>",
+      "token_count": 337,
+      "ovt_count": 11,
+      "object_count": 11,
+      "scene_end_generated": true,
+      "has_object_marker": true,
+      "format_valid": true,
+      "image_id": 410456,
+      "gt_object_count": 11
+    },
+    "caption_source": "/home/jovyan/PGOT/outputs/segeval_pgot_memory8_full_coco_voc_ar/coco_ar/generated_captions.jsonl",
+    "caption_sha256": "3c0673c354be72324c8e4fda128fab982bcd43675240e588e1cc309c51d462a8",
+    "scores": {
+      "adaslot": {
+        "fARI": 0.38321051341686185,
+        "mIoU": 0.09714091419586353,
+        "mBO": 0.1243107720795945,
+        "pred_segments": 6,
+        "significant_gt_objects": 7,
+        "split_count": 1,
+        "merge_count": 3,
+        "split_gt_labels": [
+          8
+        ],
+        "merged_pred_labels": [
+          19,
+          21,
+          22
+        ],
+        "merge_gt_labels": {
+          "19": [
+            1,
+            3
+          ],
+          "21": [
+            8,
+            9
+          ],
+          "22": [
+            2,
+            6,
+            7,
+            8
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 366295630,
+        "kept_slots": 6,
+        "slot_keep_probability_mean": 0.17688751220703125
+      },
+      "metaslot": {
+        "fARI": -0.008037648437803397,
+        "mIoU": 0.044431549593751646,
+        "mBO": 0.019010733136230074,
+        "pred_segments": 3,
+        "significant_gt_objects": 7,
+        "split_count": 0,
+        "merge_count": 1,
+        "split_gt_labels": [],
+        "merged_pred_labels": [
+          0
+        ],
+        "merge_gt_labels": {
+          "0": [
+            1,
+            2,
+            3,
+            6,
+            7,
+            8,
+            9
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 366295630,
+        "kept_slots": 3,
+        "slot_capacity": 7,
+        "prototype_keep_mask": [
+          true,
+          false,
+          true,
+          true,
+          false,
+          false,
+          false
+        ],
+        "prototype_indices": [
+          32,
+          32,
+          449,
+          382,
+          32,
+          32,
+          382
+        ]
+      },
+      "coda": {
+        "fARI": 0.3990917441541512,
+        "mIoU": 0.10777391706353856,
+        "mBO": 0.15413776389598016,
+        "pred_segments": 7,
+        "significant_gt_objects": 7,
+        "split_count": 0,
+        "merge_count": 3,
+        "split_gt_labels": [],
+        "merged_pred_labels": [
+          2,
+          4,
+          5
+        ],
+        "merge_gt_labels": {
+          "2": [
+            2,
+            6,
+            7
+          ],
+          "4": [
+            8,
+            9
+          ],
+          "5": [
+            1,
+            3
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 366295630
+      },
+      "ours": {
+        "fARI": 0.6866144929044411,
+        "mIoU": 0.4894600042074724,
+        "mBO": 0.4804860861861327,
+        "pred_segments": 12,
+        "significant_gt_objects": 7,
+        "split_count": 3,
+        "merge_count": 2,
+        "split_gt_labels": [
+          2,
+          3,
+          8
+        ],
+        "merged_pred_labels": [
+          2,
+          4
+        ],
+        "merge_gt_labels": {
+          "2": [
+            2,
+            7
+          ],
+          "4": [
+            1,
+            3
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 11,
+        "caption_sha256": "3c0673c354be72324c8e4fda128fab982bcd43675240e588e1cc309c51d462a8"
+      }
+    }
+  },
+  {
+    "dataset": "coco",
+    "id": "66771",
+    "source_image_id": 66771,
+    "screening_type": "dense_11plus",
+    "prior_metrics": {
+      "id": 66771,
+      "image_id": 66771,
+      "fARI": 0.8918882608413696,
+      "mBO": 0.55781090259552,
+      "mIoU": 0.5162882208824158,
+      "gt_objects": 11,
+      "pred_segments": 12,
+      "sMBO": 0.45374205708503723,
+      "sMIOU": 0.415130615234375,
+      "generated_objects": 11,
+      "scene_end_generated": true
+    },
+    "ar_caption": {
+      "text": "<thing> Person 1: A man with a light complexion and short dark hair, wearing a black jacket, is smiling and looking at something on his cell phone. <ovt>. <thing> Person 2: A woman with a light complexion and long brown hair, wearing a floral top, is smiling and looking at the camera. <ovt>. <thing> Dining table 1: A portion of the dining table is visible, covered in various items including cups and bowls. <ovt>. <thing> Cup 1: A clear glass cup filled with a dark liquid, possibly tea or coffee, sits on the table. <ovt>. <thing> Cup 2: Another clear glass cup filled with a dark liquid sits on the table. <ovt>. <thing> Cup 3: A clear glass cup filled with a dark liquid, possibly tea or coffee, sits on the table. <ovt>. <thing> Cup 4: A clear glass cup filled with a dark liquid sits on the table. <ovt>. <thing> Cup 5: A clear glass cup filled with a dark liquid sits on the table. <ovt>. <thing> Cell phone 1: The woman holds a black cell phone in her hands, focusing on its screen. <ovt>. <thing> Bowl 1: A small bowl containing some food items sits on the dining table near other cups. <ovt>. <thing> Spoon 1: A spoon rests inside one of the cups indicating recent use or preparation for use. <ovt>. <scene_end>",
+      "token_count": 301,
+      "ovt_count": 11,
+      "object_count": 11,
+      "scene_end_generated": true,
+      "has_object_marker": true,
+      "format_valid": true,
+      "image_id": 66771,
+      "gt_object_count": 11
+    },
+    "caption_source": "/home/jovyan/PGOT/outputs/segeval_pgot_memory8_full_coco_voc_ar/coco_ar/generated_captions.jsonl",
+    "caption_sha256": "20aa5db295f43cedc64e6edcc367ceeda857e4eca54ca0c1c947aa58ddaf9461",
+    "scores": {
+      "adaslot": {
+        "fARI": 0.7303872289516653,
+        "mIoU": 0.1811788758827377,
+        "mBO": 0.20990884097190007,
+        "pred_segments": 5,
+        "significant_gt_objects": 10,
+        "split_count": 2,
+        "merge_count": 2,
+        "split_gt_labels": [
+          1,
+          4
+        ],
+        "merged_pred_labels": [
+          7,
+          29
+        ],
+        "merge_gt_labels": {
+          "7": [
+            2,
+            6,
+            7,
+            8,
+            9,
+            11
+          ],
+          "29": [
+            1,
+            4,
+            5
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3584016113,
+        "kept_slots": 5,
+        "slot_keep_probability_mean": 0.15743212401866913
+      },
+      "metaslot": {
+        "fARI": 0.7897487533126061,
+        "mIoU": 0.20834693277138663,
+        "mBO": 0.2557691645299997,
+        "pred_segments": 5,
+        "significant_gt_objects": 10,
+        "split_count": 1,
+        "merge_count": 2,
+        "split_gt_labels": [
+          1
+        ],
+        "merged_pred_labels": [
+          0,
+          2
+        ],
+        "merge_gt_labels": {
+          "0": [
+            2,
+            6,
+            8,
+            9,
+            11
+          ],
+          "2": [
+            1,
+            4,
+            5
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3584016113,
+        "kept_slots": 5,
+        "slot_capacity": 7,
+        "prototype_keep_mask": [
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          true
+        ],
+        "prototype_indices": [
+          193,
+          98,
+          32,
+          183,
+          193,
+          193,
+          128
+        ]
+      },
+      "coda": {
+        "fARI": 0.848254129294603,
+        "mIoU": 0.26150611693327414,
+        "mBO": 0.3235015768293161,
+        "pred_segments": 7,
+        "significant_gt_objects": 10,
+        "split_count": 2,
+        "merge_count": 3,
+        "split_gt_labels": [
+          2,
+          8
+        ],
+        "merged_pred_labels": [
+          0,
+          2,
+          5
+        ],
+        "merge_gt_labels": {
+          "0": [
+            3,
+            8
+          ],
+          "2": [
+            2,
+            8,
+            9,
+            11
+          ],
+          "5": [
+            2,
+            6,
+            7
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3584016113
+      },
+      "ours": {
+        "fARI": 0.9112330187876776,
+        "mIoU": 0.5455271756023184,
+        "mBO": 0.5820324747397453,
+        "pred_segments": 12,
+        "significant_gt_objects": 10,
+        "split_count": 1,
+        "merge_count": 1,
+        "split_gt_labels": [
+          7
+        ],
+        "merged_pred_labels": [
+          0
+        ],
+        "merge_gt_labels": {
+          "0": [
+            1,
+            7
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 11,
+        "caption_sha256": "20aa5db295f43cedc64e6edcc367ceeda857e4eca54ca0c1c947aa58ddaf9461"
+      }
+    }
+  },
+  {
+    "dataset": "coco",
+    "id": "537506",
+    "source_image_id": 537506,
+    "screening_type": "dense_11plus",
+    "prior_metrics": {
+      "id": 537506,
+      "image_id": 537506,
+      "fARI": 0.6994419097900391,
+      "mBO": 0.5236619114875793,
+      "mIoU": 0.537279486656189,
+      "gt_objects": 11,
+      "pred_segments": 11,
+      "sMBO": 0.48121604323387146,
+      "sMIOU": 0.5302411317825317,
+      "generated_objects": 10,
+      "scene_end_generated": true
+    },
+    "ar_caption": {
+      "text": "<thing> Person 1: A person is visible from behind, wearing a dark jacket and standing on the pavement-merged area near the car. <ovt>. <thing> Car 1: A black car is parked on the pavement, it has a shiny exterior reflecting the light. <ovt>. <thing> Person 2: Another person is standing on the pavement, wearing a white dress and holding an umbrella. <ovt>. <thing> Umbrella 1: An umbrella with white ribs and a white fabric canopy is open, providing shelter to the person under it. <ovt>. <thing> Person 3: This person's face is visible but their body posture isn't clearly distinguishable due to lighting conditions. <ovt>. <thing> Apple 1: A red apple with a smooth surface texture and typical round shape is placed on top of an object. <ovt>. <thing> Person 4: This individual's face isn't clearly visible but they appear to be looking towards something or someone. <ovt>. <thing> Apple 2: Another red apple lies next to an apple, slightly smaller in size. <ovt>. <thing> Umbrella 2: Another umbrella with white ribs but appears to be closed or partially opened. <ovt>. <thing> Person 5: Standing near the car, this individual wears dark clothing but details aren't discernible due to distance. <ovt>. <scene_end>",
+      "token_count": 279,
+      "ovt_count": 10,
+      "object_count": 10,
+      "scene_end_generated": true,
+      "has_object_marker": true,
+      "format_valid": true,
+      "image_id": 537506,
+      "gt_object_count": 11
+    },
+    "caption_source": "/home/jovyan/PGOT/outputs/segeval_pgot_memory8_full_coco_voc_ar/coco_ar/generated_captions.jsonl",
+    "caption_sha256": "baab30016c475aa99bc7b5471c86b4b0efaa2a639a23801277a8a1eaa64336c3",
+    "scores": {
+      "adaslot": {
+        "fARI": 0.5754199441612161,
+        "mIoU": 0.20441564345353244,
+        "mBO": 0.2488675609192659,
+        "pred_segments": 9,
+        "significant_gt_objects": 11,
+        "split_count": 1,
+        "merge_count": 4,
+        "split_gt_labels": [
+          5
+        ],
+        "merged_pred_labels": [
+          2,
+          6,
+          18,
+          25
+        ],
+        "merge_gt_labels": {
+          "2": [
+            3,
+            11
+          ],
+          "6": [
+            6,
+            7,
+            10
+          ],
+          "18": [
+            1,
+            2,
+            5
+          ],
+          "25": [
+            8,
+            9
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 869509527,
+        "kept_slots": 9,
+        "slot_keep_probability_mean": 0.2608724534511566
+      },
+      "metaslot": {
+        "fARI": 0.5264483650957585,
+        "mIoU": 0.20138001637971,
+        "mBO": 0.23888490940150608,
+        "pred_segments": 7,
+        "significant_gt_objects": 11,
+        "split_count": 4,
+        "merge_count": 5,
+        "split_gt_labels": [
+          1,
+          3,
+          5,
+          11
+        ],
+        "merged_pred_labels": [
+          1,
+          2,
+          3,
+          5,
+          6
+        ],
+        "merge_gt_labels": {
+          "1": [
+            3,
+            11
+          ],
+          "2": [
+            1,
+            2,
+            4,
+            5,
+            11
+          ],
+          "3": [
+            8,
+            9
+          ],
+          "5": [
+            6,
+            7,
+            10
+          ],
+          "6": [
+            1,
+            3
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 869509527,
+        "kept_slots": 7,
+        "slot_capacity": 7,
+        "prototype_keep_mask": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "prototype_indices": [
+          323,
+          16,
+          46,
+          361,
+          89,
+          498,
+          32
+        ]
+      },
+      "coda": {
+        "fARI": 0.533504390031155,
+        "mIoU": 0.22287190362833742,
+        "mBO": 0.2604398419365997,
+        "pred_segments": 7,
+        "significant_gt_objects": 11,
+        "split_count": 3,
+        "merge_count": 5,
+        "split_gt_labels": [
+          4,
+          8,
+          11
+        ],
+        "merged_pred_labels": [
+          0,
+          3,
+          4,
+          5,
+          6
+        ],
+        "merge_gt_labels": {
+          "0": [
+            1,
+            2,
+            4,
+            11
+          ],
+          "3": [
+            8,
+            9
+          ],
+          "4": [
+            4,
+            8
+          ],
+          "5": [
+            6,
+            7,
+            10
+          ],
+          "6": [
+            3,
+            11
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 869509527
+      },
+      "ours": {
+        "fARI": 0.6973479301123927,
+        "mIoU": 0.5111819055738346,
+        "mBO": 0.5023472006549748,
+        "pred_segments": 11,
+        "significant_gt_objects": 11,
+        "split_count": 1,
+        "merge_count": 2,
+        "split_gt_labels": [
+          6
+        ],
+        "merged_pred_labels": [
+          0,
+          3
+        ],
+        "merge_gt_labels": {
+          "0": [
+            3,
+            6,
+            10,
+            11
+          ],
+          "3": [
+            8,
+            9
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 10,
+        "caption_sha256": "baab30016c475aa99bc7b5471c86b4b0efaa2a639a23801277a8a1eaa64336c3"
+      }
+    }
+  },
+  {
+    "dataset": "coco",
+    "id": "427655",
+    "source_image_id": 427655,
+    "screening_type": "dense_11plus",
+    "prior_metrics": {
+      "id": 427655,
+      "image_id": 427655,
+      "fARI": 0.8690412640571594,
+      "mBO": 0.47987717390060425,
+      "mIoU": 0.5091809630393982,
+      "gt_objects": 11,
+      "pred_segments": 12,
+      "sMBO": 0.4600479304790497,
+      "sMIOU": 0.5336771011352539,
+      "generated_objects": 13,
+      "scene_end_generated": true
+    },
+    "ar_caption": {
+      "text": "<thing> Horse 1: A brown horse with white markings on its face, harnessed to a carriage, standing still. The horse has a black mane and a black tail. <ovt>. <thing> Person 1: A person wearing pink clothing sitting in the carriage holding something in their hands. The person has short hair and appears to be looking at the screen. <ovt>. <thing> Person 2: Another person wearing dark clothing sitting in the carriage holding the horse's reins. The person has short hair and appears to be looking ahead. <ovt>. <thing> Bus 1: A red bus in the background with passengers inside. The bus has a white roof and appears to be in good condition. <ovt>. <thing> Bus 2: Another red bus in the background with passengers inside. The bus has a white roof and appears to be in good condition. <ovt>. <thing> Car 1: Another car partially obscured by person but appears to be dark-colored. The car has a black roof and appears to be in good condition. <ovt>. <thing> Car 2: A car parked on the side of the road. The car is white and has a black roof. <ovt>. <thing> Person 3: A person walking on the pavement. The person is wearing a black jacket, blue jeans, and white sneakers. They appear to be in a hurry. <ovt>. <thing> Car 3: A car parked on the side of the road. The car is white and has a black roof. <ovt>. <thing> Cell phone 1: Held by person. The cell phone is black and has a white screen. <ovt>. <thing> Person 4: A person walking on the pavement. The person is wearing a black jacket, blue jeans, and white sneakers. They appear to be in a hurry. <ovt>. <thing> Person 5: A person walking on the pavement. The person is wearing a black jacket, blue jeans, and white sneakers. They appear to be in a hurry. <ovt>. <thing> Person 6: A person walking on the pavement. The person is wearing a black jacket, blue jeans, and white sneakers. They appear to be in a hurry. <ovt>. <scene_end>",
+      "token_count": 456,
+      "ovt_count": 13,
+      "object_count": 13,
+      "scene_end_generated": true,
+      "has_object_marker": true,
+      "format_valid": true,
+      "image_id": 427655,
+      "gt_object_count": 11
+    },
+    "caption_source": "/home/jovyan/PGOT/outputs/segeval_pgot_memory8_full_coco_voc_ar/coco_ar/generated_captions.jsonl",
+    "caption_sha256": "cba3b2816ca8bb869c7dee3ce9179f7c33dba4791cd637a07797bc3e564ee158",
+    "scores": {
+      "adaslot": {
+        "fARI": 0.4228692374075137,
+        "mIoU": 0.08215555863405964,
+        "mBO": 0.09111255521111486,
+        "pred_segments": 7,
+        "significant_gt_objects": 7,
+        "split_count": 3,
+        "merge_count": 3,
+        "split_gt_labels": [
+          3,
+          7,
+          10
+        ],
+        "merged_pred_labels": [
+          3,
+          19,
+          20
+        ],
+        "merge_gt_labels": {
+          "3": [
+            2,
+            6,
+            7,
+            10
+          ],
+          "19": [
+            1,
+            3
+          ],
+          "20": [
+            3,
+            7,
+            9,
+            10
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3414777994,
+        "kept_slots": 7,
+        "slot_keep_probability_mean": 0.22572235763072968
+      },
+      "metaslot": {
+        "fARI": 0.8891800310575151,
+        "mIoU": 0.09152016550023918,
+        "mBO": 0.08896863069027836,
+        "pred_segments": 5,
+        "significant_gt_objects": 7,
+        "split_count": 2,
+        "merge_count": 2,
+        "split_gt_labels": [
+          2,
+          3
+        ],
+        "merged_pred_labels": [
+          0,
+          6
+        ],
+        "merge_gt_labels": {
+          "0": [
+            2,
+            3,
+            6,
+            7,
+            9,
+            10
+          ],
+          "6": [
+            2,
+            3
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3414777994,
+        "kept_slots": 5,
+        "slot_capacity": 7,
+        "prototype_keep_mask": [
+          true,
+          false,
+          false,
+          true,
+          true,
+          true,
+          true
+        ],
+        "prototype_indices": [
+          32,
+          32,
+          32,
+          209,
+          270,
+          450,
+          216
+        ]
+      },
+      "coda": {
+        "fARI": 0.8688583527403158,
+        "mIoU": 0.1489844789026867,
+        "mBO": 0.1674990330676098,
+        "pred_segments": 7,
+        "significant_gt_objects": 7,
+        "split_count": 2,
+        "merge_count": 2,
+        "split_gt_labels": [
+          3,
+          7
+        ],
+        "merged_pred_labels": [
+          0,
+          5
+        ],
+        "merge_gt_labels": {
+          "0": [
+            3,
+            6,
+            7,
+            10
+          ],
+          "5": [
+            2,
+            7,
+            9
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3414777994
+      },
+      "ours": {
+        "fARI": 0.8640841179583563,
+        "mIoU": 0.4941293394886049,
+        "mBO": 0.46298406251949714,
+        "pred_segments": 13,
+        "significant_gt_objects": 7,
+        "split_count": 0,
+        "merge_count": 0,
+        "split_gt_labels": [],
+        "merged_pred_labels": [],
+        "merge_gt_labels": {},
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 13,
+        "caption_sha256": "cba3b2816ca8bb869c7dee3ce9179f7c33dba4791cd637a07797bc3e564ee158"
+      }
+    }
+  },
+  {
+    "dataset": "coco",
+    "id": "66926",
+    "source_image_id": 66926,
+    "screening_type": "dense_11plus",
+    "prior_metrics": {
+      "id": 66926,
+      "image_id": 66926,
+      "fARI": 0.7444343566894531,
+      "mBO": 0.5865318179130554,
+      "mIoU": 0.5206107497215271,
+      "gt_objects": 11,
+      "pred_segments": 11,
+      "sMBO": 0.3371395170688629,
+      "sMIOU": 0.29566192626953125,
+      "generated_objects": 11,
+      "scene_end_generated": true
+    },
+    "ar_caption": {
+      "text": "<thing> Donut 1: This donut is in the foreground, with a glossy, smooth, and well-coated surface reflecting the light. It appears to be chocolate-flavored and topped with a thin layer of cream or icing. <ovt>. <thing> Donut 2: Adjacent, it has a similar glossy and smooth texture but is slightly lighter in color, possibly indicating a different flavor. <ovt>. <thing> Donut 3: Positioned next to an object, it shares similar characteristics but has more visible white cream or icing on top. <ovt>. <thing> Donut 4: Located at the top right corner, it's slightly darker in color compared to others and appears untouched. <ovt>. <thing> Donut 5: Positioned at the top center, it's slightly darker than others and stands out due to its isolated position at top row. <ovt>. <thing> Donut 6: This one is at the top left corner; its lighter color contrasts against darker neighboring objects. <ovt>. <thing> Donut 7: Located at the top left corner, it's similar in appearance but has more visible coating of cream. <ovt>. <thing> Donut 8: Adjacent, it's similar in color but has more visible chocolate sauce on top. <ovt>. <thing> Donut 9: In the middle row, it's similar in size but appears slightly darker due to different lighting or coating. <ovt>. <thing> Donut 10: Positioned at the bottom left corner, it's similar in size but appears to have more chocolate sauce on top. <ovt>. <thing> Donut 11: Positioned at the bottom right corner, it's similar in size but appears to have less chocolate sauce on top. <ovt>. <scene_end>",
+      "token_count": 363,
+      "ovt_count": 11,
+      "object_count": 11,
+      "scene_end_generated": true,
+      "has_object_marker": true,
+      "format_valid": true,
+      "image_id": 66926,
+      "gt_object_count": 11
+    },
+    "caption_source": "/home/jovyan/PGOT/outputs/segeval_pgot_memory8_full_coco_voc_ar/coco_ar/generated_captions.jsonl",
+    "caption_sha256": "66fb79ab2bb74706dd70adc96fa902a45b78a0083228848a08f8f935bbd2c582",
+    "scores": {
+      "adaslot": {
+        "fARI": 0.37288732714685935,
+        "mIoU": 0.13463998913550473,
+        "mBO": 0.20607195375695156,
+        "pred_segments": 7,
+        "significant_gt_objects": 11,
+        "split_count": 4,
+        "merge_count": 3,
+        "split_gt_labels": [
+          1,
+          2,
+          4,
+          11
+        ],
+        "merged_pred_labels": [
+          0,
+          16,
+          22
+        ],
+        "merge_gt_labels": {
+          "0": [
+            4,
+            11
+          ],
+          "16": [
+            1,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "22": [
+            1,
+            3
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3876027723,
+        "kept_slots": 7,
+        "slot_keep_probability_mean": 0.1916404515504837
+      },
+      "metaslot": {
+        "fARI": 0.35542943720348824,
+        "mIoU": 0.13456317807959467,
+        "mBO": 0.18312002148991915,
+        "pred_segments": 5,
+        "significant_gt_objects": 11,
+        "split_count": 6,
+        "merge_count": 3,
+        "split_gt_labels": [
+          2,
+          3,
+          6,
+          8,
+          9,
+          11
+        ],
+        "merged_pred_labels": [
+          0,
+          2,
+          4
+        ],
+        "merge_gt_labels": {
+          "0": [
+            2,
+            3
+          ],
+          "2": [
+            1,
+            6,
+            8,
+            9,
+            11
+          ],
+          "4": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3876027723,
+        "kept_slots": 5,
+        "slot_capacity": 7,
+        "prototype_keep_mask": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+          false
+        ],
+        "prototype_indices": [
+          43,
+          392,
+          411,
+          131,
+          162,
+          43,
+          43
+        ]
+      },
+      "coda": {
+        "fARI": 0.27970203607588895,
+        "mIoU": 0.09695186309304282,
+        "mBO": 0.16146207350945602,
+        "pred_segments": 7,
+        "significant_gt_objects": 11,
+        "split_count": 3,
+        "merge_count": 2,
+        "split_gt_labels": [
+          1,
+          4,
+          10
+        ],
+        "merged_pred_labels": [
+          3,
+          4
+        ],
+        "merge_gt_labels": {
+          "3": [
+            1,
+            2,
+            3,
+            4,
+            11
+          ],
+          "4": [
+            1,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3876027723
+      },
+      "ours": {
+        "fARI": 0.750386277709341,
+        "mIoU": 0.5622319003765075,
+        "mBO": 0.6152424418365553,
+        "pred_segments": 11,
+        "significant_gt_objects": 11,
+        "split_count": 3,
+        "merge_count": 2,
+        "split_gt_labels": [
+          2,
+          3,
+          7
+        ],
+        "merged_pred_labels": [
+          0,
+          4
+        ],
+        "merge_gt_labels": {
+          "0": [
+            2,
+            3,
+            7,
+            10
+          ],
+          "4": [
+            3,
+            9
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 11,
+        "caption_sha256": "66fb79ab2bb74706dd70adc96fa902a45b78a0083228848a08f8f935bbd2c582"
+      }
+    }
+  },
+  {
+    "dataset": "voc",
+    "id": "2010_001966",
+    "source_image_id": 1046,
+    "screening_type": "dense_11plus",
+    "prior_metrics": {
+      "id": 1046,
+      "image_id": 1046,
+      "fARI": 0.8797682523727417,
+      "mBO": 0.39679133892059326,
+      "mIoU": 0.38227948546409607,
+      "gt_objects": 12,
+      "pred_segments": 11,
+      "sMBO": 0.5553427338600159,
+      "sMIOU": 0.696528434753418,
+      "generated_objects": 10,
+      "scene_end_generated": false
+    },
+    "ar_caption": {
+      "text": "<thing> Car 1: A white car is parked on the left side of the road, it appears clean and well-maintained. <ovt>. <thing> Person 1: A person is standing on the grassy area, facing the road, and looking towards it. They are wearing a black jacket, blue jeans, and white sneakers. They appear to be waiting for something or someone. <ovt>. <thing> Person 2: A person is standing on the road, facing the road, and looking towards it. They are wearing a black jacket, blue jeans, and white sneakers. They appear to be walking towards the parked car. <ovt>. <thing> Person 3: A person is standing on the grassy area, facing the road, and looking towards it. They are wearing a black jacket, blue jeans, and white sneakers. They appear to be waiting for something or someone. <ovt>. <thing> Person 4: A person is standing on the grassy area, facing the road, and looking towards it. They are wearing a black jacket, blue jeans, and white sneakers. They appear to be waiting for something or someone. <ovt>. <thing> Car 2: A black car is parked on the right side of the road, it appears slightly older and has visible signs of wear. <ovt>. <thing> Person 5: A person is standing on the grassy area, facing the road, and looking towards it. They are wearing a black jacket, blue jeans, and white sneakers. They appear to be waiting for something or someone. <ovt>. <thing> Person 6: A person is standing on the grassy area, facing the road, and looking towards it. They are wearing a black jacket, blue jeans, and white sneakers. They appear to be waiting for something or someone. <ovt>. <thing> Person 7: A person is standing on the grassy area, facing the road, and looking towards it. They are wearing a black jacket, blue jeans, and white sneakers. They appear to be waiting for something or someone. <ovt>. <thing> Person 8: A person is standing on the grassy area, facing the road, and looking towards it. They are wearing a black jacket, blue jeans, and white sneakers. They appear to be waiting for something or someone. <ovt><scene_end>",
+      "token_count": 477,
+      "ovt_count": 10,
+      "object_count": 10,
+      "scene_end_generated": false,
+      "has_object_marker": true,
+      "format_valid": false,
+      "image_id": 1046,
+      "gt_object_count": 12
+    },
+    "caption_source": "/home/jovyan/PGOT/outputs/segeval_pgot_memory8_full_coco_voc_ar/voc_ar/generated_captions.jsonl",
+    "caption_sha256": "64ee8259d658a3293b36c0362427a3a39c671a70b185d68d8b7c6f692074736f",
+    "scores": {
+      "adaslot": {
+        "fARI": 0.10142506353230907,
+        "mIoU": 0.06376020063592386,
+        "mBO": 0.033067060245107756,
+        "pred_segments": 5,
+        "significant_gt_objects": 1,
+        "split_count": 1,
+        "merge_count": 0,
+        "split_gt_labels": [
+          1
+        ],
+        "merged_pred_labels": [],
+        "merge_gt_labels": {},
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 987151690,
+        "kept_slots": 5,
+        "slot_keep_probability_mean": 0.15673774480819702
+      },
+      "metaslot": {
+        "fARI": 0.30656067460378106,
+        "mIoU": 0.05135224764944312,
+        "mBO": 0.007935411194858745,
+        "pred_segments": 4,
+        "significant_gt_objects": 1,
+        "split_count": 0,
+        "merge_count": 0,
+        "split_gt_labels": [],
+        "merged_pred_labels": [],
+        "merge_gt_labels": {},
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 987151690,
+        "kept_slots": 4,
+        "slot_capacity": 7,
+        "prototype_keep_mask": [
+          true,
+          true,
+          true,
+          true,
+          false,
+          false,
+          false
+        ],
+        "prototype_indices": [
+          462,
+          292,
+          65,
+          32,
+          32,
+          65,
+          65
+        ]
+      },
+      "coda": {
+        "fARI": 0.3816597637942747,
+        "mIoU": 0.07723682021148681,
+        "mBO": 0.046668126034403595,
+        "pred_segments": 7,
+        "significant_gt_objects": 1,
+        "split_count": 0,
+        "merge_count": 0,
+        "split_gt_labels": [],
+        "merged_pred_labels": [],
+        "merge_gt_labels": {},
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 987151690
+      },
+      "ours": {
+        "fARI": 0.8923596642977043,
+        "mIoU": 0.37821867520952185,
+        "mBO": 0.3978133339237713,
+        "pred_segments": 11,
+        "significant_gt_objects": 1,
+        "split_count": 0,
+        "merge_count": 0,
+        "split_gt_labels": [],
+        "merged_pred_labels": [],
+        "merge_gt_labels": {},
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 10,
+        "caption_sha256": "64ee8259d658a3293b36c0362427a3a39c671a70b185d68d8b7c6f692074736f"
+      }
+    }
+  },
+  {
+    "dataset": "voc",
+    "id": "2007_005509",
+    "source_image_id": 177,
+    "screening_type": "dense_11plus",
+    "prior_metrics": {
+      "id": 177,
+      "image_id": 177,
+      "fARI": 0.7711125612258911,
+      "mBO": 0.38346073031425476,
+      "mIoU": 0.3750929832458496,
+      "gt_objects": 14,
+      "pred_segments": 11,
+      "sMBO": 0.5083075761795044,
+      "sMIOU": 0.6013933420181274,
+      "generated_objects": 16,
+      "scene_end_generated": false
+    },
+    "ar_caption": {
+      "text": "<thing> Airplane 1: A large, white airplane with orange and green detailing is parked on the road, its wings and engines are prominent, it appears ready for takeoff. <ovt>. <thing> Person 1: A person wearing a white shirt and black pants is standing on the road, they are facing the airplane and appear to be in motion. <ovt>. <thing> Person 2: A person wearing a white shirt and black pants is standing on the road and appears to be in motion. <ovt>. <thing> Person 3: A person wearing a white shirt and black pants is standing on the road and appears to be in motion. <ovt>. <thing> Person 4: A person wearing a white shirt and black pants is standing on the road and appears to be in motion. <ovt>. <thing> Car 1: A small car parked on the road, it is not very clear due to distance but appears to be white. <ovt>. <thing> Car 2: A small car parked on the road, it is not very clear due to distance but appears to be white. <ovt>. <thing> Car 3: A small car parked on the road, it is not very clear due to distance but appears to be white. <ovt>. <thing> Car 4: A small car parked on the road, it is not very clear due to distance but appears to be white. <ovt>. <thing> Car 5: A small car parked on the road, it is not very clear due to distance but appears to be white. <ovt>. <thing> Car 6: A small car parked on the road, it is not very clear due to distance but appears to be white. <ovt>. <thing> Car 7: A small car parked on the road, it is not very clear due to distance but appears to be white. <ovt>. <thing> Car 8: A small car parked on the road, it is not very clear due to distance but appears to be white. <ovt>. <thing> Car 9: A small car parked on the road, it is not very clear due to distance but appears to be white. <ovt>. <thing> Person 5: A person wearing a white shirt and black pants is standing on the road and appears to be in motion. <ovt>. <thing> Person 6: A person wearing a white shirt and black pants is standing on the road and appears to be in motion. <ovt><scene_end>",
+      "token_count": 504,
+      "ovt_count": 16,
+      "object_count": 16,
+      "scene_end_generated": false,
+      "has_object_marker": true,
+      "format_valid": false,
+      "image_id": 177,
+      "gt_object_count": 14
+    },
+    "caption_source": "/home/jovyan/PGOT/outputs/segeval_pgot_memory8_full_coco_voc_ar/voc_ar/generated_captions.jsonl",
+    "caption_sha256": "d1a15c4203842853378a8143417785cf36b0ddce049705abfc9972bebf80fb6b",
+    "scores": {
+      "adaslot": {
+        "fARI": 0.11082806305779437,
+        "mIoU": 0.060453758449346306,
+        "mBO": 0.03707218525691961,
+        "pred_segments": 4,
+        "significant_gt_objects": 4,
+        "split_count": 1,
+        "merge_count": 1,
+        "split_gt_labels": [
+          1
+        ],
+        "merged_pred_labels": [
+          10
+        ],
+        "merge_gt_labels": {
+          "10": [
+            1,
+            2,
+            5,
+            6
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 1418888303,
+        "kept_slots": 4,
+        "slot_keep_probability_mean": 0.1295287162065506
+      },
+      "metaslot": {
+        "fARI": 0.729896921850545,
+        "mIoU": 0.09465218113557568,
+        "mBO": 0.05833241645337519,
+        "pred_segments": 3,
+        "significant_gt_objects": 4,
+        "split_count": 1,
+        "merge_count": 2,
+        "split_gt_labels": [
+          6
+        ],
+        "merged_pred_labels": [
+          0,
+          2
+        ],
+        "merge_gt_labels": {
+          "0": [
+            5,
+            6
+          ],
+          "2": [
+            1,
+            6
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 1418888303,
+        "kept_slots": 3,
+        "slot_capacity": 7,
+        "prototype_keep_mask": [
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false
+        ],
+        "prototype_indices": [
+          361,
+          32,
+          419,
+          361,
+          419,
+          32,
+          361
+        ]
+      },
+      "coda": {
+        "fARI": 0.28496691355985915,
+        "mIoU": 0.10551164408555151,
+        "mBO": 0.14197535364700417,
+        "pred_segments": 7,
+        "significant_gt_objects": 4,
+        "split_count": 3,
+        "merge_count": 2,
+        "split_gt_labels": [
+          1,
+          5,
+          6
+        ],
+        "merged_pred_labels": [
+          1,
+          6
+        ],
+        "merge_gt_labels": {
+          "1": [
+            2,
+            5,
+            6
+          ],
+          "6": [
+            1,
+            5,
+            6
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 1418888303
+      },
+      "ours": {
+        "fARI": 0.7596708823775091,
+        "mIoU": 0.3882894794942576,
+        "mBO": 0.39181383990417623,
+        "pred_segments": 10,
+        "significant_gt_objects": 4,
+        "split_count": 1,
+        "merge_count": 2,
+        "split_gt_labels": [
+          5
+        ],
+        "merged_pred_labels": [
+          0,
+          2
+        ],
+        "merge_gt_labels": {
+          "0": [
+            5,
+            6
+          ],
+          "2": [
+            2,
+            5
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 16,
+        "caption_sha256": "d1a15c4203842853378a8143417785cf36b0ddce049705abfc9972bebf80fb6b"
+      }
+    }
+  },
+  {
+    "dataset": "voc",
+    "id": "2007_005173",
+    "source_image_id": 166,
+    "screening_type": "dense_11plus",
+    "prior_metrics": {
+      "id": 166,
+      "image_id": 166,
+      "fARI": 0.8160555362701416,
+      "mBO": 0.3672211766242981,
+      "mIoU": 0.3522097170352936,
+      "gt_objects": 13,
+      "pred_segments": 8,
+      "sMBO": 0.4790276288986206,
+      "sMIOU": 0.4834567904472351,
+      "generated_objects": 7,
+      "scene_end_generated": false
+    },
+    "ar_caption": {
+      "text": "<thing> Person 1: A person wearing a red and white motocross suit, a helmet, and gloves is riding motorcycle. They are leaning forward, gripping the handlebars tightly, and looking ahead at the road ahead. Their posture suggests confidence and focus. The motorcycle's chrome engine gleams in the sunlight, and the rider's boots are firmly planted on the bike's footrests. <ovt>. <thing> Motorcycle 1: A motorcycle with the number \"73\" on the side is being ridden by person. The bike has a sleek, angular design, with chrome detailing and a streamlined shape. The rider's footrests are adjustable, and the handlebars are slightly lowered to allow better visibility of the road. <ovt>. <thing> Motorcycle 2: Another motorcycle is being ridden by person. It's a different model, possibly a racing bike due to its streamlined design. The rider's footrests are slightly raised, and the handlebars are more upright. <ovt>. <thing> Person 2: A person wearing a yellow motocross suit, helmet, and gloves is riding motorcycle. They are leaning forward, gripping the handlebars tightly, and looking ahead at the road ahead. Their posture suggests confidence and focus. The motorcycle's chrome engine gleams in the sunlight, and the rider's boots are firmly planted on the bike's footrests. <ovt>. <thing> Person 3: A person wearing a red motocross suit, helmet, and gloves is riding motorcycle. They are leaning forward, gripping the handlebars tightly, and looking ahead at the road ahead. Their posture suggests confidence and focus. The motorcycle's chrome engine gleams in the sunlight, and the rider's boots are firmly planted on the bike's footrests. <ovt>. <thing> Person 4: A person wearing a red motocross suit, helmet, and gloves is riding motorcycle. They are leaning forward, gripping the handlebars tightly, and looking ahead at the road ahead. Their posture suggests confidence and focus. The motorcycle's chrome engine gleams in the sunlight, and the rider person. <ovt>. <thing> Person 5: A person wearing a red motocross suit, helmet, and gloves is riding motorcycle. They are leaning forward, gripping the handlebars tightly, and looking ahead at the road ahead. Their posture suggests confidence and focus. The motorcycle's chrome engine gleams in the sunlight, and the rider person. <ovt><scene_end>",
+      "token_count": 499,
+      "ovt_count": 7,
+      "object_count": 7,
+      "scene_end_generated": false,
+      "has_object_marker": true,
+      "format_valid": false,
+      "image_id": 166,
+      "gt_object_count": 13
+    },
+    "caption_source": "/home/jovyan/PGOT/outputs/segeval_pgot_memory8_full_coco_voc_ar/voc_ar/generated_captions.jsonl",
+    "caption_sha256": "f99a552dcbe66b85635d11f81eeab351961a6e86458a59f75c5c59b96e179501",
+    "scores": {
+      "adaslot": {
+        "fARI": 0.5105251960405742,
+        "mIoU": 0.16526339926122133,
+        "mBO": 0.20364363175813144,
+        "pred_segments": 5,
+        "significant_gt_objects": 12,
+        "split_count": 3,
+        "merge_count": 4,
+        "split_gt_labels": [
+          3,
+          4,
+          6
+        ],
+        "merged_pred_labels": [
+          3,
+          11,
+          12,
+          30
+        ],
+        "merge_gt_labels": {
+          "3": [
+            3,
+            6
+          ],
+          "11": [
+            2,
+            3
+          ],
+          "12": [
+            1,
+            4
+          ],
+          "30": [
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            11,
+            12,
+            13
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 2716365632,
+        "kept_slots": 5,
+        "slot_keep_probability_mean": 0.15052860975265503
+      },
+      "metaslot": {
+        "fARI": 0.3396981637345794,
+        "mIoU": 0.0973430350255984,
+        "mBO": 0.1360179760160395,
+        "pred_segments": 4,
+        "significant_gt_objects": 12,
+        "split_count": 3,
+        "merge_count": 3,
+        "split_gt_labels": [
+          2,
+          5,
+          6
+        ],
+        "merged_pred_labels": [
+          0,
+          1,
+          6
+        ],
+        "merge_gt_labels": {
+          "0": [
+            1,
+            2,
+            4,
+            5
+          ],
+          "1": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            11,
+            12,
+            13
+          ],
+          "6": [
+            2,
+            3,
+            6
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 2716365632,
+        "kept_slots": 4,
+        "slot_capacity": 7,
+        "prototype_keep_mask": [
+          true,
+          true,
+          false,
+          true,
+          false,
+          false,
+          true
+        ],
+        "prototype_indices": [
+          361,
+          32,
+          361,
+          141,
+          361,
+          32,
+          245
+        ]
+      },
+      "coda": {
+        "fARI": 0.6825688454790361,
+        "mIoU": 0.22640224257356328,
+        "mBO": 0.2516024137471316,
+        "pred_segments": 7,
+        "significant_gt_objects": 12,
+        "split_count": 1,
+        "merge_count": 2,
+        "split_gt_labels": [
+          1
+        ],
+        "merged_pred_labels": [
+          0,
+          6
+        ],
+        "merge_gt_labels": {
+          "0": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            11,
+            12,
+            13
+          ],
+          "6": [
+            1,
+            4
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 2716365632
+      },
+      "ours": {
+        "fARI": 0.8158493489783105,
+        "mIoU": 0.34064799998500506,
+        "mBO": 0.3536706763123918,
+        "pred_segments": 8,
+        "significant_gt_objects": 12,
+        "split_count": 1,
+        "merge_count": 2,
+        "split_gt_labels": [
+          11
+        ],
+        "merged_pred_labels": [
+          0,
+          6
+        ],
+        "merge_gt_labels": {
+          "0": [
+            6,
+            7,
+            8,
+            9,
+            11,
+            13
+          ],
+          "6": [
+            5,
+            11,
+            12
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 7,
+        "caption_sha256": "f99a552dcbe66b85635d11f81eeab351961a6e86458a59f75c5c59b96e179501"
+      }
+    }
+  },
+  {
+    "dataset": "voc",
+    "id": "2008_008362",
+    "source_image_id": 624,
+    "screening_type": "dense_11plus",
+    "prior_metrics": {
+      "id": 624,
+      "image_id": 624,
+      "fARI": 0.46691593527793884,
+      "mBO": 0.38674911856651306,
+      "mIoU": 0.36675825715065,
+      "gt_objects": 14,
+      "pred_segments": 19,
+      "sMBO": 0.5238004326820374,
+      "sMIOU": 0.534882664680481,
+      "generated_objects": 20,
+      "scene_end_generated": false
+    },
+    "ar_caption": {
+      "text": "<thing> Dining table 1: A white tablecloth covers the table where various items are placed including cups, forks, spoons, and knives. <ovt>. <thing> Person 1: A person wearing a pink shirt, seated on a chair and leaning slightly forward with their hand on the table. <ovt>. <thing> Person 2: A person wearing glasses and a black shirt is seated at the table, looking towards another person. <ovt>. <thing> Person 3: A person wearing a black shirt, smiling and leaning slightly forward with their hand resting on the table. <ovt>. <thing> Person 4: A person wearing a black shirt, smiling and leaning slightly forward with their hand resting on the table. <ovt>. <thing> Person 5: A person wearing a black shirt, smiling and leaning slightly forward with their hand resting on the table. <ovt>. <thing> Person 6: A person wearing a black shirt, smiling and leaning slightly forward with their hand resting on the table. <ovt>. <thing> Person 7: A person wearing a black shirt, smiling and leaning slightly forward with their hand resting on the table. <ovt>. <thing> Person 8: A person wearing a black shirt, smiling and leaning slightly forward with their hand resting on the table. <ovt>. <thing> Cup 1: A white cup with a handle is placed on the table. <ovt>. <thing> Chair 1: A chair with a white cushion and a white frame is placed at the table. <ovt>. <thing> Cup 2: A white cup with a handle is placed on the table. <ovt>. <thing> Cup 3: A white cup with a handle is placed on the table. <ovt>. <thing> Fork 1: A fork is placed on the table. <ovt>. <thing> Cup 4: A white cup with a handle is placed on the table. <ovt>. <thing> Cup 5: A white cup with a handle is placed on the table. <ovt>. <thing> Cup 6: A white cup with a handle is placed on the table. <ovt>. <thing> Cup 7: A white cup with a handle is placed on the table. <ovt>. <thing> Cup 8: A white cup with a handle is placed on the table. <ovt>. <thing> Chair 2: A chair with a white cushion and a white frame is placed at the table. <ovt><scene_end>",
+      "token_count": 500,
+      "ovt_count": 20,
+      "object_count": 20,
+      "scene_end_generated": false,
+      "has_object_marker": true,
+      "format_valid": false,
+      "image_id": 624,
+      "gt_object_count": 14
+    },
+    "caption_source": "/home/jovyan/PGOT/outputs/segeval_pgot_memory8_full_coco_voc_ar/voc_ar/generated_captions.jsonl",
+    "caption_sha256": "53527757375571a0d3444330ec624790c1b64758d402afef36788077c6f3dc4e",
+    "scores": {
+      "adaslot": {
+        "fARI": 0.5001772480510758,
+        "mIoU": 0.17477548855308553,
+        "mBO": 0.202519965846287,
+        "pred_segments": 6,
+        "significant_gt_objects": 12,
+        "split_count": 6,
+        "merge_count": 6,
+        "split_gt_labels": [
+          1,
+          5,
+          7,
+          10,
+          12,
+          13
+        ],
+        "merged_pred_labels": [
+          1,
+          5,
+          7,
+          12,
+          14,
+          27
+        ],
+        "merge_gt_labels": {
+          "1": [
+            1,
+            7
+          ],
+          "5": [
+            5,
+            6,
+            12,
+            13
+          ],
+          "7": [
+            1,
+            7
+          ],
+          "12": [
+            2,
+            9,
+            10
+          ],
+          "14": [
+            3,
+            4,
+            5,
+            11
+          ],
+          "27": [
+            10,
+            12,
+            13
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 229190106,
+        "kept_slots": 6,
+        "slot_keep_probability_mean": 0.16616475582122803
+      },
+      "metaslot": {
+        "fARI": 0.45322922530124427,
+        "mIoU": 0.16417549771701465,
+        "mBO": 0.20172433267832654,
+        "pred_segments": 7,
+        "significant_gt_objects": 12,
+        "split_count": 4,
+        "merge_count": 6,
+        "split_gt_labels": [
+          1,
+          7,
+          9,
+          11
+        ],
+        "merged_pred_labels": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          6
+        ],
+        "merge_gt_labels": {
+          "0": [
+            2,
+            9,
+            10
+          ],
+          "1": [
+            12,
+            13
+          ],
+          "2": [
+            3,
+            11
+          ],
+          "3": [
+            1,
+            7
+          ],
+          "5": [
+            4,
+            5,
+            9,
+            11
+          ],
+          "6": [
+            6,
+            7
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 229190106,
+        "kept_slots": 7,
+        "slot_capacity": 7,
+        "prototype_keep_mask": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "prototype_indices": [
+          287,
+          216,
+          197,
+          12,
+          446,
+          119,
+          269
+        ]
+      },
+      "coda": {
+        "fARI": 0.720146238244749,
+        "mIoU": 0.24639349654150916,
+        "mBO": 0.2781598430870852,
+        "pred_segments": 7,
+        "significant_gt_objects": 12,
+        "split_count": 6,
+        "merge_count": 5,
+        "split_gt_labels": [
+          3,
+          5,
+          7,
+          10,
+          12,
+          13
+        ],
+        "merged_pred_labels": [
+          0,
+          1,
+          3,
+          4,
+          5
+        ],
+        "merge_gt_labels": {
+          "0": [
+            5,
+            12,
+            13
+          ],
+          "1": [
+            1,
+            2,
+            7
+          ],
+          "3": [
+            4,
+            9,
+            10
+          ],
+          "4": [
+            10,
+            11,
+            12,
+            13
+          ],
+          "5": [
+            5,
+            6,
+            7
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 229190106
+      },
+      "ours": {
+        "fARI": 0.4660447214716879,
+        "mIoU": 0.3220138768956332,
+        "mBO": 0.3466489341510353,
+        "pred_segments": 21,
+        "significant_gt_objects": 12,
+        "split_count": 4,
+        "merge_count": 3,
+        "split_gt_labels": [
+          1,
+          4,
+          6,
+          10
+        ],
+        "merged_pred_labels": [
+          0,
+          2,
+          5
+        ],
+        "merge_gt_labels": {
+          "0": [
+            1,
+            4,
+            5,
+            10,
+            11,
+            12,
+            13
+          ],
+          "2": [
+            4,
+            9
+          ],
+          "5": [
+            6,
+            7
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 20,
+        "caption_sha256": "53527757375571a0d3444330ec624790c1b64758d402afef36788077c6f3dc4e"
+      }
+    }
+  }
+]

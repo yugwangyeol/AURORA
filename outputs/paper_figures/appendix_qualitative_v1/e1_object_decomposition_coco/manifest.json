@@ -1,0 +1,2692 @@
+{
+  "dataset": "coco",
+  "model": "Reader-supervised DeOR-B",
+  "checkpoint": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000",
+  "selection": "GT-count-assisted qualitative selection; two cases per bin; not a benchmark",
+  "prediction_labels_modified": false,
+  "colour_matching": "Hungarian IoU matching for display colours only",
+  "overlay_alpha": 0.64,
+  "examples": [
+    {
+      "count_range": "1–3",
+      "id": "248631",
+      "scores": {
+        "adaslot": {
+          "fARI": 0.24319387222696048,
+          "mIoU": 0.47679991087823437,
+          "mBO": 0.4730449293174161,
+          "pred_segments": 5,
+          "significant_gt_objects": 2,
+          "split_count": 1,
+          "merge_count": 0,
+          "split_gt_labels": [
+            1
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 408847942,
+          "kept_slots": 5,
+          "slot_keep_probability_mean": 0.14809934794902802
+        },
+        "metaslot": {
+          "fARI": 0.20294565565703535,
+          "mIoU": 0.5139195511627358,
+          "mBO": 0.42651100403057385,
+          "pred_segments": 5,
+          "significant_gt_objects": 2,
+          "split_count": 1,
+          "merge_count": 0,
+          "split_gt_labels": [
+            1
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 408847942
+        },
+        "coda": {
+          "fARI": 0.16677795266528575,
+          "mIoU": 0.5658093368269226,
+          "mBO": 0.580181861869951,
+          "pred_segments": 7,
+          "significant_gt_objects": 2,
+          "split_count": 1,
+          "merge_count": 0,
+          "split_gt_labels": [
+            1
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 408847942
+        },
+        "ours": {
+          "fARI": 0.9065854454539101,
+          "mIoU": 0.9165209064660895,
+          "mBO": 0.8969956889055803,
+          "pred_segments": 3,
+          "significant_gt_objects": 2,
+          "split_count": 0,
+          "merge_count": 0,
+          "split_gt_labels": [],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "generated_objects": 2,
+          "caption_sha256": "7c8770eff44c60b546a878334d032f4d0c82bcb76fdea79e6a223bd0ca9a16c8"
+        }
+      },
+      "panels": {
+        "gt": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/248631/gt.npz",
+          "sha256": "90d1f22e6c4412a7ce6afa0d9081961f9fa7aa6ab60905119021c2f616f00175",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ]
+          }
+        },
+        "adaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/248631/adaslot.npz",
+          "sha256": "5a0c75e18406b1cdf331a0ee8f6d7457bfb044d8ba64b0d67552b10941c88d72",
+          "display_colours": {
+            "11": [
+              245,
+              55,
+              104
+            ],
+            "4": [
+              65,
+              235,
+              130
+            ],
+            "9": [
+              255,
+              211,
+              45
+            ],
+            "14": [
+              90,
+              110,
+              255
+            ],
+            "2": [
+              204,
+              65,
+              238
+            ]
+          }
+        },
+        "metaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/248631/metaslot.npz",
+          "sha256": "d6cfa8060b19196cb97885723f9a1344620df8829baf5cf313e8fd71bfc9009f",
+          "display_colours": {
+            "1": [
+              245,
+              55,
+              104
+            ],
+            "4": [
+              65,
+              235,
+              130
+            ],
+            "0": [
+              255,
+              211,
+              45
+            ],
+            "6": [
+              90,
+              110,
+              255
+            ],
+            "2": [
+              204,
+              65,
+              238
+            ]
+          }
+        },
+        "coda": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/248631/coda.npz",
+          "sha256": "2057fb10bc33414db419a242685d448c302a67b104dce7bd66a985b6c451bca8",
+          "display_colours": {
+            "4": [
+              245,
+              55,
+              104
+            ],
+            "6": [
+              65,
+              235,
+              130
+            ],
+            "1": [
+              255,
+              211,
+              45
+            ],
+            "3": [
+              90,
+              110,
+              255
+            ],
+            "0": [
+              204,
+              65,
+              238
+            ],
+            "5": [
+              35,
+              223,
+              223
+            ],
+            "2": [
+              255,
+              131,
+              30
+            ]
+          }
+        },
+        "ours": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/248631/ours.npz",
+          "sha256": "112e7a39f5d79188e9ff7e4dd3b429b22ea2265dccc0d4d8d02fccfb28661071",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ]
+          }
+        }
+      }
+    },
+    {
+      "count_range": "1–3",
+      "id": "402473",
+      "scores": {
+        "adaslot": {
+          "fARI": 0.6296809152401014,
+          "mIoU": 0.6913861661437347,
+          "mBO": 0.6225368451457053,
+          "pred_segments": 5,
+          "significant_gt_objects": 2,
+          "split_count": 1,
+          "merge_count": 0,
+          "split_gt_labels": [
+            2
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 2884032832,
+          "kept_slots": 5,
+          "slot_keep_probability_mean": 0.14753256738185883
+        },
+        "metaslot": {
+          "fARI": 0.5542472469629786,
+          "mIoU": 0.648768033112058,
+          "mBO": 0.5852711707375511,
+          "pred_segments": 4,
+          "significant_gt_objects": 2,
+          "split_count": 1,
+          "merge_count": 0,
+          "split_gt_labels": [
+            1
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 2884032832
+        },
+        "coda": {
+          "fARI": 0.42641463375932537,
+          "mIoU": 0.6534681072600155,
+          "mBO": 0.5426437154873093,
+          "pred_segments": 7,
+          "significant_gt_objects": 2,
+          "split_count": 2,
+          "merge_count": 0,
+          "split_gt_labels": [
+            1,
+            2
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 2884032832
+        },
+        "ours": {
+          "fARI": 0.9417525140535646,
+          "mIoU": 0.9411424891478261,
+          "mBO": 0.9347085070324064,
+          "pred_segments": 3,
+          "significant_gt_objects": 2,
+          "split_count": 0,
+          "merge_count": 0,
+          "split_gt_labels": [],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "generated_objects": 2,
+          "caption_sha256": "01018104c28a247fae574ddd6b9eb7458ab8165966b3aaab6bea1279ed713ca2"
+        }
+      },
+      "panels": {
+        "gt": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/402473/gt.npz",
+          "sha256": "857e77084d6df34dcec0e62da152b82c8a35222c5621896a84487986f4fdea12",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ]
+          }
+        },
+        "adaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/402473/adaslot.npz",
+          "sha256": "2c118556239fd2300e6ffff0d82dab11c97d8531a205032c1fdf5978b805d00f",
+          "display_colours": {
+            "4": [
+              245,
+              55,
+              104
+            ],
+            "10": [
+              65,
+              235,
+              130
+            ],
+            "9": [
+              255,
+              211,
+              45
+            ],
+            "1": [
+              90,
+              110,
+              255
+            ],
+            "24": [
+              204,
+              65,
+              238
+            ]
+          }
+        },
+        "metaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/402473/metaslot.npz",
+          "sha256": "c419c04ddb4a0d1a978d388e924448dbfcfb4edadec9b095efd67422d0845346",
+          "display_colours": {
+            "1": [
+              245,
+              55,
+              104
+            ],
+            "5": [
+              65,
+              235,
+              130
+            ],
+            "3": [
+              255,
+              211,
+              45
+            ],
+            "0": [
+              90,
+              110,
+              255
+            ]
+          }
+        },
+        "coda": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/402473/coda.npz",
+          "sha256": "a7eccc776a96a0e31d0fe331979ed03e2696ac9e2f2a2c4593043d57b6b1face",
+          "display_colours": {
+            "5": [
+              245,
+              55,
+              104
+            ],
+            "0": [
+              65,
+              235,
+              130
+            ],
+            "3": [
+              255,
+              211,
+              45
+            ],
+            "2": [
+              90,
+              110,
+              255
+            ],
+            "4": [
+              204,
+              65,
+              238
+            ],
+            "6": [
+              35,
+              223,
+              223
+            ],
+            "1": [
+              255,
+              131,
+              30
+            ]
+          }
+        },
+        "ours": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/402473/ours.npz",
+          "sha256": "780a56fefea5a651c086d9ae105e9df6346e97fba04abc110655a58416c98912",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "2": [
+              65,
+              235,
+              130
+            ],
+            "1": [
+              255,
+              211,
+              45
+            ]
+          }
+        }
+      }
+    },
+    {
+      "count_range": "4–6",
+      "id": "37740",
+      "scores": {
+        "adaslot": {
+          "fARI": 0.8960780236246393,
+          "mIoU": 0.2549587723527139,
+          "mBO": 0.2599864615510938,
+          "pred_segments": 9,
+          "significant_gt_objects": 6,
+          "split_count": 2,
+          "merge_count": 2,
+          "split_gt_labels": [
+            4,
+            6
+          ],
+          "merged_pred_labels": [
+            5,
+            24
+          ],
+          "merge_gt_labels": {
+            "5": [
+              3,
+              6
+            ],
+            "24": [
+              4,
+              6
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 520092898,
+          "kept_slots": 9,
+          "slot_keep_probability_mean": 0.2517380118370056
+        },
+        "metaslot": {
+          "fARI": 0.8017474060986766,
+          "mIoU": 0.17291058396607312,
+          "mBO": 0.1462722010514185,
+          "pred_segments": 5,
+          "significant_gt_objects": 6,
+          "split_count": 0,
+          "merge_count": 1,
+          "split_gt_labels": [],
+          "merged_pred_labels": [
+            1
+          ],
+          "merge_gt_labels": {
+            "1": [
+              2,
+              4,
+              6
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 520092898
+        },
+        "coda": {
+          "fARI": 0.9234173891449137,
+          "mIoU": 0.30454115733237774,
+          "mBO": 0.28288578285022437,
+          "pred_segments": 7,
+          "significant_gt_objects": 6,
+          "split_count": 0,
+          "merge_count": 1,
+          "split_gt_labels": [],
+          "merged_pred_labels": [
+            6
+          ],
+          "merge_gt_labels": {
+            "6": [
+              4,
+              6
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 520092898
+        },
+        "ours": {
+          "fARI": 0.9441550616071618,
+          "mIoU": 0.6718265013592636,
+          "mBO": 0.6419639981259264,
+          "pred_segments": 7,
+          "significant_gt_objects": 6,
+          "split_count": 0,
+          "merge_count": 0,
+          "split_gt_labels": [],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "generated_objects": 6,
+          "caption_sha256": "95b4dc3eff4a92418370449f7a1b5c4839c8553dd2c74ae5cb47df85c6436b25"
+        }
+      },
+      "panels": {
+        "gt": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/37740/gt.npz",
+          "sha256": "42517366f8cc5f8c4631934555825fe7be238973b498e28da54b1568b2a38e22",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ],
+            "3": [
+              90,
+              110,
+              255
+            ],
+            "4": [
+              204,
+              65,
+              238
+            ],
+            "5": [
+              35,
+              223,
+              223
+            ],
+            "6": [
+              255,
+              131,
+              30
+            ],
+            "7": [
+              135,
+              55,
+              225
+            ],
+            "8": [
+              212,
+              240,
+              55
+            ]
+          }
+        },
+        "adaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/37740/adaslot.npz",
+          "sha256": "5e955401bc142adb97249d180c458e37293fa9dba0de478dd978d8f9b3b59743",
+          "display_colours": {
+            "7": [
+              245,
+              55,
+              104
+            ],
+            "27": [
+              65,
+              235,
+              130
+            ],
+            "10": [
+              255,
+              211,
+              45
+            ],
+            "5": [
+              90,
+              110,
+              255
+            ],
+            "17": [
+              204,
+              65,
+              238
+            ],
+            "24": [
+              255,
+              131,
+              30
+            ],
+            "20": [
+              135,
+              55,
+              225
+            ],
+            "18": [
+              212,
+              240,
+              55
+            ],
+            "25": [
+              242,
+              80,
+              194
+            ]
+          }
+        },
+        "metaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/37740/metaslot.npz",
+          "sha256": "04daf189287d99ae0f742c88292ce5fe0bdda9c6e14ddc66befaff89ed390815",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "3": [
+              65,
+              235,
+              130
+            ],
+            "1": [
+              255,
+              211,
+              45
+            ],
+            "4": [
+              90,
+              110,
+              255
+            ],
+            "6": [
+              212,
+              240,
+              55
+            ]
+          }
+        },
+        "coda": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/37740/coda.npz",
+          "sha256": "51ea6c35ce0cc09d1bd53672972b4312979f920fb0cdfabdc59a9b411a239be1",
+          "display_colours": {
+            "3": [
+              245,
+              55,
+              104
+            ],
+            "2": [
+              65,
+              235,
+              130
+            ],
+            "5": [
+              255,
+              211,
+              45
+            ],
+            "4": [
+              90,
+              110,
+              255
+            ],
+            "6": [
+              204,
+              65,
+              238
+            ],
+            "0": [
+              135,
+              55,
+              225
+            ],
+            "1": [
+              212,
+              240,
+              55
+            ]
+          }
+        },
+        "ours": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/37740/ours.npz",
+          "sha256": "5ac873fe16f7316496fe4822b3cdbc742adf601a54e576a1869e193aa77dc81d",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "2": [
+              65,
+              235,
+              130
+            ],
+            "3": [
+              255,
+              211,
+              45
+            ],
+            "1": [
+              90,
+              110,
+              255
+            ],
+            "4": [
+              204,
+              65,
+              238
+            ],
+            "5": [
+              255,
+              131,
+              30
+            ],
+            "6": [
+              135,
+              55,
+              225
+            ]
+          }
+        }
+      }
+    },
+    {
+      "count_range": "4–6",
+      "id": "160556",
+      "scores": {
+        "adaslot": {
+          "fARI": 0.7108726717619611,
+          "mIoU": 0.2932807688051202,
+          "mBO": 0.30250163387932233,
+          "pred_segments": 6,
+          "significant_gt_objects": 6,
+          "split_count": 2,
+          "merge_count": 2,
+          "split_gt_labels": [
+            6,
+            7
+          ],
+          "merged_pred_labels": [
+            5,
+            8
+          ],
+          "merge_gt_labels": {
+            "5": [
+              3,
+              6,
+              7
+            ],
+            "8": [
+              2,
+              7
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 594318243,
+          "kept_slots": 6,
+          "slot_keep_probability_mean": 0.1818307489156723
+        },
+        "metaslot": {
+          "fARI": 0.5875698689560043,
+          "mIoU": 0.25859316448033154,
+          "mBO": 0.24379774838168147,
+          "pred_segments": 5,
+          "significant_gt_objects": 6,
+          "split_count": 2,
+          "merge_count": 2,
+          "split_gt_labels": [
+            1,
+            6
+          ],
+          "merged_pred_labels": [
+            0,
+            6
+          ],
+          "merge_gt_labels": {
+            "0": [
+              1,
+              2,
+              7
+            ],
+            "6": [
+              3,
+              6
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 594318243
+        },
+        "coda": {
+          "fARI": 0.6683336183816776,
+          "mIoU": 0.3213041850745125,
+          "mBO": 0.3239158687190093,
+          "pred_segments": 7,
+          "significant_gt_objects": 6,
+          "split_count": 0,
+          "merge_count": 2,
+          "split_gt_labels": [],
+          "merged_pred_labels": [
+            2,
+            5
+          ],
+          "merge_gt_labels": {
+            "2": [
+              3,
+              6
+            ],
+            "5": [
+              2,
+              7
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 594318243
+        },
+        "ours": {
+          "fARI": 0.8386614879021375,
+          "mIoU": 0.6647449102772975,
+          "mBO": 0.6316244812388504,
+          "pred_segments": 8,
+          "significant_gt_objects": 6,
+          "split_count": 0,
+          "merge_count": 0,
+          "split_gt_labels": [],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "generated_objects": 7,
+          "caption_sha256": "66dc826403dba2c5dd554a434ff69543666956e4e5657c6985d632c55703f272"
+        }
+      },
+      "panels": {
+        "gt": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/160556/gt.npz",
+          "sha256": "866afb009eab8e7e72820d30dee3f6b10f0ff68eaff4abdc1a213009339800b9",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ],
+            "3": [
+              90,
+              110,
+              255
+            ],
+            "4": [
+              204,
+              65,
+              238
+            ],
+            "5": [
+              35,
+              223,
+              223
+            ],
+            "6": [
+              255,
+              131,
+              30
+            ],
+            "7": [
+              135,
+              55,
+              225
+            ]
+          }
+        },
+        "adaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/160556/adaslot.npz",
+          "sha256": "f6919497dd8b68c2ff02e418fefa8832b094c58d53f4e836252fa3cae7913f2f",
+          "display_colours": {
+            "30": [
+              245,
+              55,
+              104
+            ],
+            "6": [
+              65,
+              235,
+              130
+            ],
+            "8": [
+              255,
+              211,
+              45
+            ],
+            "5": [
+              90,
+              110,
+              255
+            ],
+            "10": [
+              35,
+              223,
+              223
+            ],
+            "23": [
+              35,
+              165,
+              240
+            ]
+          }
+        },
+        "metaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/160556/metaslot.npz",
+          "sha256": "dd2f0ddb3e8dc645da173471d9ce3b261ec310bd99e1defec967da486943d879",
+          "display_colours": {
+            "1": [
+              245,
+              55,
+              104
+            ],
+            "5": [
+              65,
+              235,
+              130
+            ],
+            "0": [
+              255,
+              211,
+              45
+            ],
+            "6": [
+              90,
+              110,
+              255
+            ],
+            "2": [
+              35,
+              223,
+              223
+            ]
+          }
+        },
+        "coda": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/160556/coda.npz",
+          "sha256": "28ef9a109fc6167d443d8f901c0820c4eb6918549d26d78965f34b7a87c4b63a",
+          "display_colours": {
+            "4": [
+              245,
+              55,
+              104
+            ],
+            "6": [
+              65,
+              235,
+              130
+            ],
+            "5": [
+              255,
+              211,
+              45
+            ],
+            "2": [
+              90,
+              110,
+              255
+            ],
+            "3": [
+              204,
+              65,
+              238
+            ],
+            "0": [
+              35,
+              223,
+              223
+            ],
+            "1": [
+              35,
+              165,
+              240
+            ]
+          }
+        },
+        "ours": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/160556/ours.npz",
+          "sha256": "63071a3be5a9cc04ba9f3f5dd0459d4d14b15c1e0babccdbbc36437e2180146b",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "2": [
+              65,
+              235,
+              130
+            ],
+            "5": [
+              255,
+              211,
+              45
+            ],
+            "1": [
+              90,
+              110,
+              255
+            ],
+            "4": [
+              204,
+              65,
+              238
+            ],
+            "6": [
+              35,
+              223,
+              223
+            ],
+            "3": [
+              255,
+              131,
+              30
+            ],
+            "7": [
+              135,
+              55,
+              225
+            ]
+          }
+        }
+      }
+    },
+    {
+      "count_range": "7–10",
+      "id": "86582",
+      "scores": {
+        "adaslot": {
+          "fARI": 0.6190242841761011,
+          "mIoU": 0.23513089120367228,
+          "mBO": 0.25337283040874614,
+          "pred_segments": 8,
+          "significant_gt_objects": 7,
+          "split_count": 2,
+          "merge_count": 3,
+          "split_gt_labels": [
+            1,
+            4
+          ],
+          "merged_pred_labels": [
+            9,
+            18,
+            30
+          ],
+          "merge_gt_labels": {
+            "9": [
+              1,
+              4
+            ],
+            "18": [
+              1,
+              2,
+              3,
+              5
+            ],
+            "30": [
+              4,
+              6
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 2618506829,
+          "kept_slots": 8,
+          "slot_keep_probability_mean": 0.17115139961242676
+        },
+        "metaslot": {
+          "fARI": 0.7698757350122253,
+          "mIoU": 0.21774521920557913,
+          "mBO": 0.24162036957053692,
+          "pred_segments": 7,
+          "significant_gt_objects": 7,
+          "split_count": 1,
+          "merge_count": 2,
+          "split_gt_labels": [
+            4
+          ],
+          "merged_pred_labels": [
+            5,
+            6
+          ],
+          "merge_gt_labels": {
+            "5": [
+              4,
+              6
+            ],
+            "6": [
+              1,
+              3,
+              4,
+              5
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 2618506829
+        },
+        "coda": {
+          "fARI": 0.43407270090806277,
+          "mIoU": 0.17497861747532695,
+          "mBO": 0.23618912199045597,
+          "pred_segments": 7,
+          "significant_gt_objects": 7,
+          "split_count": 3,
+          "merge_count": 3,
+          "split_gt_labels": [
+            4,
+            5,
+            6
+          ],
+          "merged_pred_labels": [
+            0,
+            1,
+            5
+          ],
+          "merge_gt_labels": {
+            "0": [
+              1,
+              3,
+              4,
+              5
+            ],
+            "1": [
+              4,
+              5,
+              6
+            ],
+            "5": [
+              6,
+              7
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 2618506829
+        },
+        "ours": {
+          "fARI": 0.8717302233155765,
+          "mIoU": 0.7415096157852572,
+          "mBO": 0.7177255717381776,
+          "pred_segments": 10,
+          "significant_gt_objects": 7,
+          "split_count": 1,
+          "merge_count": 0,
+          "split_gt_labels": [
+            5
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "generated_objects": 9,
+          "caption_sha256": "4b69d4a2e1fe686545b3f6638f5f39cc4975201e706a93e44d8798da6d2b40f8"
+        }
+      },
+      "panels": {
+        "gt": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/86582/gt.npz",
+          "sha256": "7f059d3ce2733b475a5e00b9aa60dab0a8ec2b73fbbee728a775b3586c6bf396",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ],
+            "3": [
+              90,
+              110,
+              255
+            ],
+            "4": [
+              204,
+              65,
+              238
+            ],
+            "5": [
+              35,
+              223,
+              223
+            ],
+            "6": [
+              255,
+              131,
+              30
+            ],
+            "7": [
+              135,
+              55,
+              225
+            ]
+          }
+        },
+        "adaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/86582/adaslot.npz",
+          "sha256": "0154c5465af809598a08caf81a560bdd21d66e1104bfc964dae8fbabad83e9a2",
+          "display_colours": {
+            "19": [
+              245,
+              55,
+              104
+            ],
+            "9": [
+              204,
+              65,
+              238
+            ],
+            "18": [
+              35,
+              223,
+              223
+            ],
+            "30": [
+              255,
+              131,
+              30
+            ],
+            "17": [
+              135,
+              55,
+              225
+            ],
+            "10": [
+              35,
+              165,
+              240
+            ],
+            "14": [
+              212,
+              240,
+              55
+            ],
+            "26": [
+              242,
+              80,
+              194
+            ]
+          }
+        },
+        "metaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/86582/metaslot.npz",
+          "sha256": "105bbe7caf07f9f4118dd565a786f0006c81fc33798a9efccff4182ec8192b54",
+          "display_colours": {
+            "1": [
+              245,
+              55,
+              104
+            ],
+            "6": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ],
+            "5": [
+              255,
+              131,
+              30
+            ],
+            "3": [
+              135,
+              55,
+              225
+            ],
+            "4": [
+              35,
+              165,
+              240
+            ],
+            "0": [
+              212,
+              240,
+              55
+            ]
+          }
+        },
+        "coda": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/86582/coda.npz",
+          "sha256": "73a634b4c1007d040b4c27b0de2a90c6075b40d2218f0e0c7ece2c7f8d42190e",
+          "display_colours": {
+            "2": [
+              245,
+              55,
+              104
+            ],
+            "0": [
+              65,
+              235,
+              130
+            ],
+            "4": [
+              255,
+              211,
+              45
+            ],
+            "3": [
+              35,
+              223,
+              223
+            ],
+            "1": [
+              255,
+              131,
+              30
+            ],
+            "5": [
+              135,
+              55,
+              225
+            ],
+            "6": [
+              35,
+              165,
+              240
+            ]
+          }
+        },
+        "ours": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/86582/ours.npz",
+          "sha256": "f46e4e6904ec46f15166f3f82e07b93ebb4f68387904a42bf9608295839dadcd",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "3": [
+              65,
+              235,
+              130
+            ],
+            "4": [
+              255,
+              211,
+              45
+            ],
+            "7": [
+              90,
+              110,
+              255
+            ],
+            "6": [
+              204,
+              65,
+              238
+            ],
+            "9": [
+              35,
+              223,
+              223
+            ],
+            "1": [
+              255,
+              131,
+              30
+            ],
+            "5": [
+              135,
+              55,
+              225
+            ],
+            "2": [
+              35,
+              165,
+              240
+            ],
+            "8": [
+              212,
+              240,
+              55
+            ]
+          }
+        }
+      }
+    },
+    {
+      "count_range": "7–10",
+      "id": "166478",
+      "scores": {
+        "adaslot": {
+          "fARI": 0.39977055299069325,
+          "mIoU": 0.2828829429112128,
+          "mBO": 0.27104174757244825,
+          "pred_segments": 7,
+          "significant_gt_objects": 7,
+          "split_count": 3,
+          "merge_count": 3,
+          "split_gt_labels": [
+            1,
+            3,
+            7
+          ],
+          "merged_pred_labels": [
+            7,
+            10,
+            14
+          ],
+          "merge_gt_labels": {
+            "7": [
+              3,
+              7
+            ],
+            "10": [
+              4,
+              5
+            ],
+            "14": [
+              1,
+              2,
+              7
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 1302876552,
+          "kept_slots": 7,
+          "slot_keep_probability_mean": 0.2052002102136612
+        },
+        "metaslot": {
+          "fARI": 0.44066292529886975,
+          "mIoU": 0.31262320515109987,
+          "mBO": 0.26145575645069014,
+          "pred_segments": 6,
+          "significant_gt_objects": 7,
+          "split_count": 3,
+          "merge_count": 3,
+          "split_gt_labels": [
+            1,
+            2,
+            3
+          ],
+          "merged_pred_labels": [
+            0,
+            5,
+            6
+          ],
+          "merge_gt_labels": {
+            "0": [
+              4,
+              5
+            ],
+            "5": [
+              2,
+              3,
+              7
+            ],
+            "6": [
+              1,
+              2
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 1302876552
+        },
+        "coda": {
+          "fARI": 0.6509624190590665,
+          "mIoU": 0.4060267382692383,
+          "mBO": 0.3794503587620038,
+          "pred_segments": 7,
+          "significant_gt_objects": 7,
+          "split_count": 1,
+          "merge_count": 2,
+          "split_gt_labels": [
+            3
+          ],
+          "merged_pred_labels": [
+            5,
+            6
+          ],
+          "merge_gt_labels": {
+            "5": [
+              2,
+              7
+            ],
+            "6": [
+              4,
+              5
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 1302876552
+        },
+        "ours": {
+          "fARI": 0.9020917496611556,
+          "mIoU": 0.7525519412399562,
+          "mBO": 0.738006249396573,
+          "pred_segments": 9,
+          "significant_gt_objects": 7,
+          "split_count": 1,
+          "merge_count": 0,
+          "split_gt_labels": [
+            4
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "generated_objects": 8,
+          "caption_sha256": "979a326f50a2c6ce56b185a033d56ff34dd104fe285df7ce6a5df96490949f50"
+        }
+      },
+      "panels": {
+        "gt": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/166478/gt.npz",
+          "sha256": "22758ed94a9a52442778cfabaf2bd5e2b8b2ac9bd88dd2120935c2dfd0a1530c",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ],
+            "3": [
+              90,
+              110,
+              255
+            ],
+            "4": [
+              204,
+              65,
+              238
+            ],
+            "5": [
+              35,
+              223,
+              223
+            ],
+            "6": [
+              255,
+              131,
+              30
+            ],
+            "7": [
+              135,
+              55,
+              225
+            ]
+          }
+        },
+        "adaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/166478/adaslot.npz",
+          "sha256": "3b9fd88edc2976f3b4fe1bfb1d20aaa8b58a16aa78c64fb283c1ca01cc026024",
+          "display_colours": {
+            "12": [
+              245,
+              55,
+              104
+            ],
+            "9": [
+              65,
+              235,
+              130
+            ],
+            "14": [
+              255,
+              211,
+              45
+            ],
+            "7": [
+              90,
+              110,
+              255
+            ],
+            "10": [
+              35,
+              223,
+              223
+            ],
+            "32": [
+              255,
+              131,
+              30
+            ],
+            "11": [
+              35,
+              165,
+              240
+            ]
+          }
+        },
+        "metaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/166478/metaslot.npz",
+          "sha256": "f93440c4349f6efadf200ae007e7d232a7792a715ceed047a930a61fe3d33a60",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "3": [
+              65,
+              235,
+              130
+            ],
+            "6": [
+              255,
+              211,
+              45
+            ],
+            "5": [
+              90,
+              110,
+              255
+            ],
+            "4": [
+              255,
+              131,
+              30
+            ],
+            "2": [
+              35,
+              165,
+              240
+            ]
+          }
+        },
+        "coda": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/166478/coda.npz",
+          "sha256": "b0a52ae0796551029c5d1c66a4fb5b9ed251558ba7fa8631a43e16e260361745",
+          "display_colours": {
+            "6": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "5": [
+              255,
+              211,
+              45
+            ],
+            "4": [
+              90,
+              110,
+              255
+            ],
+            "2": [
+              255,
+              131,
+              30
+            ],
+            "3": [
+              135,
+              55,
+              225
+            ],
+            "0": [
+              35,
+              165,
+              240
+            ]
+          }
+        },
+        "ours": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_over_under/cache/coco/166478/ours.npz",
+          "sha256": "8060d64b308b0c335ffc05f313864518dca3f44cb7a6a169db42c1cd6c4a26d3",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "8": [
+              255,
+              211,
+              45
+            ],
+            "2": [
+              90,
+              110,
+              255
+            ],
+            "7": [
+              204,
+              65,
+              238
+            ],
+            "4": [
+              35,
+              223,
+              223
+            ],
+            "3": [
+              255,
+              131,
+              30
+            ],
+            "6": [
+              135,
+              55,
+              225
+            ],
+            "5": [
+              35,
+              165,
+              240
+            ]
+          }
+        }
+      }
+    },
+    {
+      "count_range": "11+",
+      "id": "66926",
+      "scores": {
+        "adaslot": {
+          "fARI": 0.37288732714685935,
+          "mIoU": 0.13463998913550473,
+          "mBO": 0.20607195375695156,
+          "pred_segments": 7,
+          "significant_gt_objects": 11,
+          "split_count": 4,
+          "merge_count": 3,
+          "split_gt_labels": [
+            1,
+            2,
+            4,
+            11
+          ],
+          "merged_pred_labels": [
+            0,
+            16,
+            22
+          ],
+          "merge_gt_labels": {
+            "0": [
+              4,
+              11
+            ],
+            "16": [
+              1,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "22": [
+              1,
+              3
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 3876027723,
+          "kept_slots": 7,
+          "slot_keep_probability_mean": 0.1916404515504837
+        },
+        "metaslot": {
+          "fARI": 0.35542943720348824,
+          "mIoU": 0.13456317807959467,
+          "mBO": 0.18312002148991915,
+          "pred_segments": 5,
+          "significant_gt_objects": 11,
+          "split_count": 6,
+          "merge_count": 3,
+          "split_gt_labels": [
+            2,
+            3,
+            6,
+            8,
+            9,
+            11
+          ],
+          "merged_pred_labels": [
+            0,
+            2,
+            4
+          ],
+          "merge_gt_labels": {
+            "0": [
+              2,
+              3
+            ],
+            "2": [
+              1,
+              6,
+              8,
+              9,
+              11
+            ],
+            "4": [
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 3876027723,
+          "kept_slots": 5,
+          "slot_capacity": 7,
+          "prototype_keep_mask": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            false,
+            false
+          ],
+          "prototype_indices": [
+            43,
+            392,
+            411,
+            131,
+            162,
+            43,
+            43
+          ]
+        },
+        "coda": {
+          "fARI": 0.27970203607588895,
+          "mIoU": 0.09695186309304282,
+          "mBO": 0.16146207350945602,
+          "pred_segments": 7,
+          "significant_gt_objects": 11,
+          "split_count": 3,
+          "merge_count": 2,
+          "split_gt_labels": [
+            1,
+            4,
+            10
+          ],
+          "merged_pred_labels": [
+            3,
+            4
+          ],
+          "merge_gt_labels": {
+            "3": [
+              1,
+              2,
+              3,
+              4,
+              11
+            ],
+            "4": [
+              1,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 3876027723
+        },
+        "ours": {
+          "fARI": 0.750386277709341,
+          "mIoU": 0.5622319003765075,
+          "mBO": 0.6152424418365553,
+          "pred_segments": 11,
+          "significant_gt_objects": 11,
+          "split_count": 3,
+          "merge_count": 2,
+          "split_gt_labels": [
+            2,
+            3,
+            7
+          ],
+          "merged_pred_labels": [
+            0,
+            4
+          ],
+          "merge_gt_labels": {
+            "0": [
+              2,
+              3,
+              7,
+              10
+            ],
+            "4": [
+              3,
+              9
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "generated_objects": 11,
+          "caption_sha256": "66fb79ab2bb74706dd70adc96fa902a45b78a0083228848a08f8f935bbd2c582"
+        }
+      },
+      "panels": {
+        "gt": {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/dense_scene_eval/cache/coco/66926/gt.npz",
+          "sha256": "991c2f7c9bb32a25aa4003e69f6a6bf4bcb04f30a1120b76a0418d588caf7093",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ],
+            "3": [
+              90,
+              110,
+              255
+            ],
+            "4": [
+              204,
+              65,
+              238
+            ],
+            "5": [
+              35,
+              223,
+              223
+            ],
+            "6": [
+              255,
+              131,
+              30
+            ],
+            "7": [
+              135,
+              55,
+              225
+            ],
+            "8": [
+              35,
+              165,
+              240
+            ],
+            "9": [
+              212,
+              240,
+              55
+            ],
+            "10": [
+              242,
+              80,
+              194
+            ],
+            "11": [
+              25,
+              190,
+              120
+            ]
+          }
+        },
+        "adaslot": {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/dense_scene_eval/cache/coco/66926/adaslot.npz",
+          "sha256": "11384eecbd42cf8bc1ddd1a7de4bc94bf2227eb6431a5559cec2f0a5e5ac013e",
+          "display_colours": {
+            "20": [
+              245,
+              55,
+              104
+            ],
+            "22": [
+              65,
+              235,
+              130
+            ],
+            "10": [
+              255,
+              211,
+              45
+            ],
+            "16": [
+              255,
+              131,
+              30
+            ],
+            "0": [
+              25,
+              190,
+              120
+            ],
+            "19": [
+              35,
+              247,
+              141
+            ],
+            "12": [
+              247,
+              79,
+              35
+            ]
+          }
+        },
+        "metaslot": {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/dense_scene_eval/cache/coco/66926/metaslot.npz",
+          "sha256": "3febfde33c63b78c9e964fd645efa41c3a2cf27055e21978da533888c2351ee4",
+          "display_colours": {
+            "1": [
+              245,
+              55,
+              104
+            ],
+            "2": [
+              65,
+              235,
+              130
+            ],
+            "0": [
+              255,
+              211,
+              45
+            ],
+            "4": [
+              25,
+              190,
+              120
+            ],
+            "3": [
+              35,
+              247,
+              141
+            ]
+          }
+        },
+        "coda": {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/dense_scene_eval/cache/coco/66926/coda.npz",
+          "sha256": "95cabe4d7bf78291966bb122d6471d2cec280cc97f205cf36220f60b1938deaf",
+          "display_colours": {
+            "2": [
+              245,
+              55,
+              104
+            ],
+            "6": [
+              65,
+              235,
+              130
+            ],
+            "3": [
+              255,
+              211,
+              45
+            ],
+            "4": [
+              255,
+              131,
+              30
+            ],
+            "0": [
+              135,
+              55,
+              225
+            ],
+            "5": [
+              212,
+              240,
+              55
+            ],
+            "1": [
+              25,
+              190,
+              120
+            ]
+          }
+        },
+        "ours": {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/dense_scene_eval/cache/coco/66926/ours.npz",
+          "sha256": "8582814758c888512b0a57c3749d3cc78d29b346e71897558128e1051e876b9e",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "3": [
+              65,
+              235,
+              130
+            ],
+            "1": [
+              255,
+              211,
+              45
+            ],
+            "10": [
+              204,
+              65,
+              238
+            ],
+            "7": [
+              35,
+              223,
+              223
+            ],
+            "8": [
+              255,
+              131,
+              30
+            ],
+            "9": [
+              135,
+              55,
+              225
+            ],
+            "5": [
+              35,
+              165,
+              240
+            ],
+            "4": [
+              212,
+              240,
+              55
+            ],
+            "6": [
+              242,
+              80,
+              194
+            ],
+            "2": [
+              25,
+              190,
+              120
+            ]
+          }
+        }
+      }
+    },
+    {
+      "count_range": "11+",
+      "id": "537506",
+      "scores": {
+        "adaslot": {
+          "fARI": 0.5754199441612161,
+          "mIoU": 0.20441564345353244,
+          "mBO": 0.2488675609192659,
+          "pred_segments": 9,
+          "significant_gt_objects": 11,
+          "split_count": 1,
+          "merge_count": 4,
+          "split_gt_labels": [
+            5
+          ],
+          "merged_pred_labels": [
+            2,
+            6,
+            18,
+            25
+          ],
+          "merge_gt_labels": {
+            "2": [
+              3,
+              11
+            ],
+            "6": [
+              6,
+              7,
+              10
+            ],
+            "18": [
+              1,
+              2,
+              5
+            ],
+            "25": [
+              8,
+              9
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 869509527,
+          "kept_slots": 9,
+          "slot_keep_probability_mean": 0.2608724534511566
+        },
+        "metaslot": {
+          "fARI": 0.5264483650957585,
+          "mIoU": 0.20138001637971,
+          "mBO": 0.23888490940150608,
+          "pred_segments": 7,
+          "significant_gt_objects": 11,
+          "split_count": 4,
+          "merge_count": 5,
+          "split_gt_labels": [
+            1,
+            3,
+            5,
+            11
+          ],
+          "merged_pred_labels": [
+            1,
+            2,
+            3,
+            5,
+            6
+          ],
+          "merge_gt_labels": {
+            "1": [
+              3,
+              11
+            ],
+            "2": [
+              1,
+              2,
+              4,
+              5,
+              11
+            ],
+            "3": [
+              8,
+              9
+            ],
+            "5": [
+              6,
+              7,
+              10
+            ],
+            "6": [
+              1,
+              3
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 869509527,
+          "kept_slots": 7,
+          "slot_capacity": 7,
+          "prototype_keep_mask": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "prototype_indices": [
+            323,
+            16,
+            46,
+            361,
+            89,
+            498,
+            32
+          ]
+        },
+        "coda": {
+          "fARI": 0.533504390031155,
+          "mIoU": 0.22287190362833742,
+          "mBO": 0.2604398419365997,
+          "pred_segments": 7,
+          "significant_gt_objects": 11,
+          "split_count": 3,
+          "merge_count": 5,
+          "split_gt_labels": [
+            4,
+            8,
+            11
+          ],
+          "merged_pred_labels": [
+            0,
+            3,
+            4,
+            5,
+            6
+          ],
+          "merge_gt_labels": {
+            "0": [
+              1,
+              2,
+              4,
+              11
+            ],
+            "3": [
+              8,
+              9
+            ],
+            "4": [
+              4,
+              8
+            ],
+            "5": [
+              6,
+              7,
+              10
+            ],
+            "6": [
+              3,
+              11
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 869509527
+        },
+        "ours": {
+          "fARI": 0.6973479301123927,
+          "mIoU": 0.5111819055738346,
+          "mBO": 0.5023472006549748,
+          "pred_segments": 11,
+          "significant_gt_objects": 11,
+          "split_count": 1,
+          "merge_count": 2,
+          "split_gt_labels": [
+            6
+          ],
+          "merged_pred_labels": [
+            0,
+            3
+          ],
+          "merge_gt_labels": {
+            "0": [
+              3,
+              6,
+              10,
+              11
+            ],
+            "3": [
+              8,
+              9
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "generated_objects": 10,
+          "caption_sha256": "baab30016c475aa99bc7b5471c86b4b0efaa2a639a23801277a8a1eaa64336c3"
+        }
+      },
+      "panels": {
+        "gt": {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/dense_scene_eval/cache/coco/537506/gt.npz",
+          "sha256": "885712f1415545ecb5adbdce4b93464f195c99eaded6ca852f02eea575ab0cf5",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ],
+            "3": [
+              90,
+              110,
+              255
+            ],
+            "4": [
+              204,
+              65,
+              238
+            ],
+            "5": [
+              35,
+              223,
+              223
+            ],
+            "6": [
+              255,
+              131,
+              30
+            ],
+            "7": [
+              135,
+              55,
+              225
+            ],
+            "8": [
+              35,
+              165,
+              240
+            ],
+            "9": [
+              212,
+              240,
+              55
+            ],
+            "10": [
+              242,
+              80,
+              194
+            ],
+            "11": [
+              25,
+              190,
+              120
+            ]
+          }
+        },
+        "adaslot": {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/dense_scene_eval/cache/coco/537506/adaslot.npz",
+          "sha256": "8622c60c15072c25a1ef649e280bbc6875904d83d647bf9dfc5fc34ffcd1d59d",
+          "display_colours": {
+            "3": [
+              245,
+              55,
+              104
+            ],
+            "18": [
+              65,
+              235,
+              130
+            ],
+            "19": [
+              204,
+              65,
+              238
+            ],
+            "29": [
+              35,
+              223,
+              223
+            ],
+            "6": [
+              255,
+              131,
+              30
+            ],
+            "8": [
+              135,
+              55,
+              225
+            ],
+            "25": [
+              212,
+              240,
+              55
+            ],
+            "2": [
+              25,
+              190,
+              120
+            ],
+            "13": [
+              35,
+              247,
+              141
+            ]
+          }
+        },
+        "metaslot": {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/dense_scene_eval/cache/coco/537506/metaslot.npz",
+          "sha256": "e80cfb0688a5257bee7745d4a484fae57c577c959283ac3388e32acc0e9de040",
+          "display_colours": {
+            "1": [
+              245,
+              55,
+              104
+            ],
+            "6": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              204,
+              65,
+              238
+            ],
+            "4": [
+              35,
+              223,
+              223
+            ],
+            "5": [
+              255,
+              131,
+              30
+            ],
+            "3": [
+              212,
+              240,
+              55
+            ],
+            "0": [
+              242,
+              80,
+              194
+            ]
+          }
+        },
+        "coda": {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/dense_scene_eval/cache/coco/537506/coda.npz",
+          "sha256": "9dcd34e59ebecd0cb2e14d287455dbb8423de1a6bd71a73c113eca9613f633d1",
+          "display_colours": {
+            "1": [
+              245,
+              55,
+              104
+            ],
+            "0": [
+              65,
+              235,
+              130
+            ],
+            "6": [
+              90,
+              110,
+              255
+            ],
+            "4": [
+              204,
+              65,
+              238
+            ],
+            "2": [
+              35,
+              223,
+              223
+            ],
+            "5": [
+              255,
+              131,
+              30
+            ],
+            "3": [
+              212,
+              240,
+              55
+            ]
+          }
+        },
+        "ours": {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/dense_scene_eval/cache/coco/537506/ours.npz",
+          "sha256": "4ed95d887b56712c4e0d55a7d78e39e8a355352a06ef8f0ab546ad2e7bc70588",
+          "display_colours": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "4": [
+              65,
+              235,
+              130
+            ],
+            "9": [
+              255,
+              211,
+              45
+            ],
+            "2": [
+              204,
+              65,
+              238
+            ],
+            "1": [
+              35,
+              223,
+              223
+            ],
+            "6": [
+              255,
+              131,
+              30
+            ],
+            "8": [
+              135,
+              55,
+              225
+            ],
+            "5": [
+              35,
+              165,
+              240
+            ],
+            "3": [
+              212,
+              240,
+              55
+            ],
+            "7": [
+              25,
+              190,
+              120
+            ],
+            "10": [
+              35,
+              247,
+              141
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

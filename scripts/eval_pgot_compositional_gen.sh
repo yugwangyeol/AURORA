@@ -5,9 +5,14 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MODEL_PATH="${MODEL_PATH:-${PROJECT_ROOT}/checkpoints/pgot_oneshot_memory4_content/checkpoint-5000}"
-VAL_JSONL="${VAL_JSONL:-${PROJECT_ROOT}/data/pgot_pix2cap_generated_val5k.jsonl}"
+FULL_VAL_JSONL="${PROJECT_ROOT}/data/pgot_pix2cap_generated_val_full5000.jsonl"
+VAL_JSONL="${VAL_JSONL:-${FULL_VAL_JSONL}}"
 OUTPUT_DIR="${OUTPUT_DIR:-${PROJECT_ROOT}/outputs/compgen_pgot_oneshot_memory4_content}"
 PYTHON="${PYTHON:-/home/jovyan/.conda/envs/scale_rae/bin/python}"
+
+if [[ "${VAL_JSONL}" == "${FULL_VAL_JSONL}" ]]; then
+    bash "${PROJECT_ROOT}/scripts/prepare_pgot_compositional_full5000.sh"
+fi
 
 for path in "${MODEL_PATH}/config.json" "${VAL_JSONL}"; do
     test -e "${path}" || { echo "Missing required path: ${path}" >&2; exit 1; }
@@ -22,9 +27,11 @@ if [[ -n "${MAX_SAMPLES:-}" ]]; then EXTRA_ARGS+=(--max_samples "${MAX_SAMPLES}"
 
 "${PYTHON}" -m pgot.eval.run_compositional_gen \
     --model_path "${MODEL_PATH}" --val_jsonl "${VAL_JSONL}" --output_dir "${OUTPUT_DIR}" \
+    --expected_samples "${EXPECTED_SAMPLES:-5000}" \
     --batch_size "${BATCH_SIZE:-4}" --num_workers "${NUM_WORKERS:-4}" \
     --grid_size 32 --max_caption_tokens 1024 --n_ovt_per_object 1 --max_objects 50 \
     --image_preprocess_mode coda_center_crop --coda_crop_size 512 \
+    --metric_resolution "${METRIC_RESOLUTION:-0}" \
     --dtype "${DTYPE:-fp32}" --guidance_scale "${GUIDANCE_SCALE:-1.0}" \
     --diffusion_inference_steps "${DIFFUSION_INFERENCE_STEPS:-10}" \
     --mix_mode "${MIX_MODE:-random_slots}" --register_source "${REGISTER_SOURCE:-random}" \

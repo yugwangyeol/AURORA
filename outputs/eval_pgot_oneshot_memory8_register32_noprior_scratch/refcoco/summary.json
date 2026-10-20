@@ -1,0 +1,196 @@
+{
+  "fingerprint": "0071e5ed9754e786b95d2a2ce05ebb408f94c9d988f1b039cc698a584615faee",
+  "config": {
+    "model_path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_scratch/checkpoint-5000",
+    "data_root": "/home/jovyan/data/coco",
+    "image_root": "/home/jovyan/data/coco",
+    "dataset": "refcoco",
+    "split_by": "unc",
+    "splits": [
+      "val",
+      "testA",
+      "testB"
+    ],
+    "max_refs": 0,
+    "max_samples": 0,
+    "eval_size": 512,
+    "dtype": "fp32",
+    "seed": 0,
+    "max_objects": 50,
+    "max_caption_tokens": 4096,
+    "ctrlo_repo": "/home/jovyan/baselines/CTRL-O",
+    "checkpoint_dir": "/home/jovyan/baselines/ckpt/ctrlo",
+    "text_mode": "description",
+    "llm2vec_base": "McGill-NLP/LLM2Vec-Meta-Llama-3-8B-Instruct-mntp",
+    "llm2vec_adapter": "McGill-NLP/LLM2Vec-Meta-Llama-3-8B-Instruct-mntp-unsup-simcse",
+    "embedding_max_length": 1024,
+    "version": 1,
+    "annotation_hashes": {
+      "refs": "d4a8dd3152f130127924f9d0f0ea30f4dc43ec19e1b47bc55af972f90614f8ba",
+      "instances": "7f86adb7f4c39db19c7f02a3cc604d17f8016e4c4e8312652d0acc4eae3a2cbd"
+    },
+    "ctrlo_checkpoint_sha256": "917192af557b15b973b3d94297546b47b0e866f4f460adf1786702ba9c6ec48e",
+    "ctrlo_config_sha256": "3df5e072be4924cb6784eaa1adf0fd73cc6c6422f300d2132bb2c9734a183a05",
+    "deor_checkpoint_hashes": {
+      "model-00001-of-00004.safetensors": "e0874a8ff850f4313e07b5dbbe2720a00e744e86e049fd0b325c859b4a4bc7f5",
+      "model-00002-of-00004.safetensors": "f113661cadca23f4f41b03b8e30c9bd9b5191abe484e49737623f2a03597aa7a",
+      "model-00003-of-00004.safetensors": "b89199df86d5d9e66bbe01514e701ffeb82c27218791f17b6e902242905d2799",
+      "model-00004-of-00004.safetensors": "b98f8d9032d2331fcea4b505b785715566097a1df419b0f86d869871bd3a2397"
+    },
+    "deor_config_sha256": "e0b3abf074efc95add63144441fba776965e9599407b1af306c4b4cf02e33e4c"
+  },
+  "protocol": {
+    "task": "referring_expression_segmentation",
+    "query_source": "original human referring expressions; every sentence, no rewriting",
+    "selection": "full official split or deterministic ref-ID/sentence-ID prefix; no quality filtering",
+    "deor": "one external expression in fixed Object 1 structural header, one OVT; NOT image-only AR",
+    "ctrlo": "one expression-bound slot (slot 0), six unbound slots; no GT-best selection",
+    "image": "entire image resized to 512 square, no crop or flip; native model processors afterward",
+    "mask": "bilinear ownership probability resize to ORIGINAL H,W, then argmax against all valid competitors",
+    "target": "the exact referred annotation; no class matching, Hungarian matching, or other-object repair",
+    "inference_gt_inputs": "none: no target class, mask, box, coordinates, or other object descriptions",
+    "metrics": "expression-weighted mIoU, pixel-aggregated oIoU, P@0.5/0.6/0.7/0.8/0.9; empty predictions retained",
+    "supervision": "frozen checkpoints, no additional RefCOCO training",
+    "limitations": "COCO-trained checkpoints may have seen these images during COCO training; NOT unseen-image zero-shot. Released CTRL-O VG+COCO checkpoint is not a reproduction of Table 3 VG checkpoints.",
+    "full_split_evaluated": true
+  },
+  "model_info": {
+    "deor": {
+      "checkpoint": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_scratch/checkpoint-5000",
+      "caption_mode": "external_original_referring_expression",
+      "structural_header": "Object 1",
+      "object_memory": 8,
+      "register_memory": 32,
+      "writer_prior": false,
+      "gt_class_input": false,
+      "gt_mask_input": false,
+      "gt_point_input": false,
+      "dtype": "fp32"
+    },
+    "ctrlo": {
+      "checkpoint": "/home/jovyan/baselines/ckpt/ctrlo/pretrained_model.ckpt",
+      "global_step": 71000,
+      "loaded_model_tensors": 272,
+      "strict": true,
+      "conditioning": "routed.ocl.conditioning.LangConditioning",
+      "query_protocol": "original human expression; one bound slot + six unbound slots",
+      "image_preprocessing": "entire image bilinear 512 square resize, then 224 square; no crop",
+      "slots": 7,
+      "seed": 0,
+      "dtype": "float32",
+      "point_input": "-1 sentinel as official visualization; LangConditioning ignores points",
+      "selection": "fixed input-associated slot; never GT-best",
+      "mask_readout": "bilinear to original H,W; argmax over all seven slots; query slot 0 only",
+      "released_training_shards": "${oc.env:DATASET_PREFIX}/vg_coco/train/shard-{000000..001100}.tar"
+    }
+  },
+  "by_split": {
+    "val": {
+      "deor": {
+        "num_expressions": 10834,
+        "num_images": 1500,
+        "num_references": 3811,
+        "mIoU": 0.404751318812471,
+        "oIoU": 0.3950980419663121,
+        "empty_masks": 18,
+        "precision_at_iou": {
+          "0.50": 0.33127192172789366,
+          "0.60": 0.21709433265645192,
+          "0.70": 0.12866900498430867,
+          "0.80": 0.06239616023629315,
+          "0.90": 0.012645375669189588
+        }
+      },
+      "ctrlo": {
+        "num_expressions": 10834,
+        "num_images": 1500,
+        "num_references": 3811,
+        "mIoU": 0.23227441138243704,
+        "oIoU": 0.2399211296670319,
+        "empty_masks": 154,
+        "precision_at_iou": {
+          "0.50": 0.1084548643160421,
+          "0.60": 0.050858408713309954,
+          "0.70": 0.016060550119992616,
+          "0.80": 0.0029536643898836995,
+          "0.90": 9.230201218386561e-05
+        }
+      }
+    },
+    "testA": {
+      "deor": {
+        "num_expressions": 5657,
+        "num_images": 750,
+        "num_references": 1975,
+        "mIoU": 0.41364788130573155,
+        "oIoU": 0.4125150503308913,
+        "empty_masks": 4,
+        "precision_at_iou": {
+          "0.50": 0.3372812444758706,
+          "0.60": 0.21902068234046315,
+          "0.70": 0.1230334099345943,
+          "0.80": 0.05833480643450592,
+          "0.90": 0.01060632844263744
+        }
+      },
+      "ctrlo": {
+        "num_expressions": 5657,
+        "num_images": 750,
+        "num_references": 1975,
+        "mIoU": 0.2508329531900737,
+        "oIoU": 0.26115065734837445,
+        "empty_masks": 67,
+        "precision_at_iou": {
+          "0.50": 0.13735195333215486,
+          "0.60": 0.06664309704790525,
+          "0.70": 0.02333392257380237,
+          "0.80": 0.004772847799186848,
+          "0.90": 0.00035354428142124803
+        }
+      }
+    },
+    "testB": {
+      "deor": {
+        "num_expressions": 5095,
+        "num_images": 750,
+        "num_references": 1810,
+        "mIoU": 0.4066534840352044,
+        "oIoU": 0.38656929814821156,
+        "empty_masks": 7,
+        "precision_at_iou": {
+          "0.50": 0.32993130520117764,
+          "0.60": 0.2239450441609421,
+          "0.70": 0.14170755642787047,
+          "0.80": 0.07654563297350343,
+          "0.90": 0.014327772325809618
+        }
+      },
+      "ctrlo": {
+        "num_expressions": 5095,
+        "num_images": 750,
+        "num_references": 1810,
+        "mIoU": 0.22369455137807526,
+        "oIoU": 0.2342655354834977,
+        "empty_masks": 89,
+        "precision_at_iou": {
+          "0.50": 0.08243375858684986,
+          "0.60": 0.03258096172718351,
+          "0.70": 0.009617271835132482,
+          "0.80": 0.0017664376840039254,
+          "0.90": 0.0
+        }
+      }
+    }
+  },
+  "embedding_info": {
+    "mode": "description",
+    "base": "McGill-NLP/LLM2Vec-Meta-Llama-3-8B-Instruct-mntp",
+    "adapter": "McGill-NLP/LLM2Vec-Meta-Llama-3-8B-Instruct-mntp-unsup-simcse",
+    "dtype": "bfloat16",
+    "full_description_used": true,
+    "max_length": 1024,
+    "unique_texts": 15230,
+    "pooling_mode": "mean",
+    "source": "official CTRL-O LLM2Vec; no substitute encoder or category-only fallback"
+  }
+}

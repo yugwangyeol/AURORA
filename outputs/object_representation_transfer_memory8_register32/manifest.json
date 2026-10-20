@@ -1,0 +1,385 @@
+{
+  "config": {
+    "version": "native-object-representation-transfer-v1",
+    "checkpoint": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000",
+    "checkpoint_signature": {
+      "config_sha256": "d8fb740d63970c35fe281fd7189c703adb15d59272efa909dfce4fdb0cc3c370",
+      "index_sha256": "e8e1c29647ee8d0f07906c243a44c7babf27e66eb32f918b862a3642839ece91",
+      "shards": [
+        {
+          "name": "model-00001-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000/model-00001-of-00004.safetensors",
+          "bytes": 4955311064,
+          "mtime_ns": 1789242071489691781
+        },
+        {
+          "name": "model-00002-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000/model-00002-of-00004.safetensors",
+          "bytes": 4991575392,
+          "mtime_ns": 1789242077069087783
+        },
+        {
+          "name": "model-00003-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000/model-00003-of-00004.safetensors",
+          "bytes": 4968395048,
+          "mtime_ns": 1789242082894183890
+        },
+        {
+          "name": "model-00004-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000/model-00004-of-00004.safetensors",
+          "bytes": 1133003992,
+          "mtime_ns": 1789242083896570079
+        }
+      ]
+    },
+    "pairs_sha256": "37cdd0e6097091b519ea76cb5338dc5cd187385dbafaa799d70c8b3f0b8b9b53",
+    "annotations_sha256": "0ff9fc64db716107aa9c8caf0a36ff8be375638467eb2db7e7f4e3528a3628e9",
+    "captions_sha256": "d7c3ce992e1c645e8ef5deabc99f127b3012de19153f8e7aa82854eaa3d8ae1c",
+    "caption_summary_sha256": "d3b112ea218d5211920ac2d73e57b335ed5e68f6428181a6f060c06b5cdb737b",
+    "dtype": "fp32",
+    "seed": 1234,
+    "steps": 10,
+    "guidance_scale": 1.0,
+    "eval_size": 512,
+    "max_objects": 50,
+    "max_caption_tokens": 4096,
+    "conditions": [
+      "reconstruction",
+      "text_only",
+      "semantic_only",
+      "visual_only",
+      "bundle_swap"
+    ],
+    "gt_inference_input": false,
+    "external_selector": false,
+    "pixel_paste": false,
+    "reader_prior": false,
+    "writer_rewrite": false,
+    "spatial_warp": false,
+    "selection": "Fixed manual curated pairs; several sources previously GT-assisted shortlisted; not benchmark",
+    "placement": "Native learned representations; no guarantee of target-location preservation"
+  },
+  "fingerprint": "5c44bcb823efbe5ea8441cdcc302d6d80924f16c90b5d7dff1a4e65e1e74f866",
+  "entries": {
+    "205834": {
+      "image_id": 205834,
+      "image_path": "/home/jovyan/data/coco/val2017/000000205834.jpg",
+      "caption": "<thing> Dog 1: A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine. <ovt>. <thing> Bowl 1: A metallic bowl with a curved rim is positioned on the pavement. It's small and shallow, likely designed for dogs to eat or drink from. <ovt>. <scene_end>",
+      "caption_sha256": "2a97be3fb82ebc57f37f1819c8e5f68e523588efdc79c3f8f0838ef0c4ec0b53",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Bowl",
+          "normalized_category": "bowl",
+          "description": "A metallic bowl with a curved rim is positioned on the pavement. It's small and shallow, likely designed for dogs to eat or drink from.",
+          "parsed": true
+        }
+      ]
+    },
+    "52891": {
+      "image_id": 52891,
+      "image_path": "/home/jovyan/data/coco/val2017/000000052891.jpg",
+      "caption": "<thing> Dog 1: A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement. <ovt>. <thing> Frisbee 1: A bright yellow frisbee lies on the sand close to the dog. It's in good condition, with visible wear marks suggesting it has been used multiple times. <ovt>. <scene_end>",
+      "caption_sha256": "7bd404b4ebeba2976041b04852391eb74a781d1f481362cd3bf833a8492a896e",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Frisbee",
+          "normalized_category": "frisbee",
+          "description": "A bright yellow frisbee lies on the sand close to the dog. It's in good condition, with visible wear marks suggesting it has been used multiple times.",
+          "parsed": true
+        }
+      ]
+    },
+    "568690": {
+      "image_id": 568690,
+      "image_path": "/home/jovyan/data/coco/val2017/000000568690.jpg",
+      "caption": "<thing> Toilet 1: A white, ceramic toilet with an oval shape and an open lid, it appears clean but is not in use. <ovt>. <thing> Cat 1: A grey cat with lighter fur near its belly is sitting on top of the toilet seat, looking forward with an attentive expression. <ovt>. <scene_end>",
+      "caption_sha256": "9576f1818c37c8e7e8a936579928cab2623543f98184c29cffd5ce2730f920e1",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Toilet",
+          "normalized_category": "toilet",
+          "description": "A white, ceramic toilet with an oval shape and an open lid, it appears clean but is not in use.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Cat",
+          "normalized_category": "cat",
+          "description": "A grey cat with lighter fur near its belly is sitting on top of the toilet seat, looking forward with an attentive expression.",
+          "parsed": true
+        }
+      ]
+    },
+    "157807": {
+      "image_id": 157807,
+      "image_path": "/home/jovyan/data/coco/val2017/000000157807.jpg",
+      "caption": "<thing> Cat 1: A tabby cat with a mix of dark and light fur, consisting of stripes and spots, is standing on a toilet. Its green eyes are looking directly ahead. The cat has a fluffy tail and appears to be in a relaxed but alert state. <ovt>. <thing> Toilet 1: The toilet is white and has a round shape with a closed lid that's not currently up. It has a smooth surface and appears to be in good condition. <ovt>. <scene_end>",
+      "caption_sha256": "03cf2009d179aefd7cbb155e3849a85629d8e6d64a77b42e9971cd24683b78d1",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Cat",
+          "normalized_category": "cat",
+          "description": "A tabby cat with a mix of dark and light fur, consisting of stripes and spots, is standing on a toilet. Its green eyes are looking directly ahead. The cat has a fluffy tail and appears to be in a relaxed but alert state.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Toilet",
+          "normalized_category": "toilet",
+          "description": "The toilet is white and has a round shape with a closed lid that's not currently up. It has a smooth surface and appears to be in good condition.",
+          "parsed": true
+        }
+      ]
+    },
+    "112626": {
+      "image_id": 112626,
+      "image_path": "/home/jovyan/data/coco/val2017/000000112626.jpg",
+      "caption": "<thing> Suitcase 1: A large, metallic silver suitcase with a smooth texture and multiple compartments is placed on the floor. It has zippered closures for security and is equipped with wheels for easy mobility. <ovt>. <thing> Couch 1: A large, brown couch with cushions is positioned against the wall, featuring a comfortable design for seating or lounging. <ovt>. <thing> Bottle 1: A small bottle with an unclear label sits on top of what appears to be a table or similar surface near the wall. <ovt>. <thing> Book 1: A book with an unclear cover design sits on top of what appears to be a table or similar surface near the wall. <ovt>. <scene_end>",
+      "caption_sha256": "1051c544631c176a8343124eaf378c9866b650098c02539a43e68931fcdde55a",
+      "ovt_count": 4,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Suitcase",
+          "normalized_category": "suitcase",
+          "description": "A large, metallic silver suitcase with a smooth texture and multiple compartments is placed on the floor. It has zippered closures for security and is equipped with wheels for easy mobility.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Couch",
+          "normalized_category": "couch",
+          "description": "A large, brown couch with cushions is positioned against the wall, featuring a comfortable design for seating or lounging.",
+          "parsed": true
+        },
+        {
+          "slot_index": 2,
+          "prediction_label": 3,
+          "is_thing": true,
+          "category": "Bottle",
+          "normalized_category": "bottle",
+          "description": "A small bottle with an unclear label sits on top of what appears to be a table or similar surface near the wall.",
+          "parsed": true
+        },
+        {
+          "slot_index": 3,
+          "prediction_label": 4,
+          "is_thing": true,
+          "category": "Book",
+          "normalized_category": "book",
+          "description": "A book with an unclear cover design sits on top of what appears to be a table or similar surface near the wall.",
+          "parsed": true
+        }
+      ]
+    },
+    "350019": {
+      "image_id": 350019,
+      "image_path": "/home/jovyan/data/coco/val2017/000000350019.jpg",
+      "caption": "<thing> Suitcase 1: A large, brown Louis Vuitton suitcase with a pattern of small, intricate designs in multiple colors including black, brown, and white. It has golden buttons at the top and is standing upright on the wooden floor. <ovt>. <thing> Person 1: A child wearing a blue t-shirt with an image of an American flag intertwined into a design, paired with white pants, is looking down at the suitcase with curiosity or interest. <ovt>. <scene_end>",
+      "caption_sha256": "02d770cdcfd66bd10469c41548b8f6ee7eb9eb06b9498e5c5837526a9cfa44bc",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Suitcase",
+          "normalized_category": "suitcase",
+          "description": "A large, brown Louis Vuitton suitcase with a pattern of small, intricate designs in multiple colors including black, brown, and white. It has golden buttons at the top and is standing upright on the wooden floor.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A child wearing a blue t-shirt with an image of an American flag intertwined into a design, paired with white pants, is looking down at the suitcase with curiosity or interest.",
+          "parsed": true
+        }
+      ]
+    },
+    "243867": {
+      "image_id": 243867,
+      "image_path": "/home/jovyan/data/coco/val2017/000000243867.jpg",
+      "caption": "<thing> Bus 1: The bus is a large vehicle with a white body. It has tinted windows, making it difficult to see inside. The bus is parked on the road, its wheels touching the surface. <ovt>. <thing> Car 1: This car is a silver sedan with a sleek design. Its body is shiny and well-maintained, reflecting the surrounding environment subtly. The car is positioned in front of the bus, occupying part of its path. <ovt>. <scene_end>",
+      "caption_sha256": "9b30b7b93e3a87352ff2a02c2977869cba61c1104e10de19529207b9a4dc0560",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Bus",
+          "normalized_category": "bus",
+          "description": "The bus is a large vehicle with a white body. It has tinted windows, making it difficult to see inside. The bus is parked on the road, its wheels touching the surface.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Car",
+          "normalized_category": "car",
+          "description": "This car is a silver sedan with a sleek design. Its body is shiny and well-maintained, reflecting the surrounding environment subtly. The car is positioned in front of the bus, occupying part of its path.",
+          "parsed": true
+        }
+      ]
+    },
+    "90208": {
+      "image_id": 90208,
+      "image_path": "/home/jovyan/data/coco/val2017/000000090208.jpg",
+      "caption": "<thing> Bus 1: A vintage green double-decker bus labeled \"GREEN LINE\" and \"BELHUS\" is parked. It has a shiny surface reflecting the surrounding environment, and the registration label is clearly visible. <ovt>. <thing> Bus 2: Another double-decker bus, red in color with a classic design is partially visible to the left of the green bus, appearing to be stationary. <ovt>. <scene_end>",
+      "caption_sha256": "033e6bd19ee9eb384673a4b3956c4bf6aab3f9f2406faf3badc196b0aa786d13",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Bus",
+          "normalized_category": "bus",
+          "description": "A vintage green double-decker bus labeled \"GREEN LINE\" and \"BELHUS\" is parked. It has a shiny surface reflecting the surrounding environment, and the registration label is clearly visible.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Bus",
+          "normalized_category": "bus",
+          "description": "Another double-decker bus, red in color with a classic design is partially visible to the left of the green bus, appearing to be stationary.",
+          "parsed": true
+        }
+      ]
+    }
+  },
+  "pairs": [
+    {
+      "pair_id": "dog_brown_to_black_white",
+      "target_image_id": 205834,
+      "target_slot": 0,
+      "donor_image_id": 52891,
+      "donor_slot": 0,
+      "category": "dog",
+      "instruction": "Replace A's brown dog with B's black-and-white dog.",
+      "target_description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine.",
+      "target_prediction_label": 1,
+      "donor_description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement.",
+      "donor_prediction_label": 1,
+      "text_only_caption": "<thing> Dog 1: A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement. <ovt>. <thing> Bowl 1: A metallic bowl with a curved rim is positioned on the pavement. It's small and shallow, likely designed for dogs to eat or drink from. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "dog_black_white_to_brown",
+      "target_image_id": 52891,
+      "target_slot": 0,
+      "donor_image_id": 205834,
+      "donor_slot": 0,
+      "category": "dog",
+      "instruction": "Replace A's black-and-white dog with B's brown dog.",
+      "target_description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement.",
+      "target_prediction_label": 1,
+      "donor_description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine.",
+      "donor_prediction_label": 1,
+      "text_only_caption": "<thing> Dog 1: A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine. <ovt>. <thing> Frisbee 1: A bright yellow frisbee lies on the sand close to the dog. It's in good condition, with visible wear marks suggesting it has been used multiple times. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "cat_grey_to_tabby",
+      "target_image_id": 568690,
+      "target_slot": 1,
+      "donor_image_id": 157807,
+      "donor_slot": 0,
+      "category": "cat",
+      "instruction": "Replace A's grey cat with B's striped tabby cat.",
+      "target_description": "A grey cat with lighter fur near its belly is sitting on top of the toilet seat, looking forward with an attentive expression.",
+      "target_prediction_label": 2,
+      "donor_description": "A tabby cat with a mix of dark and light fur, consisting of stripes and spots, is standing on a toilet. Its green eyes are looking directly ahead. The cat has a fluffy tail and appears to be in a relaxed but alert state.",
+      "donor_prediction_label": 1,
+      "text_only_caption": "<thing> Toilet 1: A white, ceramic toilet with an oval shape and an open lid, it appears clean but is not in use. <ovt>. <thing> Cat 1: A tabby cat with a mix of dark and light fur, consisting of stripes and spots, is standing on a toilet. Its green eyes are looking directly ahead. The cat has a fluffy tail and appears to be in a relaxed but alert state. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "cat_tabby_to_grey",
+      "target_image_id": 157807,
+      "target_slot": 0,
+      "donor_image_id": 568690,
+      "donor_slot": 1,
+      "category": "cat",
+      "instruction": "Replace A's striped tabby cat with B's grey cat.",
+      "target_description": "A tabby cat with a mix of dark and light fur, consisting of stripes and spots, is standing on a toilet. Its green eyes are looking directly ahead. The cat has a fluffy tail and appears to be in a relaxed but alert state.",
+      "target_prediction_label": 1,
+      "donor_description": "A grey cat with lighter fur near its belly is sitting on top of the toilet seat, looking forward with an attentive expression.",
+      "donor_prediction_label": 2,
+      "text_only_caption": "<thing> Cat 1: A grey cat with lighter fur near its belly is sitting on top of the toilet seat, looking forward with an attentive expression. <ovt>. <thing> Toilet 1: The toilet is white and has a round shape with a closed lid that's not currently up. It has a smooth surface and appears to be in good condition. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "suitcase_silver_to_patterned",
+      "target_image_id": 112626,
+      "target_slot": 0,
+      "donor_image_id": 350019,
+      "donor_slot": 0,
+      "category": "suitcase",
+      "instruction": "Replace A's silver suitcase with B's brown patterned suitcase.",
+      "target_description": "A large, metallic silver suitcase with a smooth texture and multiple compartments is placed on the floor. It has zippered closures for security and is equipped with wheels for easy mobility.",
+      "target_prediction_label": 1,
+      "donor_description": "A large, brown Louis Vuitton suitcase with a pattern of small, intricate designs in multiple colors including black, brown, and white. It has golden buttons at the top and is standing upright on the wooden floor.",
+      "donor_prediction_label": 1,
+      "text_only_caption": "<thing> Suitcase 1: A large, brown Louis Vuitton suitcase with a pattern of small, intricate designs in multiple colors including black, brown, and white. It has golden buttons at the top and is standing upright on the wooden floor. <ovt>. <thing> Couch 1: A large, brown couch with cushions is positioned against the wall, featuring a comfortable design for seating or lounging. <ovt>. <thing> Bottle 1: A small bottle with an unclear label sits on top of what appears to be a table or similar surface near the wall. <ovt>. <thing> Book 1: A book with an unclear cover design sits on top of what appears to be a table or similar surface near the wall. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "bus_white_to_green",
+      "target_image_id": 243867,
+      "target_slot": 0,
+      "donor_image_id": 90208,
+      "donor_slot": 0,
+      "category": "bus",
+      "instruction": "Replace A's white bus with B's green double-decker bus.",
+      "target_description": "The bus is a large vehicle with a white body. It has tinted windows, making it difficult to see inside. The bus is parked on the road, its wheels touching the surface.",
+      "target_prediction_label": 1,
+      "donor_description": "A vintage green double-decker bus labeled \"GREEN LINE\" and \"BELHUS\" is parked. It has a shiny surface reflecting the surrounding environment, and the registration label is clearly visible.",
+      "donor_prediction_label": 1,
+      "text_only_caption": "<thing> Bus 1: A vintage green double-decker bus labeled \"GREEN LINE\" and \"BELHUS\" is parked. It has a shiny surface reflecting the surrounding environment, and the registration label is clearly visible. <ovt>. <thing> Car 1: This car is a silver sedan with a sleek design. Its body is shiny and well-maintained, reflecting the surrounding environment subtly. The car is positioned in front of the bus, occupying part of its path. <ovt>. <scene_end>"
+    }
+  ]
+}

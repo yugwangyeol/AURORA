@@ -23,6 +23,20 @@ def target_hit(ious, target_index):
     return value > 0 and value > best_other + 1e-12
 
 
+def same_category_target_hit(ious, target_index, category_ids):
+    """Unique best IoU among GT instances sharing the target's category."""
+    target_category = category_ids[target_index]
+    competitors = [
+        index for index, category_id in enumerate(category_ids)
+        if index != target_index and category_id == target_category
+    ]
+    if not competitors:
+        return None
+    value = float(ious[target_index])
+    best_other = float(np.asarray(ious)[competitors].max())
+    return value > 0 and value > best_other + 1e-12
+
+
 def audit_image(coco, root, records, models):
     iid = records[0]['image_id']
     annotations = sorted((coco.anns[i] for i in coco.getAnnIds(imgIds=[iid])
@@ -30,6 +44,7 @@ def audit_image(coco, root, records, models):
     masks = [coco.annToMask(a).astype(bool) for a in annotations]
     retained = [(a, m) for a, m in zip(annotations, masks) if m.any()]
     ids = [a['id'] for a, _ in retained]
+    category_ids = [int(a['category_id']) for a, _ in retained]
     masks = np.stack([m for _, m in retained])
     areas = masks.sum(axis=(1, 2), dtype=np.int64)
     packed = np.packbits(masks.reshape(len(masks), -1), axis=1)
@@ -38,6 +53,13 @@ def audit_image(coco, root, records, models):
         target = ids.index(record['annotation_id'])
         result = dict(record)
         result['num_gt_competitors'] = len(ids)
+        target_category_id = category_ids[target]
+        result['target_category_id'] = target_category_id
+        result['same_category_gt_competitors'] = sum(
+            index != target and category_id == target_category_id
+            for index, category_id in enumerate(category_ids)
+        )
+        result['same_category_multiple'] = result['same_category_gt_competitors'] > 0
         for model, directory in models:
             folder = root / directory / record['split'] / str(record['ref_id']) / str(record['sent_id'])
             with np.load(folder / 'prediction.npz') as saved:
@@ -53,7 +75,9 @@ def audit_image(coco, root, records, models):
             if int(intersection[target]) != previous['intersection'] or int(union[target]) != previous['union']:
                 raise ValueError(f'Cached score verification failed: {folder}')
             others = np.delete(ious, target)
+            same_category_hit = same_category_target_hit(ious, target, category_ids)
             result[model] = dict(previous, target_hit_at_1=bool(target_hit(ious, target)),
+                same_category_target_hit_at_1=same_category_hit,
                 positive_top_tie=bool(ious[target] > 0 and len(others) and
                                      abs(ious[target] - others.max()) <= 1e-12))
         output.append(result)
@@ -65,12 +89,22 @@ def aggregate(records, models):
                   references=len({r['ref_id'] for r in records}))
     for model, _ in models:
         values = [r[model] for r in records]
+        same_category_values = [
+            value['same_category_target_hit_at_1']
+            for value in values
+            if value.get('same_category_target_hit_at_1') is not None
+        ]
         union = sum(v['union'] for v in values)
         result[model] = dict(
             mIoU=100 * float(np.mean([v['iou'] for v in values])),
             oIoU=100 * sum(v['intersection'] for v in values) / union if union else 0.,
             P50=100 * float(np.mean([v['iou'] >= .5 for v in values])),
             target_hit_at_1=100 * float(np.mean([v['target_hit_at_1'] for v in values])),
+            same_category_target_hit_at_1=(
+                100 * float(np.mean(same_category_values))
+                if same_category_values else float('nan')
+            ),
+            same_category_expressions=len(same_category_values),
             empty_masks=sum(v['empty_mask'] for v in values),
             positive_top_ties=sum(v['positive_top_tie'] for v in values))
     return result
@@ -118,6 +152,9 @@ def main():
         target_hit_definition='Positive strictly highest query-mask IoU against all nonempty noncrowd '
             'GT instance masks in the image; ties within 1e-12 and zero overlap count as misses. '
             'NOT original CTRL-O all-slot Hungarian Binding Hits.',
+        same_category_definition='Positive strictly highest query-mask IoU among the target and all '
+            'other nonempty noncrowd GT instances with the same COCO category. Expressions without '
+            'a same-category competitor are excluded from this metric.',
         subset_definition='Exclude image IDs in the actual DeOR Pix2Cap training JSONL; '
             'does not audit earlier pretraining or CTRL-O training exposure.',
         source=str(args.root), train=str(args.train), train_images=len(train_ids),
@@ -125,8 +162,11 @@ def main():
         evaluated_models=selected_models, subsets={})
     summary['source_fingerprint'] = json.load((args.root / 'manifest.json').open())['fingerprint']
     for name, predicate in [('full', lambda r: True),
+                            ('same_category', lambda r: r['same_category_multiple']),
                             ('nonoverlap', lambda r: r['image_id'] not in train_ids),
-                            ('overlap', lambda r: r['image_id'] in train_ids)]:
+                            ('overlap', lambda r: r['image_id'] in train_ids),
+                            ('same_category_nonoverlap', lambda r: (
+                                r['same_category_multiple'] and r['image_id'] not in train_ids))]:
         selected = [r for r in audited if predicate(r)]
         summary['subsets'][name] = {split: aggregate(
             [r for r in selected if r['split'] == split], models)
@@ -142,14 +182,15 @@ def main():
     with (args.output / 'comparison.csv').open('w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['subset', 'split', 'images', 'expressions', 'method',
-                         'mIoU', 'oIoU', 'P50', 'TargetHit@1'])
+                         'mIoU', 'oIoU', 'P50', 'TargetHit@1', 'Same-category TargetHit@1'])
         for subset, splits in summary['subsets'].items():
             for split, stats in splits.items():
                 for model, _ in models:
                     name = {'deor': 'DeOR', 'ctrlo': 'CTRL-O'}[model]
                     v = stats[model]
                     writer.writerow([subset, split, stats['images'], stats['expressions'], name,
-                                     v['mIoU'], v['oIoU'], v['P50'], v['target_hit_at_1']])
+                                     v['mIoU'], v['oIoU'], v['P50'], v['target_hit_at_1'],
+                                     v['same_category_target_hit_at_1']])
     with (args.output / 'nonoverlap_table.md').open('w') as f:
         f.write('Subset excludes image IDs in DeOR actual Pix2Cap training JSONL. '
                 'Percentages; expression-weighted. TargetHit@1 is NOT original Binding Hits.\n\n')

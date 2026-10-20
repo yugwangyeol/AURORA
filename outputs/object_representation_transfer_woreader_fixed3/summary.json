@@ -1,0 +1,337 @@
+{
+  "version": "native-object-representation-transfer-v1",
+  "fingerprint": "d1cf1937d524ad47a3d04abac22c803e0851cfe7f12c9466d8de4c9a05f7f419",
+  "completed_pairs": 3,
+  "planned_pairs": 3,
+  "quantitative_edit_success_claimed": false,
+  "note": "Pixel change is diagnostic, not donor identity/appearance success. Review all fixed pairs including failures.",
+  "pairs": [
+    {
+      "pair_id": "dog_black_white_to_brown",
+      "target_image_id": 52891,
+      "target_slot": 0,
+      "donor_image_id": 205834,
+      "donor_slot": 0,
+      "category": "dog",
+      "instruction": "Replace A's black-and-white dog with B's brown dog.",
+      "target_description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its coat is thick, and it appears to be mid-sized. The dog's face is wet, likely from the sea breeze or a recent bath, making its eyes appear dark and expressive.",
+      "target_category": "Dog",
+      "target_prediction_label": 1,
+      "donor_description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny, well-groomed look.",
+      "donor_category": "Dog",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Dog 1: A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny, well-groomed look. <ovt>. <thing> Frisbee 1: A yellow frisbee lies on the sand near the dog's mouth. It looks used, with visible scratches and wear marks. The frisbee is in good condition, and its edges are clean but have absorbed the yellow color. <ovt>. <scene_end>",
+      "fingerprint": "d1cf1937d524ad47a3d04abac22c803e0851cfe7f12c9466d8de4c9a05f7f419",
+      "identity_relative_error": 5.2582922762667295e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 79132,
+      "donor_region_pixels": 125755,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.5839245854591837,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.0027547394488245712,
+          "outside_change": 0.0009117830204362245,
+          "change_energy_inside_fraction": 0.8859496212932099,
+          "region_fraction": 0.5839245854591837,
+          "screening_score": 0.002070902183497403
+        },
+        "semantic_only": {
+          "inside_change": 0.01206117588166363,
+          "outside_change": 0.004526606350735916,
+          "change_energy_inside_fraction": 0.9017759559530935,
+          "region_fraction": 0.5839245854591837,
+          "screening_score": 0.008666221118611692
+        },
+        "visual_only": {
+          "inside_change": 0.03174080535885696,
+          "outside_change": 0.012114279059326943,
+          "change_energy_inside_fraction": 0.9527047234464511,
+          "region_fraction": 0.5839245854591837,
+          "screening_score": 0.022655096064361755
+        },
+        "bundle_swap": {
+          "inside_change": 0.028994007469080905,
+          "outside_change": 0.010150457973421042,
+          "change_energy_inside_fraction": 0.95813747727896,
+          "region_fraction": 0.5839245854591837,
+          "screening_score": 0.02138116398901512
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.3020567602040816,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.004044990917982394,
+          "outside_change": 0.0010976734116452597,
+          "change_energy_inside_fraction": 0.6897203788087303,
+          "region_fraction": 0.3020567602040816,
+          "screening_score": 0.003221735859248449
+        },
+        "semantic_only": {
+          "inside_change": 0.015568803398899808,
+          "outside_change": 0.006051443992788434,
+          "change_energy_inside_fraction": 0.6370752766865946,
+          "region_fraction": 0.3020567602040816,
+          "screening_score": 0.011030220404308483
+        },
+        "visual_only": {
+          "inside_change": 0.05202667853452633,
+          "outside_change": 0.011261202748756078,
+          "change_energy_inside_fraction": 0.9232104174497238,
+          "region_fraction": 0.3020567602040816,
+          "screening_score": 0.04358077647295927
+        },
+        "bundle_swap": {
+          "inside_change": 0.04701354281485621,
+          "outside_change": 0.009962001172066009,
+          "change_energy_inside_fraction": 0.9200954827971202,
+          "region_fraction": 0.3020567602040816,
+          "screening_score": 0.0395420419358067
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.0054878732189536095,
+        "semantic_only": 0.02860095165669918,
+        "visual_only": 0.052636705338954926,
+        "bundle_swap": 0.06293602287769318
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 8.547565359156579
+    },
+    {
+      "pair_id": "snowboard_to_star_surfboard",
+      "target_image_id": 193429,
+      "target_slot": 0,
+      "donor_image_id": 554595,
+      "donor_slot": 0,
+      "target_category": "Snowboard",
+      "donor_category": "Surfboard",
+      "instruction": "Replace A's snowboard with B's star-patterned surfboard.",
+      "target_description": "A white snowboard with black text and graphics on it, it's lying flat on the snow.",
+      "target_prediction_label": 1,
+      "donor_description": "A white surfboard with yellow details lies on the sandy beach, its nose pointing towards the sea.",
+      "donor_prediction_label": 1,
+      "category": "Snowboard -> Surfboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Surfboard 1: A white surfboard with yellow details lies on the sandy beach, its nose pointing towards the sea. <ovt>. <thing> Person 1: A person wearing a green jacket, black pants, a beanie, and gloves is sitting cross-legged on the snowboard. <ovt>. <scene_end>",
+      "fingerprint": "d1cf1937d524ad47a3d04abac22c803e0851cfe7f12c9466d8de4c9a05f7f419",
+      "identity_relative_error": 4.8953984332911205e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 34798,
+      "donor_region_pixels": 20074,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.1485969387755102,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.004034650340823025,
+          "outside_change": 0.002171795060096448,
+          "change_energy_inside_fraction": 0.2363851377329024,
+          "region_fraction": 0.1485969387755102,
+          "screening_score": 0.002405804045750689
+        },
+        "semantic_only": {
+          "inside_change": 0.04237846783921007,
+          "outside_change": 0.006640412719394873,
+          "change_energy_inside_fraction": 0.8815346787339255,
+          "region_fraction": 0.1485969387755102,
+          "screening_score": 0.03739815829966392
+        },
+        "visual_only": {
+          "inside_change": 0.013273689304047799,
+          "outside_change": 0.004208709701108908,
+          "change_energy_inside_fraction": 0.5849281699032728,
+          "region_fraction": 0.1485969387755102,
+          "screening_score": 0.010117157028216119
+        },
+        "bundle_swap": {
+          "inside_change": 0.04957572442424752,
+          "outside_change": 0.008903943599911873,
+          "change_energy_inside_fraction": 0.8723416029291734,
+          "region_fraction": 0.1485969387755102,
+          "screening_score": 0.04289776672431361
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.13253348214285715,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.004126787557128114,
+          "outside_change": 0.0021922138642097772,
+          "change_energy_inside_fraction": 0.2215127948815171,
+          "region_fraction": 0.13253348214285715,
+          "screening_score": 0.0024826271589707813
+        },
+        "semantic_only": {
+          "inside_change": 0.04164391370583321,
+          "outside_change": 0.00741442497444995,
+          "change_energy_inside_fraction": 0.8350835634536997,
+          "region_fraction": 0.13253348214285715,
+          "screening_score": 0.03608309497499575
+        },
+        "visual_only": {
+          "inside_change": 0.013379920389208313,
+          "outside_change": 0.004360341756516051,
+          "change_energy_inside_fraction": 0.5434313827905516,
+          "region_fraction": 0.13253348214285715,
+          "screening_score": 0.010109664071821275
+        },
+        "bundle_swap": {
+          "inside_change": 0.047149442233033564,
+          "outside_change": 0.010027782958364003,
+          "change_energy_inside_fraction": 0.7864460192493491,
+          "region_fraction": 0.13253348214285715,
+          "screening_score": 0.03962860501426056
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.006111742928624153,
+        "semantic_only": 0.015750305727124214,
+        "visual_only": 0.01801283285021782,
+        "bundle_swap": 0.028239592909812927
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 7.5884635779075325
+    },
+    {
+      "pair_id": "refrigerator_white_to_steel",
+      "target_image_id": 802,
+      "target_slot": 0,
+      "donor_image_id": 243344,
+      "donor_slot": 0,
+      "category": "refrigerator",
+      "instruction": "Replace A's white refrigerator with B's stainless-steel refrigerator.",
+      "target_description": "A tall, white refrigerator with a smooth surface and a child lock on its door.",
+      "target_category": "Refrigerator",
+      "target_prediction_label": 1,
+      "donor_description": "The refrigerator is large and has a metallic, silver finish with two doors. It's adorned with various items including magnets and papers, indicating it might be used for storage or display purposes.",
+      "donor_category": "Refrigerator",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Refrigerator 1: The refrigerator is large and has a metallic, silver finish with two doors. It's adorned with various items including magnets and papers, indicating it might be used for storage or display purposes. <ovt>. <thing> Oven 1: An oven is built into the wooden cabinets, its control panel visible above its door. <ovt>. <scene_end>",
+      "fingerprint": "d1cf1937d524ad47a3d04abac22c803e0851cfe7f12c9466d8de4c9a05f7f419",
+      "identity_relative_error": 5.842986865900457e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 82077,
+      "donor_region_pixels": 85381,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.45487882653061223,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.005036723183256243,
+          "outside_change": 0.0020415995197923175,
+          "change_energy_inside_fraction": 0.8213097630104721,
+          "region_fraction": 0.45487882653061223,
+          "screening_score": 0.0035055235434120055
+        },
+        "semantic_only": {
+          "inside_change": 0.010534204334847622,
+          "outside_change": 0.0039961709554641785,
+          "change_energy_inside_fraction": 0.8635762605810893,
+          "region_fraction": 0.45487882653061223,
+          "screening_score": 0.0075370761182494885
+        },
+        "visual_only": {
+          "inside_change": 0.015928423010751213,
+          "outside_change": 0.008162001273162087,
+          "change_energy_inside_fraction": 0.7983854843232653,
+          "region_fraction": 0.45487882653061223,
+          "screening_score": 0.009806922055879647
+        },
+        "bundle_swap": {
+          "inside_change": 0.015084855065989477,
+          "outside_change": 0.00487280804883131,
+          "change_energy_inside_fraction": 0.889311211184304,
+          "region_fraction": 0.45487882653061223,
+          "screening_score": 0.011430249029365996
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.3132174744897959,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.005905309438613826,
+          "outside_change": 0.0022632663047807635,
+          "change_energy_inside_fraction": 0.5797660709770994,
+          "region_fraction": 0.3132174744897959,
+          "screening_score": 0.004207859710028253
+        },
+        "semantic_only": {
+          "inside_change": 0.01031154295942522,
+          "outside_change": 0.005446306980908052,
+          "change_energy_inside_fraction": 0.5990978936860429,
+          "region_fraction": 0.3132174744897959,
+          "screening_score": 0.006226812723744181
+        },
+        "visual_only": {
+          "inside_change": 0.019319472932126953,
+          "outside_change": 0.008217427423668247,
+          "change_energy_inside_fraction": 0.6768720849371813,
+          "region_fraction": 0.3132174744897959,
+          "screening_score": 0.013156402364375767
+        },
+        "bundle_swap": {
+          "inside_change": 0.0164203833735072,
+          "outside_change": 0.006370140240270997,
+          "change_energy_inside_fraction": 0.6980683073483955,
+          "region_fraction": 0.3132174744897959,
+          "screening_score": 0.011642778193303952
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.004623136483132839,
+        "semantic_only": 0.0252360962331295,
+        "visual_only": 0.04002004116773605,
+        "bundle_swap": 0.05415494367480278
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 7.88484379905276
+    }
+  ]
+}

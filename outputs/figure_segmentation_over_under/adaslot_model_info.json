@@ -1,0 +1,29 @@
+{
+  "checkpoint": "/home/jovyan/baselines/ckpt/adaslot-coco.ckpt",
+  "checkpoint_global_step": 500000,
+  "config": "/home/jovyan/baselines/AdaSlot/configs/experiment/projects/bridging/dinosaur/coco_feat_rec_dino_base16_adaslot_eval.yaml",
+  "repository_revision": "6a60387f4ee985e55b254274f41974e1aa5130e8",
+  "num_slots": 33,
+  "model_input_resolution": 224,
+  "decoder_patch_grid": [
+    14,
+    14
+  ],
+  "mask_source": "official object_decoder.masks_as_image (224x224), kept-slot masked alpha",
+  "preprocessing": "official COCO eval: tensor bicubic Resize(224), clamp, CenterCrop(224), ImageNet normalize",
+  "resize_antialias": false,
+  "slot_selection": "official stochastic random conditioning + hard Gumbel softmax (tau=1); no GT count",
+  "dtype": "float32",
+  "torch_version": "2.11.0+cu130",
+  "timm_version": "0.6.7",
+  "load_report": {
+    "strict": true,
+    "loaded_tensors": 188,
+    "missing": 0,
+    "unexpected": 0,
+    "frozen_backbone_included": true
+  },
+  "seed": 0,
+  "batch_size": 1,
+  "randomness": "fixed per-image seed, no retry or best-seed selection"
+}

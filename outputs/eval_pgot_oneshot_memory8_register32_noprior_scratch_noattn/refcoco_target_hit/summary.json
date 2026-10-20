@@ -1,0 +1,327 @@
+{
+  "protocol": "RefCOCO one supplied human expression per pass; cached query mask, no new inference",
+  "target_hit_definition": "Positive strictly highest query-mask IoU against all nonempty noncrowd GT instance masks in the image; ties within 1e-12 and zero overlap count as misses. NOT original CTRL-O all-slot Hungarian Binding Hits.",
+  "same_category_definition": "Positive strictly highest query-mask IoU among the target and all other nonempty noncrowd GT instances with the same COCO category. Expressions without a same-category competitor are excluded from this metric.",
+  "subset_definition": "Exclude image IDs in the actual DeOR Pix2Cap training JSONL; does not audit earlier pretraining or CTRL-O training exposure.",
+  "source": "/home/jovyan/PGOT/outputs/eval_pgot_oneshot_memory8_register32_noprior_scratch_noattn/refcoco",
+  "train": "/home/jovyan/PGOT/data/pgot_pix2cap_thing_train.jsonl",
+  "train_images": 16477,
+  "aggregation": "expression-weighted; no expressions dropped; percentages",
+  "evaluated_models": [
+    "deor"
+  ],
+  "subsets": {
+    "full": {
+      "val": {
+        "expressions": 10834,
+        "images": 1500,
+        "references": 3811,
+        "deor": {
+          "mIoU": 30.093567135579907,
+          "oIoU": 28.541994656856,
+          "P50": 24.173896990954404,
+          "target_hit_at_1": 46.750969171127934,
+          "same_category_target_hit_at_1": 60.29167435850101,
+          "same_category_expressions": 10834,
+          "empty_masks": 3,
+          "positive_top_ties": 0
+        }
+      },
+      "testA": {
+        "expressions": 5657,
+        "images": 750,
+        "references": 1975,
+        "deor": {
+          "mIoU": 23.23118292301434,
+          "oIoU": 22.136164500951722,
+          "P50": 17.270638147427967,
+          "target_hit_at_1": 37.89994696835779,
+          "same_category_target_hit_at_1": 57.1681103058158,
+          "same_category_expressions": 5657,
+          "empty_masks": 1,
+          "positive_top_ties": 0
+        }
+      },
+      "testB": {
+        "expressions": 5095,
+        "images": 750,
+        "references": 1810,
+        "deor": {
+          "mIoU": 38.68277764326894,
+          "oIoU": 35.78683234355196,
+          "P50": 33.915603532875366,
+          "target_hit_at_1": 55.48577036310108,
+          "same_category_target_hit_at_1": 62.17860647693817,
+          "same_category_expressions": 5095,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        }
+      },
+      "all": {
+        "expressions": 21586,
+        "images": 3000,
+        "references": 7596,
+        "deor": {
+          "mIoU": 30.32248958745576,
+          "oIoU": 28.783396538276545,
+          "P50": 24.664134161030297,
+          "target_hit_at_1": 46.49309737793014,
+          "same_category_target_hit_at_1": 59.91846567219494,
+          "same_category_expressions": 21586,
+          "empty_masks": 4,
+          "positive_top_ties": 0
+        }
+      }
+    },
+    "same_category": {
+      "val": {
+        "expressions": 10834,
+        "images": 1500,
+        "references": 3811,
+        "deor": {
+          "mIoU": 30.093567135579907,
+          "oIoU": 28.541994656856,
+          "P50": 24.173896990954404,
+          "target_hit_at_1": 46.750969171127934,
+          "same_category_target_hit_at_1": 60.29167435850101,
+          "same_category_expressions": 10834,
+          "empty_masks": 3,
+          "positive_top_ties": 0
+        }
+      },
+      "testA": {
+        "expressions": 5657,
+        "images": 750,
+        "references": 1975,
+        "deor": {
+          "mIoU": 23.23118292301434,
+          "oIoU": 22.136164500951722,
+          "P50": 17.270638147427967,
+          "target_hit_at_1": 37.89994696835779,
+          "same_category_target_hit_at_1": 57.1681103058158,
+          "same_category_expressions": 5657,
+          "empty_masks": 1,
+          "positive_top_ties": 0
+        }
+      },
+      "testB": {
+        "expressions": 5095,
+        "images": 750,
+        "references": 1810,
+        "deor": {
+          "mIoU": 38.68277764326894,
+          "oIoU": 35.78683234355196,
+          "P50": 33.915603532875366,
+          "target_hit_at_1": 55.48577036310108,
+          "same_category_target_hit_at_1": 62.17860647693817,
+          "same_category_expressions": 5095,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        }
+      },
+      "all": {
+        "expressions": 21586,
+        "images": 3000,
+        "references": 7596,
+        "deor": {
+          "mIoU": 30.32248958745576,
+          "oIoU": 28.783396538276545,
+          "P50": 24.664134161030297,
+          "target_hit_at_1": 46.49309737793014,
+          "same_category_target_hit_at_1": 59.91846567219494,
+          "same_category_expressions": 21586,
+          "empty_masks": 4,
+          "positive_top_ties": 0
+        }
+      }
+    },
+    "nonoverlap": {
+      "val": {
+        "expressions": 9530,
+        "images": 1309,
+        "references": 3354,
+        "deor": {
+          "mIoU": 30.023020889310324,
+          "oIoU": 28.489221811743782,
+          "P50": 24.01888772298006,
+          "target_hit_at_1": 46.69464847848898,
+          "same_category_target_hit_at_1": 60.20986358866737,
+          "same_category_expressions": 9530,
+          "empty_masks": 3,
+          "positive_top_ties": 0
+        }
+      },
+      "testA": {
+        "expressions": 5048,
+        "images": 662,
+        "references": 1761,
+        "deor": {
+          "mIoU": 22.998373775214144,
+          "oIoU": 21.72140768953781,
+          "P50": 17.095879556259906,
+          "target_hit_at_1": 37.14342313787638,
+          "same_category_target_hit_at_1": 56.65610142630745,
+          "same_category_expressions": 5048,
+          "empty_masks": 1,
+          "positive_top_ties": 0
+        }
+      },
+      "testB": {
+        "expressions": 4328,
+        "images": 629,
+        "references": 1539,
+        "deor": {
+          "mIoU": 38.32473824840686,
+          "oIoU": 35.56977215845248,
+          "P50": 33.50277264325324,
+          "target_hit_at_1": 54.78280961182994,
+          "same_category_target_hit_at_1": 61.460258780036966,
+          "same_category_expressions": 4328,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        }
+      },
+      "all": {
+        "expressions": 18906,
+        "images": 2600,
+        "references": 6654,
+        "deor": {
+          "mIoU": 30.047849731911207,
+          "oIoU": 28.521965696656494,
+          "P50": 24.341478895588704,
+          "target_hit_at_1": 45.995980112133715,
+          "same_category_target_hit_at_1": 59.54723368242886,
+          "same_category_expressions": 18906,
+          "empty_masks": 4,
+          "positive_top_ties": 0
+        }
+      }
+    },
+    "overlap": {
+      "val": {
+        "expressions": 1304,
+        "images": 191,
+        "references": 457,
+        "deor": {
+          "mIoU": 30.609139012074582,
+          "oIoU": 28.915629188468316,
+          "P50": 25.306748466257666,
+          "target_hit_at_1": 47.16257668711656,
+          "same_category_target_hit_at_1": 60.88957055214724,
+          "same_category_expressions": 1304,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        }
+      },
+      "testA": {
+        "expressions": 609,
+        "images": 88,
+        "references": 214,
+        "deor": {
+          "mIoU": 25.16093756684911,
+          "oIoU": 25.000810067352717,
+          "P50": 18.7192118226601,
+          "target_hit_at_1": 44.17077175697865,
+          "same_category_target_hit_at_1": 61.412151067323485,
+          "same_category_expressions": 609,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        }
+      },
+      "testB": {
+        "expressions": 767,
+        "images": 121,
+        "references": 271,
+        "deor": {
+          "mIoU": 40.70310945678011,
+          "oIoU": 36.8979418954025,
+          "P50": 36.245110821382006,
+          "target_hit_at_1": 59.45241199478487,
+          "same_category_target_hit_at_1": 66.23207301173403,
+          "same_category_expressions": 767,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        }
+      },
+      "all": {
+        "expressions": 2680,
+        "images": 400,
+        "references": 942,
+        "deor": {
+          "mIoU": 32.259930299741306,
+          "oIoU": 30.464924857032578,
+          "P50": 26.940298507462686,
+          "target_hit_at_1": 50.0,
+          "same_category_target_hit_at_1": 62.537313432835816,
+          "same_category_expressions": 2680,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        }
+      }
+    },
+    "same_category_nonoverlap": {
+      "val": {
+        "expressions": 9530,
+        "images": 1309,
+        "references": 3354,
+        "deor": {
+          "mIoU": 30.023020889310324,
+          "oIoU": 28.489221811743782,
+          "P50": 24.01888772298006,
+          "target_hit_at_1": 46.69464847848898,
+          "same_category_target_hit_at_1": 60.20986358866737,
+          "same_category_expressions": 9530,
+          "empty_masks": 3,
+          "positive_top_ties": 0
+        }
+      },
+      "testA": {
+        "expressions": 5048,
+        "images": 662,
+        "references": 1761,
+        "deor": {
+          "mIoU": 22.998373775214144,
+          "oIoU": 21.72140768953781,
+          "P50": 17.095879556259906,
+          "target_hit_at_1": 37.14342313787638,
+          "same_category_target_hit_at_1": 56.65610142630745,
+          "same_category_expressions": 5048,
+          "empty_masks": 1,
+          "positive_top_ties": 0
+        }
+      },
+      "testB": {
+        "expressions": 4328,
+        "images": 629,
+        "references": 1539,
+        "deor": {
+          "mIoU": 38.32473824840686,
+          "oIoU": 35.56977215845248,
+          "P50": 33.50277264325324,
+          "target_hit_at_1": 54.78280961182994,
+          "same_category_target_hit_at_1": 61.460258780036966,
+          "same_category_expressions": 4328,
+          "empty_masks": 0,
+          "positive_top_ties": 0
+        }
+      },
+      "all": {
+        "expressions": 18906,
+        "images": 2600,
+        "references": 6654,
+        "deor": {
+          "mIoU": 30.047849731911207,
+          "oIoU": 28.521965696656494,
+          "P50": 24.341478895588704,
+          "target_hit_at_1": 45.995980112133715,
+          "same_category_target_hit_at_1": 59.54723368242886,
+          "same_category_expressions": 18906,
+          "empty_masks": 4,
+          "positive_top_ties": 0
+        }
+      }
+    }
+  },
+  "source_fingerprint": "2aba2e707f3f0aeaa05f8dd6f493f7f059918135b2362c0d2c1c73e181370984",
+  "elapsed_seconds": 88.27865260699764
+}

@@ -39,7 +39,7 @@ def build_caption(segments, n_ovt_per_object):
         label = f"{category.capitalize()} {counts[category]}"
         description = str(segment["description"]).rstrip(".").rstrip()
         chunks.append(f"<thing> {label}: {description}. {ovts}.")
-    return " ".join(chunks) + " <scene_end>"
+    return (" ".join(chunks) + " <scene_end>").strip()
 
 
 def build_manifest(args):
@@ -87,6 +87,7 @@ def build_manifest(args):
 
             visible = []
             invalid = None
+            invalid_segments_removed = 0
             for segment in annotation.get("segments_info", []):
                 if int(segment.get("category_id", -1)) not in thing_ids:
                     stats["stuff_segments_removed"] += 1
@@ -103,8 +104,12 @@ def build_manifest(args):
                 description = clean_caption(segment.get("description"))
                 reason = invalid_caption_reason(description)
                 if reason is not None:
-                    invalid = reason
                     invalid_reasons[reason] += 1
+                    if args.retain_all_images:
+                        invalid_segments_removed += 1
+                        stats["invalid_thing_segments_removed"] += 1
+                        continue
+                    invalid = reason
                     break
                 enriched = {
                     "segment_id": int(segment["id"]),
@@ -125,8 +130,11 @@ def build_manifest(args):
                 stats["drop_invalid_visible_caption"] += 1
                 continue
             if not visible:
-                stats["drop_no_visible_thing"] += 1
-                continue
+                if args.retain_all_images:
+                    stats["retained_no_valid_visible_thing"] += 1
+                else:
+                    stats["drop_no_visible_thing"] += 1
+                    continue
             if len(visible) > args.max_objects:
                 stats["drop_over_max_objects"] += 1
                 continue
@@ -145,7 +153,11 @@ def build_manifest(args):
                 continue
 
             record = {
-                "source_dataset": "pix2cap_thing_only",
+                "source_dataset": (
+                    "pix2cap_thing_full_split"
+                    if args.retain_all_images
+                    else "pix2cap_thing_only"
+                ),
                 "split": args.split,
                 "image_id": image_id,
                 "image_path": str(image_path),
@@ -155,6 +167,8 @@ def build_manifest(args):
                 "caption": caption,
                 "segments": visible,
                 "n_objects": len(visible),
+                "caption_coverage_complete": invalid_segments_removed == 0,
+                "invalid_visible_segments_removed": invalid_segments_removed,
             }
             output.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n")
             stats["images_written"] += 1
@@ -165,12 +179,24 @@ def build_manifest(args):
                 stats["stopped_at_max_images"] = 1
                 break
 
+    if args.expected_images is not None and stats["images_written"] != args.expected_images:
+        temporary_path.unlink(missing_ok=True)
+        raise RuntimeError(
+            f"Expected {args.expected_images} output images, wrote "
+            f"{stats['images_written']}"
+        )
+
     os.replace(temporary_path, output_path)
     result = {
         "input": str(source_path.resolve()),
         "output": str(output_path.resolve()),
         "split": args.split,
-        "policy": "all crop-visible things have Pix2Cap captions and OVTs; stuff -> registers",
+        "policy": (
+            "retain full image split; valid crop-visible things get Pix2Cap "
+            "captions/OVTs; invalid or absent things and stuff -> registers"
+            if args.retain_all_images
+            else "all crop-visible things have Pix2Cap captions and OVTs; stuff -> registers"
+        ),
         "crop_size": args.crop_size,
         "max_objects": args.max_objects,
         "max_caption_tokens": args.max_caption_tokens,
@@ -207,6 +233,16 @@ def main():
     parser.add_argument("--max_caption_tokens", type=int, default=1024)
     parser.add_argument("--n_ovt_per_object", type=int, default=1)
     parser.add_argument("--max_images", type=int, default=None)
+    parser.add_argument(
+        "--retain_all_images",
+        action="store_true",
+        help=(
+            "Keep the full image split. Invalid-caption thing segments are "
+            "omitted from object slots, and images with no valid visible thing "
+            "are retained as <scene_end>-only samples."
+        ),
+    )
+    parser.add_argument("--expected_images", type=int, default=None)
     args = parser.parse_args()
     build_manifest(args)
 

@@ -1,0 +1,296 @@
+{
+  "revision": "v3",
+  "model": "Reader-supervised DeOR-B",
+  "selection_input": "direct representation IDs; no natural-language selector",
+  "layout": "four operation rows by two three-panel examples (six columns)",
+  "v3_change": "right Add and right Background Transfer were replaced with fresh visually audited outputs",
+  "operations": [
+    {
+      "display_name": "Remove",
+      "metadata": {
+        "task_id": "appendix_remove_00_503755",
+        "mode": "remove",
+        "target_id": "503755",
+        "target_slot": 0,
+        "target_category": "person",
+        "target_prediction_label": 1,
+        "donor_id": null,
+        "donor_slot": null,
+        "donor_category": null,
+        "donor_prediction_label": null,
+        "placement": "donor native location; no text-controlled repositioning",
+        "stats": {
+          "inside_change": 0.38242727884543476,
+          "outside_change": 0.10207794598846794,
+          "change_energy_inside_fraction": 0.90402949459892,
+          "region_fraction": 0.5330436862244898,
+          "screening_score": 0.30586881935408383
+        },
+        "identity_relative_error": 8.015558705665171e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "visual_success_verified": false,
+        "inference_intervention": {
+          "variant": "native",
+          "reader_prior_strength": 0.0
+        }
+      },
+      "directory": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e5_direct_retry/candidates/remove/appendix_remove_00_503755",
+      "appendix_visual_review": "pass"
+    },
+    {
+      "display_name": "Remove",
+      "metadata": {
+        "task_id": "remove_06_138819",
+        "mode": "remove",
+        "target_id": "138819",
+        "target_slot": 0,
+        "target_category": "sink",
+        "target_prediction_label": 1,
+        "donor_id": null,
+        "donor_slot": null,
+        "donor_category": null,
+        "donor_prediction_label": null,
+        "placement": "donor native location; no text-controlled repositioning",
+        "stats": {
+          "inside_change": 0.17371451477715827,
+          "outside_change": 0.03890506527343253,
+          "change_energy_inside_fraction": 0.7810630376463124,
+          "region_fraction": 0.24306441326530612,
+          "screening_score": 0.14453571582208388
+        },
+        "identity_relative_error": 7.688499863434117e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "visual_success_verified": true,
+        "visual_review": {
+          "status": "success",
+          "note": "Sink basin disappears; wall, floor and adjacent toilet remain. Plumbing remains in background."
+        }
+      },
+      "directory": "/home/jovyan/PGOT/outputs/figure_model_editing_memory8_register32_noprior/final/remove/07_138819",
+      "appendix_visual_review": "pass"
+    },
+    {
+      "display_name": "Replace",
+      "metadata": {
+        "task_id": "appendix_replace_05_312213",
+        "mode": "replace",
+        "target_id": "312213",
+        "target_slot": 0,
+        "target_category": "laptop",
+        "target_prediction_label": 1,
+        "donor_id": "324715",
+        "donor_slot": 0,
+        "donor_category": "laptop",
+        "donor_prediction_label": 1,
+        "placement": "donor native location; no text-controlled repositioning",
+        "stats": {
+          "inside_change": 0.30051306526667465,
+          "outside_change": 0.0453000893056296,
+          "change_energy_inside_fraction": 0.9638903064481502,
+          "region_fraction": 0.540397799744898,
+          "screening_score": 0.26653799828745245
+        },
+        "identity_relative_error": 6.437214778998168e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "visual_success_verified": false,
+        "inference_intervention": {
+          "variant": "native",
+          "reader_prior_strength": 0.0
+        }
+      },
+      "directory": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e5_direct_retry/candidates/replace/appendix_replace_05_312213",
+      "appendix_visual_review": "pass"
+    },
+    {
+      "display_name": "Replace",
+      "metadata": {
+        "task_id": "appendix_v2_replace_00_39480",
+        "mode": "replace",
+        "target_id": "39480",
+        "target_slot": 0,
+        "target_category": "person",
+        "target_prediction_label": 1,
+        "donor_id": "227482",
+        "donor_slot": 0,
+        "donor_category": "person",
+        "donor_prediction_label": 1,
+        "placement": "donor native location; no text-controlled repositioning",
+        "stats": {
+          "inside_change": 0.11137630929232656,
+          "outside_change": 0.02663769542978738,
+          "change_energy_inside_fraction": 0.8274728810766266,
+          "region_fraction": 0.2896006058673469,
+          "screening_score": 0.09139803771998603
+        },
+        "identity_relative_error": 5.521472303371411e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "visual_success_verified": false,
+        "inference_intervention": {
+          "variant": "native",
+          "reader_prior_strength": 0.0
+        }
+      },
+      "directory": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e5_direct_manipulation/_inference_v2/candidates/replace/appendix_v2_replace_00_39480",
+      "appendix_visual_review": "pass"
+    },
+    {
+      "display_name": "Add",
+      "metadata": {
+        "task_id": "appendix_add_09_54931",
+        "mode": "add",
+        "target_id": "54931",
+        "target_slot": 0,
+        "target_category": "person",
+        "target_prediction_label": 1,
+        "donor_id": "217425",
+        "donor_slot": 0,
+        "donor_category": "clock",
+        "donor_prediction_label": 1,
+        "placement": "donor native location; no text-controlled repositioning",
+        "stats": {
+          "inside_change": 0.22849317003443767,
+          "outside_change": 0.0656059184637,
+          "change_energy_inside_fraction": 0.47274800900096753,
+          "region_fraction": 0.08484135841836735,
+          "screening_score": 0.17928873118666266
+        },
+        "identity_relative_error": 8.023656846489757e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "visual_success_verified": false,
+        "inference_intervention": {
+          "variant": "native",
+          "reader_prior_strength": 0.0
+        }
+      },
+      "directory": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e5_direct_retry/candidates/add/appendix_add_09_54931",
+      "appendix_visual_review": "pass"
+    },
+    {
+      "display_name": "Add",
+      "metadata": {
+        "task_id": "appendix_v3_add_01_263860",
+        "mode": "add",
+        "target_id": "263860",
+        "target_slot": 0,
+        "target_category": "elephant",
+        "target_prediction_label": 1,
+        "donor_id": "25139",
+        "donor_slot": 0,
+        "donor_category": "zebra",
+        "donor_prediction_label": 1,
+        "placement": "donor native location; no text-controlled repositioning",
+        "stats": {
+          "inside_change": 0.07416888548865255,
+          "outside_change": 0.03736097327893557,
+          "change_energy_inside_fraction": 0.9030183000426464,
+          "region_fraction": 0.6987603635204082,
+          "screening_score": 0.046148155529450875
+        },
+        "identity_relative_error": 8.002251888683531e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "visual_success_verified": false,
+        "inference_intervention": {
+          "variant": "native",
+          "reader_prior_strength": 0.0
+        }
+      },
+      "directory": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e5_direct_manipulation/_inference_v3_candidates/candidates/add/appendix_v3_add_01_263860",
+      "appendix_visual_review": "pass"
+    },
+    {
+      "display_name": "Background Transfer",
+      "metadata": {
+        "task_id": "background_native_00_0_568690",
+        "mode": "background",
+        "variant": "native",
+        "target_id": "568690",
+        "target_slot": 0,
+        "target_category": "toilet",
+        "target_prediction_label": 1,
+        "donor_id": "176778",
+        "donor_slot": 0,
+        "donor_category": "toilet",
+        "donor_prediction_label": 1,
+        "reader_prior_strength": 0.0,
+        "object_writer_cleanup": false,
+        "placement": "donor native predicted location; no prompt-controlled placement",
+        "stats": {
+          "inside_change": 0.23286581907306483,
+          "outside_change": 0.13294979377538718,
+          "change_energy_inside_fraction": 0.8026948834535609,
+          "region_fraction": 0.6251195790816326,
+          "screening_score": 0.13315347374152445
+        },
+        "identity_relative_error": 6.464729267463554e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "visual_success_verified": true,
+        "inference_intervention": {
+          "variant": "native",
+          "reader_prior_strength": 0.0
+        },
+        "visual_review": {
+          "status": "success",
+          "note": "Bath/tile background visibly transferred with original cat/toilet recognizable. Small left-edge artifact; not pixel-identical foreground."
+        }
+      },
+      "directory": "/home/jovyan/PGOT/outputs/figure_model_editing_retry_add_background/final_native/background/01_568690",
+      "appendix_visual_review": "pass"
+    },
+    {
+      "display_name": "Background Transfer",
+      "metadata": {
+        "task_id": "appendix_v3_background_07_364166",
+        "mode": "background",
+        "target_id": "364166",
+        "target_slot": 0,
+        "target_category": "zebra",
+        "target_prediction_label": 1,
+        "donor_id": "210708",
+        "donor_slot": 0,
+        "donor_category": "elephant",
+        "donor_prediction_label": 1,
+        "placement": "donor native location; no text-controlled repositioning",
+        "stats": {
+          "inside_change": 0.2810172360302608,
+          "outside_change": 0.22030494435575299,
+          "change_energy_inside_fraction": 0.5133453406776615,
+          "region_fraction": 0.42574139030612246,
+          "screening_score": 0.11578852776344606
+        },
+        "identity_relative_error": 6.746767212462146e-06,
+        "native_output_size": [
+          224,
+          224
+        ],
+        "visual_success_verified": false,
+        "inference_intervention": {
+          "variant": "native",
+          "reader_prior_strength": 0.0
+        }
+      },
+      "directory": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e5_direct_manipulation/_inference_v3_candidates/candidates/background/appendix_v3_background_07_364166",
+      "appendix_visual_review": "pass"
+    }
+  ]
+}

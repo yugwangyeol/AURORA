@@ -1,0 +1,1285 @@
+{
+  "config": {
+    "version": "native-object-representation-transfer-v1",
+    "checkpoint": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000",
+    "checkpoint_signature": {
+      "config_sha256": "d8fb740d63970c35fe281fd7189c703adb15d59272efa909dfce4fdb0cc3c370",
+      "index_sha256": "e8e1c29647ee8d0f07906c243a44c7babf27e66eb32f918b862a3642839ece91",
+      "shards": [
+        {
+          "name": "model-00001-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000/model-00001-of-00004.safetensors",
+          "bytes": 4955311064,
+          "mtime_ns": 1789242071489691781
+        },
+        {
+          "name": "model-00002-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000/model-00002-of-00004.safetensors",
+          "bytes": 4991575392,
+          "mtime_ns": 1789242077069087783
+        },
+        {
+          "name": "model-00003-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000/model-00003-of-00004.safetensors",
+          "bytes": 4968395048,
+          "mtime_ns": 1789242082894183890
+        },
+        {
+          "name": "model-00004-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000/model-00004-of-00004.safetensors",
+          "bytes": 1133003992,
+          "mtime_ns": 1789242083896570079
+        }
+      ]
+    },
+    "pairs_sha256": "466b731f82b6a4ec7b0b51965a98d74a9f08614447ebacde88732a85b07df7f3",
+    "annotations_sha256": "0ff9fc64db716107aa9c8caf0a36ff8be375638467eb2db7e7f4e3528a3628e9",
+    "captions_sha256": "d7c3ce992e1c645e8ef5deabc99f127b3012de19153f8e7aa82854eaa3d8ae1c",
+    "caption_summary_sha256": "d3b112ea218d5211920ac2d73e57b335ed5e68f6428181a6f060c06b5cdb737b",
+    "dtype": "fp32",
+    "seed": 1234,
+    "steps": 10,
+    "guidance_scale": 1.0,
+    "eval_size": 512,
+    "max_objects": 50,
+    "max_caption_tokens": 4096,
+    "conditions": [
+      "reconstruction",
+      "text_only",
+      "semantic_only",
+      "visual_only",
+      "bundle_swap"
+    ],
+    "gt_inference_input": false,
+    "external_selector": false,
+    "pixel_paste": false,
+    "reader_prior": false,
+    "writer_rewrite": false,
+    "spatial_warp": false,
+    "selection": "Fixed manual curated pairs; several sources previously GT-assisted shortlisted; not benchmark",
+    "placement": "Native learned representations; no guarantee of target-location preservation"
+  },
+  "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+  "entries": {
+    "193429": {
+      "image_id": 193429,
+      "image_path": "/home/jovyan/data/coco/val2017/000000193429.jpg",
+      "caption": "<thing> Snowboard 1: A white snowboard with black markings and text on it, it's positioned horizontally in the snow. <ovt>. <thing> Person 1: A person wearing a green jacket, black pants, a white helmet, and goggles is sitting on the snowboard. <ovt>. <scene_end>",
+      "caption_sha256": "82c897f85becfdb6f113acea573986161f67c84480d497eb8b0fdf6b41af1637",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Snowboard",
+          "normalized_category": "snowboard",
+          "description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person wearing a green jacket, black pants, a white helmet, and goggles is sitting on the snowboard.",
+          "parsed": true
+        }
+      ]
+    },
+    "554595": {
+      "image_id": 554595,
+      "image_path": "/home/jovyan/data/coco/val2017/000000554595.jpg",
+      "caption": "<thing> Surfboard 1: A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact. <ovt>. <thing> Person 1: A person is lying on the sand, partially submerged in it up to their head, wearing dark clothing that contrasts against the light background. <ovt>. <scene_end>",
+      "caption_sha256": "754a083d9beec48a119c7bbd62ff3393313246cfd6a7c7154a421c1df1816e59",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Surfboard",
+          "normalized_category": "surfboard",
+          "description": "A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person is lying on the sand, partially submerged in it up to their head, wearing dark clothing that contrasts against the light background.",
+          "parsed": true
+        }
+      ]
+    },
+    "25228": {
+      "image_id": 25228,
+      "image_path": "/home/jovyan/data/coco/val2017/000000025228.jpg",
+      "caption": "<thing> Person 1: A silhouette of a person is visible, their features obscured by the darkness but distinguished by their upright posture and the way they hold onto a surfboard. The person is facing towards the right side of the image and appears to be looking at the horizon. The person is wearing a black wetsuit with a white logo on the chest. The logo is in the shape of a stylized 'S' with a red outline and a yellow inner circle. The person's hair is short and black. <ovt>. <thing> Surfboard 1: The surfboard is orange and white, with the bottom half visible, showing its textured surface. It's partially submerged in water and supports the person who sits on it. The surfboard is marked as orange and white. <ovt>. <scene_end>",
+      "caption_sha256": "0be92dde56fa2a583d4190e65b33d3f2bff8cee9b7a8fbabdb0e06364a7b0421",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A silhouette of a person is visible, their features obscured by the darkness but distinguished by their upright posture and the way they hold onto a surfboard. The person is facing towards the right side of the image and appears to be looking at the horizon. The person is wearing a black wetsuit with a white logo on the chest. The logo is in the shape of a stylized 'S' with a red outline and a yellow inner circle. The person's hair is short and black.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Surfboard",
+          "normalized_category": "surfboard",
+          "description": "The surfboard is orange and white, with the bottom half visible, showing its textured surface. It's partially submerged in water and supports the person who sits on it. The surfboard is marked as orange and white.",
+          "parsed": true
+        }
+      ]
+    },
+    "27972": {
+      "image_id": 27972,
+      "image_path": "/home/jovyan/data/coco/val2017/000000027972.jpg",
+      "caption": "<thing> Person 1: A surfer is captured mid-motion, wearing a red top with black shorts. They are bent at the knees, their body leaning forward indicating motion and speed. Their arms are extended, balancing the weight on the surfboard. <ovt>. <thing> Surfboard 1: The surfboard is predominantly white with green and yellow designs. It appears to be partially submerged in the water, indicating that it is either floating or has been pushed into the sea. <ovt>. <scene_end>",
+      "caption_sha256": "2c284bc45098d4c0fcbd28caf6fc40a4dd30c24d00662a209a7235c8dca5a949",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A surfer is captured mid-motion, wearing a red top with black shorts. They are bent at the knees, their body leaning forward indicating motion and speed. Their arms are extended, balancing the weight on the surfboard.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Surfboard",
+          "normalized_category": "surfboard",
+          "description": "The surfboard is predominantly white with green and yellow designs. It appears to be partially submerged in the water, indicating that it is either floating or has been pushed into the sea.",
+          "parsed": true
+        }
+      ]
+    },
+    "2261": {
+      "image_id": 2261,
+      "image_path": "/home/jovyan/data/coco/val2017/000000002261.jpg",
+      "caption": "<thing> Person 1: A person is seen partially submerged in the water, their upper body visible above the surface. They appear to be wearing a dark-colored outfit, and their arms are raised, possibly in an attempt to catch a wave or maintain balance. <ovt>. <thing> Surfboard 1: The surfboard is blue and appears to be partially submerged in the water. It's large enough to support the person on top of it, though it seems to be slightly tilted as well. <ovt>. <scene_end>",
+      "caption_sha256": "75f16501d15beb7b2a0db6a8478e30c817b884801d3f6d105848874d6203f656",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person is seen partially submerged in the water, their upper body visible above the surface. They appear to be wearing a dark-colored outfit, and their arms are raised, possibly in an attempt to catch a wave or maintain balance.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Surfboard",
+          "normalized_category": "surfboard",
+          "description": "The surfboard is blue and appears to be partially submerged in the water. It's large enough to support the person on top of it, though it seems to be slightly tilted as well.",
+          "parsed": true
+        }
+      ]
+    },
+    "23359": {
+      "image_id": 23359,
+      "image_path": "/home/jovyan/data/coco/val2017/000000023359.jpg",
+      "caption": "<thing> Person 1: A person is captured mid-air while snowboarding, wearing a brown jacket, yellow pants, and a black helmet. They appear focused and determined. <ovt>. <thing> Snowboard 1: The person is riding a white snowboard which stands out against the blue sky. <ovt>. <scene_end>",
+      "caption_sha256": "6e3789e324f43cf13e9bd51d25b32e5ee75b7c4a37f4de6215b0b9858c685870",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person is captured mid-air while snowboarding, wearing a brown jacket, yellow pants, and a black helmet. They appear focused and determined.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Snowboard",
+          "normalized_category": "snowboard",
+          "description": "The person is riding a white snowboard which stands out against the blue sky.",
+          "parsed": true
+        }
+      ]
+    },
+    "44195": {
+      "image_id": 44195,
+      "image_path": "/home/jovyan/data/coco/val2017/000000044195.jpg",
+      "caption": "<thing> Person 1: This person is wearing a bright red jacket, black pants, and a green helmet with goggles. They are standing upright with their body facing slightly to the left. <ovt>. <thing> Snowboard 1: The snowboard is purple with bindings, it's being held by person in their right hand. <ovt>. <thing> Person 2: This individual is wearing a red jacket with white designs and black pants. They are kneeling down against the snow in this image. <ovt>. <scene_end>",
+      "caption_sha256": "7d521f37bced8966c9d3fdecc5ad68c0c60d3e0ae8822ea3f0d5a64fbea5c344",
+      "ovt_count": 3,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "This person is wearing a bright red jacket, black pants, and a green helmet with goggles. They are standing upright with their body facing slightly to the left.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Snowboard",
+          "normalized_category": "snowboard",
+          "description": "The snowboard is purple with bindings, it's being held by person in their right hand.",
+          "parsed": true
+        },
+        {
+          "slot_index": 2,
+          "prediction_label": 3,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "This individual is wearing a red jacket with white designs and black pants. They are kneeling down against the snow in this image.",
+          "parsed": true
+        }
+      ]
+    },
+    "450686": {
+      "image_id": 450686,
+      "image_path": "/home/jovyan/data/coco/val2017/000000450686.jpg",
+      "caption": "<thing> Person 1: A person's hand is visible holding a cell phone. The skin appears fair and smooth, and the nails are short and clean. <ovt>. <thing> Cell phone 1: A modern smartphone held by the person, displaying various app icons on its screen. <ovt>. <scene_end>",
+      "caption_sha256": "34d5e49756ba7506581dea6278eae0e30d2b3c77e35d7f3c36e40f519d953ff5",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person's hand is visible holding a cell phone. The skin appears fair and smooth, and the nails are short and clean.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Cell phone",
+          "normalized_category": "cell phone",
+          "description": "A modern smartphone held by the person, displaying various app icons on its screen.",
+          "parsed": true
+        }
+      ]
+    },
+    "112997": {
+      "image_id": 112997,
+      "image_path": "/home/jovyan/data/coco/val2017/000000112997.jpg",
+      "caption": "<thing> Cell phone 1: The cell phone is a vintage model with a rounded edges and a small screen displaying numbers and some text. It has a dark grey color, and the Motorola logo is visible in white letters on the bottom of the phone. A speaker grille is located centrally on the front part of the phone. <ovt>. <thing> Person 1: A person's hand is visible holding the cell phone upright. The hand appears to be of average size and light skin tone. The fingers are slightly curled around the cell phone, indicating that it's being held up or displayed. <ovt>. <scene_end>",
+      "caption_sha256": "d59a76f1d85c243ed5957a4b76f73bdeac49c1f8700b4185949f14e2c69f30a1",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Cell phone",
+          "normalized_category": "cell phone",
+          "description": "The cell phone is a vintage model with a rounded edges and a small screen displaying numbers and some text. It has a dark grey color, and the Motorola logo is visible in white letters on the bottom of the phone. A speaker grille is located centrally on the front part of the phone.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person's hand is visible holding the cell phone upright. The hand appears to be of average size and light skin tone. The fingers are slightly curled around the cell phone, indicating that it's being held up or displayed.",
+          "parsed": true
+        }
+      ]
+    },
+    "802": {
+      "image_id": 802,
+      "image_path": "/home/jovyan/data/coco/val2017/000000000802.jpg",
+      "caption": "<thing> Refrigerator 1: A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser. <ovt>. <thing> Oven 1: An oven is embedded in the countertop to the left of the refrigerator. It has multiple dials for temperature control and burners on top and is white in color. <ovt>. <scene_end>",
+      "caption_sha256": "8450cc7f63087e36239052140ea24488790b7920e42550c0c74c69c7ddc3715e",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Refrigerator",
+          "normalized_category": "refrigerator",
+          "description": "A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Oven",
+          "normalized_category": "oven",
+          "description": "An oven is embedded in the countertop to the left of the refrigerator. It has multiple dials for temperature control and burners on top and is white in color.",
+          "parsed": true
+        }
+      ]
+    },
+    "243344": {
+      "image_id": 243344,
+      "image_path": "/home/jovyan/data/coco/val2017/000000243344.jpg",
+      "caption": "<thing> Refrigerator 1: A modern, stainless steel refrigerator with magnets and papers attached to its surface, located on top of the counter. <ovt>. <thing> Cat 1: A fluffy cat with tabby markings is sitting attentively on the edge of the refrigerator, its eyes focused and ears erect. <ovt>. <thing> Person 1: A person is partially visible at the bottom right corner wearing blue attire. <ovt>. <scene_end>",
+      "caption_sha256": "d874de23ce7455debad3632a1a0e4b79b7d0417917edfafc766e53cbcbed9d83",
+      "ovt_count": 3,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Refrigerator",
+          "normalized_category": "refrigerator",
+          "description": "A modern, stainless steel refrigerator with magnets and papers attached to its surface, located on top of the counter.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Cat",
+          "normalized_category": "cat",
+          "description": "A fluffy cat with tabby markings is sitting attentively on the edge of the refrigerator, its eyes focused and ears erect.",
+          "parsed": true
+        },
+        {
+          "slot_index": 2,
+          "prediction_label": 3,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person is partially visible at the bottom right corner wearing blue attire.",
+          "parsed": true
+        }
+      ]
+    },
+    "409630": {
+      "image_id": 409630,
+      "image_path": "/home/jovyan/data/coco/val2017/000000409630.jpg",
+      "caption": "<thing> Keyboard 1: This is a white keyboard with black lettering on the keys. It appears to be in use as there's an item (likely a computer mouse) nearby. The keyboard has a rectangular shape and is positioned on the table-merged surface. <ovt>. <thing> Laptop 1: A closed laptop with a silver color is present in the image. It has a smooth texture and is positioned above the table-merged surface. The laptop has a rectangular shape and is partially visible in the background. <ovt>. <thing> Mouse 1: A black computer mouse with a sleek design is visible to the right of the keyboard on the table-merged surface. It has a rectangular shape and is positioned next to the keyboard. <ovt>. <scene_end>",
+      "caption_sha256": "a2bc0efdd36249b7d95e828beee10fd7ba6fa635be092ee3c981720babd041bd",
+      "ovt_count": 3,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Keyboard",
+          "normalized_category": "keyboard",
+          "description": "This is a white keyboard with black lettering on the keys. It appears to be in use as there's an item (likely a computer mouse) nearby. The keyboard has a rectangular shape and is positioned on the table-merged surface.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Laptop",
+          "normalized_category": "laptop",
+          "description": "A closed laptop with a silver color is present in the image. It has a smooth texture and is positioned above the table-merged surface. The laptop has a rectangular shape and is partially visible in the background.",
+          "parsed": true
+        },
+        {
+          "slot_index": 2,
+          "prediction_label": 3,
+          "is_thing": true,
+          "category": "Mouse",
+          "normalized_category": "mouse",
+          "description": "A black computer mouse with a sleek design is visible to the right of the keyboard on the table-merged surface. It has a rectangular shape and is positioned next to the keyboard.",
+          "parsed": true
+        }
+      ]
+    },
+    "335658": {
+      "image_id": 335658,
+      "image_path": "/home/jovyan/data/coco/val2017/000000335658.jpg",
+      "caption": "<thing> Keyboard 1: The keyboard is white with a modern design, featuring black keys outlined with grey outlines for easier identification. It has a sleek appearance, with rows of keys aligned neatly along its surface. <ovt>. <thing> Mouse 1: The mouse is white and appears to be an ergonomic design, suitable for right-handed use. It has a smooth surface with a subtle shine indicating it's well-maintained. <ovt>. <scene_end>",
+      "caption_sha256": "d0aa7490f52bfe68af3cc8955b7e9d738a457d0aa8d30d67298d930febce678b",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Keyboard",
+          "normalized_category": "keyboard",
+          "description": "The keyboard is white with a modern design, featuring black keys outlined with grey outlines for easier identification. It has a sleek appearance, with rows of keys aligned neatly along its surface.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Mouse",
+          "normalized_category": "mouse",
+          "description": "The mouse is white and appears to be an ergonomic design, suitable for right-handed use. It has a smooth surface with a subtle shine indicating it's well-maintained.",
+          "parsed": true
+        }
+      ]
+    },
+    "261161": {
+      "image_id": 261161,
+      "image_path": "/home/jovyan/data/coco/val2017/000000261161.jpg",
+      "caption": "<thing> Dog 1: A black and white dog with a shiny coat, its ears are perked up, and it's wearing a leash around its neck. The dog appears to be a medium-sized breed and is standing on the pavement-merged object. <ovt>. <thing> Bench 1: A red bench with wooden slats on its seat and backrest, it appears worn but still sturdy. The bench is positioned on the left side of the image and is facing the tree. <ovt>. <scene_end>",
+      "caption_sha256": "602aedaeb5fda2c311001bd33d16062e78ea39f851132c6bca9a038d91767976",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A black and white dog with a shiny coat, its ears are perked up, and it's wearing a leash around its neck. The dog appears to be a medium-sized breed and is standing on the pavement-merged object.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Bench",
+          "normalized_category": "bench",
+          "description": "A red bench with wooden slats on its seat and backrest, it appears worn but still sturdy. The bench is positioned on the left side of the image and is facing the tree.",
+          "parsed": true
+        }
+      ]
+    },
+    "17436": {
+      "image_id": 17436,
+      "image_path": "/home/jovyan/data/coco/val2017/000000017436.jpg",
+      "caption": "<thing> Bench 1: A wooden bench with a backrest is positioned in front of the garden, offering seating amidst nature. <ovt>. <thing> Person 1: A person is seated on a bench in what appears to be an outdoor setting, they are partially obscured by other elements in the scene. <ovt>. <scene_end>",
+      "caption_sha256": "9962ec1a71b82f27cdf1d070323912a4b36be5dff15af0289e30320857cde3c3",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Bench",
+          "normalized_category": "bench",
+          "description": "A wooden bench with a backrest is positioned in front of the garden, offering seating amidst nature.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person is seated on a bench in what appears to be an outdoor setting, they are partially obscured by other elements in the scene.",
+          "parsed": true
+        }
+      ]
+    },
+    "48153": {
+      "image_id": 48153,
+      "image_path": "/home/jovyan/data/coco/val2017/000000048153.jpg",
+      "caption": "<thing> Bench 1: The bench is made of wood with a blue-green patina finish, showing signs of age and wear with visible planks and worn areas. It has a simple design and appears to be placed outdoors. <ovt>. <thing> Person 1: The person in the image is wearing a pair of blue jeans that have a slight sheen, reflecting light softly. Only the lower part of the person is visible, showing a pair of pink high-heeled shoes that are ornate in design. <ovt>. <scene_end>",
+      "caption_sha256": "ae23ce4eba8360c63bea314a81f697681c4d5307f1b2bc80cbdda5c46812c74f",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Bench",
+          "normalized_category": "bench",
+          "description": "The bench is made of wood with a blue-green patina finish, showing signs of age and wear with visible planks and worn areas. It has a simple design and appears to be placed outdoors.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "The person in the image is wearing a pair of blue jeans that have a slight sheen, reflecting light softly. Only the lower part of the person is visible, showing a pair of pink high-heeled shoes that are ornate in design.",
+          "parsed": true
+        }
+      ]
+    },
+    "9448": {
+      "image_id": 9448,
+      "image_path": "/home/jovyan/data/coco/val2017/000000009448.jpg",
+      "caption": "<thing> Umbrella 1: The umbrella is large and blue, with a structured frame and numerous interconnected ribs that create the fabric's structure. It has a smooth texture and appears to be made of a durable material. The umbrella is open and provides coverage for the person holding it. <ovt>. <scene_end>",
+      "caption_sha256": "79f9ec92bcc84229ead4ee8ecd169e1c5fd1c4a2f45dbd6535c5153ce531f009",
+      "ovt_count": 1,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Umbrella",
+          "normalized_category": "umbrella",
+          "description": "The umbrella is large and blue, with a structured frame and numerous interconnected ribs that create the fabric's structure. It has a smooth texture and appears to be made of a durable material. The umbrella is open and provides coverage for the person holding it.",
+          "parsed": true
+        }
+      ]
+    },
+    "122046": {
+      "image_id": 122046,
+      "image_path": "/home/jovyan/data/coco/val2017/000000122046.jpg",
+      "caption": "<thing> Umbrella 1: A large pink umbrella with an intricate white pattern hangs above the person's head, providing shade. <ovt>. <thing> Person 1: A person with dark hair and wearing a sleeveless dress with floral and abstract designs is seated on a metal bench, holding an umbrella. <ovt>. <thing> Bench 1: A metallic bench with a simple design sits on the pavement, appearing slightly worn. <ovt>. <scene_end>",
+      "caption_sha256": "b9dc3f1627f9147021ef340c7d116549769b5e32aadd7a7a1e64b244b110558b",
+      "ovt_count": 3,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Umbrella",
+          "normalized_category": "umbrella",
+          "description": "A large pink umbrella with an intricate white pattern hangs above the person's head, providing shade.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person with dark hair and wearing a sleeveless dress with floral and abstract designs is seated on a metal bench, holding an umbrella.",
+          "parsed": true
+        },
+        {
+          "slot_index": 2,
+          "prediction_label": 3,
+          "is_thing": true,
+          "category": "Bench",
+          "normalized_category": "bench",
+          "description": "A metallic bench with a simple design sits on the pavement, appearing slightly worn.",
+          "parsed": true
+        }
+      ]
+    },
+    "350019": {
+      "image_id": 350019,
+      "image_path": "/home/jovyan/data/coco/val2017/000000350019.jpg",
+      "caption": "<thing> Suitcase 1: A large, brown Louis Vuitton suitcase with a pattern of small, intricate designs in multiple colors including black, brown, and white. It has golden buttons at the top and is standing upright on the wooden floor. <ovt>. <thing> Person 1: A child wearing a blue t-shirt with an image of an American flag intertwined into a design, paired with white pants, is looking down at the suitcase with curiosity or interest. <ovt>. <scene_end>",
+      "caption_sha256": "02d770cdcfd66bd10469c41548b8f6ee7eb9eb06b9498e5c5837526a9cfa44bc",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Suitcase",
+          "normalized_category": "suitcase",
+          "description": "A large, brown Louis Vuitton suitcase with a pattern of small, intricate designs in multiple colors including black, brown, and white. It has golden buttons at the top and is standing upright on the wooden floor.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A child wearing a blue t-shirt with an image of an American flag intertwined into a design, paired with white pants, is looking down at the suitcase with curiosity or interest.",
+          "parsed": true
+        }
+      ]
+    },
+    "112626": {
+      "image_id": 112626,
+      "image_path": "/home/jovyan/data/coco/val2017/000000112626.jpg",
+      "caption": "<thing> Suitcase 1: A large, metallic silver suitcase with a smooth texture and multiple compartments is placed on the floor. It has zippered closures for security and is equipped with wheels for easy mobility. <ovt>. <thing> Couch 1: A large, brown couch with cushions is positioned against the wall, featuring a comfortable design for seating or lounging. <ovt>. <thing> Bottle 1: A small bottle with an unclear label sits on top of what appears to be a table or similar surface near the wall. <ovt>. <thing> Book 1: A book with an unclear cover design sits on top of what appears to be a table or similar surface near the wall. <ovt>. <scene_end>",
+      "caption_sha256": "1051c544631c176a8343124eaf378c9866b650098c02539a43e68931fcdde55a",
+      "ovt_count": 4,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Suitcase",
+          "normalized_category": "suitcase",
+          "description": "A large, metallic silver suitcase with a smooth texture and multiple compartments is placed on the floor. It has zippered closures for security and is equipped with wheels for easy mobility.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Couch",
+          "normalized_category": "couch",
+          "description": "A large, brown couch with cushions is positioned against the wall, featuring a comfortable design for seating or lounging.",
+          "parsed": true
+        },
+        {
+          "slot_index": 2,
+          "prediction_label": 3,
+          "is_thing": true,
+          "category": "Bottle",
+          "normalized_category": "bottle",
+          "description": "A small bottle with an unclear label sits on top of what appears to be a table or similar surface near the wall.",
+          "parsed": true
+        },
+        {
+          "slot_index": 3,
+          "prediction_label": 4,
+          "is_thing": true,
+          "category": "Book",
+          "normalized_category": "book",
+          "description": "A book with an unclear cover design sits on top of what appears to be a table or similar surface near the wall.",
+          "parsed": true
+        }
+      ]
+    },
+    "205834": {
+      "image_id": 205834,
+      "image_path": "/home/jovyan/data/coco/val2017/000000205834.jpg",
+      "caption": "<thing> Dog 1: A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine. <ovt>. <thing> Bowl 1: A metallic bowl with a curved rim is positioned on the pavement. It's small and shallow, likely designed for dogs to eat or drink from. <ovt>. <scene_end>",
+      "caption_sha256": "2a97be3fb82ebc57f37f1819c8e5f68e523588efdc79c3f8f0838ef0c4ec0b53",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Bowl",
+          "normalized_category": "bowl",
+          "description": "A metallic bowl with a curved rim is positioned on the pavement. It's small and shallow, likely designed for dogs to eat or drink from.",
+          "parsed": true
+        }
+      ]
+    },
+    "579321": {
+      "image_id": 579321,
+      "image_path": "/home/jovyan/data/coco/val2017/000000579321.jpg",
+      "caption": "<thing> Person 1: The person is standing on the pavement and appears to be a male with a height. He is wearing black high-heeled sandals with buckles and soles that are visible. The person is wearing a black top and black pants. He is looking at the dog and seems to be in a relaxed posture. <ovt>. <thing> Dog 1: A small, fluffy dog with a mix of dark and light fur is wearing a white skirt with colorful designs and a yellow bandana around its neck. The dog is standing on the same pavement as the person, looking at the dog and seems to be in a relaxed posture. <ovt>. <scene_end>",
+      "caption_sha256": "532298b675878d30072498ca288f1dae4fd1c4c46e4d5da0bc8af936a2a8d705",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "The person is standing on the pavement and appears to be a male with a height. He is wearing black high-heeled sandals with buckles and soles that are visible. The person is wearing a black top and black pants. He is looking at the dog and seems to be in a relaxed posture.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A small, fluffy dog with a mix of dark and light fur is wearing a white skirt with colorful designs and a yellow bandana around its neck. The dog is standing on the same pavement as the person, looking at the dog and seems to be in a relaxed posture.",
+          "parsed": true
+        }
+      ]
+    },
+    "52891": {
+      "image_id": 52891,
+      "image_path": "/home/jovyan/data/coco/val2017/000000052891.jpg",
+      "caption": "<thing> Dog 1: A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement. <ovt>. <thing> Frisbee 1: A bright yellow frisbee lies on the sand close to the dog. It's in good condition, with visible wear marks suggesting it has been used multiple times. <ovt>. <scene_end>",
+      "caption_sha256": "7bd404b4ebeba2976041b04852391eb74a781d1f481362cd3bf833a8492a896e",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Frisbee",
+          "normalized_category": "frisbee",
+          "description": "A bright yellow frisbee lies on the sand close to the dog. It's in good condition, with visible wear marks suggesting it has been used multiple times.",
+          "parsed": true
+        }
+      ]
+    },
+    "554735": {
+      "image_id": 554735,
+      "image_path": "/home/jovyan/data/coco/val2017/000000554735.jpg",
+      "caption": "<thing> Person 1: A person's hand is visible, appearing pale and smooth, holding a slice of pizza. The hand is positioned in the center of the image, with the thumb and index finger holding the slice. The fingers are slightly curved, indicating a natural grip. The slice of pizza is partially eaten, with a bite taken out of it. The slice has a circular shape, with the crust of the pizza slightly thicker than the rest. The crust is golden brown, with a slightly crispy texture. The cheese on the slice is melted and stretched, with visible bubbles and a slightly browned surface. The person's intention appears to be enjoying the pizza meal. <ovt>. <thing> Pizza 1: This slice of pizza has melted cheese, meat toppings, and appears to be freshly served. The cheese is yellowish, with a slightly browned surface. The toppings include chunks of meat, possibly pepperoni or sausage, and shredded lettuce. The crust is golden brown, with a slightly crispy texture. The pizza is circular in shape, with a diameter of approximately 8 inches. The crust is slightly thicker than the rest. The toppings are evenly distributed, and the pizza looks fresh and appetizing. <ovt>. <scene_end>",
+      "caption_sha256": "08dc49b564519942f67f0ab423f1b5d68ded2d002e60caeb6d92fffc128e9449",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person's hand is visible, appearing pale and smooth, holding a slice of pizza. The hand is positioned in the center of the image, with the thumb and index finger holding the slice. The fingers are slightly curved, indicating a natural grip. The slice of pizza is partially eaten, with a bite taken out of it. The slice has a circular shape, with the crust of the pizza slightly thicker than the rest. The crust is golden brown, with a slightly crispy texture. The cheese on the slice is melted and stretched, with visible bubbles and a slightly browned surface. The person's intention appears to be enjoying the pizza meal.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Pizza",
+          "normalized_category": "pizza",
+          "description": "This slice of pizza has melted cheese, meat toppings, and appears to be freshly served. The cheese is yellowish, with a slightly browned surface. The toppings include chunks of meat, possibly pepperoni or sausage, and shredded lettuce. The crust is golden brown, with a slightly crispy texture. The pizza is circular in shape, with a diameter of approximately 8 inches. The crust is slightly thicker than the rest. The toppings are evenly distributed, and the pizza looks fresh and appetizing.",
+          "parsed": true
+        }
+      ]
+    },
+    "323151": {
+      "image_id": 323151,
+      "image_path": "/home/jovyan/data/coco/val2017/000000323151.jpg",
+      "caption": "<thing> Pizza 1: A freshly baked pizza with a golden-brown crust, topped with melted cheese, black olives, and pieces of meat is placed on a white plate. The pizza has a diameter of approximately 10 inches. <ovt>. <thing> Cup 1: A glass cup filled with a golden liquid, possibly beer, with some foam on top is placed to the right of the pizza. The cup has a cylindrical shape and is approximately 6 inches tall. <ovt>. <thing> Person 1: There isn't any visible person in this image so we can't describe any actions or emotions associated with them. <ovt>. <scene_end>",
+      "caption_sha256": "e159b041ddbc815719e52a70b2bb359a16bb4f57e51f97f96f513848d98ab455",
+      "ovt_count": 3,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Pizza",
+          "normalized_category": "pizza",
+          "description": "A freshly baked pizza with a golden-brown crust, topped with melted cheese, black olives, and pieces of meat is placed on a white plate. The pizza has a diameter of approximately 10 inches.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Cup",
+          "normalized_category": "cup",
+          "description": "A glass cup filled with a golden liquid, possibly beer, with some foam on top is placed to the right of the pizza. The cup has a cylindrical shape and is approximately 6 inches tall.",
+          "parsed": true
+        },
+        {
+          "slot_index": 2,
+          "prediction_label": 3,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "There isn't any visible person in this image so we can't describe any actions or emotions associated with them.",
+          "parsed": true
+        }
+      ]
+    },
+    "84431": {
+      "image_id": 84431,
+      "image_path": "/home/jovyan/data/coco/val2017/000000084431.jpg",
+      "caption": "<thing> Pizza 1: A slice of pizza with a golden-brown crust, topped with melted cheese and pieces of meat (possibly pepperoni), is placed on a plate. The cheese is melted and has a slightly browned appearance. <ovt>. <thing> Tv 1: A television set displaying an image of a person (presumably the chef) is mounted on the wall. It has a black frame and is turned off. <ovt>. <scene_end>",
+      "caption_sha256": "f60f8a82818388d524d4e3e886eacf54d2a167eca96d3a0479f43151ad44497b",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Pizza",
+          "normalized_category": "pizza",
+          "description": "A slice of pizza with a golden-brown crust, topped with melted cheese and pieces of meat (possibly pepperoni), is placed on a plate. The cheese is melted and has a slightly browned appearance.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Tv",
+          "normalized_category": "tv",
+          "description": "A television set displaying an image of a person (presumably the chef) is mounted on the wall. It has a black frame and is turned off.",
+          "parsed": true
+        }
+      ]
+    },
+    "243867": {
+      "image_id": 243867,
+      "image_path": "/home/jovyan/data/coco/val2017/000000243867.jpg",
+      "caption": "<thing> Bus 1: The bus is a large vehicle with a white body. It has tinted windows, making it difficult to see inside. The bus is parked on the road, its wheels touching the surface. <ovt>. <thing> Car 1: This car is a silver sedan with a sleek design. Its body is shiny and well-maintained, reflecting the surrounding environment subtly. The car is positioned in front of the bus, occupying part of its path. <ovt>. <scene_end>",
+      "caption_sha256": "9b30b7b93e3a87352ff2a02c2977869cba61c1104e10de19529207b9a4dc0560",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Bus",
+          "normalized_category": "bus",
+          "description": "The bus is a large vehicle with a white body. It has tinted windows, making it difficult to see inside. The bus is parked on the road, its wheels touching the surface.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Car",
+          "normalized_category": "car",
+          "description": "This car is a silver sedan with a sleek design. Its body is shiny and well-maintained, reflecting the surrounding environment subtly. The car is positioned in front of the bus, occupying part of its path.",
+          "parsed": true
+        }
+      ]
+    },
+    "90208": {
+      "image_id": 90208,
+      "image_path": "/home/jovyan/data/coco/val2017/000000090208.jpg",
+      "caption": "<thing> Bus 1: A vintage green double-decker bus labeled \"GREEN LINE\" and \"BELHUS\" is parked. It has a shiny surface reflecting the surrounding environment, and the registration label is clearly visible. <ovt>. <thing> Bus 2: Another double-decker bus, red in color with a classic design is partially visible to the left of the green bus, appearing to be stationary. <ovt>. <scene_end>",
+      "caption_sha256": "033e6bd19ee9eb384673a4b3956c4bf6aab3f9f2406faf3badc196b0aa786d13",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Bus",
+          "normalized_category": "bus",
+          "description": "A vintage green double-decker bus labeled \"GREEN LINE\" and \"BELHUS\" is parked. It has a shiny surface reflecting the surrounding environment, and the registration label is clearly visible.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Bus",
+          "normalized_category": "bus",
+          "description": "Another double-decker bus, red in color with a classic design is partially visible to the left of the green bus, appearing to be stationary.",
+          "parsed": true
+        }
+      ]
+    }
+  },
+  "pairs": [
+    {
+      "pair_id": "snowboard_to_star_surfboard",
+      "target_image_id": 193429,
+      "target_slot": 0,
+      "donor_image_id": 554595,
+      "donor_slot": 0,
+      "target_category": "Snowboard",
+      "donor_category": "Surfboard",
+      "instruction": "Replace A's snowboard with B's star-patterned surfboard.",
+      "target_description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+      "target_prediction_label": 1,
+      "donor_description": "A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact.",
+      "donor_prediction_label": 1,
+      "category": "Snowboard -> Surfboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Surfboard 1: A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact. <ovt>. <thing> Person 1: A person wearing a green jacket, black pants, a white helmet, and goggles is sitting on the snowboard. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "snowboard_to_orange_surfboard",
+      "target_image_id": 193429,
+      "target_slot": 0,
+      "donor_image_id": 25228,
+      "donor_slot": 1,
+      "target_category": "Snowboard",
+      "donor_category": "Surfboard",
+      "instruction": "Replace A's snowboard with B's orange-and-white surfboard.",
+      "target_description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+      "target_prediction_label": 1,
+      "donor_description": "The surfboard is orange and white, with the bottom half visible, showing its textured surface. It's partially submerged in water and supports the person who sits on it. The surfboard is marked as orange and white.",
+      "donor_prediction_label": 2,
+      "category": "Snowboard -> Surfboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Surfboard 1: The surfboard is orange and white, with the bottom half visible, showing its textured surface. It's partially submerged in water and supports the person who sits on it. The surfboard is marked as orange and white. <ovt>. <thing> Person 1: A person wearing a green jacket, black pants, a white helmet, and goggles is sitting on the snowboard. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "snowboard_to_green_yellow_surfboard",
+      "target_image_id": 193429,
+      "target_slot": 0,
+      "donor_image_id": 27972,
+      "donor_slot": 1,
+      "target_category": "Snowboard",
+      "donor_category": "Surfboard",
+      "instruction": "Replace A's snowboard with B's green-and-yellow surfboard.",
+      "target_description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+      "target_prediction_label": 1,
+      "donor_description": "The surfboard is predominantly white with green and yellow designs. It appears to be partially submerged in the water, indicating that it is either floating or has been pushed into the sea.",
+      "donor_prediction_label": 2,
+      "category": "Snowboard -> Surfboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Surfboard 1: The surfboard is predominantly white with green and yellow designs. It appears to be partially submerged in the water, indicating that it is either floating or has been pushed into the sea. <ovt>. <thing> Person 1: A person wearing a green jacket, black pants, a white helmet, and goggles is sitting on the snowboard. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "snowboard_to_blue_surfboard",
+      "target_image_id": 193429,
+      "target_slot": 0,
+      "donor_image_id": 2261,
+      "donor_slot": 1,
+      "target_category": "Snowboard",
+      "donor_category": "Surfboard",
+      "instruction": "Replace A's snowboard with B's blue surfboard.",
+      "target_description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+      "target_prediction_label": 1,
+      "donor_description": "The surfboard is blue and appears to be partially submerged in the water. It's large enough to support the person on top of it, though it seems to be slightly tilted as well.",
+      "donor_prediction_label": 2,
+      "category": "Snowboard -> Surfboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Surfboard 1: The surfboard is blue and appears to be partially submerged in the water. It's large enough to support the person on top of it, though it seems to be slightly tilted as well. <ovt>. <thing> Person 1: A person wearing a green jacket, black pants, a white helmet, and goggles is sitting on the snowboard. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "snowboard_jump_to_star_surfboard",
+      "target_image_id": 23359,
+      "target_slot": 1,
+      "donor_image_id": 554595,
+      "donor_slot": 0,
+      "target_category": "Snowboard",
+      "donor_category": "Surfboard",
+      "instruction": "Replace A's jumping snowboarder's board with B's star-patterned surfboard.",
+      "target_description": "The person is riding a white snowboard which stands out against the blue sky.",
+      "target_prediction_label": 2,
+      "donor_description": "A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact.",
+      "donor_prediction_label": 1,
+      "category": "Snowboard -> Surfboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Person 1: A person is captured mid-air while snowboarding, wearing a brown jacket, yellow pants, and a black helmet. They appear focused and determined. <ovt>. <thing> Surfboard 1: A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "snowboard_purple_to_star_surfboard",
+      "target_image_id": 44195,
+      "target_slot": 1,
+      "donor_image_id": 554595,
+      "donor_slot": 0,
+      "target_category": "Snowboard",
+      "donor_category": "Surfboard",
+      "instruction": "Replace A's purple snowboard with B's star-patterned surfboard.",
+      "target_description": "The snowboard is purple with bindings, it's being held by person in their right hand.",
+      "target_prediction_label": 2,
+      "donor_description": "A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact.",
+      "donor_prediction_label": 1,
+      "category": "Snowboard -> Surfboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Person 1: This person is wearing a bright red jacket, black pants, and a green helmet with goggles. They are standing upright with their body facing slightly to the left. <ovt>. <thing> Surfboard 1: A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact. <ovt>. <thing> Person 2: This individual is wearing a red jacket with white designs and black pants. They are kneeling down against the snow in this image. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "phone_modern_to_vintage",
+      "target_image_id": 450686,
+      "target_slot": 1,
+      "donor_image_id": 112997,
+      "donor_slot": 0,
+      "category": "cell phone",
+      "instruction": "Replace A's modern smartphone with B's vintage Motorola phone.",
+      "target_description": "A modern smartphone held by the person, displaying various app icons on its screen.",
+      "target_category": "Cell phone",
+      "target_prediction_label": 2,
+      "donor_description": "The cell phone is a vintage model with a rounded edges and a small screen displaying numbers and some text. It has a dark grey color, and the Motorola logo is visible in white letters on the bottom of the phone. A speaker grille is located centrally on the front part of the phone.",
+      "donor_category": "Cell phone",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Person 1: A person's hand is visible holding a cell phone. The skin appears fair and smooth, and the nails are short and clean. <ovt>. <thing> Cell phone 1: The cell phone is a vintage model with a rounded edges and a small screen displaying numbers and some text. It has a dark grey color, and the Motorola logo is visible in white letters on the bottom of the phone. A speaker grille is located centrally on the front part of the phone. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "phone_vintage_to_modern",
+      "target_image_id": 112997,
+      "target_slot": 0,
+      "donor_image_id": 450686,
+      "donor_slot": 1,
+      "category": "cell phone",
+      "instruction": "Replace A's vintage phone with B's modern smartphone.",
+      "target_description": "The cell phone is a vintage model with a rounded edges and a small screen displaying numbers and some text. It has a dark grey color, and the Motorola logo is visible in white letters on the bottom of the phone. A speaker grille is located centrally on the front part of the phone.",
+      "target_category": "Cell phone",
+      "target_prediction_label": 1,
+      "donor_description": "A modern smartphone held by the person, displaying various app icons on its screen.",
+      "donor_category": "Cell phone",
+      "donor_prediction_label": 2,
+      "cross_category": false,
+      "text_only_caption": "<thing> Cell phone 1: A modern smartphone held by the person, displaying various app icons on its screen. <ovt>. <thing> Person 1: A person's hand is visible holding the cell phone upright. The hand appears to be of average size and light skin tone. The fingers are slightly curled around the cell phone, indicating that it's being held up or displayed. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "refrigerator_white_to_steel",
+      "target_image_id": 802,
+      "target_slot": 0,
+      "donor_image_id": 243344,
+      "donor_slot": 0,
+      "category": "refrigerator",
+      "instruction": "Replace A's white refrigerator with B's stainless-steel refrigerator.",
+      "target_description": "A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser.",
+      "target_category": "Refrigerator",
+      "target_prediction_label": 1,
+      "donor_description": "A modern, stainless steel refrigerator with magnets and papers attached to its surface, located on top of the counter.",
+      "donor_category": "Refrigerator",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Refrigerator 1: A modern, stainless steel refrigerator with magnets and papers attached to its surface, located on top of the counter. <ovt>. <thing> Oven 1: An oven is embedded in the countertop to the left of the refrigerator. It has multiple dials for temperature control and burners on top and is white in color. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "refrigerator_steel_to_white",
+      "target_image_id": 243344,
+      "target_slot": 0,
+      "donor_image_id": 802,
+      "donor_slot": 0,
+      "category": "refrigerator",
+      "instruction": "Replace A's stainless-steel refrigerator with B's white refrigerator.",
+      "target_description": "A modern, stainless steel refrigerator with magnets and papers attached to its surface, located on top of the counter.",
+      "target_category": "Refrigerator",
+      "target_prediction_label": 1,
+      "donor_description": "A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser.",
+      "donor_category": "Refrigerator",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Refrigerator 1: A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser. <ovt>. <thing> Cat 1: A fluffy cat with tabby markings is sitting attentively on the edge of the refrigerator, its eyes focused and ears erect. <ovt>. <thing> Person 1: A person is partially visible at the bottom right corner wearing blue attire. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "mouse_black_to_white",
+      "target_image_id": 409630,
+      "target_slot": 2,
+      "donor_image_id": 335658,
+      "donor_slot": 1,
+      "category": "mouse",
+      "instruction": "Replace A's black computer mouse with B's white mouse.",
+      "target_description": "A black computer mouse with a sleek design is visible to the right of the keyboard on the table-merged surface. It has a rectangular shape and is positioned next to the keyboard.",
+      "target_category": "Mouse",
+      "target_prediction_label": 3,
+      "donor_description": "The mouse is white and appears to be an ergonomic design, suitable for right-handed use. It has a smooth surface with a subtle shine indicating it's well-maintained.",
+      "donor_category": "Mouse",
+      "donor_prediction_label": 2,
+      "cross_category": false,
+      "text_only_caption": "<thing> Keyboard 1: This is a white keyboard with black lettering on the keys. It appears to be in use as there's an item (likely a computer mouse) nearby. The keyboard has a rectangular shape and is positioned on the table-merged surface. <ovt>. <thing> Laptop 1: A closed laptop with a silver color is present in the image. It has a smooth texture and is positioned above the table-merged surface. The laptop has a rectangular shape and is partially visible in the background. <ovt>. <thing> Mouse 1: The mouse is white and appears to be an ergonomic design, suitable for right-handed use. It has a smooth surface with a subtle shine indicating it's well-maintained. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "mouse_white_to_black",
+      "target_image_id": 335658,
+      "target_slot": 1,
+      "donor_image_id": 409630,
+      "donor_slot": 2,
+      "category": "mouse",
+      "instruction": "Replace A's white computer mouse with B's black mouse.",
+      "target_description": "The mouse is white and appears to be an ergonomic design, suitable for right-handed use. It has a smooth surface with a subtle shine indicating it's well-maintained.",
+      "target_category": "Mouse",
+      "target_prediction_label": 2,
+      "donor_description": "A black computer mouse with a sleek design is visible to the right of the keyboard on the table-merged surface. It has a rectangular shape and is positioned next to the keyboard.",
+      "donor_category": "Mouse",
+      "donor_prediction_label": 3,
+      "cross_category": false,
+      "text_only_caption": "<thing> Keyboard 1: The keyboard is white with a modern design, featuring black keys outlined with grey outlines for easier identification. It has a sleek appearance, with rows of keys aligned neatly along its surface. <ovt>. <thing> Mouse 1: A black computer mouse with a sleek design is visible to the right of the keyboard on the table-merged surface. It has a rectangular shape and is positioned next to the keyboard. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "bench_pink_to_wooden",
+      "target_image_id": 261161,
+      "target_slot": 1,
+      "donor_image_id": 17436,
+      "donor_slot": 0,
+      "category": "bench",
+      "instruction": "Replace A's pink bench with B's wooden bench.",
+      "target_description": "A red bench with wooden slats on its seat and backrest, it appears worn but still sturdy. The bench is positioned on the left side of the image and is facing the tree.",
+      "target_category": "Bench",
+      "target_prediction_label": 2,
+      "donor_description": "A wooden bench with a backrest is positioned in front of the garden, offering seating amidst nature.",
+      "donor_category": "Bench",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Dog 1: A black and white dog with a shiny coat, its ears are perked up, and it's wearing a leash around its neck. The dog appears to be a medium-sized breed and is standing on the pavement-merged object. <ovt>. <thing> Bench 1: A wooden bench with a backrest is positioned in front of the garden, offering seating amidst nature. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "bench_pink_to_teal",
+      "target_image_id": 261161,
+      "target_slot": 1,
+      "donor_image_id": 48153,
+      "donor_slot": 0,
+      "category": "bench",
+      "instruction": "Replace A's pink bench with B's weathered blue-green bench.",
+      "target_description": "A red bench with wooden slats on its seat and backrest, it appears worn but still sturdy. The bench is positioned on the left side of the image and is facing the tree.",
+      "target_category": "Bench",
+      "target_prediction_label": 2,
+      "donor_description": "The bench is made of wood with a blue-green patina finish, showing signs of age and wear with visible planks and worn areas. It has a simple design and appears to be placed outdoors.",
+      "donor_category": "Bench",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Dog 1: A black and white dog with a shiny coat, its ears are perked up, and it's wearing a leash around its neck. The dog appears to be a medium-sized breed and is standing on the pavement-merged object. <ovt>. <thing> Bench 1: The bench is made of wood with a blue-green patina finish, showing signs of age and wear with visible planks and worn areas. It has a simple design and appears to be placed outdoors. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "umbrella_blue_to_pink",
+      "target_image_id": 9448,
+      "target_slot": 0,
+      "donor_image_id": 122046,
+      "donor_slot": 0,
+      "category": "umbrella",
+      "instruction": "Replace A's blue umbrella with B's pink patterned umbrella.",
+      "target_description": "The umbrella is large and blue, with a structured frame and numerous interconnected ribs that create the fabric's structure. It has a smooth texture and appears to be made of a durable material. The umbrella is open and provides coverage for the person holding it.",
+      "target_category": "Umbrella",
+      "target_prediction_label": 1,
+      "donor_description": "A large pink umbrella with an intricate white pattern hangs above the person's head, providing shade.",
+      "donor_category": "Umbrella",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Umbrella 1: A large pink umbrella with an intricate white pattern hangs above the person's head, providing shade. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "umbrella_pink_to_blue",
+      "target_image_id": 122046,
+      "target_slot": 0,
+      "donor_image_id": 9448,
+      "donor_slot": 0,
+      "category": "umbrella",
+      "instruction": "Replace A's pink umbrella with B's blue umbrella.",
+      "target_description": "A large pink umbrella with an intricate white pattern hangs above the person's head, providing shade.",
+      "target_category": "Umbrella",
+      "target_prediction_label": 1,
+      "donor_description": "The umbrella is large and blue, with a structured frame and numerous interconnected ribs that create the fabric's structure. It has a smooth texture and appears to be made of a durable material. The umbrella is open and provides coverage for the person holding it.",
+      "donor_category": "Umbrella",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Umbrella 1: The umbrella is large and blue, with a structured frame and numerous interconnected ribs that create the fabric's structure. It has a smooth texture and appears to be made of a durable material. The umbrella is open and provides coverage for the person holding it. <ovt>. <thing> Person 1: A person with dark hair and wearing a sleeveless dress with floral and abstract designs is seated on a metal bench, holding an umbrella. <ovt>. <thing> Bench 1: A metallic bench with a simple design sits on the pavement, appearing slightly worn. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "suitcase_patterned_to_silver",
+      "target_image_id": 350019,
+      "target_slot": 0,
+      "donor_image_id": 112626,
+      "donor_slot": 0,
+      "category": "suitcase",
+      "instruction": "Replace A's brown patterned suitcase with B's silver suitcase.",
+      "target_description": "A large, brown Louis Vuitton suitcase with a pattern of small, intricate designs in multiple colors including black, brown, and white. It has golden buttons at the top and is standing upright on the wooden floor.",
+      "target_category": "Suitcase",
+      "target_prediction_label": 1,
+      "donor_description": "A large, metallic silver suitcase with a smooth texture and multiple compartments is placed on the floor. It has zippered closures for security and is equipped with wheels for easy mobility.",
+      "donor_category": "Suitcase",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Suitcase 1: A large, metallic silver suitcase with a smooth texture and multiple compartments is placed on the floor. It has zippered closures for security and is equipped with wheels for easy mobility. <ovt>. <thing> Person 1: A child wearing a blue t-shirt with an image of an American flag intertwined into a design, paired with white pants, is looking down at the suitcase with curiosity or interest. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "dog_brown_to_shaggy",
+      "target_image_id": 205834,
+      "target_slot": 0,
+      "donor_image_id": 579321,
+      "donor_slot": 1,
+      "category": "dog",
+      "instruction": "Replace A's brown dog with B's shaggy dog wearing a yellow bandana.",
+      "target_description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine.",
+      "target_category": "Dog",
+      "target_prediction_label": 1,
+      "donor_description": "A small, fluffy dog with a mix of dark and light fur is wearing a white skirt with colorful designs and a yellow bandana around its neck. The dog is standing on the same pavement as the person, looking at the dog and seems to be in a relaxed posture.",
+      "donor_category": "Dog",
+      "donor_prediction_label": 2,
+      "cross_category": false,
+      "text_only_caption": "<thing> Dog 1: A small, fluffy dog with a mix of dark and light fur is wearing a white skirt with colorful designs and a yellow bandana around its neck. The dog is standing on the same pavement as the person, looking at the dog and seems to be in a relaxed posture. <ovt>. <thing> Bowl 1: A metallic bowl with a curved rim is positioned on the pavement. It's small and shallow, likely designed for dogs to eat or drink from. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "dog_merle_to_shaggy",
+      "target_image_id": 52891,
+      "target_slot": 0,
+      "donor_image_id": 579321,
+      "donor_slot": 1,
+      "category": "dog",
+      "instruction": "Replace A's speckled dog with B's shaggy dog wearing a yellow bandana.",
+      "target_description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement.",
+      "target_category": "Dog",
+      "target_prediction_label": 1,
+      "donor_description": "A small, fluffy dog with a mix of dark and light fur is wearing a white skirt with colorful designs and a yellow bandana around its neck. The dog is standing on the same pavement as the person, looking at the dog and seems to be in a relaxed posture.",
+      "donor_category": "Dog",
+      "donor_prediction_label": 2,
+      "cross_category": false,
+      "text_only_caption": "<thing> Dog 1: A small, fluffy dog with a mix of dark and light fur is wearing a white skirt with colorful designs and a yellow bandana around its neck. The dog is standing on the same pavement as the person, looking at the dog and seems to be in a relaxed posture. <ovt>. <thing> Frisbee 1: A bright yellow frisbee lies on the sand close to the dog. It's in good condition, with visible wear marks suggesting it has been used multiple times. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "pizza_slice_to_round",
+      "target_image_id": 554735,
+      "target_slot": 1,
+      "donor_image_id": 323151,
+      "donor_slot": 0,
+      "category": "pizza",
+      "instruction": "Replace A's pizza slice with B's round pizza.",
+      "target_description": "This slice of pizza has melted cheese, meat toppings, and appears to be freshly served. The cheese is yellowish, with a slightly browned surface. The toppings include chunks of meat, possibly pepperoni or sausage, and shredded lettuce. The crust is golden brown, with a slightly crispy texture. The pizza is circular in shape, with a diameter of approximately 8 inches. The crust is slightly thicker than the rest. The toppings are evenly distributed, and the pizza looks fresh and appetizing.",
+      "target_category": "Pizza",
+      "target_prediction_label": 2,
+      "donor_description": "A freshly baked pizza with a golden-brown crust, topped with melted cheese, black olives, and pieces of meat is placed on a white plate. The pizza has a diameter of approximately 10 inches.",
+      "donor_category": "Pizza",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Person 1: A person's hand is visible, appearing pale and smooth, holding a slice of pizza. The hand is positioned in the center of the image, with the thumb and index finger holding the slice. The fingers are slightly curved, indicating a natural grip. The slice of pizza is partially eaten, with a bite taken out of it. The slice has a circular shape, with the crust of the pizza slightly thicker than the rest. The crust is golden brown, with a slightly crispy texture. The cheese on the slice is melted and stretched, with visible bubbles and a slightly browned surface. The person's intention appears to be enjoying the pizza meal. <ovt>. <thing> Pizza 1: A freshly baked pizza with a golden-brown crust, topped with melted cheese, black olives, and pieces of meat is placed on a white plate. The pizza has a diameter of approximately 10 inches. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "pizza_round_to_slice",
+      "target_image_id": 323151,
+      "target_slot": 0,
+      "donor_image_id": 84431,
+      "donor_slot": 0,
+      "category": "pizza",
+      "instruction": "Replace A's round pizza with B's pizza slice.",
+      "target_description": "A freshly baked pizza with a golden-brown crust, topped with melted cheese, black olives, and pieces of meat is placed on a white plate. The pizza has a diameter of approximately 10 inches.",
+      "target_category": "Pizza",
+      "target_prediction_label": 1,
+      "donor_description": "A slice of pizza with a golden-brown crust, topped with melted cheese and pieces of meat (possibly pepperoni), is placed on a plate. The cheese is melted and has a slightly browned appearance.",
+      "donor_category": "Pizza",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Pizza 1: A slice of pizza with a golden-brown crust, topped with melted cheese and pieces of meat (possibly pepperoni), is placed on a plate. The cheese is melted and has a slightly browned appearance. <ovt>. <thing> Cup 1: A glass cup filled with a golden liquid, possibly beer, with some foam on top is placed to the right of the pizza. The cup has a cylindrical shape and is approximately 6 inches tall. <ovt>. <thing> Person 1: There isn't any visible person in this image so we can't describe any actions or emotions associated with them. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "bus_white_to_red",
+      "target_image_id": 243867,
+      "target_slot": 0,
+      "donor_image_id": 90208,
+      "donor_slot": 1,
+      "category": "bus",
+      "instruction": "Replace A's white bus with B's red double-decker bus.",
+      "target_description": "The bus is a large vehicle with a white body. It has tinted windows, making it difficult to see inside. The bus is parked on the road, its wheels touching the surface.",
+      "target_category": "Bus",
+      "target_prediction_label": 1,
+      "donor_description": "Another double-decker bus, red in color with a classic design is partially visible to the left of the green bus, appearing to be stationary.",
+      "donor_category": "Bus",
+      "donor_prediction_label": 2,
+      "cross_category": false,
+      "text_only_caption": "<thing> Bus 1: Another double-decker bus, red in color with a classic design is partially visible to the left of the green bus, appearing to be stationary. <ovt>. <thing> Car 1: This car is a silver sedan with a sleek design. Its body is shiny and well-maintained, reflecting the surrounding environment subtly. The car is positioned in front of the bus, occupying part of its path. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "bus_green_to_white",
+      "target_image_id": 90208,
+      "target_slot": 0,
+      "donor_image_id": 243867,
+      "donor_slot": 0,
+      "category": "bus",
+      "instruction": "Replace A's green bus with B's white bus.",
+      "target_description": "A vintage green double-decker bus labeled \"GREEN LINE\" and \"BELHUS\" is parked. It has a shiny surface reflecting the surrounding environment, and the registration label is clearly visible.",
+      "target_category": "Bus",
+      "target_prediction_label": 1,
+      "donor_description": "The bus is a large vehicle with a white body. It has tinted windows, making it difficult to see inside. The bus is parked on the road, its wheels touching the surface.",
+      "donor_category": "Bus",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Bus 1: The bus is a large vehicle with a white body. It has tinted windows, making it difficult to see inside. The bus is parked on the road, its wheels touching the surface. <ovt>. <thing> Bus 2: Another double-decker bus, red in color with a classic design is partially visible to the left of the green bus, appearing to be stationary. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "surfboard_to_snowboard",
+      "target_image_id": 554595,
+      "target_slot": 0,
+      "donor_image_id": 193429,
+      "donor_slot": 0,
+      "target_category": "Surfboard",
+      "donor_category": "Snowboard",
+      "instruction": "Replace A's star-patterned surfboard with B's snowboard.",
+      "target_description": "A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact.",
+      "target_prediction_label": 1,
+      "donor_description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+      "donor_prediction_label": 1,
+      "category": "Surfboard -> Snowboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Snowboard 1: A white snowboard with black markings and text on it, it's positioned horizontally in the snow. <ovt>. <thing> Person 1: A person is lying on the sand, partially submerged in it up to their head, wearing dark clothing that contrasts against the light background. <ovt>. <scene_end>"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "status": "pass",
+  "criterion": "The three added removal images must not occur in any pre-v9 paper-figure manifest, editing request configuration, or candidate metadata.",
+  "added_removal_examples": [
+    {
+      "id": "appendix_v9_remove_bicycle",
+      "category": "bicycle",
+      "source_image_id": 242287,
+      "prior_overlap": []
+    },
+    {
+      "id": "appendix_v9_remove_suitcase",
+      "category": "suitcase",
+      "source_image_id": 359855,
+      "prior_overlap": []
+    },
+    {
+      "id": "appendix_v9b_remove_clock",
+      "category": "clock",
+      "source_image_id": 67896,
+      "prior_overlap": []
+    }
+  ],
+  "rejected_after_enlarged_review": [
+    {
+      "id": "appendix_v9_remove_bench",
+      "reason": "The edited output regenerated a different bench instead of removing the object."
+    }
+  ],
+  "result": "All three added removal images are new relative to the pre-v9 figure and candidate pool."
+}

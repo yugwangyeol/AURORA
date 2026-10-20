@@ -1,0 +1,22 @@
+{
+  "status": "complete",
+  "model": "/home/jovyan/data/slot_mllm/Slot-MLLM-7B-instruct",
+  "release": "Slot-MLLM public v1/discrete checkpoint",
+  "paper_score_association": "old public release reports GQA 58.1; latest v3 paper reports 57.3 for a different continuous-slot model",
+  "split": "testdev",
+  "balanced_only": true,
+  "num_questions": 12578,
+  "num_unique_images": 398,
+  "strict_exact_match": 0.0,
+  "strict_correct": 0,
+  "normalized_exact_match": 0.581570996978852,
+  "normalized_correct": 7315,
+  "normalization_added_matches": 7315,
+  "generation": {
+    "num_beams": 1,
+    "max_new_tokens": 12,
+    "prompt": "official public Slot-MLLM VQA prompt"
+  },
+  "world_size": 4,
+  "elapsed_seconds_rank0": 36.196672142948955
+}

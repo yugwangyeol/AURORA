@@ -615,6 +615,21 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         self.pgot_register_embeddings = nn.Parameter(
             torch.randn(self.pgot_n_register, D) * embed_std
         )
+        self.pgot_fixed_query_owner_enable = bool(
+            getattr(self.config, "pgot_fixed_query_owner_enable", False)
+        )
+        self.pgot_fixed_query_owner_count = int(
+            getattr(self.config, "pgot_fixed_query_owner_count", 16)
+        )
+        if self.pgot_fixed_query_owner_count <= 0:
+            raise ValueError("pgot_fixed_query_owner_count must be positive")
+        self.pgot_fixed_object_queries = (
+            nn.Parameter(
+                torch.randn(self.pgot_fixed_query_owner_count, D) * embed_std
+            )
+            if self.pgot_fixed_query_owner_enable
+            else None
+        )
         if self.pgot_n_null_bg > 0:
             self.pgot_null_bg_embeddings = nn.Parameter(
                 torch.randn(self.pgot_n_null_bg, D) * embed_std
@@ -768,6 +783,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             self.pgot_one_shot_reader_enable
             and self.pgot_one_shot_readout_mode in {"memory_content", "memory_id"}
         )
+        if self.pgot_fixed_query_owner_enable and not self.pgot_one_shot_memory_enable:
+            raise ValueError(
+                "fixed-query owners currently require the one-shot visual-memory "
+                "Writer/Reader path"
+            )
         self.pgot_one_shot_memory_value_source = str(
             getattr(self.config, "pgot_one_shot_memory_value_source", "siglip")
         ).strip().lower()
@@ -1805,6 +1825,38 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             ovt_abs_positions=ovt_abs_positions,
             ovt_valid_mask=ovt_valid_mask,
         )
+        if self.pgot_fixed_query_owner_enable:
+            # The AR caption and LM loss are intentionally left untouched.
+            # Only the representations presented to Writer/Reader are replaced
+            # by a fixed learned owner bank, isolating allocation structure.
+            # A parameter-free query-to-image pooling step makes every owner
+            # image-conditioned (rather than a static semantic prototype) while
+            # adding no baseline-only projection/MLP parameters.
+            query_base = self.pgot_fixed_object_queries.unsqueeze(0).expand(
+                hidden_states.shape[0], -1, -1
+            ).to(device=hidden_states.device, dtype=hidden_states.dtype)
+            image_states = hidden_states[
+                :, int(positions["img_s"]):int(positions["img_e"]), :
+            ]
+            query_norm = F.layer_norm(
+                query_base.float(), (query_base.shape[-1],)
+            )
+            image_norm = F.layer_norm(
+                image_states.float(), (image_states.shape[-1],)
+            )
+            pooling_logits = torch.einsum(
+                "bkd,bpd->bkp", query_norm, image_norm
+            ) / math.sqrt(float(query_base.shape[-1]))
+            pooling_attention = F.softmax(pooling_logits, dim=-1)
+            pooled_image = torch.einsum(
+                "bkp,bpd->bkd", pooling_attention, image_states.float()
+            )
+            object_states = query_base + pooled_image.to(query_base.dtype)
+            object_valid = torch.ones(
+                object_states.shape[:2],
+                device=hidden_states.device,
+                dtype=torch.bool,
+            )
         reg_s, reg_e = int(positions["reg_s"]), int(positions["reg_e"])
         register_states = hidden_states[:, reg_s:reg_e, :]
         register_valid = torch.ones(
@@ -3473,6 +3525,14 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         ovt_valid_mask: torch.Tensor,
         void_weight: Optional[float] = None,
     ) -> Dict[str, torch.Tensor]:
+        if self.pgot_fixed_query_owner_enable:
+            return self._pgot_fixed_query_route_loss(
+                owner_logits=owner_logits,
+                owner_probs=owner_probs,
+                gt_masks_per_ovt=gt_masks_per_ovt,
+                ovt_valid_mask=ovt_valid_mask,
+                void_weight=void_weight,
+            )
         B, S, P = owner_logits.shape
         n = max(int(self.pgot_n_ovt_per_object), 1)
         M = gt_masks_per_ovt.shape[1]
@@ -3570,6 +3630,137 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             "object_prob_on_bg": object_prob_on_bg.detach(),
             "entropy": entropy.detach(),
             "object_count": valid_obj.float().sum(dim=1).mean().detach(),
+        }
+
+    def _pgot_fixed_query_route_loss(
+        self,
+        *,
+        owner_logits: torch.Tensor,
+        owner_probs: torch.Tensor,
+        gt_masks_per_ovt: torch.Tensor,
+        ovt_valid_mask: torch.Tensor,
+        void_weight: Optional[float] = None,
+    ) -> Dict[str, torch.Tensor]:
+        """Permutation-invariant ownership loss for fixed learned queries.
+
+        Matching is recomputed per image from detached soft IoU.  Gradients
+        flow through the matched query losses, while the assignment itself is
+        discrete.  Registers retain the exact aggregate-background objective
+        used by DeOR.
+        """
+        from scipy.optimize import linear_sum_assignment
+
+        B, S, P = owner_logits.shape
+        K = min(int(self.pgot_fixed_query_owner_count), S)
+        V = max(S - K, 0)
+        n = max(int(self.pgot_n_ovt_per_object), 1)
+        G = gt_masks_per_ovt.shape[1] // n
+        zero = owner_logits.new_zeros(())
+        if K <= 0 or G <= 0:
+            return {
+                "loss": zero, "object_loss": zero, "void_loss": zero,
+                "fg_acc": zero, "bg_acc": zero,
+                "void_prob_on_fg": zero, "object_prob_on_bg": zero,
+                "entropy": zero, "object_count": zero,
+            }
+
+        masks = gt_masks_per_ovt[:, : G * n].to(owner_logits.device).float()
+        if masks.shape[-1] != P:
+            src_side = int(round(float(masks.shape[-1]) ** 0.5))
+            dst_side = int(round(float(P) ** 0.5))
+            if src_side * src_side != masks.shape[-1] or dst_side * dst_side != P:
+                raise ValueError(
+                    f"Fixed-query route loss expects square masks, got "
+                    f"gt={masks.shape[-1]} route={P}."
+                )
+            masks = F.interpolate(
+                masks.reshape(B * G * n, 1, src_side, src_side),
+                size=(dst_side, dst_side), mode="area",
+            ).reshape(B, G * n, P)
+        masks = masks.reshape(B, G, n, P).amax(dim=2).clamp(0.0, 1.0)
+        gt_valid = ovt_valid_mask[:, : G * n].to(
+            owner_logits.device, dtype=torch.bool
+        ).reshape(B, G, n).any(dim=2)
+        gt_valid &= masks.sum(dim=-1) > 0.0
+        masks = masks.masked_fill(~gt_valid.unsqueeze(-1), 0.0)
+
+        assigned_masks = masks.new_zeros(B, K, P)
+        matched = torch.zeros(B, K, device=owner_logits.device, dtype=torch.bool)
+        gt_to_query = torch.full(
+            (B, G), -1, device=owner_logits.device, dtype=torch.long
+        )
+        with torch.no_grad():
+            query_maps = owner_probs[:, :K].float()
+            for batch_index in range(B):
+                valid_gt = torch.nonzero(gt_valid[batch_index], as_tuple=False).flatten()
+                if valid_gt.numel() == 0:
+                    continue
+                q = query_maps[batch_index]
+                g = masks[batch_index, valid_gt]
+                intersection = torch.einsum("kp,gp->kg", q, g)
+                union = q.sum(dim=-1, keepdim=True) + g.sum(dim=-1).unsqueeze(0) - intersection
+                soft_iou = intersection / union.clamp_min(1e-6)
+                row, col = linear_sum_assignment((-soft_iou).cpu().numpy())
+                query_indices = torch.as_tensor(row, device=owner_logits.device)
+                gt_indices = valid_gt[torch.as_tensor(col, device=valid_gt.device)]
+                assigned_masks[batch_index, query_indices] = masks[batch_index, gt_indices]
+                matched[batch_index, query_indices] = True
+                gt_to_query[batch_index, gt_indices] = query_indices
+
+        log_probs = F.log_softmax(owner_logits.float(), dim=1)
+        area = assigned_masks.sum(dim=-1)
+        per_query = -(assigned_masks * log_probs[:, :K]).sum(dim=-1) / area.clamp_min(1.0)
+        object_loss = per_query[matched].mean() if bool(matched.any()) else zero
+
+        fg_union = masks.amax(dim=1)
+        bg_mask = (1.0 - fg_union).clamp(0.0, 1.0)
+        void_loss = zero
+        if V > 0:
+            void_log_prob = (
+                torch.logsumexp(owner_logits[:, K:].float(), dim=1)
+                - torch.logsumexp(owner_logits.float(), dim=1)
+            )
+            bg_area = bg_mask.sum(dim=-1)
+            valid_bg = bg_area > 0.0
+            per_bg = -(bg_mask * void_log_prob).sum(dim=-1) / bg_area.clamp_min(1.0)
+            void_loss = per_bg[valid_bg].mean() if bool(valid_bg.any()) else zero
+        void_w = (
+            float(getattr(self.config, "pgot_v14_void_weight", 0.5))
+            if void_weight is None else float(void_weight)
+        )
+        loss = object_loss + void_w * void_loss
+        if not torch.isfinite(loss):
+            loss = zero
+
+        pred = owner_logits.argmax(dim=1)
+        best_cover, best_gt = masks.max(dim=1)
+        expected_query = gt_to_query.gather(1, best_gt)
+        fg_mask = (best_cover > 0.0) & (expected_query >= 0)
+        hard_bg = best_cover <= 0.0
+        fg_acc = (
+            (pred[fg_mask] == expected_query[fg_mask]).float().mean()
+            if bool(fg_mask.any()) else zero
+        )
+        bg_acc = (
+            (pred[hard_bg] >= K).float().mean()
+            if V > 0 and bool(hard_bg.any()) else zero
+        )
+        void_prob = owner_probs[:, K:].sum(dim=1) if V > 0 else owner_probs.new_zeros(B, P)
+        object_prob = owner_probs[:, :K].sum(dim=1)
+        void_prob_on_fg = void_prob[fg_mask].mean() if bool(fg_mask.any()) else zero
+        object_prob_on_bg = object_prob[hard_bg].mean() if bool(hard_bg.any()) else zero
+        prob = owner_probs.float().clamp_min(1e-8)
+        entropy = (-(prob * prob.log()).sum(dim=1)).mean()
+        return {
+            "loss": loss,
+            "object_loss": object_loss.detach(),
+            "void_loss": void_loss.detach(),
+            "fg_acc": fg_acc.detach(),
+            "bg_acc": bg_acc.detach(),
+            "void_prob_on_fg": void_prob_on_fg.detach(),
+            "object_prob_on_bg": object_prob_on_bg.detach(),
+            "entropy": entropy.detach(),
+            "object_count": gt_valid.float().sum(dim=1).mean().detach(),
         }
 
     def _pgot_v14_forward_features(
@@ -6096,13 +6287,20 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         if caption_labels is not None:
             caption_labels = caption_labels.to(hidden.device, dtype=torch.long)
 
-        loss_lm = self._compute_lm_loss(
-            hidden=hidden,
-            positions=seq["positions"],
-            caption_input_ids=caption_input_ids,
-            caption_attention_mask=caption_attention_mask,
-            caption_labels=caption_labels,
-        )
+        lm_w = float(getattr(self.config, "pgot_lm_loss_weight", 1.0))
+        if lm_w > 0.0:
+            loss_lm = self._compute_lm_loss(
+                hidden=hidden,
+                positions=seq["positions"],
+                caption_input_ids=caption_input_ids,
+                caption_attention_mask=caption_attention_mask,
+                caption_labels=caption_labels,
+            )
+        else:
+            # Referring-expression fine-tuning supervises the ownership map
+            # directly. Avoid materializing the full-vocabulary LM logits when
+            # their configured contribution is exactly zero.
+            loss_lm = hidden.new_zeros(())
         owner_bg_w = float(getattr(self.config, "pgot_e8_owner_bg_weight", 0.5))
         owner_stats_by_layer = []
         for record in seq["write_records"]:
@@ -6221,6 +6419,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
         )
         contrastive_w = contrastive_w if contrastive_configured else 0.0
         contrastive_active = contrastive_w > 0.0 and B >= 2
+        recon_w = float(getattr(self.config, "pgot_recon_loss_weight", 1.0))
         loss_recon_mixed = zero
         loss_contrastive = zero
         loss_recon_objective = zero
@@ -6380,7 +6579,7 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             contrastive_decoder_stopgrad = contrastive_errors[
                 "decoder_stopgrad"
             ]
-        else:
+        elif recon_w > 0.0:
             loss_recon = self._captionslot_compute_diffusion_loss(
                 hidden=condition_for_diff,
                 target_features=gt_siglip,
@@ -6389,6 +6588,11 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
                 slot_bias=direct_bias,
             )
             loss_recon_objective = loss_recon
+        else:
+            # Mask-only task fine-tuning keeps the complete reconstruction
+            # stack checkpoint-compatible but does not execute the 2.4B DiT.
+            loss_recon = zero
+            loss_recon_objective = zero
 
         latent_target_w = float(
             getattr(self.config, "pgot_latent_distill_weight", 0.0)
@@ -6409,8 +6613,6 @@ class PGOTQwen2ForCausalLM(ScaleRAEQwenForCausalLM):
             )
             loss_latent_distill = latent_stats["loss"]
 
-        lm_w = float(getattr(self.config, "pgot_lm_loss_weight", 1.0))
-        recon_w = float(getattr(self.config, "pgot_recon_loss_weight", 1.0))
         owner_w = float(getattr(self.config, "pgot_e8_owner_weight", 1.0))
         causal_scale = float(
             getattr(self.config, "pgot_e8_causal_weight_scale_effective", 1.0)

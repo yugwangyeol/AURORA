@@ -1,0 +1,196 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000",
+  "num_samples": 512,
+  "protocol": {
+    "caption": "teacher-forced training-format descriptions",
+    "object_metric_unit": "valid visual memory token",
+    "register_metric_unit": "valid register memory token",
+    "register_term": "annotated-object mass (neutral; COCO does not annotate all visual content)",
+    "enrichment": "inside-mask mass divided by mask area fraction; 1 means spatially uniform",
+    "object_size_bins": "COCO-style thresholds on the 512x512 evaluation grid: small < 32^2 pixels, medium < 96^2 pixels, large otherwise",
+    "confidence_interval": "95% percentile interval from image-cluster bootstrap; token-weighted mean is preserved within each resampled image cluster"
+  },
+  "metrics": {
+    "object_area_normalized_enrichment": {
+      "mean": 22.91916299348241,
+      "std": 52.48817981785731,
+      "ci95": [
+        20.91695347319135,
+        24.94404417394042
+      ],
+      "count": 21080
+    },
+    "object_background_mass": {
+      "mean": 0.33750514597388453,
+      "std": 0.31400711901453643,
+      "ci95": [
+        0.3156398950359091,
+        0.3596170267201779
+      ],
+      "count": 21080
+    },
+    "object_inside_mask_mass": {
+      "mean": 0.3886132230766109,
+      "std": 0.3891489143854313,
+      "ci95": [
+        0.3648677450296529,
+        0.41215247511331643
+      ],
+      "count": 21080
+    },
+    "object_other_object_mass": {
+      "mean": 0.27460400241457256,
+      "std": 0.31944919288713464,
+      "ci95": [
+        0.25342460085815216,
+        0.2966139287449325
+      ],
+      "count": 21080
+    },
+    "register_annotated_object_mass": {
+      "mean": 0.2590381041491845,
+      "std": 0.3547760591783431,
+      "ci95": [
+        0.2392358238429197,
+        0.28115235956282586
+      ],
+      "count": 65536
+    },
+    "register_background_mass": {
+      "mean": 0.7409619062040685,
+      "std": 0.3547760590720539,
+      "ci95": [
+        0.718847651031429,
+        0.7607641862921612
+      ],
+      "count": 65536
+    }
+  },
+  "object_counts_by_size": {
+    "small": 579,
+    "medium": 1172,
+    "large": 884
+  },
+  "object_metrics_by_size": {
+    "small": {
+      "object_area_normalized_enrichment": {
+        "mean": 46.450645598449896,
+        "std": 97.96108101115362,
+        "ci95": [
+          39.586456510831866,
+          54.31866427699915
+        ],
+        "count": 4632
+      },
+      "object_background_mass": {
+        "mean": 0.6170632052403828,
+        "std": 0.3016299286837793,
+        "ci95": [
+          0.5789802667352203,
+          0.6487880159836169
+        ],
+        "count": 4632
+      },
+      "object_inside_mask_mass": {
+        "mean": 0.08370861909346754,
+        "std": 0.16562261222522356,
+        "ci95": [
+          0.07128782693423837,
+          0.09696615454343945
+        ],
+        "count": 4632
+      },
+      "object_other_object_mass": {
+        "mean": 0.29944245049357415,
+        "std": 0.2998388291405318,
+        "ci95": [
+          0.26713332137767054,
+          0.3355974730592044
+        ],
+        "count": 4632
+      }
+    },
+    "medium": {
+      "object_area_normalized_enrichment": {
+        "mean": 23.04646828565061,
+        "std": 31.11233387783443,
+        "ci95": [
+          20.935223799195317,
+          25.131004860766126
+        ],
+        "count": 9376
+      },
+      "object_background_mass": {
+        "mean": 0.36634929692909024,
+        "std": 0.2783831675540147,
+        "ci95": [
+          0.3432883521161786,
+          0.3877391494890127
+        ],
+        "count": 9376
+      },
+      "object_inside_mask_mass": {
+        "mean": 0.2796517770420434,
+        "std": 0.31311617636862915,
+        "ci95": [
+          0.2571119302950288,
+          0.30299552790286327
+        ],
+        "count": 9376
+      },
+      "object_other_object_mass": {
+        "mean": 0.35509538456579587,
+        "std": 0.3285690087973019,
+        "ci95": [
+          0.3252592328559092,
+          0.3839834003001977
+        ],
+        "count": 9376
+      }
+    },
+    "large": {
+      "object_area_normalized_enrichment": {
+        "mean": 7.337793954232067,
+        "std": 6.149845701587922,
+        "ci95": [
+          6.94761449310878,
+          7.746838564807631
+        ],
+        "count": 7072
+      },
+      "object_background_mass": {
+        "mean": 0.11615960159062262,
+        "std": 0.17402505632225537,
+        "ci95": [
+          0.10484561664317667,
+          0.1273236904716482
+        ],
+        "count": 7072
+      },
+      "object_inside_mask_mass": {
+        "mean": 0.7327790380752005,
+        "std": 0.3291914283221886,
+        "ci95": [
+          0.7069486051844552,
+          0.7578021766394037
+        ],
+        "count": 7072
+      },
+      "object_other_object_mass": {
+        "mean": 0.15162056200849153,
+        "std": 0.27937130274442806,
+        "ci95": [
+          0.12946746949185084,
+          0.17354476569928282
+        ],
+        "count": 7072
+      }
+    }
+  },
+  "config": {
+    "reader_supervision_mode": "writer",
+    "owner_weight": 1.0,
+    "object_memories": 8,
+    "register_memories": 32
+  }
+}

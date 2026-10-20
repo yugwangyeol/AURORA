@@ -1,0 +1,40 @@
+{
+  "task": "voc_zero_shot_segmentation",
+  "model": "SPOT",
+  "train_dataset": "COCO",
+  "dataset": "voc",
+  "caption_mode": "not_applicable",
+  "protocol": "PGOT VOC protocol: sets/val.txt order, CODA 512 center crop GT, 255 -> overlap, pgot_metrics per-image NaN-skipped means; model masks bilinear-upsampled to eval_size then argmax",
+  "num_samples": 1449,
+  "metric_resolution": 512,
+  "fARI": 0.21116837986139012,
+  "mBO": 0.565103002186417,
+  "mIoU": 0.5228525618871506,
+  "mBO_i": 0.565103002186417,
+  "mIoU_i": 0.5228525618871506,
+  "sMBO": 0.6403749874073371,
+  "sMIOU": 0.5898127679355067,
+  "mBO_variant": "mBO^i",
+  "mIoU_variant": "mIoU^i",
+  "pred_segments_mean": 6.5175983436853,
+  "native_mask_shape": [
+    7,
+    14,
+    14
+  ],
+  "model_info": {
+    "checkpoint": "/home/jovyan/baselines/ckpt/spot_coco_checkpoint.pt.tar",
+    "num_slots": 7,
+    "model_input_resolution": 224,
+    "eval_permutations": "all",
+    "mask_source": "transformer-decoder slot attention (14x14), mean over permutations",
+    "preprocessing": "SPOT PascalVOC val: Resize(224) + CenterCrop(224) + ImageNet normalize",
+    "load_report": "strict=True",
+    "timing_sec": {
+      "model_and_preprocess": 29.56,
+      "metrics": 12.16
+    }
+  },
+  "elapsed_sec": 59.04917573928833,
+  "peak_gpu_memory_GiB": 1.1367554664611816
+}

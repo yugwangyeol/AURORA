@@ -1,0 +1,17 @@
+{
+  "checkpoint": "/home/jovyan/baselines/ckpt/metaslot-dinosaur-coco.pth",
+  "config": "/home/jovyan/baselines/MetaSlot/Config/config-metaslot/dinosaur_r-coco.py",
+  "num_slots": 7,
+  "model_input_resolution": [
+    256,
+    256
+  ],
+  "mask_source": "BroadcastMLPDecoder alpha masks (output.attent2)",
+  "preprocessing": "MetaSlot transform_v: CenterCrop(max square) + Resize + ImageNet normalize (0-255)",
+  "autocast": "float16 (as MetaSlot eval.py)",
+  "load_report": "strict=True",
+  "object_count_prediction_source": "native prototype duplicate-removal smask.sum; includes retained background-representing slots",
+  "seed": 0,
+  "batch_size": 1,
+  "randomness": "fixed per-image seed, no retry or best-seed selection"
+}

@@ -1,0 +1,653 @@
+{
+  "original_manifest": {
+    "layout": "4 rows x 6 panels, COCO first two rows, VOC last two; spanning dataset labels, no error-type labels",
+    "column_titles": [
+      "Image",
+      "GT",
+      "AdaSlot",
+      "MetaSlot",
+      "CODA",
+      "DeOR"
+    ],
+    "native_panel_size": 512,
+    "canvas_size": [
+      3352,
+      2240
+    ],
+    "prediction_panels_modified": false,
+    "rows": [
+      {
+        "group": "coco_over",
+        "image_id": "552371",
+        "strict_eligible": true,
+        "panels": [
+          {
+            "title": "Image",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/coco_over/image.png",
+            "sha256": "f3058d43ff61a60d8d555fd2babfc995932c62af2ac098090d47c26bfcc20bbe",
+            "box": [
+              224,
+              104,
+              736,
+              616
+            ]
+          },
+          {
+            "title": "GT",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/coco_over/gt_overlay.png",
+            "sha256": "76bca9662f2c75cf5ec1a59f479d83d4092974e351f82060b4c9470225476ffb",
+            "box": [
+              744,
+              104,
+              1256,
+              616
+            ]
+          },
+          {
+            "title": "AdaSlot",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/coco_over/adaslot_overlay.png",
+            "sha256": "a10dbd2045a90305860871ee64aec1dcd75148d7440c493b6636ff5ce2fbd90f",
+            "box": [
+              1264,
+              104,
+              1776,
+              616
+            ]
+          },
+          {
+            "title": "MetaSlot",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/coco_over/metaslot_overlay.png",
+            "sha256": "d54d04b9134064d7b7143c764ae6e542a250112fc7edbb9995eb22a98766ef28",
+            "box": [
+              1784,
+              104,
+              2296,
+              616
+            ]
+          },
+          {
+            "title": "CODA",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/coco_over/coda_overlay.png",
+            "sha256": "dc69f00f06e23258bc7f6a49b110b7b79404c9d86da849a291bd3f6a74622280",
+            "box": [
+              2304,
+              104,
+              2816,
+              616
+            ]
+          },
+          {
+            "title": "DeOR",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/coco_over/ours_overlay.png",
+            "sha256": "3d19abca14ddb938d60c8ca2f1bc5056a2b906a6ac1177eb97b2f57d190c9feb",
+            "box": [
+              2824,
+              104,
+              3336,
+              616
+            ]
+          }
+        ]
+      },
+      {
+        "group": "coco_under",
+        "image_id": "559956",
+        "strict_eligible": true,
+        "panels": [
+          {
+            "title": "Image",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/coco_under/image.png",
+            "sha256": "a4248da369df0354e57d04aa28b14b4743af1acc5412278306a87167086e70e3",
+            "box": [
+              224,
+              628,
+              736,
+              1140
+            ]
+          },
+          {
+            "title": "GT",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/coco_under/gt_overlay.png",
+            "sha256": "d2c63781a23a8d0c392a788d0e54e30a400ad1539dc9b0ad47e0b8ed455ec26e",
+            "box": [
+              744,
+              628,
+              1256,
+              1140
+            ]
+          },
+          {
+            "title": "AdaSlot",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/coco_under/adaslot_overlay.png",
+            "sha256": "916ddc4b53019bdf61108b998cb405e4f9e2e8bcad9c5c2a68ada8790140ca78",
+            "box": [
+              1264,
+              628,
+              1776,
+              1140
+            ]
+          },
+          {
+            "title": "MetaSlot",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/coco_under/metaslot_overlay.png",
+            "sha256": "6bb09698068f6eeb341ee9aa3cfeec7e36fa76115b0904124a71fd47169d6655",
+            "box": [
+              1784,
+              628,
+              2296,
+              1140
+            ]
+          },
+          {
+            "title": "CODA",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/coco_under/coda_overlay.png",
+            "sha256": "aa744c99af642b64ac9f93f042000035027d7ae9b07a75bea5fb15756cd5507c",
+            "box": [
+              2304,
+              628,
+              2816,
+              1140
+            ]
+          },
+          {
+            "title": "DeOR",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/coco_under/ours_overlay.png",
+            "sha256": "bd37e5d0fdf54c217e27b13f95fe1f019f1c6691f35228e2e14bb5177860a6aa",
+            "box": [
+              2824,
+              628,
+              3336,
+              1140
+            ]
+          }
+        ]
+      },
+      {
+        "group": "voc_over",
+        "image_id": "2007_005149",
+        "strict_eligible": true,
+        "panels": [
+          {
+            "title": "Image",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/voc_over/image.png",
+            "sha256": "20913f55efe5254e0fdc721fdf8f32570885557235fdf22d3769e9fc9a1be69a",
+            "box": [
+              224,
+              1188,
+              736,
+              1700
+            ]
+          },
+          {
+            "title": "GT",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/voc_over/gt_overlay.png",
+            "sha256": "b0c9e28c1835634ab97482f2a9cf08ec992436a6284f978dc144d97b45b35ac1",
+            "box": [
+              744,
+              1188,
+              1256,
+              1700
+            ]
+          },
+          {
+            "title": "AdaSlot",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/voc_over/adaslot_overlay.png",
+            "sha256": "f293fd59d2fed4c1b882726519e5b4fb18f4ad16f93b27b9673e779037b2ab52",
+            "box": [
+              1264,
+              1188,
+              1776,
+              1700
+            ]
+          },
+          {
+            "title": "MetaSlot",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/voc_over/metaslot_overlay.png",
+            "sha256": "590c5f984d3e802e4124873a1537564d1b8ba5665d07e6e838e92d314163131a",
+            "box": [
+              1784,
+              1188,
+              2296,
+              1700
+            ]
+          },
+          {
+            "title": "CODA",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/voc_over/coda_overlay.png",
+            "sha256": "9551ab0167ab617fe5138464a98475818092aeb4f8d582dacabb38e9cb59550e",
+            "box": [
+              2304,
+              1188,
+              2816,
+              1700
+            ]
+          },
+          {
+            "title": "DeOR",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/voc_over/ours_overlay.png",
+            "sha256": "a235a2b4f107b307f228d94400cd58cbb4ac17d9861ed994f5aa7c766039cd52",
+            "box": [
+              2824,
+              1188,
+              3336,
+              1700
+            ]
+          }
+        ]
+      },
+      {
+        "group": "voc_under",
+        "image_id": "2007_007795",
+        "strict_eligible": false,
+        "panels": [
+          {
+            "title": "Image",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/voc_under/image.png",
+            "sha256": "788899872a67968674a8e6f8b7d9bae1f5fac5521465d91b087ca4384a169558",
+            "box": [
+              224,
+              1712,
+              736,
+              2224
+            ]
+          },
+          {
+            "title": "GT",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/voc_under/gt_overlay.png",
+            "sha256": "c4a4ed23891d203900c8e541f868e34303c7174b95275bfeb789f32107d535bd",
+            "box": [
+              744,
+              1712,
+              1256,
+              2224
+            ]
+          },
+          {
+            "title": "AdaSlot",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/voc_under/adaslot_overlay.png",
+            "sha256": "0c52058be99912e5db066b408838a1918f4d76ff7d02527a7285f4c6e3fc9a62",
+            "box": [
+              1264,
+              1712,
+              1776,
+              2224
+            ]
+          },
+          {
+            "title": "MetaSlot",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/voc_under/metaslot_overlay.png",
+            "sha256": "b1d1ad116ca203df8dcd978ca977644e3a775456c8e30c6b26dbc3c10eae3fd4",
+            "box": [
+              1784,
+              1712,
+              2296,
+              2224
+            ]
+          },
+          {
+            "title": "CODA",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/voc_under/coda_overlay.png",
+            "sha256": "f6ac2142e9c4efb8ca0297c556f35a2c1baf75a7190df28ad2e63c61ef311618",
+            "box": [
+              2304,
+              1712,
+              2816,
+              2224
+            ]
+          },
+          {
+            "title": "DeOR",
+            "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/voc_under/ours_overlay.png",
+            "sha256": "d000c854be93a1d823033437355809f75ce02d35c7a07dd0b45613454dfaa5c8",
+            "box": [
+              2824,
+              1712,
+              3336,
+              2224
+            ]
+          }
+        ]
+      }
+    ],
+    "overlay_alpha": 0.65,
+    "background_color_rgb": [
+      128,
+      142,
+      160
+    ]
+  },
+  "renderer": "matplotlib",
+  "ai_image_editing": false,
+  "original_figure": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_v2/segmentation_comparison.png",
+  "original_sha256": "1f200fe955d9e84601eadac47db84b3d8882e1d6b8f0a13fc52d1475d455eaa9",
+  "original_manifest_sha256": "cf9d3907a4d15186d57c9bb0b54a5f8aaae15ad817454823be92164bdb254fca",
+  "figure_pixels": [
+    3352,
+    2240
+  ],
+  "dpi": 200,
+  "font": "DejaVu Sans",
+  "image_tiles_reused_without_changes": true,
+  "masks_recolored_or_modified": false,
+  "descriptions_paraphrased": false,
+  "panels": [
+    {
+      "group": "coco_over",
+      "image_id": "552371",
+      "strict_eligible": true,
+      "panels": [
+        {
+          "title": "Image",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/coco_over/image.png",
+          "sha256": "f3058d43ff61a60d8d555fd2babfc995932c62af2ac098090d47c26bfcc20bbe",
+          "box": [
+            224,
+            104,
+            736,
+            616
+          ],
+          "embedded_tile_rgb_sha256": "18bc72b044f41eb1218081cca482cc8c190c7f0dc4d2de2ff6cc577f8bf0ce98"
+        },
+        {
+          "title": "GT",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/coco_over/gt_overlay.png",
+          "sha256": "76bca9662f2c75cf5ec1a59f479d83d4092974e351f82060b4c9470225476ffb",
+          "box": [
+            744,
+            104,
+            1256,
+            616
+          ],
+          "embedded_tile_rgb_sha256": "c0050f7bf82940fcfdb31351311970bd6f36b2dd79c61af0653ef4e6d5403ad5"
+        },
+        {
+          "title": "AdaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/coco_over/adaslot_overlay.png",
+          "sha256": "a10dbd2045a90305860871ee64aec1dcd75148d7440c493b6636ff5ce2fbd90f",
+          "box": [
+            1264,
+            104,
+            1776,
+            616
+          ],
+          "embedded_tile_rgb_sha256": "46ef78cfb4ba5143635bd2637eece52924396672dd5567f3be6f67f9fe3c2435"
+        },
+        {
+          "title": "MetaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/coco_over/metaslot_overlay.png",
+          "sha256": "d54d04b9134064d7b7143c764ae6e542a250112fc7edbb9995eb22a98766ef28",
+          "box": [
+            1784,
+            104,
+            2296,
+            616
+          ],
+          "embedded_tile_rgb_sha256": "602747d471d11667e287e7c1d99b74b6077518eb558fa5440346371b2f013504"
+        },
+        {
+          "title": "CODA",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/coco_over/coda_overlay.png",
+          "sha256": "dc69f00f06e23258bc7f6a49b110b7b79404c9d86da849a291bd3f6a74622280",
+          "box": [
+            2304,
+            104,
+            2816,
+            616
+          ],
+          "embedded_tile_rgb_sha256": "521d2f50adb5c61bc91aa7cd027285c1c554817346fdf7c7cb2b5d5e7d5cd0ae"
+        },
+        {
+          "title": "DeOR",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/coco_over/ours_overlay.png",
+          "sha256": "3d19abca14ddb938d60c8ca2f1bc5056a2b906a6ac1177eb97b2f57d190c9feb",
+          "box": [
+            2824,
+            104,
+            3336,
+            616
+          ],
+          "embedded_tile_rgb_sha256": "65b59c90d383b32c11f03ad55aa1d99b6fe83cd5f166a5d95f8bcf99736ff231"
+        }
+      ]
+    },
+    {
+      "group": "coco_under",
+      "image_id": "559956",
+      "strict_eligible": true,
+      "panels": [
+        {
+          "title": "Image",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/coco_under/image.png",
+          "sha256": "a4248da369df0354e57d04aa28b14b4743af1acc5412278306a87167086e70e3",
+          "box": [
+            224,
+            628,
+            736,
+            1140
+          ],
+          "embedded_tile_rgb_sha256": "d89bb85a90f6114804f63a00ad3c3b358fe3039ddff05d55b811e981ae5e91a9"
+        },
+        {
+          "title": "GT",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/coco_under/gt_overlay.png",
+          "sha256": "d2c63781a23a8d0c392a788d0e54e30a400ad1539dc9b0ad47e0b8ed455ec26e",
+          "box": [
+            744,
+            628,
+            1256,
+            1140
+          ],
+          "embedded_tile_rgb_sha256": "6ff954913087bf5dfe8ca2da5d443e83e5f12f0c19a968e5153212656168001c"
+        },
+        {
+          "title": "AdaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/coco_under/adaslot_overlay.png",
+          "sha256": "916ddc4b53019bdf61108b998cb405e4f9e2e8bcad9c5c2a68ada8790140ca78",
+          "box": [
+            1264,
+            628,
+            1776,
+            1140
+          ],
+          "embedded_tile_rgb_sha256": "f23b8cbcb32b8a4f52b98a03a6c4f1fdff722681b5ba8a2b97820d1f47e5ff8b"
+        },
+        {
+          "title": "MetaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/coco_under/metaslot_overlay.png",
+          "sha256": "6bb09698068f6eeb341ee9aa3cfeec7e36fa76115b0904124a71fd47169d6655",
+          "box": [
+            1784,
+            628,
+            2296,
+            1140
+          ],
+          "embedded_tile_rgb_sha256": "23555c33c613df9dfe18153cd9d5f742a97a53c7030eb9cbcb2ae26830560e42"
+        },
+        {
+          "title": "CODA",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/coco_under/coda_overlay.png",
+          "sha256": "aa744c99af642b64ac9f93f042000035027d7ae9b07a75bea5fb15756cd5507c",
+          "box": [
+            2304,
+            628,
+            2816,
+            1140
+          ],
+          "embedded_tile_rgb_sha256": "caff352523db0ba14be0ae8a7c9b1c315034237b3ff436a4e69255dbbe824449"
+        },
+        {
+          "title": "DeOR",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/coco_under/ours_overlay.png",
+          "sha256": "bd37e5d0fdf54c217e27b13f95fe1f019f1c6691f35228e2e14bb5177860a6aa",
+          "box": [
+            2824,
+            628,
+            3336,
+            1140
+          ],
+          "embedded_tile_rgb_sha256": "a69b34b1ddac7337e1003ceb8f9d776fc2c087e994b0ba0e2a2a21edba3325d7"
+        }
+      ]
+    },
+    {
+      "group": "voc_over",
+      "image_id": "2007_005149",
+      "strict_eligible": true,
+      "panels": [
+        {
+          "title": "Image",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/voc_over/image.png",
+          "sha256": "20913f55efe5254e0fdc721fdf8f32570885557235fdf22d3769e9fc9a1be69a",
+          "box": [
+            224,
+            1188,
+            736,
+            1700
+          ],
+          "embedded_tile_rgb_sha256": "f975d3c93c3de400e05e1aed99874e9e4c1abdeef7282d1dfdc811f8ef3726f0"
+        },
+        {
+          "title": "GT",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/voc_over/gt_overlay.png",
+          "sha256": "b0c9e28c1835634ab97482f2a9cf08ec992436a6284f978dc144d97b45b35ac1",
+          "box": [
+            744,
+            1188,
+            1256,
+            1700
+          ],
+          "embedded_tile_rgb_sha256": "6a947544f502507050d375585afa59f464af31e578aacc9562fb03e848004602"
+        },
+        {
+          "title": "AdaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/voc_over/adaslot_overlay.png",
+          "sha256": "f293fd59d2fed4c1b882726519e5b4fb18f4ad16f93b27b9673e779037b2ab52",
+          "box": [
+            1264,
+            1188,
+            1776,
+            1700
+          ],
+          "embedded_tile_rgb_sha256": "573f88df2a3730892cd891068a1b6343d3d3bedce2ea5beaaf3e1947ddb413e2"
+        },
+        {
+          "title": "MetaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/voc_over/metaslot_overlay.png",
+          "sha256": "590c5f984d3e802e4124873a1537564d1b8ba5665d07e6e838e92d314163131a",
+          "box": [
+            1784,
+            1188,
+            2296,
+            1700
+          ],
+          "embedded_tile_rgb_sha256": "077f8014780675b041ed2850a3a37cb4b34e88259d483db3cd72c640d4f85267"
+        },
+        {
+          "title": "CODA",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/voc_over/coda_overlay.png",
+          "sha256": "9551ab0167ab617fe5138464a98475818092aeb4f8d582dacabb38e9cb59550e",
+          "box": [
+            2304,
+            1188,
+            2816,
+            1700
+          ],
+          "embedded_tile_rgb_sha256": "6e027fe4ced202dfab813e0dcf485bc04a5cd24cc6271c3e1bf8a27617573f01"
+        },
+        {
+          "title": "DeOR",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v2/voc_over/ours_overlay.png",
+          "sha256": "a235a2b4f107b307f228d94400cd58cbb4ac17d9861ed994f5aa7c766039cd52",
+          "box": [
+            2824,
+            1188,
+            3336,
+            1700
+          ],
+          "embedded_tile_rgb_sha256": "5e6d7d98aa692f97324bd74786fb2dab81bbb4fe1d253e20d349a648308d6a4e"
+        }
+      ]
+    },
+    {
+      "group": "voc_under",
+      "image_id": "2007_007795",
+      "strict_eligible": false,
+      "panels": [
+        {
+          "title": "Image",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/voc_under/image.png",
+          "sha256": "788899872a67968674a8e6f8b7d9bae1f5fac5521465d91b087ca4384a169558",
+          "box": [
+            224,
+            1712,
+            736,
+            2224
+          ],
+          "embedded_tile_rgb_sha256": "bb2bfcf3279a52e25792a94184f971a368ba666df52e532da7695e93fa1abe91"
+        },
+        {
+          "title": "GT",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/voc_under/gt_overlay.png",
+          "sha256": "c4a4ed23891d203900c8e541f868e34303c7174b95275bfeb789f32107d535bd",
+          "box": [
+            744,
+            1712,
+            1256,
+            2224
+          ],
+          "embedded_tile_rgb_sha256": "9ed96fd17df03650e6ea90e793013c45a0b804941b7ec60e6876b8f811b39a40"
+        },
+        {
+          "title": "AdaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/voc_under/adaslot_overlay.png",
+          "sha256": "0c52058be99912e5db066b408838a1918f4d76ff7d02527a7285f4c6e3fc9a62",
+          "box": [
+            1264,
+            1712,
+            1776,
+            2224
+          ],
+          "embedded_tile_rgb_sha256": "30b996cac3272c1f114a0e27c9ce84988be05832e818a53a95288a90bfd62c09"
+        },
+        {
+          "title": "MetaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/voc_under/metaslot_overlay.png",
+          "sha256": "b1d1ad116ca203df8dcd978ca977644e3a775456c8e30c6b26dbc3c10eae3fd4",
+          "box": [
+            1784,
+            1712,
+            2296,
+            2224
+          ],
+          "embedded_tile_rgb_sha256": "d0912c0abd120afe2a6ba472564742ff73a571278244bff5cf66e4df83a3f79d"
+        },
+        {
+          "title": "CODA",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/voc_under/coda_overlay.png",
+          "sha256": "f6ac2142e9c4efb8ca0297c556f35a2c1baf75a7190df28ad2e63c61ef311618",
+          "box": [
+            2304,
+            1712,
+            2816,
+            2224
+          ],
+          "embedded_tile_rgb_sha256": "a9574f2ab98b0b709421441206fa8d33a31161c4b010b62ec242505b1a3879b9"
+        },
+        {
+          "title": "DeOR",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v2/voc_under/ours_overlay.png",
+          "sha256": "d000c854be93a1d823033437355809f75ce02d35c7a07dd0b45613454dfaa5c8",
+          "box": [
+            2824,
+            1712,
+            3336,
+            2224
+          ],
+          "embedded_tile_rgb_sha256": "4caed9d6b762a0cde76d3b580234fac34d8013950d5de0b7b643f66bce1e58d3"
+        }
+      ]
+    }
+  ],
+  "code": "/home/jovyan/PGOT/pgot/eval/redraw_saved_paper_figures.py",
+  "code_sha256": "3c33f25d2009f290912c8343f8ba1e317ede576b86133883b38e9bb4356de407"
+}

@@ -1,0 +1,73 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000",
+  "num_samples": 512,
+  "protocol": {
+    "caption": "teacher-forced training-format descriptions",
+    "object_metric_unit": "valid visual memory token",
+    "register_metric_unit": "valid register memory token",
+    "register_term": "annotated-object mass (neutral; COCO does not annotate all visual content)",
+    "enrichment": "inside-mask mass divided by mask area fraction; 1 means spatially uniform"
+  },
+  "metrics": {
+    "object_area_normalized_enrichment": {
+      "mean": 22.91916299348241,
+      "std": 52.48817981785731,
+      "ci95": [
+        22.204557624863508,
+        23.66708683929925
+      ],
+      "count": 21080
+    },
+    "object_background_mass": {
+      "mean": 0.33750514597388453,
+      "std": 0.31400711901453643,
+      "ci95": [
+        0.33333131360420226,
+        0.3417034783975078
+      ],
+      "count": 21080
+    },
+    "object_inside_mask_mass": {
+      "mean": 0.3886132230766109,
+      "std": 0.3891489143854313,
+      "ci95": [
+        0.38360667766684453,
+        0.3937730269033379
+      ],
+      "count": 21080
+    },
+    "object_other_object_mass": {
+      "mean": 0.27460400241457256,
+      "std": 0.31944919288713464,
+      "ci95": [
+        0.2704652579395779,
+        0.278931311235387
+      ],
+      "count": 21080
+    },
+    "register_annotated_object_mass": {
+      "mean": 0.2590381041491845,
+      "std": 0.3547760591783431,
+      "ci95": [
+        0.2563119212270801,
+        0.2617538373961169
+      ],
+      "count": 65536
+    },
+    "register_background_mass": {
+      "mean": 0.7409619062040685,
+      "std": 0.3547760590720539,
+      "ci95": [
+        0.738246172650402,
+        0.7436880890042461
+      ],
+      "count": 65536
+    }
+  },
+  "config": {
+    "reader_supervision_mode": "writer",
+    "owner_weight": 1.0,
+    "object_memories": 8,
+    "register_memories": 32
+  }
+}

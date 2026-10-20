@@ -1,0 +1,8 @@
+{"id":"appendix_v8_replace_bicycle_motorcycle","image_A":274687,"image_B":321557,"request":"Replace the bicycle in image A with the motorcycle from image B."}
+{"id":"appendix_v8_replace_motorcycle_bicycle","image_A":321557,"image_B":274687,"request":"Replace the motorcycle in image A with the bicycle from image B."}
+{"id":"appendix_v8_replace_dog_sheep","image_A":131273,"image_B":321887,"request":"Replace the dog in image A with the sheep from image B."}
+{"id":"appendix_v8_replace_sheep_dog","image_A":321887,"image_B":131273,"request":"Replace the sheep in image A with the dog from image B."}
+{"id":"appendix_v8_replace_cup_vase","image_A":331569,"image_B":298904,"request":"Replace the cup in image A with the vase from image B."}
+{"id":"appendix_v8_replace_vase_cup","image_A":298904,"image_B":331569,"request":"Replace the vase in image A with the cup from image B."}
+{"id":"appendix_v8_replace_horse_cow","image_A":227686,"image_B":492992,"request":"Replace the horse in image A with the cow from image B."}
+{"id":"appendix_v8_replace_cow_horse","image_A":492992,"image_B":227686,"request":"Replace the cow in image A with the horse from image B."}

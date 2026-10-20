@@ -1,0 +1,249 @@
+{
+  "revision": "v3",
+  "model": "Reader-supervised DeOR-B",
+  "input": "image-only autoregressive",
+  "external_text_query": false,
+  "caption_display": "verbatim generated first sentence",
+  "prediction_masks_modified": false,
+  "semantic_review": "Every displayed first sentence was manually checked against both the image and its paired slot mask.",
+  "v3_exclusions": [
+    {
+      "id": "voc:2007_009346",
+      "reason": "The two generated cat coat descriptions were not reliably attributable to their paired masks."
+    }
+  ],
+  "examples": [
+    {
+      "dataset": "coco",
+      "id": "22935",
+      "descriptions": [
+        {
+          "category": "Person",
+          "text": "A focused female player in the foreground, wearing a blue jersey with white accents and \"ACRONIS\" written on it."
+        },
+        {
+          "category": "Person",
+          "text": "Another player in the background is partially visible, wearing a yellow jersey and seems to be watching the first player's actions."
+        }
+      ],
+      "sources": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/01_coco_22935/image.png",
+          "sha256": "a9ac02f9f1836ca1cddca700972b88f36eea20c392719ff918c2771fb7bfdb09"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/01_coco_22935/object_01_overlay.png",
+          "sha256": "d14420405b84a849a447efe2413ddc99e101c2a21087ad6e02a7a5f1d6f7fd65"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/01_coco_22935/object_02_overlay.png",
+          "sha256": "3c30f4e4095602219335e981ba8068ddfb48e5d88d84b60a5ed7af7675d44f79"
+        }
+      ],
+      "semantic_review": "pass"
+    },
+    {
+      "dataset": "coco",
+      "id": "147745",
+      "descriptions": [
+        {
+          "category": "Truck",
+          "text": "The first truck is a white DAF truck with blue and green logos on its front."
+        },
+        {
+          "category": "Truck",
+          "text": "The second truck is also a white DAF truck but with \"GRAB HIRE\" written on its side in blue and white colors."
+        }
+      ],
+      "sources": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/02_coco_147745/image.png",
+          "sha256": "a114485f68545248b6ab5ce902498263b0e820e683fcdd2ed4f02011d973509d"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/02_coco_147745/object_01_overlay.png",
+          "sha256": "3f76c0289db1c94c49473ac6d4fc7cb7bc1ddb06e214ad546bfb057d6258473e"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/02_coco_147745/object_02_overlay.png",
+          "sha256": "e6ae804d58d7c753e84622ff8c0d8baa1cf4edf1f9063f0a7740aefcbbbc3aab"
+        }
+      ],
+      "semantic_review": "pass"
+    },
+    {
+      "dataset": "coco",
+      "id": "481573",
+      "descriptions": [
+        {
+          "category": "Skateboard",
+          "text": "A skateboard with a predominantly black surface and white curved stripes drawn along the edge."
+        },
+        {
+          "category": "Person",
+          "text": "A young person with short hair, wearing a white t-shirt and dark pants, standing upright and looking forward."
+        }
+      ],
+      "sources": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/03_coco_481573/image.png",
+          "sha256": "73a35bae54f586042eaa0d30f518bdd805fd7895aa16016e547b5d61b66e8436"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/03_coco_481573/object_01_overlay.png",
+          "sha256": "f3c6baa90d5d4ada03ed00b5dc15e0da43e0b67ecb9d2076e90f73e95e8a874b"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/03_coco_481573/object_02_overlay.png",
+          "sha256": "199eac1f965abc931214d3711eeb49f02618c2093dcfab2348e2e76868b4c3ab"
+        }
+      ],
+      "semantic_review": "pass"
+    },
+    {
+      "dataset": "coco",
+      "id": "409630",
+      "descriptions": [
+        {
+          "category": "Keyboard",
+          "text": "This is a white keyboard with black lettering on the keys."
+        },
+        {
+          "category": "Laptop",
+          "text": "A closed laptop with a silver color is present in the image."
+        }
+      ],
+      "sources": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates/03_coco_409630/image.png",
+          "sha256": "d2773f2732f4efe0130243790f8f269b804ac79b29bf17e78319f4611e9b9be7"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates/03_coco_409630/object_01_overlay.png",
+          "sha256": "ba5ef735f83887639cb04538c4dcecef3aa30b8b3d2867f183ca4c5228fb14c1"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates/03_coco_409630/object_02_overlay.png",
+          "sha256": "b64d38bed8f0a32c8909a9ee95a84c1e0fd7abe3fde2e274f9aa8406bb79a9ae"
+        }
+      ],
+      "semantic_review": "pass"
+    },
+    {
+      "dataset": "coco",
+      "id": "112997",
+      "descriptions": [
+        {
+          "category": "Cell phone",
+          "text": "The cell phone is a vintage model with a rounded edges and a small screen displaying numbers and some text."
+        },
+        {
+          "category": "Person",
+          "text": "A person's hand is visible holding the cell phone upright."
+        }
+      ],
+      "sources": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates/01_coco_112997/image.png",
+          "sha256": "29a17d522309daedc7e9770c1466c65bbceee4f4dfcab20dd65e3e9b3f14f1c6"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates/01_coco_112997/object_01_overlay.png",
+          "sha256": "ab6317bbfbf19a1e83ec761762f4ba63b624ad3cf7aaeb677532fe18b58155b9"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates/01_coco_112997/object_02_overlay.png",
+          "sha256": "802fe890f43004e261009f62096a4a7dbac28f0e6c3b8128093c8eb4b0f3d0eb"
+        }
+      ],
+      "semantic_review": "pass"
+    },
+    {
+      "dataset": "voc",
+      "id": "2007_005845",
+      "descriptions": [
+        {
+          "category": "Person",
+          "text": "A person with dark hair is visible from the side profile, wearing a maroon long-sleeve top and blue jeans."
+        },
+        {
+          "category": "Cat",
+          "text": "A brown cat with a striped pattern on its face is in the foreground of the image, its body partially visible as it faces towards the right side of the frame."
+        }
+      ],
+      "sources": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/05_voc_2007_005845/image.png",
+          "sha256": "89275a37bbab38da436a17264f6f2004380ce744989692a209b33c7dc3393e70"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/05_voc_2007_005845/object_01_overlay.png",
+          "sha256": "7c592dc8c02b71709bc5419126112fb04ee965069668948394556cca80dd890c"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/05_voc_2007_005845/object_02_overlay.png",
+          "sha256": "b078e130f76b48238c4fd1e310a9e2c85ef671840369723fcbc66b5ba08f3345"
+        }
+      ],
+      "semantic_review": "pass"
+    },
+    {
+      "dataset": "voc",
+      "id": "2007_007417",
+      "descriptions": [
+        {
+          "category": "Couch",
+          "text": "The couch is dark grey, with a smooth texture and appears to be made of a soft, fabric material."
+        },
+        {
+          "category": "Dog",
+          "text": "The dog is lying on the left side of the couch, its body partially covering part of it."
+        }
+      ],
+      "sources": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/06_voc_2007_007417/image.png",
+          "sha256": "250edd66863062c51ce0cd7de252f9d071fccaae94190b3a8bf01b86d4f7f662"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/06_voc_2007_007417/object_01_overlay.png",
+          "sha256": "cf8e10e25c01794302ae0fb807d8b066da9985e8d252f44faef3e6d0d1db80c9"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/06_voc_2007_007417/object_02_overlay.png",
+          "sha256": "5d9e97a675a01f5b818c4f9614a61f3b9288bc179bdc4a36116d20a405a273f2"
+        }
+      ],
+      "semantic_review": "pass"
+    },
+    {
+      "dataset": "coco",
+      "id": "157807",
+      "descriptions": [
+        {
+          "category": "Cat",
+          "text": "A tabby cat with a mix of dark and light fur, consisting of stripes and spots, is standing on a toilet."
+        },
+        {
+          "category": "Toilet",
+          "text": "The toilet is white and has a round shape with a closed lid that's not currently up."
+        }
+      ],
+      "sources": [
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/01_coco_157807/image.png",
+          "sha256": "bd2f6d471423c3dd101181c19e7c6e966afc9996149ed8566f07d6a681fd6694"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/01_coco_157807/object_01_overlay.png",
+          "sha256": "851869b35538e8b3e655e26faf60cc59ad4a7bc923f2ee378bf212b20081ac4a"
+        },
+        {
+          "path": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/01_coco_157807/object_02_overlay.png",
+          "sha256": "a377cf52ce2a41a8b46da51e1663f78d7b0f64f3b3cca9720187cc9d40f48d4b"
+        }
+      ],
+      "semantic_review": "pass"
+    }
+  ]
+}

@@ -1,0 +1,409 @@
+{
+  "config": {
+    "version": "language-selected-object-editing-v1",
+    "code_sha256": "67d5e5d5e926ed080ccb7bda492aa24ed8f33c3ffe71eda4e40fdfcca1a6ea71",
+    "checkpoint_signature": {
+      "config_sha256": "d8fb740d63970c35fe281fd7189c703adb15d59272efa909dfce4fdb0cc3c370",
+      "index_sha256": "e8e1c29647ee8d0f07906c243a44c7babf27e66eb32f918b862a3642839ece91",
+      "shards": [
+        {
+          "name": "model-00001-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000/model-00001-of-00004.safetensors",
+          "bytes": 4955311064,
+          "mtime_ns": 1789242071489691781
+        },
+        {
+          "name": "model-00002-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000/model-00002-of-00004.safetensors",
+          "bytes": 4991575392,
+          "mtime_ns": 1789242077069087783
+        },
+        {
+          "name": "model-00003-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000/model-00003-of-00004.safetensors",
+          "bytes": 4968395048,
+          "mtime_ns": 1789242082894183890
+        },
+        {
+          "name": "model-00004-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000/model-00004-of-00004.safetensors",
+          "bytes": 1133003992,
+          "mtime_ns": 1789242083896570079
+        }
+      ]
+    },
+    "model_path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000",
+    "requests": "/home/jovyan/PGOT/configs/language_object_editing_transfer_replace_requests.jsonl",
+    "annotations": "/home/jovyan/PGOT/data/pgot_pix2cap_generated_val5k.jsonl",
+    "captions": "/home/jovyan/PGOT/outputs/segeval_pgot_memory8_full_coco_voc_ar/coco_ar/generated_captions.jsonl",
+    "caption_summary": "/home/jovyan/PGOT/outputs/segeval_pgot_memory8_full_coco_voc_ar/coco_ar/summary.json",
+    "selector_model": "/home/jovyan/.cache/huggingface/hub/models--Qwen--Qwen3-VL-4B-Instruct/snapshots/ebb281ec70b05090aa6165b016eac8ec08e71b17",
+    "requests_sha256": "d953a97d857c88dd570cc2f3ed12cd7a0b7268a10ba714143ee688f59c28d5be",
+    "annotations_sha256": "0ff9fc64db716107aa9c8caf0a36ff8be375638467eb2db7e7f4e3528a3628e9",
+    "captions_sha256": "d7c3ce992e1c645e8ef5deabc99f127b3012de19153f8e7aa82854eaa3d8ae1c",
+    "caption_summary_sha256": "d3b112ea218d5211920ac2d73e57b335ed5e68f6428181a6f060c06b5cdb737b",
+    "seed": 1234,
+    "diffusion_inference_steps": 10,
+    "guidance_scale": 1.0,
+    "max_caption_tokens": 4096,
+    "selector_max_new_tokens": 160,
+    "selector_max_input_tokens": 8192,
+    "selector_image_input": false,
+    "selector_gt_input": false,
+    "selector_expected_id_input": false,
+    "manual_plan_correction": false,
+    "external_selector": true,
+    "system_sha256": "025a187e2742dc4feabf57a9634baacbf0f4feb8e95fae5267fe80f6fcf45da3",
+    "replacement_mode": "full_bundle",
+    "compare_replacement_modes": true,
+    "appearance_transfer": "selected donor visual memory; source semantic state retained",
+    "replacement": "selected donor semantic+visual bundle",
+    "removal": "selected owner dropped; predicted winning patch exclusion and Writer rewrite",
+    "dtype": "fp32",
+    "qualitative_curated_images": true,
+    "benchmark_accuracy_claim": false
+  },
+  "fingerprint": "8b02842bed2c0551e26761e0e7295d88b43d9fbfd8f94572248a481a0051b94f",
+  "entries": {
+    "802": {
+      "image_id": 802,
+      "image_path": "/home/jovyan/data/coco/val2017/000000000802.jpg",
+      "image_sha256": "d5b79e7fa716f85ca86f46e5f518da9b6c5e26414925624d76e6476861aec495",
+      "caption": "<thing> Refrigerator 1: A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser. <ovt>. <thing> Oven 1: An oven is embedded in the countertop to the left of the refrigerator. It has multiple dials for temperature control and burners on top and is white in color. <ovt>. <scene_end>",
+      "caption_sha256": "8450cc7f63087e36239052140ea24488790b7920e42550c0c74c69c7ddc3715e",
+      "ovt_count": 2,
+      "candidates": [
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Oven",
+          "normalized_category": "oven",
+          "description": "An oven is embedded in the countertop to the left of the refrigerator. It has multiple dials for temperature control and burners on top and is white in color.",
+          "parsed": true,
+          "id": "obj_b79045613f2d"
+        },
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Refrigerator",
+          "normalized_category": "refrigerator",
+          "description": "A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser.",
+          "parsed": true,
+          "id": "obj_1eb4b22d65ba"
+        }
+      ]
+    },
+    "52891": {
+      "image_id": 52891,
+      "image_path": "/home/jovyan/data/coco/val2017/000000052891.jpg",
+      "image_sha256": "e55b86a1cda874117ba1bd855e38dbc9b5427b840c362d72330019676ec47a44",
+      "caption": "<thing> Dog 1: A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement. <ovt>. <thing> Frisbee 1: A bright yellow frisbee lies on the sand close to the dog. It's in good condition, with visible wear marks suggesting it has been used multiple times. <ovt>. <scene_end>",
+      "caption_sha256": "7bd404b4ebeba2976041b04852391eb74a781d1f481362cd3bf833a8492a896e",
+      "ovt_count": 2,
+      "candidates": [
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Frisbee",
+          "normalized_category": "frisbee",
+          "description": "A bright yellow frisbee lies on the sand close to the dog. It's in good condition, with visible wear marks suggesting it has been used multiple times.",
+          "parsed": true,
+          "id": "obj_f0797c47f09b"
+        },
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement.",
+          "parsed": true,
+          "id": "obj_e742cde13bfd"
+        }
+      ]
+    },
+    "193429": {
+      "image_id": 193429,
+      "image_path": "/home/jovyan/data/coco/val2017/000000193429.jpg",
+      "image_sha256": "e1ef3c4044ab75da8ada20734b956158b842636bf4980767c937ef097555d2bf",
+      "caption": "<thing> Snowboard 1: A white snowboard with black markings and text on it, it's positioned horizontally in the snow. <ovt>. <thing> Person 1: A person wearing a green jacket, black pants, a white helmet, and goggles is sitting on the snowboard. <ovt>. <scene_end>",
+      "caption_sha256": "82c897f85becfdb6f113acea573986161f67c84480d497eb8b0fdf6b41af1637",
+      "ovt_count": 2,
+      "candidates": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Snowboard",
+          "normalized_category": "snowboard",
+          "description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+          "parsed": true,
+          "id": "obj_af492ec5af8f"
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person wearing a green jacket, black pants, a white helmet, and goggles is sitting on the snowboard.",
+          "parsed": true,
+          "id": "obj_e48b65ac2d43"
+        }
+      ]
+    },
+    "205834": {
+      "image_id": 205834,
+      "image_path": "/home/jovyan/data/coco/val2017/000000205834.jpg",
+      "image_sha256": "86bc225035731803d15bd65aaabc7d29e8af8b9c6ccb93a8d4ee11d337410c66",
+      "caption": "<thing> Dog 1: A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine. <ovt>. <thing> Bowl 1: A metallic bowl with a curved rim is positioned on the pavement. It's small and shallow, likely designed for dogs to eat or drink from. <ovt>. <scene_end>",
+      "caption_sha256": "2a97be3fb82ebc57f37f1819c8e5f68e523588efdc79c3f8f0838ef0c4ec0b53",
+      "ovt_count": 2,
+      "candidates": [
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Bowl",
+          "normalized_category": "bowl",
+          "description": "A metallic bowl with a curved rim is positioned on the pavement. It's small and shallow, likely designed for dogs to eat or drink from.",
+          "parsed": true,
+          "id": "obj_edbfbe418a03"
+        },
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine.",
+          "parsed": true,
+          "id": "obj_f2c2ca473dd6"
+        }
+      ]
+    },
+    "243344": {
+      "image_id": 243344,
+      "image_path": "/home/jovyan/data/coco/val2017/000000243344.jpg",
+      "image_sha256": "4c42a89dc3e48343fe5800aa3711548466b9c295976b958c047e6cb5a4eb374b",
+      "caption": "<thing> Refrigerator 1: A modern, stainless steel refrigerator with magnets and papers attached to its surface, located on top of the counter. <ovt>. <thing> Cat 1: A fluffy cat with tabby markings is sitting attentively on the edge of the refrigerator, its eyes focused and ears erect. <ovt>. <thing> Person 1: A person is partially visible at the bottom right corner wearing blue attire. <ovt>. <scene_end>",
+      "caption_sha256": "d874de23ce7455debad3632a1a0e4b79b7d0417917edfafc766e53cbcbed9d83",
+      "ovt_count": 3,
+      "candidates": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Refrigerator",
+          "normalized_category": "refrigerator",
+          "description": "A modern, stainless steel refrigerator with magnets and papers attached to its surface, located on top of the counter.",
+          "parsed": true,
+          "id": "obj_866188538541"
+        },
+        {
+          "slot_index": 2,
+          "prediction_label": 3,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person is partially visible at the bottom right corner wearing blue attire.",
+          "parsed": true,
+          "id": "obj_d4112ac51ad0"
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Cat",
+          "normalized_category": "cat",
+          "description": "A fluffy cat with tabby markings is sitting attentively on the edge of the refrigerator, its eyes focused and ears erect.",
+          "parsed": true,
+          "id": "obj_862ee7afa990"
+        }
+      ]
+    },
+    "261161": {
+      "image_id": 261161,
+      "image_path": "/home/jovyan/data/coco/val2017/000000261161.jpg",
+      "image_sha256": "bd6970139b63adcecd2039608f1b4ea928e0f431a0ba43ccb00af58e7190914f",
+      "caption": "<thing> Dog 1: A black and white dog with a shiny coat, its ears are perked up, and it's wearing a leash around its neck. The dog appears to be a medium-sized breed and is standing on the pavement-merged object. <ovt>. <thing> Bench 1: A red bench with wooden slats on its seat and backrest, it appears worn but still sturdy. The bench is positioned on the left side of the image and is facing the tree. <ovt>. <scene_end>",
+      "caption_sha256": "602aedaeb5fda2c311001bd33d16062e78ea39f851132c6bca9a038d91767976",
+      "ovt_count": 2,
+      "candidates": [
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Bench",
+          "normalized_category": "bench",
+          "description": "A red bench with wooden slats on its seat and backrest, it appears worn but still sturdy. The bench is positioned on the left side of the image and is facing the tree.",
+          "parsed": true,
+          "id": "obj_1a47f44f2598"
+        },
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A black and white dog with a shiny coat, its ears are perked up, and it's wearing a leash around its neck. The dog appears to be a medium-sized breed and is standing on the pavement-merged object.",
+          "parsed": true,
+          "id": "obj_c87f2b158516"
+        }
+      ]
+    },
+    "323151": {
+      "image_id": 323151,
+      "image_path": "/home/jovyan/data/coco/val2017/000000323151.jpg",
+      "image_sha256": "29228060eb9d01c28a6ee0f1424e9cdc5935e963e46e077133f538470c9858ac",
+      "caption": "<thing> Pizza 1: A freshly baked pizza with a golden-brown crust, topped with melted cheese, black olives, and pieces of meat is placed on a white plate. The pizza has a diameter of approximately 10 inches. <ovt>. <thing> Cup 1: A glass cup filled with a golden liquid, possibly beer, with some foam on top is placed to the right of the pizza. The cup has a cylindrical shape and is approximately 6 inches tall. <ovt>. <thing> Person 1: There isn't any visible person in this image so we can't describe any actions or emotions associated with them. <ovt>. <scene_end>",
+      "caption_sha256": "e159b041ddbc815719e52a70b2bb359a16bb4f57e51f97f96f513848d98ab455",
+      "ovt_count": 3,
+      "candidates": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Pizza",
+          "normalized_category": "pizza",
+          "description": "A freshly baked pizza with a golden-brown crust, topped with melted cheese, black olives, and pieces of meat is placed on a white plate. The pizza has a diameter of approximately 10 inches.",
+          "parsed": true,
+          "id": "obj_2bff221c0d13"
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Cup",
+          "normalized_category": "cup",
+          "description": "A glass cup filled with a golden liquid, possibly beer, with some foam on top is placed to the right of the pizza. The cup has a cylindrical shape and is approximately 6 inches tall.",
+          "parsed": true,
+          "id": "obj_a32d6bf62dbd"
+        },
+        {
+          "slot_index": 2,
+          "prediction_label": 3,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "There isn't any visible person in this image so we can't describe any actions or emotions associated with them.",
+          "parsed": true,
+          "id": "obj_e9383b8ed933"
+        }
+      ]
+    },
+    "449909": {
+      "image_id": 449909,
+      "image_path": "/home/jovyan/data/coco/val2017/000000449909.jpg",
+      "image_sha256": "a79689a7913c06a5b25a4da0fb2c453dc02f84aa889c5487942a821916a345e7",
+      "caption": "<thing> Person 1: A young individual stands outdoors, bathed in sunlight. They wear a denim jacket over a white hoodie, its fabric slightly wrinkled. Their hair is neatly combed, and they sport a hooded beanie. The person's posture suggests curiosity or admiration, as they lean forward with interest. <ovt>. <thing> Giraffe 1: Partially obscured by the person, a giraffe stands in the background. Its long neck extends upward, and its brown and white coat catches the light. The giraffe's presence adds an element of exotic wonder to the scene. <ovt>. <scene_end>",
+      "caption_sha256": "a21115e9ea328f1c33c6f48bf41727fa5ab6c7a7ec51b49fa7a5444099804fba",
+      "ovt_count": 2,
+      "candidates": [
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Giraffe",
+          "normalized_category": "giraffe",
+          "description": "Partially obscured by the person, a giraffe stands in the background. Its long neck extends upward, and its brown and white coat catches the light. The giraffe's presence adds an element of exotic wonder to the scene.",
+          "parsed": true,
+          "id": "obj_28d369b1e0c0"
+        },
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A young individual stands outdoors, bathed in sunlight. They wear a denim jacket over a white hoodie, its fabric slightly wrinkled. Their hair is neatly combed, and they sport a hooded beanie. The person's posture suggests curiosity or admiration, as they lean forward with interest.",
+          "parsed": true,
+          "id": "obj_26c5809d3f82"
+        }
+      ]
+    },
+    "554595": {
+      "image_id": 554595,
+      "image_path": "/home/jovyan/data/coco/val2017/000000554595.jpg",
+      "image_sha256": "f87552f48714dda9163196051781716d6ae1e26824f214237f604f9f829f9fa5",
+      "caption": "<thing> Surfboard 1: A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact. <ovt>. <thing> Person 1: A person is lying on the sand, partially submerged in it up to their head, wearing dark clothing that contrasts against the light background. <ovt>. <scene_end>",
+      "caption_sha256": "754a083d9beec48a119c7bbd62ff3393313246cfd6a7c7154a421c1df1816e59",
+      "ovt_count": 2,
+      "candidates": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Surfboard",
+          "normalized_category": "surfboard",
+          "description": "A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact.",
+          "parsed": true,
+          "id": "obj_c6456e937620"
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person is lying on the sand, partially submerged in it up to their head, wearing dark clothing that contrasts against the light background.",
+          "parsed": true,
+          "id": "obj_5569310a13d2"
+        }
+      ]
+    }
+  },
+  "requests": [
+    {
+      "id": "edit_001",
+      "image_A": 323151,
+      "image_B": null,
+      "request": "Remove the cup from image A."
+    },
+    {
+      "id": "edit_002",
+      "image_A": 52891,
+      "image_B": 205834,
+      "request": "Transfer the brown dog's appearance from image B to the dog in image A."
+    },
+    {
+      "id": "edit_003",
+      "image_A": 261161,
+      "image_B": null,
+      "request": "Remove the bench from image A."
+    },
+    {
+      "id": "edit_004",
+      "image_A": 193429,
+      "image_B": 554595,
+      "request": "Replace the snowboard in image A with the surfboard from image B."
+    },
+    {
+      "id": "edit_005",
+      "image_A": 449909,
+      "image_B": null,
+      "request": "Remove the giraffe from image A."
+    },
+    {
+      "id": "edit_006",
+      "image_A": 802,
+      "image_B": 243344,
+      "request": "Transfer the refrigerator's appearance from image B to the refrigerator in image A."
+    },
+    {
+      "id": "edit_007",
+      "image_A": 323151,
+      "image_B": null,
+      "request": "Remove the airplane from image A."
+    },
+    {
+      "id": "edit_008",
+      "image_A": 261161,
+      "image_B": null,
+      "request": "Remove the dog from image A."
+    }
+  ]
+}

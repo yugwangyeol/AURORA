@@ -1,0 +1,69 @@
+{
+  "task": "compositional_generation",
+  "protocol": "CODA Table 4 (arXiv:2601.01224): 'configurations are created by randomly mixing slots within a batch'; FID and KID x1e3 of composed images vs real images. CODA publishes no mixing script: register handling, object count and sampling rule below are PGOT choices.",
+  "mixing_rule": "each target keeps its own object count; every object slot (semantic slot + its visual memories) is drawn without replacement from the other images' valid objects in the same batch; registers follow register_source",
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_7b_fp32_fast/checkpoint-5000",
+  "manifest_path": "/home/jovyan/PGOT/data/pgot_pix2cap_generated_val_full5000.jsonl",
+  "dataset_total_samples": 5000,
+  "full_split_evaluated": true,
+  "includes_objectless_images": true,
+  "one_shot_readout_mode": "memory_content",
+  "object_memories_per_owner": 8,
+  "register_memories_per_owner": 32,
+  "mix_mode": "random_slots",
+  "register_source": "random",
+  "batch_size_mixing_pool": 4,
+  "seed": 1234,
+  "caption_mode": "teacher_forced",
+  "diffusion_inference_steps": 10,
+  "guidance_scale": 1.0,
+  "real_reference": "independently loaded CODA center crop at metric resolution",
+  "real_resolution": [
+    256,
+    256
+  ],
+  "native_generation_resolution": [
+    224,
+    224
+  ],
+  "metric_resolution": [
+    256,
+    256
+  ],
+  "generation_output_resampling": "bicubic_antialias",
+  "native_256_generation_claimed": false,
+  "n_real": 5000,
+  "n_generated": 5000,
+  "zero_object_source_images": 66,
+  "FID": 17.19982147216797,
+  "KID_x1e3_mean": 3.5374711733311415,
+  "KID_x1e3_std": 0.49622543156147003,
+  "kid_subsets": 100,
+  "kid_subset_size": 1000,
+  "identity_check": {
+    "passed": true,
+    "max_relative_error": 0.0,
+    "tolerance": 0.001
+  },
+  "raw_rae_query_batch_std": 0.0,
+  "mix_stats": {
+    "mean_objects_per_image": 5.1686,
+    "foreign_object_slot_fraction": 1.0,
+    "images_sampled_with_replacement": 460,
+    "images_left_unmixed": 0,
+    "mixed_condition_mean_abs_delta": 0.6994853165149689
+  },
+  "peak_gpu_memory_GiB": 74.11681509017944,
+  "elapsed_sec": 13091.485941171646,
+  "compositions_file": "/home/jovyan/PGOT/outputs/compgen_pgot_oneshot_memory8_register32_noprior_7b_fp32_fast_256/compositions.jsonl",
+  "example_files": [
+    "/home/jovyan/PGOT/outputs/compgen_pgot_oneshot_memory8_register32_noprior_7b_fp32_fast_256/examples/batch000_real_recon_composed.png",
+    "/home/jovyan/PGOT/outputs/compgen_pgot_oneshot_memory8_register32_noprior_7b_fp32_fast_256/examples/batch001_real_recon_composed.png",
+    "/home/jovyan/PGOT/outputs/compgen_pgot_oneshot_memory8_register32_noprior_7b_fp32_fast_256/examples/batch002_real_recon_composed.png",
+    "/home/jovyan/PGOT/outputs/compgen_pgot_oneshot_memory8_register32_noprior_7b_fp32_fast_256/examples/batch003_real_recon_composed.png",
+    "/home/jovyan/PGOT/outputs/compgen_pgot_oneshot_memory8_register32_noprior_7b_fp32_fast_256/examples/batch004_real_recon_composed.png",
+    "/home/jovyan/PGOT/outputs/compgen_pgot_oneshot_memory8_register32_noprior_7b_fp32_fast_256/examples/batch005_real_recon_composed.png",
+    "/home/jovyan/PGOT/outputs/compgen_pgot_oneshot_memory8_register32_noprior_7b_fp32_fast_256/examples/batch006_real_recon_composed.png",
+    "/home/jovyan/PGOT/outputs/compgen_pgot_oneshot_memory8_register32_noprior_7b_fp32_fast_256/examples/batch007_real_recon_composed.png"
+  ]
+}

@@ -1,0 +1,4 @@
+{"id":"appendix_v3b_replace_sheep_zebra","image_A":66561,"image_B":93965,"request":"Replace the sheep in image A with the zebra from image B."}
+{"id":"appendix_v3b_replace_dog_cat","image_A":579321,"image_B":555705,"request":"Replace the dog in image A with the cat from image B."}
+{"id":"appendix_v3b_replace_keyboard_laptop","image_A":335658,"image_B":324715,"request":"Replace the keyboard in image A with the laptop from image B."}
+{"id":"appendix_v3b_replace_bear_elephant","image_A":560266,"image_B":210708,"request":"Replace the bear in image A with the elephant from image B."}

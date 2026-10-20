@@ -1,0 +1,349 @@
+{
+  "checkpoint": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_woreader/checkpoint-5000",
+  "layout": "3 rows; fixed Remove examples left and fixed Replace examples right",
+  "controlled_replay": true,
+  "remove_protocol": "owner removal with predicted-patch exclusion and Writer rewrite",
+  "replace_protocol": "visual-memory owner transfer; visual_only condition",
+  "freeform_instruction_following_claim": false,
+  "examples": [
+    {
+      "mode": "remove",
+      "task_id": "remove_12_323151",
+      "prompt": "Remove the cup from image A.",
+      "panels": [
+        {
+          "title": "Source (A)",
+          "source_size": [
+            512,
+            512
+          ],
+          "box": [
+            8,
+            44,
+            264,
+            300
+          ]
+        },
+        {
+          "title": "Reconstruction",
+          "source_size": [
+            224,
+            224
+          ],
+          "box": [
+            270,
+            44,
+            526,
+            300
+          ]
+        },
+        {
+          "title": "Edited result",
+          "source_size": [
+            224,
+            224
+          ],
+          "box": [
+            532,
+            44,
+            788,
+            300
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "replace",
+      "pair_id": "dog_black_white_to_brown",
+      "prompt": "Replace A's black-and-white dog with B's brown dog.",
+      "condition": "visual_only",
+      "panels": [
+        {
+          "title": "Source (A)",
+          "source_size": [
+            512,
+            512
+          ],
+          "box": [
+            816,
+            44,
+            1072,
+            300
+          ]
+        },
+        {
+          "title": "Donor (B)",
+          "source_size": [
+            512,
+            512
+          ],
+          "box": [
+            1078,
+            44,
+            1334,
+            300
+          ]
+        },
+        {
+          "title": "Reconstruction",
+          "source_size": [
+            224,
+            224
+          ],
+          "box": [
+            1340,
+            44,
+            1596,
+            300
+          ]
+        },
+        {
+          "title": "Edited result",
+          "source_size": [
+            224,
+            224
+          ],
+          "box": [
+            1602,
+            44,
+            1858,
+            300
+          ]
+        }
+      ],
+      "diagnostics": {
+        "inside_change": 0.03174080535885696,
+        "outside_change": 0.012114279059326943,
+        "change_energy_inside_fraction": 0.9527047234464511,
+        "region_fraction": 0.5839245854591837,
+        "screening_score": 0.022655096064361755
+      }
+    },
+    {
+      "mode": "remove",
+      "task_id": "remove_08_261161",
+      "prompt": "Remove the bench from image A.",
+      "panels": [
+        {
+          "title": "Source (A)",
+          "source_size": [
+            512,
+            512
+          ],
+          "box": [
+            8,
+            384,
+            264,
+            640
+          ]
+        },
+        {
+          "title": "Reconstruction",
+          "source_size": [
+            224,
+            224
+          ],
+          "box": [
+            270,
+            384,
+            526,
+            640
+          ]
+        },
+        {
+          "title": "Edited result",
+          "source_size": [
+            224,
+            224
+          ],
+          "box": [
+            532,
+            384,
+            788,
+            640
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "replace",
+      "pair_id": "snowboard_to_star_surfboard",
+      "prompt": "Replace A's snowboard with B's star-patterned surfboard.",
+      "condition": "visual_only",
+      "panels": [
+        {
+          "title": "Source (A)",
+          "source_size": [
+            512,
+            512
+          ],
+          "box": [
+            816,
+            384,
+            1072,
+            640
+          ]
+        },
+        {
+          "title": "Donor (B)",
+          "source_size": [
+            512,
+            512
+          ],
+          "box": [
+            1078,
+            384,
+            1334,
+            640
+          ]
+        },
+        {
+          "title": "Reconstruction",
+          "source_size": [
+            224,
+            224
+          ],
+          "box": [
+            1340,
+            384,
+            1596,
+            640
+          ]
+        },
+        {
+          "title": "Edited result",
+          "source_size": [
+            224,
+            224
+          ],
+          "box": [
+            1602,
+            384,
+            1858,
+            640
+          ]
+        }
+      ],
+      "diagnostics": {
+        "inside_change": 0.013273689304047799,
+        "outside_change": 0.004208709701108908,
+        "change_energy_inside_fraction": 0.5849281699032728,
+        "region_fraction": 0.1485969387755102,
+        "screening_score": 0.010117157028216119
+      }
+    },
+    {
+      "mode": "remove",
+      "task_id": "remove_13_449909",
+      "prompt": "Remove the giraffe from image A.",
+      "panels": [
+        {
+          "title": "Source (A)",
+          "source_size": [
+            512,
+            512
+          ],
+          "box": [
+            8,
+            724,
+            264,
+            980
+          ]
+        },
+        {
+          "title": "Reconstruction",
+          "source_size": [
+            224,
+            224
+          ],
+          "box": [
+            270,
+            724,
+            526,
+            980
+          ]
+        },
+        {
+          "title": "Edited result",
+          "source_size": [
+            224,
+            224
+          ],
+          "box": [
+            532,
+            724,
+            788,
+            980
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "replace",
+      "pair_id": "refrigerator_white_to_steel",
+      "prompt": "Replace A's white refrigerator with B's stainless-steel refrigerator.",
+      "condition": "visual_only",
+      "panels": [
+        {
+          "title": "Source (A)",
+          "source_size": [
+            512,
+            512
+          ],
+          "box": [
+            816,
+            724,
+            1072,
+            980
+          ]
+        },
+        {
+          "title": "Donor (B)",
+          "source_size": [
+            512,
+            512
+          ],
+          "box": [
+            1078,
+            724,
+            1334,
+            980
+          ]
+        },
+        {
+          "title": "Reconstruction",
+          "source_size": [
+            224,
+            224
+          ],
+          "box": [
+            1340,
+            724,
+            1596,
+            980
+          ]
+        },
+        {
+          "title": "Edited result",
+          "source_size": [
+            224,
+            224
+          ],
+          "box": [
+            1602,
+            724,
+            1858,
+            980
+          ]
+        }
+      ],
+      "diagnostics": {
+        "inside_change": 0.015928423010751213,
+        "outside_change": 0.008162001273162087,
+        "change_energy_inside_fraction": 0.7983854843232653,
+        "region_fraction": 0.45487882653061223,
+        "screening_score": 0.009806922055879647
+      }
+    }
+  ]
+}

@@ -1,0 +1,1716 @@
+{
+  "checkpoint": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_woreader/checkpoint-5000",
+  "layout": "4 rows x 6 panels; fixed examples from original figure",
+  "controlled_replay": true,
+  "baseline_predictions_reused": true,
+  "deor_prediction_recomputed": true,
+  "overlay_alpha": 0.65,
+  "background_color_rgb": [
+    245,
+    55,
+    104
+  ],
+  "prediction_labels_modified": false,
+  "rows": [
+    {
+      "dataset": "coco",
+      "mode": "over",
+      "id": "552371",
+      "metrics": {
+        "adaslot": {
+          "fARI": 0.46398170132377453,
+          "mIoU": 0.5444984923236079,
+          "mBO": 0.5678817627789525,
+          "pred_segments": 6,
+          "significant_gt_objects": 2,
+          "split_count": 2,
+          "merge_count": 0,
+          "split_gt_labels": [
+            1,
+            2
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 658279228,
+          "kept_slots": 6,
+          "slot_keep_probability_mean": 0.20720693469047546
+        },
+        "metaslot": {
+          "fARI": 0.7350335796123175,
+          "mIoU": 0.552386162460877,
+          "mBO": 0.5709871550922709,
+          "pred_segments": 7,
+          "significant_gt_objects": 2,
+          "split_count": 1,
+          "merge_count": 0,
+          "split_gt_labels": [
+            1
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 658279228
+        },
+        "coda": {
+          "fARI": 0.7447379917741498,
+          "mIoU": 0.5498411395730126,
+          "mBO": 0.6254949218304002,
+          "pred_segments": 7,
+          "significant_gt_objects": 2,
+          "split_count": 1,
+          "merge_count": 0,
+          "split_gt_labels": [
+            1
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 658279228
+        },
+        "ours": {
+          "fARI": 0.9452108959965786,
+          "mIoU": 0.9139987081499878,
+          "mBO": 0.9212182369500241,
+          "pred_segments": 3,
+          "significant_gt_objects": 2,
+          "split_count": 0,
+          "merge_count": 0,
+          "split_gt_labels": [],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "generated_objects": 2,
+          "caption_sha256": "60eda9137d7a1437fd2740ee364c4a9aab80ffb3f39df68c98d29910aabee242"
+        }
+      },
+      "render_details": {
+        "gt": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/coco/552371/gt.npz",
+          "source_sha256": "30d8147c6d024f47c387d3ae84a864847e49d0e47d712d301527feaa36d13641",
+          "label_colors": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2
+          ]
+        },
+        "adaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/coco/552371/adaslot.npz",
+          "source_sha256": "aca4576564b3ef62612c6ee4c7b7bd4511f73cac8e0c1b4494acef9437f078e3",
+          "label_colors": {
+            "23": [
+              245,
+              55,
+              104
+            ],
+            "18": [
+              65,
+              235,
+              130
+            ],
+            "16": [
+              255,
+              211,
+              45
+            ],
+            "0": [
+              90,
+              110,
+              255
+            ],
+            "12": [
+              204,
+              65,
+              238
+            ],
+            "19": [
+              35,
+              223,
+              223
+            ]
+          },
+          "unique_labels": [
+            0,
+            12,
+            16,
+            18,
+            19,
+            23
+          ]
+        },
+        "metaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/coco/552371/metaslot.npz",
+          "source_sha256": "c3088e96b1e72701d53e24a6c84025575e8f03ebe755b03d0590f0ddd8bf3bad",
+          "label_colors": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "4": [
+              65,
+              235,
+              130
+            ],
+            "5": [
+              255,
+              211,
+              45
+            ],
+            "6": [
+              90,
+              110,
+              255
+            ],
+            "1": [
+              204,
+              65,
+              238
+            ],
+            "2": [
+              35,
+              223,
+              223
+            ],
+            "3": [
+              255,
+              131,
+              30
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        "coda": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/coco/552371/coda.npz",
+          "source_sha256": "6d8bb89649a14a423ef30097c25d4da17c430539bf0b2db6d1b094514417f802",
+          "label_colors": {
+            "2": [
+              245,
+              55,
+              104
+            ],
+            "4": [
+              65,
+              235,
+              130
+            ],
+            "3": [
+              255,
+              211,
+              45
+            ],
+            "0": [
+              90,
+              110,
+              255
+            ],
+            "5": [
+              204,
+              65,
+              238
+            ],
+            "6": [
+              35,
+              223,
+              223
+            ],
+            "1": [
+              255,
+              131,
+              30
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        "ours": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/coco/552371/ours.npz",
+          "source_sha256": "3ad22d4e1404ae4a08f024feaf194eb14744f7238abce7fa065a2d6519ef5e15",
+          "label_colors": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "2": [
+              65,
+              235,
+              130
+            ],
+            "1": [
+              255,
+              211,
+              45
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2
+          ]
+        }
+      },
+      "panels": [
+        {
+          "title": "Image",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/coco_over_552371/image.png",
+          "sha256": "f3058d43ff61a60d8d555fd2babfc995932c62af2ac098090d47c26bfcc20bbe",
+          "box": [
+            224,
+            104,
+            736,
+            616
+          ]
+        },
+        {
+          "title": "GT",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/coco_over_552371/gt_overlay.png",
+          "sha256": "9cefa7c6661699280b5dd5fb26b560cd6e3b3df8336497d48e4fb785522710b2",
+          "box": [
+            744,
+            104,
+            1256,
+            616
+          ]
+        },
+        {
+          "title": "AdaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/coco_over_552371/adaslot_overlay.png",
+          "sha256": "e4079cb82b83f160ce44b0cd949c368c76483999161ce49d88b4d09aad6b080d",
+          "box": [
+            1264,
+            104,
+            1776,
+            616
+          ]
+        },
+        {
+          "title": "MetaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/coco_over_552371/metaslot_overlay.png",
+          "sha256": "e01ffd9e388ac1bea08d67dc76ad9dcd330611a8920b79d76ac7f19740e9c6ea",
+          "box": [
+            1784,
+            104,
+            2296,
+            616
+          ]
+        },
+        {
+          "title": "CODA",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/coco_over_552371/coda_overlay.png",
+          "sha256": "32ddf84c5e5131329dd15a9c58e4f097f3981fb3feb9d83079b7da10787c1c3b",
+          "box": [
+            2304,
+            104,
+            2816,
+            616
+          ]
+        },
+        {
+          "title": "DeOR",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/coco_over_552371/ours_overlay.png",
+          "sha256": "3c876221d94e2cfde0a14b01591f52b9dbee487e1a5c1cba733ddfae3451e518",
+          "box": [
+            2824,
+            104,
+            3336,
+            616
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "coco",
+      "mode": "under",
+      "id": "559956",
+      "metrics": {
+        "adaslot": {
+          "fARI": 0.5533467583231432,
+          "mIoU": 0.3146486567173019,
+          "mBO": 0.3361208029407665,
+          "pred_segments": 7,
+          "significant_gt_objects": 7,
+          "split_count": 1,
+          "merge_count": 3,
+          "split_gt_labels": [
+            1
+          ],
+          "merged_pred_labels": [
+            1,
+            12,
+            29
+          ],
+          "merge_gt_labels": {
+            "1": [
+              4,
+              7
+            ],
+            "12": [
+              1,
+              2
+            ],
+            "29": [
+              3,
+              8
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 1796667487,
+          "kept_slots": 7,
+          "slot_keep_probability_mean": 0.20811323821544647
+        },
+        "metaslot": {
+          "fARI": 0.5223513812001013,
+          "mIoU": 0.31062495282832114,
+          "mBO": 0.34912371157313365,
+          "pred_segments": 6,
+          "significant_gt_objects": 7,
+          "split_count": 0,
+          "merge_count": 1,
+          "split_gt_labels": [],
+          "merged_pred_labels": [
+            0
+          ],
+          "merge_gt_labels": {
+            "0": [
+              1,
+              2,
+              3
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 1796667487
+        },
+        "coda": {
+          "fARI": 0.5307093654691145,
+          "mIoU": 0.30509932189909617,
+          "mBO": 0.3784484085500429,
+          "pred_segments": 7,
+          "significant_gt_objects": 7,
+          "split_count": 0,
+          "merge_count": 2,
+          "split_gt_labels": [],
+          "merged_pred_labels": [
+            2,
+            3
+          ],
+          "merge_gt_labels": {
+            "2": [
+              1,
+              2
+            ],
+            "3": [
+              6,
+              7
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 1796667487
+        },
+        "ours": {
+          "fARI": 0.848922376045517,
+          "mIoU": 0.649075238571339,
+          "mBO": 0.6425275491128317,
+          "pred_segments": 10,
+          "significant_gt_objects": 7,
+          "split_count": 1,
+          "merge_count": 0,
+          "split_gt_labels": [
+            3
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "generated_objects": 9,
+          "caption_sha256": "50b25713c80040b0c84a49f24a700c3809ffe4bbecaef75dfa0157625c2ab56b"
+        }
+      },
+      "render_details": {
+        "gt": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/coco/559956/gt.npz",
+          "source_sha256": "0301761e212c9e43aba0d4f34795e60c99683c87fcee06737fb27df1bdca37b0",
+          "label_colors": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ],
+            "3": [
+              90,
+              110,
+              255
+            ],
+            "4": [
+              204,
+              65,
+              238
+            ],
+            "5": [
+              35,
+              223,
+              223
+            ],
+            "6": [
+              255,
+              131,
+              30
+            ],
+            "7": [
+              135,
+              55,
+              225
+            ],
+            "8": [
+              35,
+              165,
+              240
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        "adaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/coco/559956/adaslot.npz",
+          "source_sha256": "963d7ad3f75f946838aac550a38842833f33ae125c57c905305ee6b01041c84e",
+          "label_colors": {
+            "21": [
+              245,
+              55,
+              104
+            ],
+            "28": [
+              65,
+              235,
+              130
+            ],
+            "12": [
+              255,
+              211,
+              45
+            ],
+            "22": [
+              255,
+              131,
+              30
+            ],
+            "1": [
+              135,
+              55,
+              225
+            ],
+            "29": [
+              35,
+              165,
+              240
+            ],
+            "30": [
+              212,
+              240,
+              55
+            ]
+          },
+          "unique_labels": [
+            1,
+            12,
+            21,
+            22,
+            28,
+            29,
+            30
+          ]
+        },
+        "metaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/coco/559956/metaslot.npz",
+          "source_sha256": "62f0a8b70c8dc9198259685d0952e39da3c2f2e41a28954b0e54d1ec40896e40",
+          "label_colors": {
+            "1": [
+              245,
+              55,
+              104
+            ],
+            "0": [
+              65,
+              235,
+              130
+            ],
+            "3": [
+              204,
+              65,
+              238
+            ],
+            "4": [
+              255,
+              131,
+              30
+            ],
+            "6": [
+              135,
+              55,
+              225
+            ],
+            "2": [
+              35,
+              165,
+              240
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            6
+          ]
+        },
+        "coda": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/coco/559956/coda.npz",
+          "source_sha256": "d19513aaeb1284d190c855a10fb51e4a79713671d1292d37764484aa08759c16",
+          "label_colors": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "2": [
+              65,
+              235,
+              130
+            ],
+            "4": [
+              255,
+              211,
+              45
+            ],
+            "5": [
+              90,
+              110,
+              255
+            ],
+            "1": [
+              255,
+              131,
+              30
+            ],
+            "3": [
+              135,
+              55,
+              225
+            ],
+            "6": [
+              35,
+              165,
+              240
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        "ours": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/coco/559956/ours.npz",
+          "source_sha256": "9cd68730f00403e1299ea6a3fc6f2a1082aa97546f17054659541a2e2a78b5e4",
+          "label_colors": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "3": [
+              65,
+              235,
+              130
+            ],
+            "5": [
+              255,
+              211,
+              45
+            ],
+            "1": [
+              90,
+              110,
+              255
+            ],
+            "8": [
+              204,
+              65,
+              238
+            ],
+            "9": [
+              35,
+              223,
+              223
+            ],
+            "6": [
+              255,
+              131,
+              30
+            ],
+            "2": [
+              135,
+              55,
+              225
+            ],
+            "4": [
+              35,
+              165,
+              240
+            ],
+            "7": [
+              212,
+              240,
+              55
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ]
+        }
+      },
+      "panels": [
+        {
+          "title": "Image",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/coco_under_559956/image.png",
+          "sha256": "a4248da369df0354e57d04aa28b14b4743af1acc5412278306a87167086e70e3",
+          "box": [
+            224,
+            628,
+            736,
+            1140
+          ]
+        },
+        {
+          "title": "GT",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/coco_under_559956/gt_overlay.png",
+          "sha256": "95c6c6f2853e93fb8c587cfc7c2259f49a062624bb59498a099a078c061e39f6",
+          "box": [
+            744,
+            628,
+            1256,
+            1140
+          ]
+        },
+        {
+          "title": "AdaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/coco_under_559956/adaslot_overlay.png",
+          "sha256": "089f054449c7b4bb3380ecec7eb75511aa4036be1cb3e640bcefe346851c7017",
+          "box": [
+            1264,
+            628,
+            1776,
+            1140
+          ]
+        },
+        {
+          "title": "MetaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/coco_under_559956/metaslot_overlay.png",
+          "sha256": "df253bd2f2a19a034e88cd1ca7b47265d6ecea677514ac7f852265d472b757f8",
+          "box": [
+            1784,
+            628,
+            2296,
+            1140
+          ]
+        },
+        {
+          "title": "CODA",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/coco_under_559956/coda_overlay.png",
+          "sha256": "c857b4c573317269088556339fa17a8c29208f19f86d3572f2154052f7f98d8d",
+          "box": [
+            2304,
+            628,
+            2816,
+            1140
+          ]
+        },
+        {
+          "title": "DeOR",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/coco_under_559956/ours_overlay.png",
+          "sha256": "af06299a6e779ae41e1ff250e72420fc3f715046fdca72062bc0862dec76b499",
+          "box": [
+            2824,
+            628,
+            3336,
+            1140
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "voc",
+      "mode": "over",
+      "id": "2007_005149",
+      "metrics": {
+        "adaslot": {
+          "fARI": 0.5559229376817926,
+          "mIoU": 0.6459086898773331,
+          "mBO": 0.7410310435027163,
+          "pred_segments": 6,
+          "significant_gt_objects": 2,
+          "split_count": 1,
+          "merge_count": 0,
+          "split_gt_labels": [
+            2
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 4033285914,
+          "kept_slots": 6,
+          "slot_keep_probability_mean": 0.17644363641738892
+        },
+        "metaslot": {
+          "fARI": 0.6015500568564968,
+          "mIoU": 0.651963691512192,
+          "mBO": 0.7422583198152523,
+          "pred_segments": 6,
+          "significant_gt_objects": 2,
+          "split_count": 1,
+          "merge_count": 0,
+          "split_gt_labels": [
+            2
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 4033285914
+        },
+        "coda": {
+          "fARI": 0.4657405349799467,
+          "mIoU": 0.48605463379267894,
+          "mBO": 0.5685515360691508,
+          "pred_segments": 7,
+          "significant_gt_objects": 2,
+          "split_count": 2,
+          "merge_count": 0,
+          "split_gt_labels": [
+            1,
+            2
+          ],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 4033285914
+        },
+        "ours": {
+          "fARI": 0.9920311145576705,
+          "mIoU": 0.9474541841079321,
+          "mBO": 0.9726925066650169,
+          "pred_segments": 3,
+          "significant_gt_objects": 2,
+          "split_count": 0,
+          "merge_count": 0,
+          "split_gt_labels": [],
+          "merged_pred_labels": [],
+          "merge_gt_labels": {},
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "generated_objects": 2,
+          "caption_sha256": "61b885a72221d6758777c35042426de0a4d7396fd7dbdb5fbedb06d6f472c0d0"
+        }
+      },
+      "render_details": {
+        "gt": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/voc/2007_005149/gt.npz",
+          "source_sha256": "77d1fca6b99d48aef9aec8972877a2f23bb48cfb5786cdfe0e39ddd39fd21944",
+          "label_colors": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2
+          ]
+        },
+        "adaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/voc/2007_005149/adaslot.npz",
+          "source_sha256": "f1a6079fad968085fcee69f7779413a40f94350f22e5d4e64b8164ea967f81ac",
+          "label_colors": {
+            "28": [
+              245,
+              55,
+              104
+            ],
+            "10": [
+              65,
+              235,
+              130
+            ],
+            "29": [
+              255,
+              211,
+              45
+            ],
+            "7": [
+              90,
+              110,
+              255
+            ],
+            "16": [
+              204,
+              65,
+              238
+            ],
+            "32": [
+              35,
+              223,
+              223
+            ]
+          },
+          "unique_labels": [
+            7,
+            10,
+            16,
+            28,
+            29,
+            32
+          ]
+        },
+        "metaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/voc/2007_005149/metaslot.npz",
+          "source_sha256": "fd9b75ee9f033d925c842a323672c045fadf4313070758ae63a297eda71efcd7",
+          "label_colors": {
+            "3": [
+              245,
+              55,
+              104
+            ],
+            "2": [
+              65,
+              235,
+              130
+            ],
+            "5": [
+              255,
+              211,
+              45
+            ],
+            "4": [
+              90,
+              110,
+              255
+            ],
+            "0": [
+              204,
+              65,
+              238
+            ],
+            "1": [
+              35,
+              223,
+              223
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        "coda": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/voc/2007_005149/coda.npz",
+          "source_sha256": "319cfdfc0dfe5f4a4a5c05575108bc1810eb755ede65c286c2288210c2cdca5f",
+          "label_colors": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "5": [
+              65,
+              235,
+              130
+            ],
+            "6": [
+              255,
+              211,
+              45
+            ],
+            "1": [
+              90,
+              110,
+              255
+            ],
+            "4": [
+              204,
+              65,
+              238
+            ],
+            "2": [
+              35,
+              223,
+              223
+            ],
+            "3": [
+              255,
+              131,
+              30
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        "ours": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/voc/2007_005149/ours.npz",
+          "source_sha256": "6a8cde3e0ca3d3d37e97f5c74e225ec87a88b81f4929935ad6a405b3783385b8",
+          "label_colors": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "2": [
+              65,
+              235,
+              130
+            ],
+            "1": [
+              255,
+              211,
+              45
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2
+          ]
+        }
+      },
+      "panels": [
+        {
+          "title": "Image",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/voc_over_2007_005149/image.png",
+          "sha256": "20913f55efe5254e0fdc721fdf8f32570885557235fdf22d3769e9fc9a1be69a",
+          "box": [
+            224,
+            1188,
+            736,
+            1700
+          ]
+        },
+        {
+          "title": "GT",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/voc_over_2007_005149/gt_overlay.png",
+          "sha256": "a8660a1b35fea7349324fd759547ef99a6f8ea3d5126702c14e411b5bdede028",
+          "box": [
+            744,
+            1188,
+            1256,
+            1700
+          ]
+        },
+        {
+          "title": "AdaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/voc_over_2007_005149/adaslot_overlay.png",
+          "sha256": "d5c55e961e08557ef4966e0fa48ee285c03c09bcdceb7a09285dbef77e281a99",
+          "box": [
+            1264,
+            1188,
+            1776,
+            1700
+          ]
+        },
+        {
+          "title": "MetaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/voc_over_2007_005149/metaslot_overlay.png",
+          "sha256": "77c33c5b19c8a3c59ca4c8254482f75ae9b1c32e81f83cb72eb91ccfa408183e",
+          "box": [
+            1784,
+            1188,
+            2296,
+            1700
+          ]
+        },
+        {
+          "title": "CODA",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/voc_over_2007_005149/coda_overlay.png",
+          "sha256": "644688c01a0a47dd68eb8154e4a4d805e23ebb2faa5d4c1ae0feaabeda054419",
+          "box": [
+            2304,
+            1188,
+            2816,
+            1700
+          ]
+        },
+        {
+          "title": "DeOR",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/voc_over_2007_005149/ours_overlay.png",
+          "sha256": "5f19abe55ce5b3fbf28eca1d3724b4fd9bf99bfad30fa58ad5fd24dae2fd4eb2",
+          "box": [
+            2824,
+            1188,
+            3336,
+            1700
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "voc",
+      "mode": "under",
+      "id": "2007_007795",
+      "metrics": {
+        "adaslot": {
+          "fARI": 0.5276150168151102,
+          "mIoU": 0.20368723048918672,
+          "mBO": 0.21149258642099408,
+          "pred_segments": 7,
+          "significant_gt_objects": 9,
+          "split_count": 2,
+          "merge_count": 3,
+          "split_gt_labels": [
+            1,
+            7
+          ],
+          "merged_pred_labels": [
+            11,
+            25,
+            28
+          ],
+          "merge_gt_labels": {
+            "11": [
+              8,
+              10
+            ],
+            "25": [
+              4,
+              5,
+              7
+            ],
+            "28": [
+              1,
+              2,
+              3
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 3151868292,
+          "kept_slots": 7,
+          "slot_keep_probability_mean": 0.23190371692180634
+        },
+        "metaslot": {
+          "fARI": 0.4834380875218734,
+          "mIoU": 0.11580525777463552,
+          "mBO": 0.1620577380924015,
+          "pred_segments": 5,
+          "significant_gt_objects": 9,
+          "split_count": 0,
+          "merge_count": 3,
+          "split_gt_labels": [],
+          "merged_pred_labels": [
+            0,
+            2,
+            3
+          ],
+          "merge_gt_labels": {
+            "0": [
+              4,
+              5,
+              6
+            ],
+            "2": [
+              8,
+              10
+            ],
+            "3": [
+              1,
+              2,
+              3
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 3151868292
+        },
+        "coda": {
+          "fARI": 0.7879814693134201,
+          "mIoU": 0.2695539842699715,
+          "mBO": 0.29488406245962623,
+          "pred_segments": 7,
+          "significant_gt_objects": 9,
+          "split_count": 2,
+          "merge_count": 3,
+          "split_gt_labels": [
+            6,
+            10
+          ],
+          "merged_pred_labels": [
+            1,
+            4,
+            6
+          ],
+          "merge_gt_labels": {
+            "1": [
+              4,
+              5,
+              6
+            ],
+            "4": [
+              8,
+              10
+            ],
+            "6": [
+              2,
+              3
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "image_seed": 3151868292
+        },
+        "ours": {
+          "fARI": 0.8761873367651023,
+          "mIoU": 0.46408711052701007,
+          "mBO": 0.47489895358603773,
+          "pred_segments": 20,
+          "significant_gt_objects": 9,
+          "split_count": 4,
+          "merge_count": 3,
+          "split_gt_labels": [
+            3,
+            4,
+            7,
+            8
+          ],
+          "merged_pred_labels": [
+            0,
+            2,
+            3
+          ],
+          "merge_gt_labels": {
+            "0": [
+              3,
+              4,
+              10
+            ],
+            "2": [
+              2,
+              3
+            ],
+            "3": [
+              4,
+              5
+            ]
+          },
+          "min_gt_pixels": 786,
+          "minimum_object_fraction": 0.2,
+          "generated_objects": 20,
+          "caption_sha256": "50b56887bf632290bcee23c118b2a0393eaec080030062255a20db1172763806"
+        }
+      },
+      "render_details": {
+        "gt": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/voc/2007_007795/gt.npz",
+          "source_sha256": "2c5670d38cd7b8d555b88db43b0798a7758d8a04f40207d4a202a9d07ae0202d",
+          "label_colors": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ],
+            "3": [
+              90,
+              110,
+              255
+            ],
+            "4": [
+              204,
+              65,
+              238
+            ],
+            "5": [
+              35,
+              223,
+              223
+            ],
+            "6": [
+              255,
+              131,
+              30
+            ],
+            "7": [
+              135,
+              55,
+              225
+            ],
+            "8": [
+              35,
+              165,
+              240
+            ],
+            "9": [
+              212,
+              240,
+              55
+            ],
+            "10": [
+              242,
+              80,
+              194
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        },
+        "adaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/voc/2007_007795/adaslot.npz",
+          "source_sha256": "79b874b8f8f2c3d8c3353a46e2306cb62316835720bcc7c2cc8d48261dbebe58",
+          "label_colors": {
+            "11": [
+              245,
+              55,
+              104
+            ],
+            "12": [
+              65,
+              235,
+              130
+            ],
+            "28": [
+              255,
+              211,
+              45
+            ],
+            "25": [
+              35,
+              223,
+              223
+            ],
+            "9": [
+              255,
+              131,
+              30
+            ],
+            "7": [
+              135,
+              55,
+              225
+            ],
+            "3": [
+              25,
+              190,
+              120
+            ]
+          },
+          "unique_labels": [
+            3,
+            7,
+            9,
+            11,
+            12,
+            25,
+            28
+          ]
+        },
+        "metaslot": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/voc/2007_007795/metaslot.npz",
+          "source_sha256": "e5e85c9094f3adf069ad78654a3be701812f0a289df446a5d15a0907d9d8e704",
+          "label_colors": {
+            "1": [
+              245,
+              55,
+              104
+            ],
+            "3": [
+              65,
+              235,
+              130
+            ],
+            "0": [
+              35,
+              223,
+              223
+            ],
+            "5": [
+              135,
+              55,
+              225
+            ],
+            "2": [
+              35,
+              165,
+              240
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        },
+        "coda": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/voc/2007_007795/coda.npz",
+          "source_sha256": "3d93f95b81dfc1cce11fc2ef16bc103b695ee1f5bb39b2b7451d8f73a1700bd5",
+          "label_colors": {
+            "3": [
+              245,
+              55,
+              104
+            ],
+            "2": [
+              65,
+              235,
+              130
+            ],
+            "6": [
+              255,
+              211,
+              45
+            ],
+            "1": [
+              35,
+              223,
+              223
+            ],
+            "0": [
+              255,
+              131,
+              30
+            ],
+            "5": [
+              135,
+              55,
+              225
+            ],
+            "4": [
+              35,
+              165,
+              240
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        "ours": {
+          "source": "/home/jovyan/PGOT/outputs/figure_segmentation_woreader_fixed/cache/voc/2007_007795/ours.npz",
+          "source_sha256": "e583cef6d9aa43e8978f6b344b029ed11166f1beb64af8bbd55238de2029a3e1",
+          "label_colors": {
+            "0": [
+              245,
+              55,
+              104
+            ],
+            "1": [
+              65,
+              235,
+              130
+            ],
+            "2": [
+              255,
+              211,
+              45
+            ],
+            "4": [
+              90,
+              110,
+              255
+            ],
+            "6": [
+              204,
+              65,
+              238
+            ],
+            "3": [
+              35,
+              223,
+              223
+            ],
+            "5": [
+              255,
+              131,
+              30
+            ],
+            "10": [
+              135,
+              55,
+              225
+            ],
+            "14": [
+              35,
+              165,
+              240
+            ],
+            "11": [
+              25,
+              190,
+              120
+            ],
+            "13": [
+              35,
+              247,
+              141
+            ],
+            "16": [
+              247,
+              79,
+              35
+            ],
+            "8": [
+              35,
+              53,
+              247
+            ],
+            "7": [
+              115,
+              247,
+              35
+            ],
+            "9": [
+              247,
+              35,
+              177
+            ],
+            "18": [
+              35,
+              239,
+              247
+            ],
+            "17": [
+              247,
+              194,
+              35
+            ],
+            "20": [
+              132,
+              35,
+              247
+            ],
+            "15": [
+              35,
+              247,
+              70
+            ],
+            "12": [
+              247,
+              35,
+              62
+            ]
+          },
+          "unique_labels": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            20
+          ]
+        }
+      },
+      "panels": [
+        {
+          "title": "Image",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/voc_under_2007_007795/image.png",
+          "sha256": "788899872a67968674a8e6f8b7d9bae1f5fac5521465d91b087ca4384a169558",
+          "box": [
+            224,
+            1712,
+            736,
+            2224
+          ]
+        },
+        {
+          "title": "GT",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/voc_under_2007_007795/gt_overlay.png",
+          "sha256": "76f918b641ca671049fa222ff705ae90365bd91a092a0a3a5889fbc5778f35d7",
+          "box": [
+            744,
+            1712,
+            1256,
+            2224
+          ]
+        },
+        {
+          "title": "AdaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/voc_under_2007_007795/adaslot_overlay.png",
+          "sha256": "32d0ef87102ccbf0538d4e92a8499938def4686c38a36f19f960ce3e8cfdacf9",
+          "box": [
+            1264,
+            1712,
+            1776,
+            2224
+          ]
+        },
+        {
+          "title": "MetaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/voc_under_2007_007795/metaslot_overlay.png",
+          "sha256": "82906ccabe3a86ba89b08346d564f769faa4cbd7bf1c9fef1409ee9da3159dbf",
+          "box": [
+            1784,
+            1712,
+            2296,
+            2224
+          ]
+        },
+        {
+          "title": "CODA",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/voc_under_2007_007795/coda_overlay.png",
+          "sha256": "6822338c16c1197f09cac1cb077de5275e9b65736d5bf28eeb57e0cf515cc699",
+          "box": [
+            2304,
+            1712,
+            2816,
+            2224
+          ]
+        },
+        {
+          "title": "DeOR",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_woreader/panels/voc_under_2007_007795/ours_overlay.png",
+          "sha256": "9d1145aa6b6d591a2729667fde4322187c82218e12810d03998e81ded7ebad79",
+          "box": [
+            2824,
+            1712,
+            3336,
+            2224
+          ]
+        }
+      ]
+    }
+  ]
+}

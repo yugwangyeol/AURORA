@@ -1,0 +1,4 @@
+{"id":"appendix_v5_transfer_umbrella_blue_pink","image_A":9448,"image_B":122046,"request":"Transfer the pink patterned umbrella's appearance from image B to the blue umbrella in image A."}
+{"id":"appendix_v5_transfer_umbrella_pink_blue","image_A":122046,"image_B":9448,"request":"Transfer the blue umbrella's appearance from image B to the pink patterned umbrella in image A."}
+{"id":"appendix_v5_transfer_jump_board_star","image_A":23359,"image_B":554595,"request":"Transfer the star-patterned surfboard's appearance from image B to the snowboard in image A."}
+{"id":"appendix_v5_transfer_jump_board_orange","image_A":23359,"image_B":25228,"request":"Transfer the orange-and-white surfboard's appearance from image B to the snowboard in image A."}

@@ -1,0 +1,25 @@
+{
+  "model": "MBZUAI/GLaMM-RefSeg",
+  "model_family": "GLaMM",
+  "repo": "/home/jovyan/baselines/groundingLMM",
+  "repo_commit": "1454b456cdd9ae9731915d2b79e9ff3553c3224a",
+  "repo_has_runtime_patch": true,
+  "repo_diff_sha256": "b93ef8c3a62c8d2d2bae668aad88e6afdf9f7c0f7f40876b926dce8ac20eba88",
+  "subset": "nonoverlap",
+  "expressions": 18906,
+  "prompt_template": "The <image> provides an overview of the picture.\nWhat is {expression} in this image? Please output segmentation mask.",
+  "assistant_response": "[SEG].",
+  "expression_rewriting": false,
+  "gt_inputs": [],
+  "mask_threshold": 0.0,
+  "precision": "bf16",
+  "with_region": false,
+  "queries_per_pass": 4,
+  "splits": [
+    "val",
+    "testA",
+    "testB"
+  ],
+  "elapsed_seconds": 1610.18203870859,
+  "completed_expressions": 18906
+}

@@ -1,0 +1,8 @@
+{"id":"appendix_v7_bear_brown_to_white","image_A":307658,"image_B":92839,"request":"Transfer B's white fur to A's brown bear."}
+{"id":"appendix_v7_bear_white_to_brown","image_A":92839,"image_B":307658,"request":"Transfer B's brown fur to A's white bear."}
+{"id":"appendix_v7_cat_ginger_to_black","image_A":524280,"image_B":311789,"request":"Transfer B's black fur to A's ginger cat."}
+{"id":"appendix_v7_cat_black_to_ginger","image_A":311789,"image_B":524280,"request":"Transfer B's ginger fur to A's black cat."}
+{"id":"appendix_v7_train_silver_to_orange","image_A":210502,"image_B":482978,"request":"Transfer B's orange finish to A's silver train."}
+{"id":"appendix_v7_train_orange_to_silver","image_A":482978,"image_B":210502,"request":"Transfer B's silver finish to A's orange train."}
+{"id":"appendix_v7_motorcycle_green_to_blue","image_A":498709,"image_B":455716,"request":"Transfer B's blue finish to A's green motorcycle."}
+{"id":"appendix_v7_bus_red_to_blue","image_A":253002,"image_B":143931,"request":"Transfer B's blue finish to A's red bus."}

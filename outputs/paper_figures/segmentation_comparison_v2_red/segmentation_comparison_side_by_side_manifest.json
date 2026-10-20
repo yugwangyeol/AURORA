@@ -1,0 +1,318 @@
+{
+  "layout": "COCO and VOC side by side; each dataset is 2 rows x 6 columns",
+  "column_titles": [
+    "Image",
+    "GT",
+    "AdaSlot",
+    "MetaSlot",
+    "CODA",
+    "DeOR"
+  ],
+  "native_panel_size": 512,
+  "canvas_size": [
+    6328,
+    1216
+  ],
+  "prediction_panels_modified": false,
+  "source_manifest": "/home/jovyan/PGOT/outputs/paper_figures/segmentation_comparison_v2_red/manifest.json",
+  "overlay_alpha": 0.65,
+  "background_color_rgb": [
+    245,
+    55,
+    104
+  ],
+  "rows": [
+    {
+      "dataset": "COCO",
+      "group": "coco_over",
+      "image_id": "552371",
+      "panels": [
+        {
+          "title": "Image",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v1/coco_over/image.png",
+          "sha256": "f3058d43ff61a60d8d555fd2babfc995932c62af2ac098090d47c26bfcc20bbe",
+          "box": [
+            16,
+            164,
+            528,
+            676
+          ]
+        },
+        {
+          "title": "GT",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v1/coco_over/gt_overlay.png",
+          "sha256": "9cefa7c6661699280b5dd5fb26b560cd6e3b3df8336497d48e4fb785522710b2",
+          "box": [
+            536,
+            164,
+            1048,
+            676
+          ]
+        },
+        {
+          "title": "AdaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v1/coco_over/adaslot_overlay.png",
+          "sha256": "e4079cb82b83f160ce44b0cd949c368c76483999161ce49d88b4d09aad6b080d",
+          "box": [
+            1056,
+            164,
+            1568,
+            676
+          ]
+        },
+        {
+          "title": "MetaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v1/coco_over/metaslot_overlay.png",
+          "sha256": "e01ffd9e388ac1bea08d67dc76ad9dcd330611a8920b79d76ac7f19740e9c6ea",
+          "box": [
+            1576,
+            164,
+            2088,
+            676
+          ]
+        },
+        {
+          "title": "CODA",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v1/coco_over/coda_overlay.png",
+          "sha256": "32ddf84c5e5131329dd15a9c58e4f097f3981fb3feb9d83079b7da10787c1c3b",
+          "box": [
+            2096,
+            164,
+            2608,
+            676
+          ]
+        },
+        {
+          "title": "DeOR",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v1/coco_over/ours_overlay.png",
+          "sha256": "f91205f012a1656e39d46df28596605b1f8e7a2f5106f0fc1826ad9d29cc7867",
+          "box": [
+            2616,
+            164,
+            3128,
+            676
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "COCO",
+      "group": "coco_under",
+      "image_id": "559956",
+      "panels": [
+        {
+          "title": "Image",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v1/coco_under/image.png",
+          "sha256": "a4248da369df0354e57d04aa28b14b4743af1acc5412278306a87167086e70e3",
+          "box": [
+            16,
+            688,
+            528,
+            1200
+          ]
+        },
+        {
+          "title": "GT",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v1/coco_under/gt_overlay.png",
+          "sha256": "95c6c6f2853e93fb8c587cfc7c2259f49a062624bb59498a099a078c061e39f6",
+          "box": [
+            536,
+            688,
+            1048,
+            1200
+          ]
+        },
+        {
+          "title": "AdaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v1/coco_under/adaslot_overlay.png",
+          "sha256": "089f054449c7b4bb3380ecec7eb75511aa4036be1cb3e640bcefe346851c7017",
+          "box": [
+            1056,
+            688,
+            1568,
+            1200
+          ]
+        },
+        {
+          "title": "MetaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v1/coco_under/metaslot_overlay.png",
+          "sha256": "df253bd2f2a19a034e88cd1ca7b47265d6ecea677514ac7f852265d472b757f8",
+          "box": [
+            1576,
+            688,
+            2088,
+            1200
+          ]
+        },
+        {
+          "title": "CODA",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v1/coco_under/coda_overlay.png",
+          "sha256": "c857b4c573317269088556339fa17a8c29208f19f86d3572f2154052f7f98d8d",
+          "box": [
+            2096,
+            688,
+            2608,
+            1200
+          ]
+        },
+        {
+          "title": "DeOR",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v1/coco_under/ours_overlay.png",
+          "sha256": "346b4e81ed09e54a7bc896fed2e46c9df4125dd80a83c364d39a089371ecb5d0",
+          "box": [
+            2616,
+            688,
+            3128,
+            1200
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "VOC",
+      "group": "voc_over",
+      "image_id": "2007_005149",
+      "panels": [
+        {
+          "title": "Image",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v1/voc_over/image.png",
+          "sha256": "20913f55efe5254e0fdc721fdf8f32570885557235fdf22d3769e9fc9a1be69a",
+          "box": [
+            3200,
+            164,
+            3712,
+            676
+          ]
+        },
+        {
+          "title": "GT",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v1/voc_over/gt_overlay.png",
+          "sha256": "a8660a1b35fea7349324fd759547ef99a6f8ea3d5126702c14e411b5bdede028",
+          "box": [
+            3720,
+            164,
+            4232,
+            676
+          ]
+        },
+        {
+          "title": "AdaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v1/voc_over/adaslot_overlay.png",
+          "sha256": "d5c55e961e08557ef4966e0fa48ee285c03c09bcdceb7a09285dbef77e281a99",
+          "box": [
+            4240,
+            164,
+            4752,
+            676
+          ]
+        },
+        {
+          "title": "MetaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v1/voc_over/metaslot_overlay.png",
+          "sha256": "77c33c5b19c8a3c59ca4c8254482f75ae9b1c32e81f83cb72eb91ccfa408183e",
+          "box": [
+            4760,
+            164,
+            5272,
+            676
+          ]
+        },
+        {
+          "title": "CODA",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v1/voc_over/coda_overlay.png",
+          "sha256": "644688c01a0a47dd68eb8154e4a4d805e23ebb2faa5d4c1ae0feaabeda054419",
+          "box": [
+            5280,
+            164,
+            5792,
+            676
+          ]
+        },
+        {
+          "title": "DeOR",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/oversegmentation_v1/voc_over/ours_overlay.png",
+          "sha256": "47589f5f62b1f4f6481726604f171652e05fe40d90d2158a517414df4e4c672e",
+          "box": [
+            5800,
+            164,
+            6312,
+            676
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "VOC",
+      "group": "voc_under",
+      "image_id": "2007_007795",
+      "panels": [
+        {
+          "title": "Image",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v1/voc_under/image.png",
+          "sha256": "788899872a67968674a8e6f8b7d9bae1f5fac5521465d91b087ca4384a169558",
+          "box": [
+            3200,
+            688,
+            3712,
+            1200
+          ]
+        },
+        {
+          "title": "GT",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v1/voc_under/gt_overlay.png",
+          "sha256": "76f918b641ca671049fa222ff705ae90365bd91a092a0a3a5889fbc5778f35d7",
+          "box": [
+            3720,
+            688,
+            4232,
+            1200
+          ]
+        },
+        {
+          "title": "AdaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v1/voc_under/adaslot_overlay.png",
+          "sha256": "32d0ef87102ccbf0538d4e92a8499938def4686c38a36f19f960ce3e8cfdacf9",
+          "box": [
+            4240,
+            688,
+            4752,
+            1200
+          ]
+        },
+        {
+          "title": "MetaSlot",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v1/voc_under/metaslot_overlay.png",
+          "sha256": "82906ccabe3a86ba89b08346d564f769faa4cbd7bf1c9fef1409ee9da3159dbf",
+          "box": [
+            4760,
+            688,
+            5272,
+            1200
+          ]
+        },
+        {
+          "title": "CODA",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v1/voc_under/coda_overlay.png",
+          "sha256": "6822338c16c1197f09cac1cb077de5275e9b65736d5bf28eeb57e0cf515cc699",
+          "box": [
+            5280,
+            688,
+            5792,
+            1200
+          ]
+        },
+        {
+          "title": "DeOR",
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/undersegmentation_v1/voc_under/ours_overlay.png",
+          "sha256": "d753f9b08e9f3c4d8994a4797886eb53a82d93fc97350cb4d9d48ec9737bca72",
+          "box": [
+            5800,
+            688,
+            6312,
+            1200
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -103,6 +103,7 @@ class Pix2CapPGOTDataset(Dataset):
         image_preprocess_mode: str = "default",
         coda_crop_size: int = 512,
         metric_image_size: int = 0,
+        coco_instances_json: Optional[str] = None,
     ):
         super().__init__()
         self.jsonl_path = jsonl_path
@@ -118,7 +119,15 @@ class Pix2CapPGOTDataset(Dataset):
         self.scene_end_token = scene_end_token
         self.thing_token = thing_token
         self.stuff_token = stuff_token
-        self.rebuild_caption = rebuild_caption
+        self.rebuild_caption = bool(rebuild_caption)
+        self.coco_annotations = None
+        if coco_instances_json:
+            with open(coco_instances_json) as f:
+                instances = json.load(f)
+            self.coco_annotations = {
+                int(annotation["id"]): annotation
+                for annotation in instances.get("annotations", [])
+            }
         self.thing_category_ids = self._load_thing_category_ids(panoptic_categories_json)
         self.image_preprocess_mode = str(image_preprocess_mode)
         self.coda_crop_size = int(coda_crop_size)
@@ -191,7 +200,23 @@ class Pix2CapPGOTDataset(Dataset):
             ) from exc
 
         height, width = int(sample["height"]), int(sample["width"])
-        segmentation = segment["segmentation"]
+        annotation = segment
+        if "segmentation" not in annotation:
+            if self.coco_annotations is None:
+                raise ValueError(
+                    "A segment without inline segmentation requires "
+                    "coco_instances_json."
+                )
+            annotation_id = int(segment.get("ann_id", segment.get("annotation_id", -1)))
+            if annotation_id not in self.coco_annotations:
+                raise KeyError(f"COCO annotation_id={annotation_id} is missing")
+            annotation = self.coco_annotations[annotation_id]
+            if int(annotation["image_id"]) != int(sample["image_id"]):
+                raise ValueError(
+                    f"annotation_id={annotation_id} belongs to image "
+                    f"{annotation['image_id']}, not {sample['image_id']}"
+                )
+        segmentation = annotation["segmentation"]
         if isinstance(segmentation, list):
             rle = mask_utils.merge(mask_utils.frPyObjects(segmentation, height, width))
         elif isinstance(segmentation, dict) and isinstance(segmentation.get("counts"), list):
@@ -284,6 +309,12 @@ class Pix2CapPGOTDataset(Dataset):
 
         # 1) Image
         image = Image.open(sample["image_path"]).convert("RGB")
+        if sample.get("task") == "refcoco_direct":
+            if self.rebuild_caption or self.image_preprocess_mode != "default":
+                raise ValueError("RefCOCO direct samples require original captions and full-image resizing")
+            if len(sample["segments"]) != 1 or self.n_ovt_per_object != 1:
+                raise ValueError("RefCOCO direct samples must contain exactly one target and one OVT")
+            image = image.resize((self.coda_crop_size, self.coda_crop_size), _pil_resample("BILINEAR"))
         if self.image_preprocess_mode == "coda_center_crop":
             image = _coda_center_crop_image(image, self.coda_crop_size)
         image_tensor = self.image_processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
@@ -318,6 +349,9 @@ class Pix2CapPGOTDataset(Dataset):
             n_segments_in_caption = min(len(source_segments), self.max_objects)
         # Tokenize WITHOUT special tokens — we don't want BOS/EOS inserted here
         token_ids = self.tokenizer.encode(caption_text, add_special_tokens=False)
+        if sample.get("task") == "refcoco_direct":
+            if len(token_ids) > self.max_caption_tokens or token_ids.count(self.ovt_token_id) != 1:
+                raise ValueError("RefCOCO expression must fit untruncated and have exactly one OVT")
 
         # 3) Rebuilt captions are packed by whole object chunks above.  The
         # legacy non-rebuilt path retains a hard cap for backward compatibility.

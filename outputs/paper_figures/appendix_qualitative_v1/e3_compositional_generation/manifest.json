@@ -1,0 +1,265 @@
+{
+  "model": "DeOR-L (7B)",
+  "checkpoint": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_7b_fp32_fast/checkpoint-5000",
+  "selection": "four visually audited outputs from the first 32 saved random compositions",
+  "composition_rule": "each target keeps its own object count; every object slot (semantic slot + its visual memories) is drawn without replacement from the other images' valid objects in the same batch; registers follow register_source",
+  "examples": [
+    {
+      "composition_index": 0,
+      "object_source_image_ids": [
+        632,
+        285,
+        724
+      ],
+      "background_source_image_id": 285,
+      "object_categories": [
+        "Book",
+        "Potted plant",
+        "Bear",
+        "Bed",
+        "Book",
+        "Book",
+        "Stop sign",
+        "Book",
+        "Car",
+        "Book",
+        "Book",
+        "Book",
+        "Book",
+        "Potted plant"
+      ],
+      "record": {
+        "index": 0,
+        "target_image_id": 139,
+        "objects": [
+          {
+            "image_id": 632,
+            "object_index": 13
+          },
+          {
+            "image_id": 632,
+            "object_index": 2
+          },
+          {
+            "image_id": 285,
+            "object_index": 0
+          },
+          {
+            "image_id": 632,
+            "object_index": 0
+          },
+          {
+            "image_id": 632,
+            "object_index": 11
+          },
+          {
+            "image_id": 632,
+            "object_index": 8
+          },
+          {
+            "image_id": 724,
+            "object_index": 0
+          },
+          {
+            "image_id": 632,
+            "object_index": 9
+          },
+          {
+            "image_id": 724,
+            "object_index": 2
+          },
+          {
+            "image_id": 632,
+            "object_index": 12
+          },
+          {
+            "image_id": 632,
+            "object_index": 4
+          },
+          {
+            "image_id": 632,
+            "object_index": 7
+          },
+          {
+            "image_id": 632,
+            "object_index": 10
+          },
+          {
+            "image_id": 632,
+            "object_index": 6
+          }
+        ],
+        "registers": [
+          {
+            "image_id": 285,
+            "register_index": 0
+          },
+          {
+            "image_id": 285,
+            "register_index": 1
+          },
+          {
+            "image_id": 285,
+            "register_index": 2
+          },
+          {
+            "image_id": 285,
+            "register_index": 3
+          }
+        ],
+        "with_replacement": false
+      }
+    },
+    {
+      "composition_index": 6,
+      "object_source_image_ids": [
+        785
+      ],
+      "background_source_image_id": 776,
+      "object_categories": [
+        "Skis",
+        "Person"
+      ],
+      "record": {
+        "index": 6,
+        "target_image_id": 802,
+        "objects": [
+          {
+            "image_id": 785,
+            "object_index": 1
+          },
+          {
+            "image_id": 785,
+            "object_index": 0
+          }
+        ],
+        "registers": [
+          {
+            "image_id": 776,
+            "register_index": 0
+          },
+          {
+            "image_id": 776,
+            "register_index": 1
+          },
+          {
+            "image_id": 776,
+            "register_index": 2
+          },
+          {
+            "image_id": 776,
+            "register_index": 3
+          }
+        ],
+        "with_replacement": false
+      }
+    },
+    {
+      "composition_index": 21,
+      "object_source_image_ids": [
+        2149,
+        2006,
+        1818
+      ],
+      "background_source_image_id": 2006,
+      "object_categories": [
+        "Apple",
+        "Person",
+        "Zebra"
+      ],
+      "record": {
+        "index": 21,
+        "target_image_id": 1993,
+        "objects": [
+          {
+            "image_id": 2149,
+            "object_index": 2
+          },
+          {
+            "image_id": 2006,
+            "object_index": 1
+          },
+          {
+            "image_id": 1818,
+            "object_index": 0
+          }
+        ],
+        "registers": [
+          {
+            "image_id": 2006,
+            "register_index": 0
+          },
+          {
+            "image_id": 2006,
+            "register_index": 1
+          },
+          {
+            "image_id": 2006,
+            "register_index": 2
+          },
+          {
+            "image_id": 2006,
+            "register_index": 3
+          }
+        ],
+        "with_replacement": false
+      }
+    },
+    {
+      "composition_index": 29,
+      "object_source_image_ids": [
+        2587,
+        2431,
+        2532
+      ],
+      "background_source_image_id": 2532,
+      "object_categories": [
+        "Donut",
+        "Wine glass",
+        "Skis",
+        "Bowl"
+      ],
+      "record": {
+        "index": 29,
+        "target_image_id": 2473,
+        "objects": [
+          {
+            "image_id": 2587,
+            "object_index": 0
+          },
+          {
+            "image_id": 2431,
+            "object_index": 2
+          },
+          {
+            "image_id": 2532,
+            "object_index": 1
+          },
+          {
+            "image_id": 2431,
+            "object_index": 1
+          }
+        ],
+        "registers": [
+          {
+            "image_id": 2532,
+            "register_index": 0
+          },
+          {
+            "image_id": 2532,
+            "register_index": 1
+          },
+          {
+            "image_id": 2532,
+            "register_index": 2
+          },
+          {
+            "image_id": 2532,
+            "register_index": 3
+          }
+        ],
+        "with_replacement": false
+      }
+    }
+  ]
+}

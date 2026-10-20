@@ -1,0 +1,6 @@
+{"id":"appendix_v2_remove_tv","image_A":357941,"image_B":null,"request":"Remove the television from image A."}
+{"id":"appendix_v2_remove_surfboard","image_A":177539,"image_B":null,"request":"Remove the surfboard from image A."}
+{"id":"appendix_v2_remove_dog","image_A":170893,"image_B":null,"request":"Remove the dog from image A."}
+{"id":"appendix_v2_replace_couch_suitcase","image_A":182162,"image_B":453860,"request":"Replace the couch in image A with the large suitcase from image B."}
+{"id":"appendix_v2_replace_toilet_bench","image_A":245764,"image_B":566436,"request":"Replace the toilet in image A with the wooden bench from image B."}
+{"id":"appendix_v2_transfer_suitcase","image_A":112626,"image_B":350019,"request":"Transfer the patterned suitcase's appearance from image B to the suitcase in image A."}

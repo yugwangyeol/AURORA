@@ -1,0 +1,280 @@
+{
+  "config": {
+    "version": "native-object-representation-transfer-v1",
+    "checkpoint": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_woreader/checkpoint-5000",
+    "checkpoint_signature": {
+      "config_sha256": "b8d9ea522841732d10bdaa9f416ab7ebe7d52004f4e57d2c3bbe86ddff4d468c",
+      "index_sha256": "e8e1c29647ee8d0f07906c243a44c7babf27e66eb32f918b862a3642839ece91",
+      "shards": [
+        {
+          "name": "model-00001-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_woreader/checkpoint-5000/model-00001-of-00004.safetensors",
+          "bytes": 4955311064,
+          "mtime_ns": 1789774584261115415
+        },
+        {
+          "name": "model-00002-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_woreader/checkpoint-5000/model-00002-of-00004.safetensors",
+          "bytes": 4991575392,
+          "mtime_ns": 1789774590435123869
+        },
+        {
+          "name": "model-00003-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_woreader/checkpoint-5000/model-00003-of-00004.safetensors",
+          "bytes": 4968395048,
+          "mtime_ns": 1789774597218750510
+        },
+        {
+          "name": "model-00004-of-00004.safetensors",
+          "path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_woreader/checkpoint-5000/model-00004-of-00004.safetensors",
+          "bytes": 1133003992,
+          "mtime_ns": 1789774598293038822
+        }
+      ]
+    },
+    "pairs_sha256": "a3d3747e4fbf44752d8615a3fca6f9b7bf99407681fe58311b5c3c13d1c8b112",
+    "annotations_sha256": "0ff9fc64db716107aa9c8caf0a36ff8be375638467eb2db7e7f4e3528a3628e9",
+    "captions_sha256": "9c44f6b79a84767e867dc7d21d816ee716be9c9409f99b450f9e0f2b79d052d6",
+    "caption_summary_sha256": "5ad24b6801f4a142de8255e150f84294b3f6b0d6824da6b8641d18adb8fc1bef",
+    "dtype": "fp32",
+    "seed": 1234,
+    "steps": 10,
+    "guidance_scale": 1.0,
+    "eval_size": 512,
+    "max_objects": 50,
+    "max_caption_tokens": 4096,
+    "conditions": [
+      "reconstruction",
+      "text_only",
+      "semantic_only",
+      "visual_only",
+      "bundle_swap"
+    ],
+    "gt_inference_input": false,
+    "external_selector": false,
+    "pixel_paste": false,
+    "reader_prior": false,
+    "writer_rewrite": false,
+    "spatial_warp": false,
+    "selection": "Fixed manual curated pairs; several sources previously GT-assisted shortlisted; not benchmark",
+    "placement": "Native learned representations; no guarantee of target-location preservation"
+  },
+  "fingerprint": "d1cf1937d524ad47a3d04abac22c803e0851cfe7f12c9466d8de4c9a05f7f419",
+  "entries": {
+    "52891": {
+      "image_id": 52891,
+      "image_path": "/home/jovyan/data/coco/val2017/000000052891.jpg",
+      "caption": "<thing> Dog 1: A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its coat is thick, and it appears to be mid-sized. The dog's face is wet, likely from the sea breeze or a recent bath, making its eyes appear dark and expressive. <ovt>. <thing> Frisbee 1: A yellow frisbee lies on the sand near the dog's mouth. It looks used, with visible scratches and wear marks. The frisbee is in good condition, and its edges are clean but have absorbed the yellow color. <ovt>. <scene_end>",
+      "caption_sha256": "838b74405a1ee28603ff20b5948b355d66757cea45253adcb7df52da66efa430",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its coat is thick, and it appears to be mid-sized. The dog's face is wet, likely from the sea breeze or a recent bath, making its eyes appear dark and expressive.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Frisbee",
+          "normalized_category": "frisbee",
+          "description": "A yellow frisbee lies on the sand near the dog's mouth. It looks used, with visible scratches and wear marks. The frisbee is in good condition, and its edges are clean but have absorbed the yellow color.",
+          "parsed": true
+        }
+      ]
+    },
+    "205834": {
+      "image_id": 205834,
+      "image_path": "/home/jovyan/data/coco/val2017/000000205834.jpg",
+      "caption": "<thing> Dog 1: A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny, well-groomed look. <ovt>. <thing> Bowl 1: A shiny metal bowl sits on the pavement. It's small and deep enough to hold dog food but isn't too large, likely intended for casual seating. <ovt>. <scene_end>",
+      "caption_sha256": "eb211b99fa505c6f907b54009cb2a16a2d386d7949030aab5fca14f03eba23c1",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Dog",
+          "normalized_category": "dog",
+          "description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny, well-groomed look.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Bowl",
+          "normalized_category": "bowl",
+          "description": "A shiny metal bowl sits on the pavement. It's small and deep enough to hold dog food but isn't too large, likely intended for casual seating.",
+          "parsed": true
+        }
+      ]
+    },
+    "193429": {
+      "image_id": 193429,
+      "image_path": "/home/jovyan/data/coco/val2017/000000193429.jpg",
+      "caption": "<thing> Snowboard 1: A white snowboard with black text and graphics on it, it's lying flat on the snow. <ovt>. <thing> Person 1: A person wearing a green jacket, black pants, a beanie, and gloves is sitting cross-legged on the snowboard. <ovt>. <scene_end>",
+      "caption_sha256": "66f05b8ced7eb24c89920cdfd9be421699ebcf6b03198826e685eeedb940a75f",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Snowboard",
+          "normalized_category": "snowboard",
+          "description": "A white snowboard with black text and graphics on it, it's lying flat on the snow.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person wearing a green jacket, black pants, a beanie, and gloves is sitting cross-legged on the snowboard.",
+          "parsed": true
+        }
+      ]
+    },
+    "554595": {
+      "image_id": 554595,
+      "image_path": "/home/jovyan/data/coco/val2017/000000554595.jpg",
+      "caption": "<thing> Surfboard 1: A white surfboard with yellow details lies on the sandy beach, its nose pointing towards the sea. <ovt>. <thing> Person 1: A person is lying on the sand next to the surfboard, wearing a blue outfit with yellow details including a shirt and shorts. <ovt>. <scene_end>",
+      "caption_sha256": "39e053bfb51f09be9bd388a8118686b92778b0711118f43858c4f2ac963ca852",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Surfboard",
+          "normalized_category": "surfboard",
+          "description": "A white surfboard with yellow details lies on the sandy beach, its nose pointing towards the sea.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Person",
+          "normalized_category": "person",
+          "description": "A person is lying on the sand next to the surfboard, wearing a blue outfit with yellow details including a shirt and shorts.",
+          "parsed": true
+        }
+      ]
+    },
+    "802": {
+      "image_id": 802,
+      "image_path": "/home/jovyan/data/coco/val2017/000000000802.jpg",
+      "caption": "<thing> Refrigerator 1: A tall, white refrigerator with a smooth surface and a child lock on its door. <ovt>. <thing> Oven 1: An oven is built into the wooden cabinets, its control panel visible above its door. <ovt>. <scene_end>",
+      "caption_sha256": "e0edb5cfac6a4fe982ef87f3bf09622ff87fd2a451fc6716e79b84f02616103b",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Refrigerator",
+          "normalized_category": "refrigerator",
+          "description": "A tall, white refrigerator with a smooth surface and a child lock on its door.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Oven",
+          "normalized_category": "oven",
+          "description": "An oven is built into the wooden cabinets, its control panel visible above its door.",
+          "parsed": true
+        }
+      ]
+    },
+    "243344": {
+      "image_id": 243344,
+      "image_path": "/home/jovyan/data/coco/val2017/000000243344.jpg",
+      "caption": "<thing> Refrigerator 1: The refrigerator is large and has a metallic, silver finish with two doors. It's adorned with various items including magnets and papers, indicating it might be used for storage or display purposes. <ovt>. <thing> Cat 1: A brown cat with grey patches and stripes is perched on the refrigerator, its eyes are focused upwards giving an impression of being attentive or curious. <ovt>. <scene_end>",
+      "caption_sha256": "9130765ecec80b48c02494abb4ba5cd120e88aa9d728fc75c6a84607fe3bed42",
+      "ovt_count": 2,
+      "slots": [
+        {
+          "slot_index": 0,
+          "prediction_label": 1,
+          "is_thing": true,
+          "category": "Refrigerator",
+          "normalized_category": "refrigerator",
+          "description": "The refrigerator is large and has a metallic, silver finish with two doors. It's adorned with various items including magnets and papers, indicating it might be used for storage or display purposes.",
+          "parsed": true
+        },
+        {
+          "slot_index": 1,
+          "prediction_label": 2,
+          "is_thing": true,
+          "category": "Cat",
+          "normalized_category": "cat",
+          "description": "A brown cat with grey patches and stripes is perched on the refrigerator, its eyes are focused upwards giving an impression of being attentive or curious.",
+          "parsed": true
+        }
+      ]
+    }
+  },
+  "pairs": [
+    {
+      "pair_id": "dog_black_white_to_brown",
+      "target_image_id": 52891,
+      "target_slot": 0,
+      "donor_image_id": 205834,
+      "donor_slot": 0,
+      "category": "dog",
+      "instruction": "Replace A's black-and-white dog with B's brown dog.",
+      "target_description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its coat is thick, and it appears to be mid-sized. The dog's face is wet, likely from the sea breeze or a recent bath, making its eyes appear dark and expressive.",
+      "target_category": "Dog",
+      "target_prediction_label": 1,
+      "donor_description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny, well-groomed look.",
+      "donor_category": "Dog",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Dog 1: A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny, well-groomed look. <ovt>. <thing> Frisbee 1: A yellow frisbee lies on the sand near the dog's mouth. It looks used, with visible scratches and wear marks. The frisbee is in good condition, and its edges are clean but have absorbed the yellow color. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "snowboard_to_star_surfboard",
+      "target_image_id": 193429,
+      "target_slot": 0,
+      "donor_image_id": 554595,
+      "donor_slot": 0,
+      "target_category": "Snowboard",
+      "donor_category": "Surfboard",
+      "instruction": "Replace A's snowboard with B's star-patterned surfboard.",
+      "target_description": "A white snowboard with black text and graphics on it, it's lying flat on the snow.",
+      "target_prediction_label": 1,
+      "donor_description": "A white surfboard with yellow details lies on the sandy beach, its nose pointing towards the sea.",
+      "donor_prediction_label": 1,
+      "category": "Snowboard -> Surfboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Surfboard 1: A white surfboard with yellow details lies on the sandy beach, its nose pointing towards the sea. <ovt>. <thing> Person 1: A person wearing a green jacket, black pants, a beanie, and gloves is sitting cross-legged on the snowboard. <ovt>. <scene_end>"
+    },
+    {
+      "pair_id": "refrigerator_white_to_steel",
+      "target_image_id": 802,
+      "target_slot": 0,
+      "donor_image_id": 243344,
+      "donor_slot": 0,
+      "category": "refrigerator",
+      "instruction": "Replace A's white refrigerator with B's stainless-steel refrigerator.",
+      "target_description": "A tall, white refrigerator with a smooth surface and a child lock on its door.",
+      "target_category": "Refrigerator",
+      "target_prediction_label": 1,
+      "donor_description": "The refrigerator is large and has a metallic, silver finish with two doors. It's adorned with various items including magnets and papers, indicating it might be used for storage or display purposes.",
+      "donor_category": "Refrigerator",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Refrigerator 1: The refrigerator is large and has a metallic, silver finish with two doors. It's adorned with various items including magnets and papers, indicating it might be used for storage or display purposes. <ovt>. <thing> Oven 1: An oven is built into the wooden cabinets, its control panel visible above its door. <ovt>. <scene_end>"
+    }
+  ]
+}

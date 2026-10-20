@@ -1,0 +1,16 @@
+{
+  "checkpoint": "/home/jovyan/baselines/ckpt/ctrlo/pretrained_model.ckpt",
+  "global_step": 71000,
+  "loaded_model_tensors": 272,
+  "strict": true,
+  "conditioning": "routed.ocl.conditioning.LangConditioning",
+  "query_protocol": "original human expression; one bound slot + six unbound slots",
+  "image_preprocessing": "entire image bilinear 512 square resize, then 224 square; no crop",
+  "slots": 7,
+  "seed": 0,
+  "dtype": "float32",
+  "point_input": "-1 sentinel as official visualization; LangConditioning ignores points",
+  "selection": "fixed input-associated slot; never GT-best",
+  "mask_readout": "bilinear to original H,W; argmax over all seven slots; query slot 0 only",
+  "released_training_shards": "${oc.env:DATASET_PREFIX}/vg_coco/train/shard-{000000..001100}.tar"
+}

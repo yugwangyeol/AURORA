@@ -1,0 +1,642 @@
+{
+  "source_main": "/home/jovyan/PGOT/outputs/paper_figures/deor_grounding_2x2_v3/manifest.json",
+  "source_appendix_v3": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e2_description_region_alignment/manifest_v3.json",
+  "prediction_panels_modified": false,
+  "bottom_row_1x2": [
+    {
+      "origin": "deor_grounding_2x2_v3",
+      "dataset": "voc",
+      "id": "2010_004165",
+      "grid_position": [
+        0,
+        0
+      ],
+      "descriptions": [
+        "A person with glasses and a red jacket is smiling, holding a white fluffy dog in their arms.",
+        "The person is holding a white fluffy dog tightly, its fur appearing soft and well-groomed."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/10_voc_2010_004165/image.png",
+          "sha256": "2eab91ca27371c01ab09f60dc8251be80e2007fa763ea488c0b88d7b85e48d90",
+          "box": [
+            16,
+            216,
+            528,
+            728
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/10_voc_2010_004165/object_01_overlay.png",
+          "sha256": "28a6d7c395e7f5d7bb582d219b9b9424b61732cd6308e2fc5837f450935148d6",
+          "box": [
+            536,
+            216,
+            1048,
+            728
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/10_voc_2010_004165/object_02_overlay.png",
+          "sha256": "f5120026580dcc48394ebda31d88b073d2189f1f1f3f31257171f8fd84deb1bd",
+          "box": [
+            1056,
+            216,
+            1568,
+            728
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "deor_grounding_2x2_v3",
+      "dataset": "coco",
+      "id": "339823",
+      "grid_position": [
+        0,
+        1
+      ],
+      "descriptions": [
+        "A black umbrella with intricate black lace patterns and a curved handle.",
+        "A person is visible from the waist up, wearing a vibrant orange dress adorned with white and blue patterns."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/04_coco_339823/image.png",
+          "sha256": "df565d548b51154b313081c81d1f2b9f7ccfa31171159910eab14db7398fab4b",
+          "box": [
+            1616,
+            216,
+            2128,
+            728
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/04_coco_339823/object_01_overlay.png",
+          "sha256": "bf1b2da989fe0814cb23f88021420cf87eab253936ae2869e2ffe25545d625c5",
+          "box": [
+            2136,
+            216,
+            2648,
+            728
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/04_coco_339823/object_02_overlay.png",
+          "sha256": "b771f6c70d20fe158ca784fab0eaf31402983a1f428caaac3d47f741a69e4a13",
+          "box": [
+            2656,
+            216,
+            3168,
+            728
+          ]
+        }
+      ]
+    }
+  ],
+  "bottom_column_2x1": [
+    {
+      "origin": "deor_grounding_2x2_v3",
+      "dataset": "voc",
+      "id": "2010_004165",
+      "grid_position": [
+        0,
+        0
+      ],
+      "descriptions": [
+        "A person with glasses and a red jacket is smiling, holding a white fluffy dog in their arms.",
+        "The person is holding a white fluffy dog tightly, its fur appearing soft and well-groomed."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/10_voc_2010_004165/image.png",
+          "sha256": "2eab91ca27371c01ab09f60dc8251be80e2007fa763ea488c0b88d7b85e48d90",
+          "box": [
+            16,
+            216,
+            528,
+            728
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/10_voc_2010_004165/object_01_overlay.png",
+          "sha256": "28a6d7c395e7f5d7bb582d219b9b9424b61732cd6308e2fc5837f450935148d6",
+          "box": [
+            536,
+            216,
+            1048,
+            728
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/10_voc_2010_004165/object_02_overlay.png",
+          "sha256": "f5120026580dcc48394ebda31d88b073d2189f1f1f3f31257171f8fd84deb1bd",
+          "box": [
+            1056,
+            216,
+            1568,
+            728
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "deor_grounding_2x2_v3",
+      "dataset": "coco",
+      "id": "339823",
+      "grid_position": [
+        1,
+        0
+      ],
+      "descriptions": [
+        "A black umbrella with intricate black lace patterns and a curved handle.",
+        "A person is visible from the waist up, wearing a vibrant orange dress adorned with white and blue patterns."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/04_coco_339823/image.png",
+          "sha256": "df565d548b51154b313081c81d1f2b9f7ccfa31171159910eab14db7398fab4b",
+          "box": [
+            16,
+            980,
+            528,
+            1492
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/04_coco_339823/object_01_overlay.png",
+          "sha256": "bf1b2da989fe0814cb23f88021420cf87eab253936ae2869e2ffe25545d625c5",
+          "box": [
+            536,
+            980,
+            1048,
+            1492
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/04_coco_339823/object_02_overlay.png",
+          "sha256": "b771f6c70d20fe158ca784fab0eaf31402983a1f428caaac3d47f741a69e4a13",
+          "box": [
+            1056,
+            980,
+            1568,
+            1492
+          ]
+        }
+      ]
+    }
+  ],
+  "appendix_v3_plus_top_row": [
+    {
+      "origin": "description_region_alignment_v3",
+      "dataset": "coco",
+      "id": "22935",
+      "grid_position": [
+        0,
+        0
+      ],
+      "descriptions": [
+        "A focused female player in the foreground, wearing a blue jersey with white accents and \"ACRONIS\" written on it.",
+        "Another player in the background is partially visible, wearing a yellow jersey and seems to be watching the first player's actions."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/01_coco_22935/image.png",
+          "sha256": "a9ac02f9f1836ca1cddca700972b88f36eea20c392719ff918c2771fb7bfdb09",
+          "box": [
+            12,
+            162,
+            312,
+            462
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/01_coco_22935/object_01_overlay.png",
+          "sha256": "d14420405b84a849a447efe2413ddc99e101c2a21087ad6e02a7a5f1d6f7fd65",
+          "box": [
+            317,
+            162,
+            617,
+            462
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/01_coco_22935/object_02_overlay.png",
+          "sha256": "3c30f4e4095602219335e981ba8068ddfb48e5d88d84b60a5ed7af7675d44f79",
+          "box": [
+            622,
+            162,
+            922,
+            462
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "description_region_alignment_v3",
+      "dataset": "coco",
+      "id": "147745",
+      "grid_position": [
+        0,
+        1
+      ],
+      "descriptions": [
+        "The first truck is a white DAF truck with blue and green logos on its front.",
+        "The second truck is also a white DAF truck but with \"GRAB HIRE\" written on its side in blue and white colors."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/02_coco_147745/image.png",
+          "sha256": "a114485f68545248b6ab5ce902498263b0e820e683fcdd2ed4f02011d973509d",
+          "box": [
+            952,
+            162,
+            1252,
+            462
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/02_coco_147745/object_01_overlay.png",
+          "sha256": "3f76c0289db1c94c49473ac6d4fc7cb7bc1ddb06e214ad546bfb057d6258473e",
+          "box": [
+            1257,
+            162,
+            1557,
+            462
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/02_coco_147745/object_02_overlay.png",
+          "sha256": "e6ae804d58d7c753e84622ff8c0d8baa1cf4edf1f9063f0a7740aefcbbbc3aab",
+          "box": [
+            1562,
+            162,
+            1862,
+            462
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "description_region_alignment_v3",
+      "dataset": "coco",
+      "id": "481573",
+      "grid_position": [
+        1,
+        0
+      ],
+      "descriptions": [
+        "A skateboard with a predominantly black surface and white curved stripes drawn along the edge.",
+        "A young person with short hair, wearing a white t-shirt and dark pants, standing upright and looking forward."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/03_coco_481573/image.png",
+          "sha256": "73a35bae54f586042eaa0d30f518bdd805fd7895aa16016e547b5d61b66e8436",
+          "box": [
+            12,
+            642,
+            312,
+            942
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/03_coco_481573/object_01_overlay.png",
+          "sha256": "f3c6baa90d5d4ada03ed00b5dc15e0da43e0b67ecb9d2076e90f73e95e8a874b",
+          "box": [
+            317,
+            642,
+            617,
+            942
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/03_coco_481573/object_02_overlay.png",
+          "sha256": "199eac1f965abc931214d3711eeb49f02618c2093dcfab2348e2e76868b4c3ab",
+          "box": [
+            622,
+            642,
+            922,
+            942
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "description_region_alignment_v3",
+      "dataset": "coco",
+      "id": "409630",
+      "grid_position": [
+        1,
+        1
+      ],
+      "descriptions": [
+        "This is a white keyboard with black lettering on the keys.",
+        "A closed laptop with a silver color is present in the image."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates/03_coco_409630/image.png",
+          "sha256": "d2773f2732f4efe0130243790f8f269b804ac79b29bf17e78319f4611e9b9be7",
+          "box": [
+            952,
+            642,
+            1252,
+            942
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates/03_coco_409630/object_01_overlay.png",
+          "sha256": "ba5ef735f83887639cb04538c4dcecef3aa30b8b3d2867f183ca4c5228fb14c1",
+          "box": [
+            1257,
+            642,
+            1557,
+            942
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates/03_coco_409630/object_02_overlay.png",
+          "sha256": "b64d38bed8f0a32c8909a9ee95a84c1e0fd7abe3fde2e274f9aa8406bb79a9ae",
+          "box": [
+            1562,
+            642,
+            1862,
+            942
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "description_region_alignment_v3",
+      "dataset": "coco",
+      "id": "112997",
+      "grid_position": [
+        2,
+        0
+      ],
+      "descriptions": [
+        "The cell phone is a vintage model with a rounded edges and a small screen displaying numbers and some text.",
+        "A person's hand is visible holding the cell phone upright."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates/01_coco_112997/image.png",
+          "sha256": "29a17d522309daedc7e9770c1466c65bbceee4f4dfcab20dd65e3e9b3f14f1c6",
+          "box": [
+            12,
+            1122,
+            312,
+            1422
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates/01_coco_112997/object_01_overlay.png",
+          "sha256": "ab6317bbfbf19a1e83ec761762f4ba63b624ad3cf7aaeb677532fe18b58155b9",
+          "box": [
+            317,
+            1122,
+            617,
+            1422
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates/01_coco_112997/object_02_overlay.png",
+          "sha256": "802fe890f43004e261009f62096a4a7dbac28f0e6c3b8128093c8eb4b0f3d0eb",
+          "box": [
+            622,
+            1122,
+            922,
+            1422
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "description_region_alignment_v3",
+      "dataset": "voc",
+      "id": "2007_005845",
+      "grid_position": [
+        2,
+        1
+      ],
+      "descriptions": [
+        "A person with dark hair is visible from the side profile, wearing a maroon long-sleeve top and blue jeans.",
+        "A brown cat with a striped pattern on its face is in the foreground of the image, its body partially visible as it faces towards the right side of the frame."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/05_voc_2007_005845/image.png",
+          "sha256": "89275a37bbab38da436a17264f6f2004380ce744989692a209b33c7dc3393e70",
+          "box": [
+            952,
+            1122,
+            1252,
+            1422
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/05_voc_2007_005845/object_01_overlay.png",
+          "sha256": "7c592dc8c02b71709bc5419126112fb04ee965069668948394556cca80dd890c",
+          "box": [
+            1257,
+            1122,
+            1557,
+            1422
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/05_voc_2007_005845/object_02_overlay.png",
+          "sha256": "b078e130f76b48238c4fd1e310a9e2c85ef671840369723fcbc66b5ba08f3345",
+          "box": [
+            1562,
+            1122,
+            1862,
+            1422
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "description_region_alignment_v3",
+      "dataset": "voc",
+      "id": "2007_007417",
+      "grid_position": [
+        3,
+        0
+      ],
+      "descriptions": [
+        "The couch is dark grey, with a smooth texture and appears to be made of a soft, fabric material.",
+        "The dog is lying on the left side of the couch, its body partially covering part of it."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/06_voc_2007_007417/image.png",
+          "sha256": "250edd66863062c51ce0cd7de252f9d071fccaae94190b3a8bf01b86d4f7f662",
+          "box": [
+            12,
+            1602,
+            312,
+            1902
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/06_voc_2007_007417/object_01_overlay.png",
+          "sha256": "cf8e10e25c01794302ae0fb807d8b066da9985e8d252f44faef3e6d0d1db80c9",
+          "box": [
+            317,
+            1602,
+            617,
+            1902
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/06_voc_2007_007417/object_02_overlay.png",
+          "sha256": "5d9e97a675a01f5b818c4f9614a61f3b9288bc179bdc4a36116d20a405a273f2",
+          "box": [
+            622,
+            1602,
+            922,
+            1902
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "description_region_alignment_v3",
+      "dataset": "coco",
+      "id": "157807",
+      "grid_position": [
+        3,
+        1
+      ],
+      "descriptions": [
+        "A tabby cat with a mix of dark and light fur, consisting of stripes and spots, is standing on a toilet.",
+        "The toilet is white and has a round shape with a closed lid that's not currently up."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/01_coco_157807/image.png",
+          "sha256": "bd2f6d471423c3dd101181c19e7c6e966afc9996149ed8566f07d6a681fd6694",
+          "box": [
+            952,
+            1602,
+            1252,
+            1902
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/01_coco_157807/object_01_overlay.png",
+          "sha256": "851869b35538e8b3e655e26faf60cc59ad4a7bc923f2ee378bf212b20081ac4a",
+          "box": [
+            1257,
+            1602,
+            1557,
+            1902
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/01_coco_157807/object_02_overlay.png",
+          "sha256": "a377cf52ce2a41a8b46da51e1663f78d7b0f64f3b3cca9720187cc9d40f48d4b",
+          "box": [
+            1562,
+            1602,
+            1862,
+            1902
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "deor_grounding_2x2_v3",
+      "dataset": "coco",
+      "id": "90208",
+      "grid_position": [
+        4,
+        0
+      ],
+      "descriptions": [
+        "A vintage green double-decker bus labeled \"GREEN LINE\" and \"BELHUS\" is parked.",
+        "Another double-decker bus, red in color with a classic design is partially visible to the left of the green bus, appearing to be stationary."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/02_coco_90208/image.png",
+          "sha256": "399e82afdf47dd81b35eea75d3cebf6785e926b3acd5493a5959e3a85039154d",
+          "box": [
+            12,
+            2082,
+            312,
+            2382
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/02_coco_90208/object_01_overlay.png",
+          "sha256": "8106a99f8f7dc9ac3c4af12a48e30e7373ff3d1a50155c23aff1de8c9a5777d7",
+          "box": [
+            317,
+            2082,
+            617,
+            2382
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/02_coco_90208/object_02_overlay.png",
+          "sha256": "9e9d062fa579e222d557e1733aa6912bf69f4fea5a48f5352652b046d6118882",
+          "box": [
+            622,
+            2082,
+            922,
+            2382
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "deor_grounding_2x2_v3",
+      "dataset": "coco",
+      "id": "450686",
+      "grid_position": [
+        4,
+        1
+      ],
+      "descriptions": [
+        "A person's hand is visible holding a cell phone.",
+        "A modern smartphone held by the person, displaying various app icons on its screen."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/06_coco_450686/image.png",
+          "sha256": "82dd636f73af627a9eb49a1d642461c711326912df517051781313a630cae627",
+          "box": [
+            952,
+            2082,
+            1252,
+            2382
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/06_coco_450686/object_01_overlay.png",
+          "sha256": "822e162d379ccc3bd48e99a42db6542e5a7856c09d1dac3f437e9b27bc0abe3c",
+          "box": [
+            1257,
+            2082,
+            1557,
+            2382
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/06_coco_450686/object_02_overlay.png",
+          "sha256": "4fd07cfaf24031a2c57fc05ea9afe4f89b4aec23737931c57ea358aa73969655",
+          "box": [
+            1562,
+            2082,
+            1862,
+            2382
+          ]
+        }
+      ]
+    }
+  ],
+  "appendix_extension_order": "original v3 examples followed by the old main figure top row"
+}

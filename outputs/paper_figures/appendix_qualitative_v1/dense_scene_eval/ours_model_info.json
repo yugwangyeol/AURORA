@@ -1,0 +1,11 @@
+{
+  "checkpoint": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000",
+  "caption_mode": "cached_image_only_AR",
+  "dtype": "fp32",
+  "readout": "ovt_owner",
+  "register_eval_route": "unrestricted",
+  "gt_caption_used": false,
+  "gt_mask_passed_to_model": false,
+  "batch_size": 1,
+  "max_objects": 50
+}

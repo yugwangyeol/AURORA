@@ -1,0 +1,103 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior/checkpoint-5000",
+  "num_pairs": 100,
+  "protocol": {
+    "selection": "deterministic same-category previous-image donor; oracle object IDs",
+    "intervention": "replace all visual memories of target owner; keep target semantic token and registers",
+    "reference": "same-model unedited reconstruction with identical diffusion noise",
+    "primary": "donor_gain up together with outside_target_lpips down",
+    "preservation_metric": "AlexNet LPIPS after replacing target pixels with the unedited reference; same-seed model reconstruction"
+  },
+  "metrics": {
+    "donor_closer": {
+      "mean": 0.96,
+      "median": 1.0,
+      "std": 0.19595917942265428,
+      "ci95": [
+        0.92,
+        0.99
+      ],
+      "count": 100
+    },
+    "donor_gain": {
+      "mean": 0.1155919924378395,
+      "median": 0.11148521304130554,
+      "std": 0.07989175910971186,
+      "ci95": [
+        0.09994463095068933,
+        0.13094030760228634
+      ],
+      "count": 100
+    },
+    "donor_similarity_after": {
+      "mean": 0.663766867518425,
+      "median": 0.6653327345848083,
+      "std": 0.13115864770330202,
+      "ci95": [
+        0.6385342806205153,
+        0.6885372313410044
+      ],
+      "count": 100
+    },
+    "donor_similarity_before": {
+      "mean": 0.5481748750805855,
+      "median": 0.5416228175163269,
+      "std": 0.12106913533150501,
+      "ci95": [
+        0.5254180137217045,
+        0.5714408215284347
+      ],
+      "count": 100
+    },
+    "inside_target_latent_mse": {
+      "mean": 0.4691029079258442,
+      "median": 0.46849486231803894,
+      "std": 0.24848896911535673,
+      "ci95": [
+        0.4208212060313672,
+        0.5147491086991504
+      ],
+      "count": 100
+    },
+    "outside_target_latent_mse": {
+      "mean": 0.1024877805635333,
+      "median": 0.07171079143881798,
+      "std": 0.09689926214254399,
+      "ci95": [
+        0.08365994750196115,
+        0.12239828378311357
+      ],
+      "count": 100
+    },
+    "outside_target_lpips": {
+      "mean": 0.0733760407473892,
+      "median": 0.0707622841000557,
+      "std": 0.03623361012366445,
+      "ci95": [
+        0.06602207449660637,
+        0.0804146790227387
+      ],
+      "count": 100
+    },
+    "outside_target_pixel_l1": {
+      "mean": 0.05061277890577912,
+      "median": 0.046676089987158775,
+      "std": 0.02551487763226943,
+      "ci95": [
+        0.045581368876155465,
+        0.05572531862324104
+      ],
+      "count": 100
+    },
+    "target_change": {
+      "mean": 0.11571645498275757,
+      "median": 0.09034863114356995,
+      "std": 0.08613334233022986,
+      "ci95": [
+        0.09989008437097072,
+        0.13206546238064765
+      ],
+      "count": 100
+    }
+  }
+}

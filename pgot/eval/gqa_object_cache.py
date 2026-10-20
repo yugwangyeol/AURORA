@@ -288,6 +288,10 @@ def extract(args) -> None:
     from pgot.eval.run_eval import generate_pgot_caption_batch
 
     manifest_path = Path(args.images_manifest).resolve()
+    format_version = getattr(args, "format_version", FORMAT_VERSION)
+    extractor_code_path = Path(
+        getattr(args, "extractor_code_path", Path(__file__))
+    ).resolve()
     rows = list(iter_jsonl(manifest_path))
     if args.max_images:
         rows = rows[: args.max_images]
@@ -295,8 +299,8 @@ def extract(args) -> None:
     cache_root = Path(args.cache_root).resolve()
     model_path = Path(args.model_path).resolve()
     provenance = {
-        "format_version": FORMAT_VERSION,
-        "extractor_code_sha256": sha256_file(Path(__file__)),
+        "format_version": format_version,
+        "extractor_code_sha256": sha256_file(extractor_code_path),
         "checkpoint": checkpoint_fingerprint(model_path),
         "images_manifest": str(manifest_path),
         "images_manifest_sha256": sha256_file(manifest_path),
@@ -408,7 +412,7 @@ def extract(args) -> None:
                 batch_index=batch_index,
             )
             payload = {
-                "format_version": FORMAT_VERSION,
+                "format_version": format_version,
                 "provenance_sha256": provenance_digest,
                 "image_id": row["image_id"],
                 "split": row["split"],
@@ -460,6 +464,15 @@ def verify(args) -> None:
             missing.append(row["image_id"])
             continue
         value = torch.load(path, map_location="cpu", weights_only=False)
+        expected_format_version = getattr(args, "format_version", None)
+        if (
+            expected_format_version is not None
+            and value.get("format_version") != expected_format_version
+        ):
+            raise ValueError(
+                f"Unexpected cache format in {path}: "
+                f"{value.get('format_version')!r} != {expected_format_version!r}"
+            )
         n = len(value["objects"])
         if value["semantic"].shape != (n, 1536):
             raise ValueError(f"Bad semantic shape: {path} {tuple(value['semantic'].shape)}")
@@ -474,7 +487,7 @@ def verify(args) -> None:
         object_counts.append(n)
         total_bytes += path.stat().st_size
     summary = {
-        "format_version": FORMAT_VERSION,
+        "format_version": getattr(args, "format_version", FORMAT_VERSION),
         "num_manifest_images": len(rows),
         "num_cached_images": len(rows) - len(missing),
         "num_missing_images": len(missing),

@@ -112,13 +112,15 @@ fi
     --diffusion_model_depth "${DIFFUSION_MODEL_DEPTH:-32}" \
     --diffusion_model_heads "${DIFFUSION_MODEL_HEADS:-32}" --dit_cls "${DIT_CLS:-DiT}" \
     --pgot_diffusion_force_fp32 "${PGOT_DIFFUSION_FORCE_FP32:-True}" \
-    --dataset_format coco_instance \
+    --dataset_format "${DATASET_FORMAT:-coco_instance}" \
     --pgot_n_register "${E8_N_REGISTER:-4}" --pgot_n_null_bg 0 \
     --pgot_n_ovt_per_object 1 --pgot_max_objects 50 \
     --pgot_use_null_bg_competition False \
     --pgot_register_attends_caption False \
-    --pgot_ovt_caption_init True --pgot_ovt_caption_init_scale 1.0 \
-    --pgot_ovt_isolated_attention True --pgot_ovt_attends_own_caption True \
+    --pgot_ovt_caption_init "${PGOT_OVT_CAPTION_INIT:-True}" \
+    --pgot_ovt_caption_init_scale "${PGOT_OVT_CAPTION_INIT_SCALE:-1.0}" \
+    --pgot_ovt_isolated_attention "${PGOT_OVT_ISOLATED_ATTENTION:-True}" \
+    --pgot_ovt_attends_own_caption "${PGOT_OVT_ATTENDS_OWN_CAPTION:-True}" \
     --pgot_e8_visual_memory_enable True \
     --pgot_one_shot_reader_enable "${ONE_SHOT_READER_ENABLE:-False}" \
     --pgot_one_shot_readout_mode "${ONE_SHOT_READOUT_MODE:-pooled}" \
@@ -133,6 +135,8 @@ fi
     --pgot_one_shot_memory_contrastive_enable "${ONE_SHOT_MEMORY_CONTRASTIVE_ENABLE:-False}" \
     --pgot_one_shot_memory_value_source "${ONE_SHOT_MEMORY_VALUE_SOURCE:-siglip}" \
     --pgot_one_shot_memory_value_dim "${ONE_SHOT_MEMORY_VALUE_DIM:-1152}" \
+    --pgot_fixed_query_owner_enable "${FIXED_QUERY_OWNER_ENABLE:-False}" \
+    --pgot_fixed_query_owner_count "${FIXED_QUERY_OWNER_COUNT:-16}" \
     --pgot_e8_layers "${E8_LAYERS:-21,24,27}" \
     --pgot_e8_owner_temperature "${E8_OWNER_TEMPERATURE:-1.0}" \
     --pgot_e8_owner_weight "${E8_OWNER_WEIGHT:-1.0}" \
@@ -165,6 +169,7 @@ fi
     --pgot_e8_causal_batch_probability "${E8_CAUSAL_BATCH_PROBABILITY:-0.25}" \
     --pgot_e8_causal_ramp_steps "${E8_CAUSAL_RAMP_STEPS:-1000}" \
     --pgot_lm_loss_weight "${PGOT_LM_LOSS_WEIGHT:-1.0}" \
+    --pgot_refcoco_direct_finetune "${PGOT_REFCOCO_DIRECT_FINETUNE:-False}" \
     --pgot_recon_loss_weight "${PGOT_RECON_LOSS_WEIGHT:-1.5}" \
     --pgot_mask_ce_weight 0.0 --pgot_mask_aux_competition_weight 0.0 \
     --pgot_mask_bce_weight 0.0 --pgot_mask_sigmoid_outside_weight 0.0 \
@@ -200,7 +205,9 @@ fi
     --pgot_lora_alpha "${PGOT_LORA_ALPHA:-32}" --pgot_lora_dropout "${PGOT_LORA_DROPOUT:-0.05}" \
     --pgot_lora_target_modules "${PGOT_LORA_TARGET_MODULES:-q_proj,k_proj,v_proj,o_proj}" \
     --train_jsonl "${TRAIN_JSONL}" --val_jsonl "${VAL_JSONL}" \
-    --image_preprocess_mode coda_center_crop --coda_crop_size 512 \
+    --rebuild_caption "${REBUILD_CAPTION:-True}" \
+    --coco_instances_json "${COCO_INSTANCES_JSON:-}" \
+    --image_preprocess_mode "${IMAGE_PREPROCESS_MODE:-coda_center_crop}" --coda_crop_size 512 \
     --max_caption_tokens 1024 --grid_size 32 --eval_num_images "${EVAL_NUM_IMAGES:-32}" \
     --image_aspect_ratio square --output_dir "${OUTPUT_DIR}" \
     --max_steps "${MAX_STEPS:-10000}" --num_train_epochs 100 \

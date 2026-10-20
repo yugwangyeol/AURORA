@@ -1,0 +1,2626 @@
+{
+  "version": "native-object-representation-transfer-v1",
+  "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+  "completed_pairs": 24,
+  "planned_pairs": 24,
+  "quantitative_edit_success_claimed": false,
+  "note": "Pixel change is diagnostic, not donor identity/appearance success. Review all fixed pairs including failures.",
+  "pairs": [
+    {
+      "pair_id": "snowboard_to_star_surfboard",
+      "target_image_id": 193429,
+      "target_slot": 0,
+      "donor_image_id": 554595,
+      "donor_slot": 0,
+      "target_category": "Snowboard",
+      "donor_category": "Surfboard",
+      "instruction": "Replace A's snowboard with B's star-patterned surfboard.",
+      "target_description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+      "target_prediction_label": 1,
+      "donor_description": "A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact.",
+      "donor_prediction_label": 1,
+      "category": "Snowboard -> Surfboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Surfboard 1: A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact. <ovt>. <thing> Person 1: A person wearing a green jacket, black pants, a white helmet, and goggles is sitting on the snowboard. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 6.729482265654951e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 34242,
+      "donor_region_pixels": 19253,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.14522879464285715,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.03815712644327664,
+          "outside_change": 0.007791750615702457,
+          "change_energy_inside_fraction": 0.7455412213844498,
+          "region_fraction": 0.14522879464285715,
+          "screening_score": 0.032313313481499795
+        },
+        "semantic_only": {
+          "inside_change": 0.12726092037839792,
+          "outside_change": 0.025348821863765362,
+          "change_energy_inside_fraction": 0.707606175119931,
+          "region_fraction": 0.14522879464285715,
+          "screening_score": 0.1082493039805739
+        },
+        "visual_only": {
+          "inside_change": 0.27234604376492827,
+          "outside_change": 0.038470336178647514,
+          "change_energy_inside_fraction": 0.8088685248513032,
+          "region_fraction": 0.14522879464285715,
+          "screening_score": 0.24349329163094263
+        },
+        "bundle_swap": {
+          "inside_change": 0.1821270038595009,
+          "outside_change": 0.03775896953634835,
+          "change_energy_inside_fraction": 0.6381780722176086,
+          "region_fraction": 0.14522879464285715,
+          "screening_score": 0.15380777670723964
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.040107115256735146,
+          "outside_change": 0.008014902500078648,
+          "change_energy_inside_fraction": 0.7216993842145089,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.03409593838167616
+        },
+        "semantic_only": {
+          "inside_change": 0.1166781490068275,
+          "outside_change": 0.02866744864345004,
+          "change_energy_inside_fraction": 0.5417827377830298,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.09517756252423998
+        },
+        "visual_only": {
+          "inside_change": 0.2909962477709283,
+          "outside_change": 0.03964424550475703,
+          "change_energy_inside_fraction": 0.7826324179897546,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.2612630636423605
+        },
+        "bundle_swap": {
+          "inside_change": 0.1755150578410405,
+          "outside_change": 0.041202896010570166,
+          "change_energy_inside_fraction": 0.5225502151006861,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.14461288583311288
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.016527533531188965,
+        "semantic_only": 0.051997192203998566,
+        "visual_only": 0.10188566893339157,
+        "bundle_swap": 0.10845670104026794
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 5.348843806888908
+    },
+    {
+      "pair_id": "snowboard_to_orange_surfboard",
+      "target_image_id": 193429,
+      "target_slot": 0,
+      "donor_image_id": 25228,
+      "donor_slot": 1,
+      "target_category": "Snowboard",
+      "donor_category": "Surfboard",
+      "instruction": "Replace A's snowboard with B's orange-and-white surfboard.",
+      "target_description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+      "target_prediction_label": 1,
+      "donor_description": "The surfboard is orange and white, with the bottom half visible, showing its textured surface. It's partially submerged in water and supports the person who sits on it. The surfboard is marked as orange and white.",
+      "donor_prediction_label": 2,
+      "category": "Snowboard -> Surfboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Surfboard 1: The surfboard is orange and white, with the bottom half visible, showing its textured surface. It's partially submerged in water and supports the person who sits on it. The surfboard is marked as orange and white. <ovt>. <thing> Person 1: A person wearing a green jacket, black pants, a white helmet, and goggles is sitting on the snowboard. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 6.729482265654951e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 34242,
+      "donor_region_pixels": 25523,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.2255062181122449,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.03326834931940076,
+          "outside_change": 0.009274785800169633,
+          "change_energy_inside_fraction": 0.7435103441543146,
+          "region_fraction": 0.2255062181122449,
+          "screening_score": 0.026312259969273534
+        },
+        "semantic_only": {
+          "inside_change": 0.09482871658016571,
+          "outside_change": 0.02695869457979361,
+          "change_energy_inside_fraction": 0.705647659538792,
+          "region_fraction": 0.2255062181122449,
+          "screening_score": 0.07460969564532051
+        },
+        "visual_only": {
+          "inside_change": 0.2458822951776085,
+          "outside_change": 0.03674806790012266,
+          "change_energy_inside_fraction": 0.8641320491222589,
+          "region_fraction": 0.2255062181122449,
+          "screening_score": 0.21832124425251653
+        },
+        "bundle_swap": {
+          "inside_change": 0.1392188632707465,
+          "outside_change": 0.03590248670769441,
+          "change_energy_inside_fraction": 0.7413811228177993,
+          "region_fraction": 0.2255062181122449,
+          "screening_score": 0.11229199823997571
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.04789453820024801,
+          "outside_change": 0.00970298364589934,
+          "change_energy_inside_fraction": 0.6841442802802191,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.04061730046582351
+        },
+        "semantic_only": {
+          "inside_change": 0.130886496568278,
+          "outside_change": 0.02896735621439346,
+          "change_energy_inside_fraction": 0.6334906604641256,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.1091609794074829
+        },
+        "visual_only": {
+          "inside_change": 0.3806865041566071,
+          "outside_change": 0.039382328223519524,
+          "change_energy_inside_fraction": 0.8340346481951002,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.35114975798896747
+        },
+        "bundle_swap": {
+          "inside_change": 0.1644862201933426,
+          "outside_change": 0.04340456512653193,
+          "change_energy_inside_fraction": 0.6000210308884429,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.13193279634844365
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.022690605372190475,
+        "semantic_only": 0.09287899732589722,
+        "visual_only": 0.10759769380092621,
+        "bundle_swap": 0.13064682483673096
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.783811304951087
+    },
+    {
+      "pair_id": "snowboard_to_green_yellow_surfboard",
+      "target_image_id": 193429,
+      "target_slot": 0,
+      "donor_image_id": 27972,
+      "donor_slot": 1,
+      "target_category": "Snowboard",
+      "donor_category": "Surfboard",
+      "instruction": "Replace A's snowboard with B's green-and-yellow surfboard.",
+      "target_description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+      "target_prediction_label": 1,
+      "donor_description": "The surfboard is predominantly white with green and yellow designs. It appears to be partially submerged in the water, indicating that it is either floating or has been pushed into the sea.",
+      "donor_prediction_label": 2,
+      "category": "Snowboard -> Surfboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Surfboard 1: The surfboard is predominantly white with green and yellow designs. It appears to be partially submerged in the water, indicating that it is either floating or has been pushed into the sea. <ovt>. <thing> Person 1: A person wearing a green jacket, black pants, a white helmet, and goggles is sitting on the snowboard. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 6.729482265654951e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 34242,
+      "donor_region_pixels": 11586,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.1747448979591837,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.03498819235723487,
+          "outside_change": 0.009177665141275469,
+          "change_energy_inside_fraction": 0.7379003705091193,
+          "region_fraction": 0.1747448979591837,
+          "screening_score": 0.028104943501278266
+        },
+        "semantic_only": {
+          "inside_change": 0.1395244442059062,
+          "outside_change": 0.03748383691446697,
+          "change_energy_inside_fraction": 0.596499070499732,
+          "region_fraction": 0.1747448979591837,
+          "screening_score": 0.11141156652005599
+        },
+        "visual_only": {
+          "inside_change": 0.22330026597013503,
+          "outside_change": 0.04986996923962785,
+          "change_energy_inside_fraction": 0.7727706660797065,
+          "region_fraction": 0.1747448979591837,
+          "screening_score": 0.18589778904041415
+        },
+        "bundle_swap": {
+          "inside_change": 0.11630155407661848,
+          "outside_change": 0.035200801082926725,
+          "change_energy_inside_fraction": 0.5685542569507049,
+          "region_fraction": 0.1747448979591837,
+          "screening_score": 0.08990095326442343
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.04382779285458963,
+          "outside_change": 0.009165906411460603,
+          "change_energy_inside_fraction": 0.7311043684058993,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.036953363045994184
+        },
+        "semantic_only": {
+          "inside_change": 0.17071484057519531,
+          "outside_change": 0.038000955749401905,
+          "change_energy_inside_fraction": 0.5617718634975921,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.14221412376314388
+        },
+        "visual_only": {
+          "inside_change": 0.2905567237588589,
+          "outside_change": 0.04861169160153938,
+          "change_energy_inside_fraction": 0.7707893207742119,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.25409795505770433
+        },
+        "bundle_swap": {
+          "inside_change": 0.13260425465633854,
+          "outside_change": 0.03688515577367015,
+          "change_energy_inside_fraction": 0.5161988481929486,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.10494038782608593
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.019425518810749054,
+        "semantic_only": 0.11262081563472748,
+        "visual_only": 0.1072305291891098,
+        "bundle_swap": 0.12277078628540039
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.176484565017745
+    },
+    {
+      "pair_id": "snowboard_to_blue_surfboard",
+      "target_image_id": 193429,
+      "target_slot": 0,
+      "donor_image_id": 2261,
+      "donor_slot": 1,
+      "target_category": "Snowboard",
+      "donor_category": "Surfboard",
+      "instruction": "Replace A's snowboard with B's blue surfboard.",
+      "target_description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+      "target_prediction_label": 1,
+      "donor_description": "The surfboard is blue and appears to be partially submerged in the water. It's large enough to support the person on top of it, though it seems to be slightly tilted as well.",
+      "donor_prediction_label": 2,
+      "category": "Snowboard -> Surfboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Surfboard 1: The surfboard is blue and appears to be partially submerged in the water. It's large enough to support the person on top of it, though it seems to be slightly tilted as well. <ovt>. <thing> Person 1: A person wearing a green jacket, black pants, a white helmet, and goggles is sitting on the snowboard. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 6.729482265654951e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 34242,
+      "donor_region_pixels": 6714,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.15369897959183673,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.08689962845442464,
+          "outside_change": 0.018448999167614798,
+          "change_energy_inside_fraction": 0.7060891557689748,
+          "region_fraction": 0.15369897959183673,
+          "screening_score": 0.07306287907871355
+        },
+        "semantic_only": {
+          "inside_change": 0.14946539473327367,
+          "outside_change": 0.031133022789623255,
+          "change_energy_inside_fraction": 0.6998558529623474,
+          "region_fraction": 0.15369897959183673,
+          "screening_score": 0.12611562764105622
+        },
+        "visual_only": {
+          "inside_change": 0.21233321129281588,
+          "outside_change": 0.03798961119237949,
+          "change_energy_inside_fraction": 0.7502831324052921,
+          "region_fraction": 0.15369897959183673,
+          "screening_score": 0.18384100289853125
+        },
+        "bundle_swap": {
+          "inside_change": 0.15732836357226154,
+          "outside_change": 0.03441404883983234,
+          "change_energy_inside_fraction": 0.6953337218134881,
+          "region_fraction": 0.15369897959183673,
+          "screening_score": 0.13151782694238728
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.09059925834067203,
+          "outside_change": 0.01972325212459497,
+          "change_energy_inside_fraction": 0.6596550225540436,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.0758068192472258
+        },
+        "semantic_only": {
+          "inside_change": 0.14156866738955487,
+          "outside_change": 0.03548020415286597,
+          "change_energy_inside_fraction": 0.5484896868476782,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.11495851427490539
+        },
+        "visual_only": {
+          "inside_change": 0.23364764991443163,
+          "outside_change": 0.03945099836863464,
+          "change_energy_inside_fraction": 0.7141556169581551,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.20405940113795565
+        },
+        "bundle_swap": {
+          "inside_change": 0.15297133009431493,
+          "outside_change": 0.038352605615552045,
+          "change_energy_inside_fraction": 0.5931395307805194,
+          "region_fraction": 0.1304607780612245,
+          "screening_score": 0.12420687588265089
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.03157429397106171,
+        "semantic_only": 0.0934261828660965,
+        "visual_only": 0.10862614214420319,
+        "bundle_swap": 0.1055670827627182
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.166885267011821
+    },
+    {
+      "pair_id": "snowboard_jump_to_star_surfboard",
+      "target_image_id": 23359,
+      "target_slot": 1,
+      "donor_image_id": 554595,
+      "donor_slot": 0,
+      "target_category": "Snowboard",
+      "donor_category": "Surfboard",
+      "instruction": "Replace A's jumping snowboarder's board with B's star-patterned surfboard.",
+      "target_description": "The person is riding a white snowboard which stands out against the blue sky.",
+      "target_prediction_label": 2,
+      "donor_description": "A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact.",
+      "donor_prediction_label": 1,
+      "category": "Snowboard -> Surfboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Person 1: A person is captured mid-air while snowboarding, wearing a brown jacket, yellow pants, and a black helmet. They appear focused and determined. <ovt>. <thing> Surfboard 1: A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 7.342465778492624e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 3886,
+      "donor_region_pixels": 19253,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.08840880102040816,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.012504346493632017,
+          "outside_change": 0.005059000717325263,
+          "change_energy_inside_fraction": 0.39674839083561064,
+          "region_fraction": 0.08840880102040816,
+          "screening_score": 0.00871009595563807
+        },
+        "semantic_only": {
+          "inside_change": 0.05244994902078655,
+          "outside_change": 0.012663220075962172,
+          "change_energy_inside_fraction": 0.5523710117960795,
+          "region_fraction": 0.08840880102040816,
+          "screening_score": 0.04295253396381492
+        },
+        "visual_only": {
+          "inside_change": 0.035735249916016905,
+          "outside_change": 0.010622415414205326,
+          "change_energy_inside_fraction": 0.40167150533846807,
+          "region_fraction": 0.08840880102040816,
+          "screening_score": 0.027768438355362912
+        },
+        "bundle_swap": {
+          "inside_change": 0.09130465531568804,
+          "outside_change": 0.025295117901409214,
+          "change_energy_inside_fraction": 0.5601848362841826,
+          "region_fraction": 0.08840880102040816,
+          "screening_score": 0.07233331688963113
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.014987244897959183,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.04410895563899318,
+          "outside_change": 0.005133094027510649,
+          "change_energy_inside_fraction": 0.3766389540090267,
+          "region_fraction": 0.014987244897959183,
+          "screening_score": 0.0402591351183602
+        },
+        "semantic_only": {
+          "inside_change": 0.18556181337783337,
+          "outside_change": 0.013603536267210023,
+          "change_energy_inside_fraction": 0.38518502407664396,
+          "region_fraction": 0.014987244897959183,
+          "screening_score": 0.17535916117742584
+        },
+        "visual_only": {
+          "inside_change": 0.17027708246419135,
+          "outside_change": 0.010447201433719057,
+          "change_energy_inside_fraction": 0.39271934668980824,
+          "region_fraction": 0.014987244897959183,
+          "screening_score": 0.16244168138890205
+        },
+        "bundle_swap": {
+          "inside_change": 0.20083089973578083,
+          "outside_change": 0.028548909582177536,
+          "change_energy_inside_fraction": 0.26298902431225746,
+          "region_fraction": 0.014987244897959183,
+          "screening_score": 0.1794192175491477
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.004382026381790638,
+        "semantic_only": 0.057822272181510925,
+        "visual_only": 0.0315219946205616,
+        "bundle_swap": 0.06766319274902344
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.327262511011213
+    },
+    {
+      "pair_id": "snowboard_purple_to_star_surfboard",
+      "target_image_id": 44195,
+      "target_slot": 1,
+      "donor_image_id": 554595,
+      "donor_slot": 0,
+      "target_category": "Snowboard",
+      "donor_category": "Surfboard",
+      "instruction": "Replace A's purple snowboard with B's star-patterned surfboard.",
+      "target_description": "The snowboard is purple with bindings, it's being held by person in their right hand.",
+      "target_prediction_label": 2,
+      "donor_description": "A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact.",
+      "donor_prediction_label": 1,
+      "category": "Snowboard -> Surfboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Person 1: This person is wearing a bright red jacket, black pants, and a green helmet with goggles. They are standing upright with their body facing slightly to the left. <ovt>. <thing> Surfboard 1: A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact. <ovt>. <thing> Person 2: This individual is wearing a red jacket with white designs and black pants. They are kneeling down against the snow in this image. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 8.563932169636246e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 10310,
+      "donor_region_pixels": 19253,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.09715800382653061,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.0427232445114798,
+          "outside_change": 0.013400474646493108,
+          "change_energy_inside_fraction": 0.40425457761570394,
+          "region_fraction": 0.09715800382653061,
+          "screening_score": 0.032672888526609975
+        },
+        "semantic_only": {
+          "inside_change": 0.16395508630802746,
+          "outside_change": 0.03347315335779426,
+          "change_energy_inside_fraction": 0.6079938360630112,
+          "region_fraction": 0.09715800382653061,
+          "screening_score": 0.13885022128968177
+        },
+        "visual_only": {
+          "inside_change": 0.12466700184347242,
+          "outside_change": 0.027502631995455808,
+          "change_energy_inside_fraction": 0.511435967834575,
+          "region_fraction": 0.09715800382653061,
+          "screening_score": 0.10404002784688056
+        },
+        "bundle_swap": {
+          "inside_change": 0.22405014245014246,
+          "outside_change": 0.042214451397211944,
+          "change_energy_inside_fraction": 0.596657931722467,
+          "region_fraction": 0.09715800382653061,
+          "screening_score": 0.1923893039022335
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.039162149234693876,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.07148297826340036,
+          "outside_change": 0.0139981885185262,
+          "change_energy_inside_fraction": 0.34233397288217793,
+          "region_fraction": 0.039162149234693876,
+          "screening_score": 0.06098433687450571
+        },
+        "semantic_only": {
+          "inside_change": 0.14865705400056545,
+          "outside_change": 0.041972521932794604,
+          "change_energy_inside_fraction": 0.21041135241112688,
+          "region_fraction": 0.039162149234693876,
+          "screening_score": 0.1171776625509695
+        },
+        "visual_only": {
+          "inside_change": 0.23487701441899914,
+          "outside_change": 0.028875464783550197,
+          "change_energy_inside_fraction": 0.44788866313158837,
+          "region_fraction": 0.039162149234693876,
+          "screening_score": 0.2132204158313365
+        },
+        "bundle_swap": {
+          "inside_change": 0.26559364033993577,
+          "outside_change": 0.051496749785766086,
+          "change_energy_inside_fraction": 0.2954035069183378,
+          "region_fraction": 0.039162149234693876,
+          "screening_score": 0.2269710780006112
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.014329634606838226,
+        "semantic_only": 0.052198782563209534,
+        "visual_only": 0.04995330795645714,
+        "bundle_swap": 0.08199802041053772
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.335491823963821
+    },
+    {
+      "pair_id": "phone_modern_to_vintage",
+      "target_image_id": 450686,
+      "target_slot": 1,
+      "donor_image_id": 112997,
+      "donor_slot": 0,
+      "category": "cell phone",
+      "instruction": "Replace A's modern smartphone with B's vintage Motorola phone.",
+      "target_description": "A modern smartphone held by the person, displaying various app icons on its screen.",
+      "target_category": "Cell phone",
+      "target_prediction_label": 2,
+      "donor_description": "The cell phone is a vintage model with a rounded edges and a small screen displaying numbers and some text. It has a dark grey color, and the Motorola logo is visible in white letters on the bottom of the phone. A speaker grille is located centrally on the front part of the phone.",
+      "donor_category": "Cell phone",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Person 1: A person's hand is visible holding a cell phone. The skin appears fair and smooth, and the nails are short and clean. <ovt>. <thing> Cell phone 1: The cell phone is a vintage model with a rounded edges and a small screen displaying numbers and some text. It has a dark grey color, and the Motorola logo is visible in white letters on the bottom of the phone. A speaker grille is located centrally on the front part of the phone. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 7.660192750336137e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 44467,
+      "donor_region_pixels": 110586,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.43162069515306123,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.010481116612811568,
+          "outside_change": 0.003454135724675695,
+          "change_energy_inside_fraction": 0.9394861679879836,
+          "region_fraction": 0.43162069515306123,
+          "screening_score": 0.007890514819304795
+        },
+        "semantic_only": {
+          "inside_change": 0.059529726837403464,
+          "outside_change": 0.005326525808846161,
+          "change_energy_inside_fraction": 0.9793492402068051,
+          "region_fraction": 0.43162069515306123,
+          "screening_score": 0.05553483248076884
+        },
+        "visual_only": {
+          "inside_change": 0.07969679383350822,
+          "outside_change": 0.013878558658406148,
+          "change_energy_inside_fraction": 0.9596978975983588,
+          "region_fraction": 0.43162069515306123,
+          "screening_score": 0.06928787483970361
+        },
+        "bundle_swap": {
+          "inside_change": 0.11893553715217135,
+          "outside_change": 0.016847202197732187,
+          "change_energy_inside_fraction": 0.9666723858891827,
+          "region_fraction": 0.43162069515306123,
+          "screening_score": 0.10630013550387221
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.16964285714285715,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.01806016266155585,
+          "outside_change": 0.004122742286878909,
+          "change_energy_inside_fraction": 0.7689980547472742,
+          "region_fraction": 0.16964285714285715,
+          "screening_score": 0.014968105946396668
+        },
+        "semantic_only": {
+          "inside_change": 0.09557318541451668,
+          "outside_change": 0.015063928797325382,
+          "change_energy_inside_fraction": 0.677449649998026,
+          "region_fraction": 0.16964285714285715,
+          "screening_score": 0.08427523881652264
+        },
+        "visual_only": {
+          "inside_change": 0.14058937171359773,
+          "outside_change": 0.022203805357268354,
+          "change_energy_inside_fraction": 0.7508072525760633,
+          "region_fraction": 0.16964285714285715,
+          "screening_score": 0.12393651769564645
+        },
+        "bundle_swap": {
+          "inside_change": 0.15253805469556242,
+          "outside_change": 0.0421910610122185,
+          "change_energy_inside_fraction": 0.4760354782333089,
+          "region_fraction": 0.16964285714285715,
+          "screening_score": 0.12089475893639855
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.008176805451512337,
+        "semantic_only": 0.07453052699565887,
+        "visual_only": 0.12991636991500854,
+        "bundle_swap": 0.1999739110469818
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.920264723943546
+    },
+    {
+      "pair_id": "phone_vintage_to_modern",
+      "target_image_id": 112997,
+      "target_slot": 0,
+      "donor_image_id": 450686,
+      "donor_slot": 1,
+      "category": "cell phone",
+      "instruction": "Replace A's vintage phone with B's modern smartphone.",
+      "target_description": "The cell phone is a vintage model with a rounded edges and a small screen displaying numbers and some text. It has a dark grey color, and the Motorola logo is visible in white letters on the bottom of the phone. A speaker grille is located centrally on the front part of the phone.",
+      "target_category": "Cell phone",
+      "target_prediction_label": 1,
+      "donor_description": "A modern smartphone held by the person, displaying various app icons on its screen.",
+      "donor_category": "Cell phone",
+      "donor_prediction_label": 2,
+      "cross_category": false,
+      "text_only_caption": "<thing> Cell phone 1: A modern smartphone held by the person, displaying various app icons on its screen. <ovt>. <thing> Person 1: A person's hand is visible holding the cell phone upright. The hand appears to be of average size and light skin tone. The fingers are slightly curled around the cell phone, indicating that it's being held up or displayed. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 6.6900051933771465e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 110586,
+      "donor_region_pixels": 44467,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.43162069515306123,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.01539124091864817,
+          "outside_change": 0.014970870239700305,
+          "change_energy_inside_fraction": 0.4207729265809548,
+          "region_fraction": 0.43162069515306123,
+          "screening_score": 0.004163088238872941
+        },
+        "semantic_only": {
+          "inside_change": 0.08140585196230837,
+          "outside_change": 0.04636647463782315,
+          "change_energy_inside_fraction": 0.6727883155391647,
+          "region_fraction": 0.43162069515306123,
+          "screening_score": 0.04663099598394101
+        },
+        "visual_only": {
+          "inside_change": 0.11874480348849455,
+          "outside_change": 0.04453221989147471,
+          "change_energy_inside_fraction": 0.8030466188981732,
+          "region_fraction": 0.43162069515306123,
+          "screening_score": 0.08534563856988851
+        },
+        "bundle_swap": {
+          "inside_change": 0.10011151279862117,
+          "outside_change": 0.05813567242294839,
+          "change_energy_inside_fraction": 0.6629799557977691,
+          "region_fraction": 0.43162069515306123,
+          "screening_score": 0.05650975848140988
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.42189492984693877,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.015234263198406102,
+          "outside_change": 0.015092503026652795,
+          "change_energy_inside_fraction": 0.4093234514581576,
+          "region_fraction": 0.42189492984693877,
+          "screening_score": 0.003914885928416507
+        },
+        "semantic_only": {
+          "inside_change": 0.08250546411897776,
+          "outside_change": 0.04615347523732721,
+          "change_energy_inside_fraction": 0.6708315029977302,
+          "region_fraction": 0.42189492984693877,
+          "screening_score": 0.04789035769098235
+        },
+        "visual_only": {
+          "inside_change": 0.11993360620737502,
+          "outside_change": 0.044913161596558504,
+          "change_energy_inside_fraction": 0.796875762124268,
+          "region_fraction": 0.42189492984693877,
+          "screening_score": 0.08624873500995614
+        },
+        "bundle_swap": {
+          "inside_change": 0.10151439226863056,
+          "outside_change": 0.0578180475256029,
+          "change_energy_inside_fraction": 0.6606635301944289,
+          "region_fraction": 0.42189492984693877,
+          "screening_score": 0.058150856624428385
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.020307136699557304,
+        "semantic_only": 0.11553597450256348,
+        "visual_only": 0.324354887008667,
+        "bundle_swap": 0.2582651972770691
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 3.9526840548496693
+    },
+    {
+      "pair_id": "refrigerator_white_to_steel",
+      "target_image_id": 802,
+      "target_slot": 0,
+      "donor_image_id": 243344,
+      "donor_slot": 0,
+      "category": "refrigerator",
+      "instruction": "Replace A's white refrigerator with B's stainless-steel refrigerator.",
+      "target_description": "A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser.",
+      "target_category": "Refrigerator",
+      "target_prediction_label": 1,
+      "donor_description": "A modern, stainless steel refrigerator with magnets and papers attached to its surface, located on top of the counter.",
+      "donor_category": "Refrigerator",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Refrigerator 1: A modern, stainless steel refrigerator with magnets and papers attached to its surface, located on top of the counter. <ovt>. <thing> Oven 1: An oven is embedded in the countertop to the left of the refrigerator. It has multiple dials for temperature control and burners on top and is white in color. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 6.763024430256337e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 80828,
+      "donor_region_pixels": 84356,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.449039381377551,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.014086039191318976,
+          "outside_change": 0.006011747919762347,
+          "change_energy_inside_fraction": 0.8106620804491692,
+          "region_fraction": 0.449039381377551,
+          "screening_score": 0.009577228251497216
+        },
+        "semantic_only": {
+          "inside_change": 0.055200866315487485,
+          "outside_change": 0.018045031722220446,
+          "change_energy_inside_fraction": 0.8360932256512464,
+          "region_fraction": 0.449039381377551,
+          "screening_score": 0.04166709252382215
+        },
+        "visual_only": {
+          "inside_change": 0.1710397555379763,
+          "outside_change": 0.023895396465694257,
+          "change_energy_inside_fraction": 0.9529056467568556,
+          "region_fraction": 0.449039381377551,
+          "screening_score": 0.15311820818870558
+        },
+        "bundle_swap": {
+          "inside_change": 0.18234049644890132,
+          "outside_change": 0.03449396349846383,
+          "change_energy_inside_fraction": 0.9436135355776433,
+          "region_fraction": 0.449039381377551,
+          "screening_score": 0.15647002382505346
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.30857382015306123,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.0162720318595263,
+          "outside_change": 0.006676489521816856,
+          "change_energy_inside_fraction": 0.6426109056138496,
+          "region_fraction": 0.30857382015306123,
+          "screening_score": 0.011264664718163658
+        },
+        "semantic_only": {
+          "inside_change": 0.06178549613132514,
+          "outside_change": 0.02265473681473858,
+          "change_energy_inside_fraction": 0.686173204948697,
+          "region_fraction": 0.30857382015306123,
+          "screening_score": 0.044794443520271204
+        },
+        "visual_only": {
+          "inside_change": 0.23249340727485637,
+          "outside_change": 0.026362365390241838,
+          "change_energy_inside_fraction": 0.9338954913382278,
+          "region_fraction": 0.30857382015306123,
+          "screening_score": 0.212721633232175
+        },
+        "bundle_swap": {
+          "inside_change": 0.23332898532187313,
+          "outside_change": 0.04177403702956407,
+          "change_energy_inside_fraction": 0.8844644687280415,
+          "region_fraction": 0.30857382015306123,
+          "screening_score": 0.20199845754970008
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.010751771740615368,
+        "semantic_only": 0.09946106374263763,
+        "visual_only": 0.20827941596508026,
+        "bundle_swap": 0.25008222460746765
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 5.040035763988271
+    },
+    {
+      "pair_id": "refrigerator_steel_to_white",
+      "target_image_id": 243344,
+      "target_slot": 0,
+      "donor_image_id": 802,
+      "donor_slot": 0,
+      "category": "refrigerator",
+      "instruction": "Replace A's stainless-steel refrigerator with B's white refrigerator.",
+      "target_description": "A modern, stainless steel refrigerator with magnets and papers attached to its surface, located on top of the counter.",
+      "target_category": "Refrigerator",
+      "target_prediction_label": 1,
+      "donor_description": "A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser.",
+      "donor_category": "Refrigerator",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Refrigerator 1: A tall, white refrigerator with a smooth surface stands to the right in the image. It has a handle on the right side and is equipped with a water and ice dispenser. <ovt>. <thing> Cat 1: A fluffy cat with tabby markings is sitting attentively on the edge of the refrigerator, its eyes focused and ears erect. <ovt>. <thing> Person 1: A person is partially visible at the bottom right corner wearing blue attire. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 6.288013992161723e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 84356,
+      "donor_region_pixels": 80828,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.449039381377551,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.04005015022149584,
+          "outside_change": 0.01176877237903059,
+          "change_energy_inside_fraction": 0.8327141361312094,
+          "region_fraction": 0.449039381377551,
+          "screening_score": 0.0312235709372229
+        },
+        "semantic_only": {
+          "inside_change": 0.07995258819874317,
+          "outside_change": 0.032829300527107814,
+          "change_energy_inside_fraction": 0.7947930433070971,
+          "region_fraction": 0.449039381377551,
+          "screening_score": 0.0553306128034123
+        },
+        "visual_only": {
+          "inside_change": 0.15621979651565035,
+          "outside_change": 0.02675102283030533,
+          "change_energy_inside_fraction": 0.9275583633576654,
+          "region_fraction": 0.449039381377551,
+          "screening_score": 0.13615652939292136
+        },
+        "bundle_swap": {
+          "inside_change": 0.18304076620070012,
+          "outside_change": 0.027040216942869264,
+          "change_energy_inside_fraction": 0.9500949081780308,
+          "region_fraction": 0.449039381377551,
+          "screening_score": 0.16276060349354818
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.32204639668367346,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.050155177692918454,
+          "outside_change": 0.012266223674014587,
+          "change_energy_inside_fraction": 0.7758476287482567,
+          "region_fraction": 0.32204639668367346,
+          "screening_score": 0.040955509937407514
+        },
+        "semantic_only": {
+          "inside_change": 0.07473242819416687,
+          "outside_change": 0.04413606345616119,
+          "change_energy_inside_fraction": 0.5541697918130672,
+          "region_fraction": 0.32204639668367346,
+          "screening_score": 0.04163038060204598
+        },
+        "visual_only": {
+          "inside_change": 0.20238682019004767,
+          "outside_change": 0.02907227662600841,
+          "change_energy_inside_fraction": 0.8934343737006551,
+          "region_fraction": 0.32204639668367346,
+          "screening_score": 0.18058261272054135
+        },
+        "bundle_swap": {
+          "inside_change": 0.1975252464580939,
+          "outside_change": 0.04938142232228754,
+          "change_energy_inside_fraction": 0.710559427163791,
+          "region_fraction": 0.32204639668367346,
+          "screening_score": 0.16048917971637827
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.023668881505727768,
+        "semantic_only": 0.10332491248846054,
+        "visual_only": 0.20406118035316467,
+        "bundle_swap": 0.23259028792381287
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.093816340900958
+    },
+    {
+      "pair_id": "mouse_black_to_white",
+      "target_image_id": 409630,
+      "target_slot": 2,
+      "donor_image_id": 335658,
+      "donor_slot": 1,
+      "category": "mouse",
+      "instruction": "Replace A's black computer mouse with B's white mouse.",
+      "target_description": "A black computer mouse with a sleek design is visible to the right of the keyboard on the table-merged surface. It has a rectangular shape and is positioned next to the keyboard.",
+      "target_category": "Mouse",
+      "target_prediction_label": 3,
+      "donor_description": "The mouse is white and appears to be an ergonomic design, suitable for right-handed use. It has a smooth surface with a subtle shine indicating it's well-maintained.",
+      "donor_category": "Mouse",
+      "donor_prediction_label": 2,
+      "cross_category": false,
+      "text_only_caption": "<thing> Keyboard 1: This is a white keyboard with black lettering on the keys. It appears to be in use as there's an item (likely a computer mouse) nearby. The keyboard has a rectangular shape and is positioned on the table-merged surface. <ovt>. <thing> Laptop 1: A closed laptop with a silver color is present in the image. It has a smooth texture and is positioned above the table-merged surface. The laptop has a rectangular shape and is partially visible in the background. <ovt>. <thing> Mouse 1: The mouse is white and appears to be an ergonomic design, suitable for right-handed use. It has a smooth surface with a subtle shine indicating it's well-maintained. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 6.9842317316215485e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 11078,
+      "donor_region_pixels": 16781,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.10610650510204081,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.018751933530737615,
+          "outside_change": 0.004462315857702515,
+          "change_energy_inside_fraction": 0.5700703541026938,
+          "region_fraction": 0.10610650510204081,
+          "screening_score": 0.01540519663746073
+        },
+        "semantic_only": {
+          "inside_change": 0.17020717628398715,
+          "outside_change": 0.02382992080270974,
+          "change_energy_inside_fraction": 0.6652316389737162,
+          "region_fraction": 0.10610650510204081,
+          "screening_score": 0.15233473568195485
+        },
+        "visual_only": {
+          "inside_change": 0.17111759304272672,
+          "outside_change": 0.021428966961201078,
+          "change_energy_inside_fraction": 0.8886977767139748,
+          "region_fraction": 0.10610650510204081,
+          "screening_score": 0.15504586782182592
+        },
+        "bundle_swap": {
+          "inside_change": 0.11101781058028018,
+          "outside_change": 0.02108978315902002,
+          "change_energy_inside_fraction": 0.6516322654893809,
+          "region_fraction": 0.10610650510204081,
+          "screening_score": 0.09520047321101516
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.042091836734693876,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.039434789067142005,
+          "outside_change": 0.004508422321436342,
+          "change_energy_inside_fraction": 0.5480195903136783,
+          "region_fraction": 0.042091836734693876,
+          "screening_score": 0.03605347232606475
+        },
+        "semantic_only": {
+          "inside_change": 0.17864242919389978,
+          "outside_change": 0.03324129918278896,
+          "change_energy_inside_fraction": 0.2155215291427347,
+          "region_fraction": 0.042091836734693876,
+          "screening_score": 0.15371145480680806
+        },
+        "visual_only": {
+          "inside_change": 0.3989589522677758,
+          "outside_change": 0.021420622176966657,
+          "change_energy_inside_fraction": 0.8801957763345913,
+          "region_fraction": 0.042091836734693876,
+          "screening_score": 0.38289348563505077
+        },
+        "bundle_swap": {
+          "inside_change": 0.16070756585462467,
+          "outside_change": 0.024916016117942957,
+          "change_energy_inside_fraction": 0.4034523742533467,
+          "region_fraction": 0.042091836734693876,
+          "screening_score": 0.14202055376616746
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.0025125814136117697,
+        "semantic_only": 0.06192899867892265,
+        "visual_only": 0.04295442998409271,
+        "bundle_swap": 0.06548292934894562
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.7947025841567665
+    },
+    {
+      "pair_id": "mouse_white_to_black",
+      "target_image_id": 335658,
+      "target_slot": 1,
+      "donor_image_id": 409630,
+      "donor_slot": 2,
+      "category": "mouse",
+      "instruction": "Replace A's white computer mouse with B's black mouse.",
+      "target_description": "The mouse is white and appears to be an ergonomic design, suitable for right-handed use. It has a smooth surface with a subtle shine indicating it's well-maintained.",
+      "target_category": "Mouse",
+      "target_prediction_label": 2,
+      "donor_description": "A black computer mouse with a sleek design is visible to the right of the keyboard on the table-merged surface. It has a rectangular shape and is positioned next to the keyboard.",
+      "donor_category": "Mouse",
+      "donor_prediction_label": 3,
+      "cross_category": false,
+      "text_only_caption": "<thing> Keyboard 1: The keyboard is white with a modern design, featuring black keys outlined with grey outlines for easier identification. It has a sleek appearance, with rows of keys aligned neatly along its surface. <ovt>. <thing> Mouse 1: A black computer mouse with a sleek design is visible to the right of the keyboard on the table-merged surface. It has a rectangular shape and is positioned next to the keyboard. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 5.814415999338962e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 16781,
+      "donor_region_pixels": 11078,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.10610650510204081,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.00909655622830149,
+          "outside_change": 0.004007486641614046,
+          "change_energy_inside_fraction": 0.3700435171339595,
+          "region_fraction": 0.10610650510204081,
+          "screening_score": 0.006090941247090954
+        },
+        "semantic_only": {
+          "inside_change": 0.1135636874334006,
+          "outside_change": 0.03336609176207122,
+          "change_energy_inside_fraction": 0.567007158889526,
+          "region_fraction": 0.10610650510204081,
+          "screening_score": 0.08853911861184718
+        },
+        "visual_only": {
+          "inside_change": 0.21677887283137648,
+          "outside_change": 0.027940258418537305,
+          "change_energy_inside_fraction": 0.8107235384473093,
+          "region_fraction": 0.10610650510204081,
+          "screening_score": 0.1958236790174735
+        },
+        "bundle_swap": {
+          "inside_change": 0.143435571072907,
+          "outside_change": 0.04101929424821446,
+          "change_energy_inside_fraction": 0.668316800250134,
+          "region_fraction": 0.10610650510204081,
+          "screening_score": 0.11267110038674616
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.06401466836734694,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.012828120040045906,
+          "outside_change": 0.003981133094296118,
+          "change_energy_inside_fraction": 0.36408362527982596,
+          "region_fraction": 0.06401466836734694,
+          "screening_score": 0.009842270219323816
+        },
+        "semantic_only": {
+          "inside_change": 0.0807751161901041,
+          "outside_change": 0.03921512959724957,
+          "change_energy_inside_fraction": 0.12813994784799124,
+          "region_fraction": 0.06401466836734694,
+          "screening_score": 0.051363768992166915
+        },
+        "visual_only": {
+          "inside_change": 0.3400178253119429,
+          "outside_change": 0.028003788745433158,
+          "change_energy_inside_fraction": 0.8055766017425491,
+          "region_fraction": 0.06401466836734694,
+          "screening_score": 0.319014983752868
+        },
+        "bundle_swap": {
+          "inside_change": 0.048225201246957894,
+          "outside_change": 0.05213672216182274,
+          "change_energy_inside_fraction": 0.03962432875193141,
+          "region_fraction": 0.06401466836734694,
+          "screening_score": 0.009122659625590841
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.005483008921146393,
+        "semantic_only": 0.07532039284706116,
+        "visual_only": 0.07099791616201401,
+        "bundle_swap": 0.08743315935134888
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.046090233838186
+    },
+    {
+      "pair_id": "bench_pink_to_wooden",
+      "target_image_id": 261161,
+      "target_slot": 1,
+      "donor_image_id": 17436,
+      "donor_slot": 0,
+      "category": "bench",
+      "instruction": "Replace A's pink bench with B's wooden bench.",
+      "target_description": "A red bench with wooden slats on its seat and backrest, it appears worn but still sturdy. The bench is positioned on the left side of the image and is facing the tree.",
+      "target_category": "Bench",
+      "target_prediction_label": 2,
+      "donor_description": "A wooden bench with a backrest is positioned in front of the garden, offering seating amidst nature.",
+      "donor_category": "Bench",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Dog 1: A black and white dog with a shiny coat, its ears are perked up, and it's wearing a leash around its neck. The dog appears to be a medium-sized breed and is standing on the pavement-merged object. <ovt>. <thing> Bench 1: A wooden bench with a backrest is positioned in front of the garden, offering seating amidst nature. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 6.148732609290164e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 42003,
+      "donor_region_pixels": 5829,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.18193957270408162,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.03434690997660977,
+          "outside_change": 0.009471081373162058,
+          "change_energy_inside_fraction": 0.49180418040584195,
+          "region_fraction": 0.18193957270408162,
+          "screening_score": 0.027243598946738223
+        },
+        "semantic_only": {
+          "inside_change": 0.17600779531150101,
+          "outside_change": 0.06526941616903052,
+          "change_energy_inside_fraction": 0.4878079017778432,
+          "region_fraction": 0.18193957270408162,
+          "screening_score": 0.12705573318472813
+        },
+        "visual_only": {
+          "inside_change": 0.19356729291197985,
+          "outside_change": 0.06429196182090641,
+          "change_energy_inside_fraction": 0.5681975471594535,
+          "region_fraction": 0.18193957270408162,
+          "screening_score": 0.14534832154630006
+        },
+        "bundle_swap": {
+          "inside_change": 0.16159205347892983,
+          "outside_change": 0.06053698048355535,
+          "change_energy_inside_fraction": 0.47348962945813783,
+          "region_fraction": 0.18193957270408162,
+          "screening_score": 0.11618931811626332
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.1602359693877551,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.03796702760706273,
+          "outside_change": 0.009423237050025375,
+          "change_energy_inside_fraction": 0.4889338784422978,
+          "region_fraction": 0.1602359693877551,
+          "screening_score": 0.030899599819543697
+        },
+        "semantic_only": {
+          "inside_change": 0.17397961174519558,
+          "outside_change": 0.06851843579023914,
+          "change_energy_inside_fraction": 0.41752211961342306,
+          "region_fraction": 0.1602359693877551,
+          "screening_score": 0.12259078490251622
+        },
+        "visual_only": {
+          "inside_change": 0.21564465255422233,
+          "outside_change": 0.0634204710300043,
+          "change_energy_inside_fraction": 0.566663572256867,
+          "region_fraction": 0.1602359693877551,
+          "screening_score": 0.1680792992817191
+        },
+        "bundle_swap": {
+          "inside_change": 0.1748746463759633,
+          "outside_change": 0.06061427608825949,
+          "change_energy_inside_fraction": 0.46516036330778415,
+          "region_fraction": 0.1602359693877551,
+          "screening_score": 0.1294139393097687
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.00645208265632391,
+        "semantic_only": 0.105982705950737,
+        "visual_only": 0.14214608073234558,
+        "bundle_swap": 0.11497502028942108
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.375783222960308
+    },
+    {
+      "pair_id": "bench_pink_to_teal",
+      "target_image_id": 261161,
+      "target_slot": 1,
+      "donor_image_id": 48153,
+      "donor_slot": 0,
+      "category": "bench",
+      "instruction": "Replace A's pink bench with B's weathered blue-green bench.",
+      "target_description": "A red bench with wooden slats on its seat and backrest, it appears worn but still sturdy. The bench is positioned on the left side of the image and is facing the tree.",
+      "target_category": "Bench",
+      "target_prediction_label": 2,
+      "donor_description": "The bench is made of wood with a blue-green patina finish, showing signs of age and wear with visible planks and worn areas. It has a simple design and appears to be placed outdoors.",
+      "donor_category": "Bench",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Dog 1: A black and white dog with a shiny coat, its ears are perked up, and it's wearing a leash around its neck. The dog appears to be a medium-sized breed and is standing on the pavement-merged object. <ovt>. <thing> Bench 1: The bench is made of wood with a blue-green patina finish, showing signs of age and wear with visible planks and worn areas. It has a simple design and appears to be placed outdoors. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 6.148732609290164e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 42003,
+      "donor_region_pixels": 143472,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.5886080994897959,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.004228028314325663,
+          "outside_change": 0.0031891954533969386,
+          "change_energy_inside_fraction": 0.7672941524796446,
+          "region_fraction": 0.5886080994897959,
+          "screening_score": 0.0018361317242779587
+        },
+        "semantic_only": {
+          "inside_change": 0.07938708947835019,
+          "outside_change": 0.06337184229374337,
+          "change_energy_inside_fraction": 0.7470991584311805,
+          "region_fraction": 0.5886080994897959,
+          "screening_score": 0.031858207758042656
+        },
+        "visual_only": {
+          "inside_change": 0.10571473843594908,
+          "outside_change": 0.08554574625121826,
+          "change_energy_inside_fraction": 0.7543315785892285,
+          "region_fraction": 0.5886080994897959,
+          "screening_score": 0.041555428747535386
+        },
+        "bundle_swap": {
+          "inside_change": 0.11121193652513488,
+          "outside_change": 0.10253414416827675,
+          "change_energy_inside_fraction": 0.6800932695775611,
+          "region_fraction": 0.5886080994897959,
+          "screening_score": 0.034311328398927324
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.1602359693877551,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.011000552791597567,
+          "outside_change": 0.0024268444166477424,
+          "change_energy_inside_fraction": 0.5777504071058476,
+          "region_fraction": 0.1602359693877551,
+          "screening_score": 0.009180419479111761
+        },
+        "semantic_only": {
+          "inside_change": 0.11315367606412381,
+          "outside_change": 0.0650983556513549,
+          "change_energy_inside_fraction": 0.26240837698073016,
+          "region_fraction": 0.1602359693877551,
+          "screening_score": 0.06432990932560764
+        },
+        "visual_only": {
+          "inside_change": 0.22744756609111305,
+          "outside_change": 0.07260622621303443,
+          "change_energy_inside_fraction": 0.5724237599126255,
+          "region_fraction": 0.1602359693877551,
+          "screening_score": 0.17299289643133722
+        },
+        "bundle_swap": {
+          "inside_change": 0.20872451468149447,
+          "outside_change": 0.08835432977063998,
+          "change_energy_inside_fraction": 0.43072828944692676,
+          "region_fraction": 0.1602359693877551,
+          "screening_score": 0.14245876735351448
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.003576561575755477,
+        "semantic_only": 0.1299198567867279,
+        "visual_only": 0.12145441770553589,
+        "bundle_swap": 0.21119308471679688
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.089998837094754
+    },
+    {
+      "pair_id": "umbrella_blue_to_pink",
+      "target_image_id": 9448,
+      "target_slot": 0,
+      "donor_image_id": 122046,
+      "donor_slot": 0,
+      "category": "umbrella",
+      "instruction": "Replace A's blue umbrella with B's pink patterned umbrella.",
+      "target_description": "The umbrella is large and blue, with a structured frame and numerous interconnected ribs that create the fabric's structure. It has a smooth texture and appears to be made of a durable material. The umbrella is open and provides coverage for the person holding it.",
+      "target_category": "Umbrella",
+      "target_prediction_label": 1,
+      "donor_description": "A large pink umbrella with an intricate white pattern hangs above the person's head, providing shade.",
+      "donor_category": "Umbrella",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Umbrella 1: A large pink umbrella with an intricate white pattern hangs above the person's head, providing shade. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 5.5327163863694295e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 180274,
+      "donor_region_pixels": 36938,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.038124916082582505,
+          "outside_change": 0.01692886820820392,
+          "change_energy_inside_fraction": 0.9335472410033971,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.025428264926429564
+        },
+        "semantic_only": {
+          "inside_change": 0.06997397400127146,
+          "outside_change": 0.023237228237397236,
+          "change_energy_inside_fraction": 0.8930823253451087,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.05254605282322354
+        },
+        "visual_only": {
+          "inside_change": 0.4396333748635779,
+          "outside_change": 0.04991522838678556,
+          "change_energy_inside_fraction": 0.9874962501561183,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.4021969535734887
+        },
+        "bundle_swap": {
+          "inside_change": 0.2224632983801311,
+          "outside_change": 0.03796466340265702,
+          "change_energy_inside_fraction": 0.9824419618199212,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.19398980082813833
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.038124916082582505,
+          "outside_change": 0.01692886820820392,
+          "change_energy_inside_fraction": 0.9335472410033971,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.025428264926429564
+        },
+        "semantic_only": {
+          "inside_change": 0.06997397400127146,
+          "outside_change": 0.023237228237397236,
+          "change_energy_inside_fraction": 0.8930823253451087,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.05254605282322354
+        },
+        "visual_only": {
+          "inside_change": 0.4396333748635779,
+          "outside_change": 0.04991522838678556,
+          "change_energy_inside_fraction": 0.9874962501561183,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.4021969535734887
+        },
+        "bundle_swap": {
+          "inside_change": 0.2224632983801311,
+          "outside_change": 0.03796466340265702,
+          "change_energy_inside_fraction": 0.9824419618199212,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.19398980082813833
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.032917045056819916,
+        "semantic_only": 0.14749303460121155,
+        "visual_only": 0.4087691009044647,
+        "bundle_swap": 0.3377417027950287
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.64502980816178
+    },
+    {
+      "pair_id": "umbrella_pink_to_blue",
+      "target_image_id": 122046,
+      "target_slot": 0,
+      "donor_image_id": 9448,
+      "donor_slot": 0,
+      "category": "umbrella",
+      "instruction": "Replace A's pink umbrella with B's blue umbrella.",
+      "target_description": "A large pink umbrella with an intricate white pattern hangs above the person's head, providing shade.",
+      "target_category": "Umbrella",
+      "target_prediction_label": 1,
+      "donor_description": "The umbrella is large and blue, with a structured frame and numerous interconnected ribs that create the fabric's structure. It has a smooth texture and appears to be made of a durable material. The umbrella is open and provides coverage for the person holding it.",
+      "donor_category": "Umbrella",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Umbrella 1: The umbrella is large and blue, with a structured frame and numerous interconnected ribs that create the fabric's structure. It has a smooth texture and appears to be made of a durable material. The umbrella is open and provides coverage for the person holding it. <ovt>. <thing> Person 1: A person with dark hair and wearing a sleeveless dress with floral and abstract designs is seated on a metal bench, holding an umbrella. <ovt>. <thing> Bench 1: A metallic bench with a simple design sits on the pavement, appearing slightly worn. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 7.065897079883143e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 36938,
+      "donor_region_pixels": 180274,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.022620670168993814,
+          "outside_change": 0.006420776827617978,
+          "change_energy_inside_fraction": 0.9841315176000717,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.01780508754828033
+        },
+        "semantic_only": {
+          "inside_change": 0.08239589174411689,
+          "outside_change": 0.04682439235882908,
+          "change_energy_inside_fraction": 0.9104911051807368,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.04727759747499508
+        },
+        "visual_only": {
+          "inside_change": 0.1433947121185178,
+          "outside_change": 0.03917112014952185,
+          "change_energy_inside_fraction": 0.9846514805733085,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.1140163720063764
+        },
+        "bundle_swap": {
+          "inside_change": 0.19092773415492392,
+          "outside_change": 0.061544984036731164,
+          "change_energy_inside_fraction": 0.9689662869390994,
+          "region_fraction": 0.6878388073979592,
+          "screening_score": 0.14476899612737554
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.1407844387755102,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.03587239727903241,
+          "outside_change": 0.014563768848913968,
+          "change_energy_inside_fraction": 0.4203016636396498,
+          "region_fraction": 0.1407844387755102,
+          "screening_score": 0.024949570642346933
+        },
+        "semantic_only": {
+          "inside_change": 0.07138561351305339,
+          "outside_change": 0.07127648671889117,
+          "change_energy_inside_fraction": 0.14316277431974167,
+          "region_fraction": 0.1407844387755102,
+          "screening_score": 0.017928248473885015
+        },
+        "visual_only": {
+          "inside_change": 0.43166289165722915,
+          "outside_change": 0.05829588716788132,
+          "change_energy_inside_fraction": 0.8226034524050682,
+          "region_fraction": 0.1407844387755102,
+          "screening_score": 0.3879409762813182
+        },
+        "bundle_swap": {
+          "inside_change": 0.44467038986224916,
+          "outside_change": 0.10234543375091112,
+          "change_energy_inside_fraction": 0.6011782682701245,
+          "region_fraction": 0.1407844387755102,
+          "screening_score": 0.3679113145490658
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.013686180114746094,
+        "semantic_only": 0.128800630569458,
+        "visual_only": 0.10017476975917816,
+        "bundle_swap": 0.19569668173789978
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 3.8744963391218334
+    },
+    {
+      "pair_id": "suitcase_patterned_to_silver",
+      "target_image_id": 350019,
+      "target_slot": 0,
+      "donor_image_id": 112626,
+      "donor_slot": 0,
+      "category": "suitcase",
+      "instruction": "Replace A's brown patterned suitcase with B's silver suitcase.",
+      "target_description": "A large, brown Louis Vuitton suitcase with a pattern of small, intricate designs in multiple colors including black, brown, and white. It has golden buttons at the top and is standing upright on the wooden floor.",
+      "target_category": "Suitcase",
+      "target_prediction_label": 1,
+      "donor_description": "A large, metallic silver suitcase with a smooth texture and multiple compartments is placed on the floor. It has zippered closures for security and is equipped with wheels for easy mobility.",
+      "donor_category": "Suitcase",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Suitcase 1: A large, metallic silver suitcase with a smooth texture and multiple compartments is placed on the floor. It has zippered closures for security and is equipped with wheels for easy mobility. <ovt>. <thing> Person 1: A child wearing a blue t-shirt with an image of an American flag intertwined into a design, paired with white pants, is looking down at the suitcase with curiosity or interest. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 7.0294881879817694e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 91301,
+      "donor_region_pixels": 101388,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.4291294642857143,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.008022714937730619,
+          "outside_change": 0.002223965506697954,
+          "change_energy_inside_fraction": 0.8769172313645708,
+          "region_fraction": 0.4291294642857143,
+          "screening_score": 0.006354740807707154
+        },
+        "semantic_only": {
+          "inside_change": 0.07064080942303233,
+          "outside_change": 0.02772821738666141,
+          "change_energy_inside_fraction": 0.8912607266545234,
+          "region_fraction": 0.4291294642857143,
+          "screening_score": 0.049844646383036276
+        },
+        "visual_only": {
+          "inside_change": 0.14810563150270944,
+          "outside_change": 0.037251068560366474,
+          "change_energy_inside_fraction": 0.8637419368445777,
+          "region_fraction": 0.4291294642857143,
+          "screening_score": 0.12016733008243459
+        },
+        "bundle_swap": {
+          "inside_change": 0.18994304267003725,
+          "outside_change": 0.059185648844092865,
+          "change_energy_inside_fraction": 0.8360189323966128,
+          "region_fraction": 0.4291294642857143,
+          "screening_score": 0.1455538060369676
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.348453443877551,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.008115131967528107,
+          "outside_change": 0.0028925547134715053,
+          "change_energy_inside_fraction": 0.7821897719515274,
+          "region_fraction": 0.348453443877551,
+          "screening_score": 0.005945715932424479
+        },
+        "semantic_only": {
+          "inside_change": 0.05154636246323436,
+          "outside_change": 0.04325365123005848,
+          "change_energy_inside_fraction": 0.3623471191944693,
+          "region_fraction": 0.348453443877551,
+          "screening_score": 0.019106124040690495
+        },
+        "visual_only": {
+          "inside_change": 0.1673903909157654,
+          "outside_change": 0.04066366299364478,
+          "change_energy_inside_fraction": 0.8122010211656291,
+          "region_fraction": 0.348453443877551,
+          "screening_score": 0.13689264367053183
+        },
+        "bundle_swap": {
+          "inside_change": 0.18359254324775745,
+          "outside_change": 0.07877264450378217,
+          "change_energy_inside_fraction": 0.5821509336231894,
+          "region_fraction": 0.348453443877551,
+          "screening_score": 0.12451305986992083
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.007556041236966848,
+        "semantic_only": 0.07087912410497665,
+        "visual_only": 0.2808986306190491,
+        "bundle_swap": 0.3191031813621521
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.8362875380553305
+    },
+    {
+      "pair_id": "dog_brown_to_shaggy",
+      "target_image_id": 205834,
+      "target_slot": 0,
+      "donor_image_id": 579321,
+      "donor_slot": 1,
+      "category": "dog",
+      "instruction": "Replace A's brown dog with B's shaggy dog wearing a yellow bandana.",
+      "target_description": "A brown dog with a white underbelly and paws is in a sitting position. Its tongue is out, giving it a lively appearance. The dog's fur appears soft, and it has a shiny shine.",
+      "target_category": "Dog",
+      "target_prediction_label": 1,
+      "donor_description": "A small, fluffy dog with a mix of dark and light fur is wearing a white skirt with colorful designs and a yellow bandana around its neck. The dog is standing on the same pavement as the person, looking at the dog and seems to be in a relaxed posture.",
+      "donor_category": "Dog",
+      "donor_prediction_label": 2,
+      "cross_category": false,
+      "text_only_caption": "<thing> Dog 1: A small, fluffy dog with a mix of dark and light fur is wearing a white skirt with colorful designs and a yellow bandana around its neck. The dog is standing on the same pavement as the person, looking at the dog and seems to be in a relaxed posture. <ovt>. <thing> Bowl 1: A metallic bowl with a curved rim is positioned on the pavement. It's small and shallow, likely designed for dogs to eat or drink from. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 8.264708412752952e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 126492,
+      "donor_region_pixels": 78594,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.5055803571428571,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.018955845767298828,
+          "outside_change": 0.014186178609893916,
+          "change_energy_inside_fraction": 0.6559896872536829,
+          "region_fraction": 0.5055803571428571,
+          "screening_score": 0.00831621180987839
+        },
+        "semantic_only": {
+          "inside_change": 0.06336035517959944,
+          "outside_change": 0.03975952307183219,
+          "change_energy_inside_fraction": 0.7003076374379001,
+          "region_fraction": 0.5055803571428571,
+          "screening_score": 0.0335407128757253
+        },
+        "visual_only": {
+          "inside_change": 0.1715733681257639,
+          "outside_change": 0.06981344832891771,
+          "change_energy_inside_fraction": 0.8349912926171142,
+          "region_fraction": 0.5055803571428571,
+          "screening_score": 0.11921328187907562
+        },
+        "bundle_swap": {
+          "inside_change": 0.16667846682455176,
+          "outside_change": 0.0750391503478743,
+          "change_energy_inside_fraction": 0.8246100239754657,
+          "region_fraction": 0.5055803571428571,
+          "screening_score": 0.11039910406364603
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.4829599808673469,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.019162817192242308,
+          "outside_change": 0.014201521233453229,
+          "change_energy_inside_fraction": 0.6456954095581712,
+          "region_fraction": 0.4829599808673469,
+          "screening_score": 0.008511676267152386
+        },
+        "semantic_only": {
+          "inside_change": 0.06291070163329916,
+          "outside_change": 0.041212068992882586,
+          "change_energy_inside_fraction": 0.6723248928589586,
+          "region_fraction": 0.4829599808673469,
+          "screening_score": 0.032001649888637226
+        },
+        "visual_only": {
+          "inside_change": 0.17588266850502837,
+          "outside_change": 0.07024016200423301,
+          "change_energy_inside_fraction": 0.8265073900318641,
+          "region_fraction": 0.4829599808673469,
+          "screening_score": 0.12320254700185361
+        },
+        "bundle_swap": {
+          "inside_change": 0.167536571018454,
+          "outside_change": 0.07824680502428777,
+          "change_energy_inside_fraction": 0.7943582720770925,
+          "region_fraction": 0.4829599808673469,
+          "screening_score": 0.10885146725023818
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.01853090152144432,
+        "semantic_only": 0.08005106449127197,
+        "visual_only": 0.3470945358276367,
+        "bundle_swap": 0.3260430097579956
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.46843343693763
+    },
+    {
+      "pair_id": "dog_merle_to_shaggy",
+      "target_image_id": 52891,
+      "target_slot": 0,
+      "donor_image_id": 579321,
+      "donor_slot": 1,
+      "category": "dog",
+      "instruction": "Replace A's speckled dog with B's shaggy dog wearing a yellow bandana.",
+      "target_description": "A medium-sized dog with a mix of white and black fur stands out against the beach backdrop. Its fur is short but noticeable due to the contrast with the light-colored dog. The dog's eyes are dark and attentive, and its tongue appears visible, sticking out slightly as if it's panting from the activity or excitement.",
+      "target_category": "Dog",
+      "target_prediction_label": 1,
+      "donor_description": "A small, fluffy dog with a mix of dark and light fur is wearing a white skirt with colorful designs and a yellow bandana around its neck. The dog is standing on the same pavement as the person, looking at the dog and seems to be in a relaxed posture.",
+      "donor_category": "Dog",
+      "donor_prediction_label": 2,
+      "cross_category": false,
+      "text_only_caption": "<thing> Dog 1: A small, fluffy dog with a mix of dark and light fur is wearing a white skirt with colorful designs and a yellow bandana around its neck. The dog is standing on the same pavement as the person, looking at the dog and seems to be in a relaxed posture. <ovt>. <thing> Frisbee 1: A bright yellow frisbee lies on the sand close to the dog. It's in good condition, with visible wear marks suggesting it has been used multiple times. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 6.165715149109019e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 77907,
+      "donor_region_pixels": 78594,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.44015066964285715,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.01944572440703698,
+          "outside_change": 0.009117427185177584,
+          "change_energy_inside_fraction": 0.6804717782224472,
+          "region_fraction": 0.44015066964285715,
+          "screening_score": 0.012607654018153794
+        },
+        "semantic_only": {
+          "inside_change": 0.10216226374332087,
+          "outside_change": 0.02870833190822637,
+          "change_energy_inside_fraction": 0.8669654314732723,
+          "region_fraction": 0.44015066964285715,
+          "screening_score": 0.0806310148121511
+        },
+        "visual_only": {
+          "inside_change": 0.15078492041296182,
+          "outside_change": 0.02506150063647022,
+          "change_energy_inside_fraction": 0.9474450242077079,
+          "region_fraction": 0.44015066964285715,
+          "screening_score": 0.13198879493560917
+        },
+        "bundle_swap": {
+          "inside_change": 0.19142173509657426,
+          "outside_change": 0.0433169696153235,
+          "change_energy_inside_fraction": 0.9304254452451615,
+          "region_fraction": 0.44015066964285715,
+          "screening_score": 0.15893400788508164
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.29691485969387754,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.019949074183752347,
+          "outside_change": 0.01100899040191317,
+          "change_energy_inside_fraction": 0.43684930259220867,
+          "region_fraction": 0.29691485969387754,
+          "screening_score": 0.01169233138231747
+        },
+        "semantic_only": {
+          "inside_change": 0.11265617089454479,
+          "outside_change": 0.03924110528993425,
+          "change_energy_inside_fraction": 0.642718389653076,
+          "region_fraction": 0.29691485969387754,
+          "screening_score": 0.0832253419270941
+        },
+        "visual_only": {
+          "inside_change": 0.20493008229380263,
+          "outside_change": 0.027808810467891448,
+          "change_energy_inside_fraction": 0.9203413724040602,
+          "region_fraction": 0.29691485969387754,
+          "screening_score": 0.18407347444288405
+        },
+        "bundle_swap": {
+          "inside_change": 0.19225206348704962,
+          "outside_change": 0.07313891862469045,
+          "change_energy_inside_fraction": 0.5800160808616683,
+          "region_fraction": 0.29691485969387754,
+          "screening_score": 0.1373978745185318
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.010843174532055855,
+        "semantic_only": 0.1096438616514206,
+        "visual_only": 0.23199890553951263,
+        "bundle_swap": 0.26173532009124756
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.3582541439682245
+    },
+    {
+      "pair_id": "pizza_slice_to_round",
+      "target_image_id": 554735,
+      "target_slot": 1,
+      "donor_image_id": 323151,
+      "donor_slot": 0,
+      "category": "pizza",
+      "instruction": "Replace A's pizza slice with B's round pizza.",
+      "target_description": "This slice of pizza has melted cheese, meat toppings, and appears to be freshly served. The cheese is yellowish, with a slightly browned surface. The toppings include chunks of meat, possibly pepperoni or sausage, and shredded lettuce. The crust is golden brown, with a slightly crispy texture. The pizza is circular in shape, with a diameter of approximately 8 inches. The crust is slightly thicker than the rest. The toppings are evenly distributed, and the pizza looks fresh and appetizing.",
+      "target_category": "Pizza",
+      "target_prediction_label": 2,
+      "donor_description": "A freshly baked pizza with a golden-brown crust, topped with melted cheese, black olives, and pieces of meat is placed on a white plate. The pizza has a diameter of approximately 10 inches.",
+      "donor_category": "Pizza",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Person 1: A person's hand is visible, appearing pale and smooth, holding a slice of pizza. The hand is positioned in the center of the image, with the thumb and index finger holding the slice. The fingers are slightly curved, indicating a natural grip. The slice of pizza is partially eaten, with a bite taken out of it. The slice has a circular shape, with the crust of the pizza slightly thicker than the rest. The crust is golden brown, with a slightly crispy texture. The cheese on the slice is melted and stretched, with visible bubbles and a slightly browned surface. The person's intention appears to be enjoying the pizza meal. <ovt>. <thing> Pizza 1: A freshly baked pizza with a golden-brown crust, topped with melted cheese, black olives, and pieces of meat is placed on a white plate. The pizza has a diameter of approximately 10 inches. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 7.799816557962913e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 86888,
+      "donor_region_pixels": 116230,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.6045519770408163,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.009538381186192418,
+          "outside_change": 0.0033692313064055714,
+          "change_energy_inside_fraction": 0.9395023737631185,
+          "region_fraction": 0.6045519770408163,
+          "screening_score": 0.007011457706388239
+        },
+        "semantic_only": {
+          "inside_change": 0.0750719548934714,
+          "outside_change": 0.04142753899597671,
+          "change_energy_inside_fraction": 0.8904329751554432,
+          "region_fraction": 0.6045519770408163,
+          "screening_score": 0.04400130064648887
+        },
+        "visual_only": {
+          "inside_change": 0.07644930018775713,
+          "outside_change": 0.02289907260824566,
+          "change_energy_inside_fraction": 0.9430739414767898,
+          "region_fraction": 0.6045519770408163,
+          "screening_score": 0.05927499573157288
+        },
+        "bundle_swap": {
+          "inside_change": 0.09872245858849903,
+          "outside_change": 0.05826447233800618,
+          "change_energy_inside_fraction": 0.8773850311337984,
+          "region_fraction": 0.6045519770408163,
+          "screening_score": 0.05502410433499439
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.3315927933673469,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.013641973999200191,
+          "outside_change": 0.003852775332010475,
+          "change_energy_inside_fraction": 0.8682451962764914,
+          "region_fraction": 0.3315927933673469,
+          "screening_score": 0.010752392500192335
+        },
+        "semantic_only": {
+          "inside_change": 0.08982650158272228,
+          "outside_change": 0.04784735449828251,
+          "change_energy_inside_fraction": 0.5730322729902194,
+          "region_fraction": 0.3315927933673469,
+          "screening_score": 0.053940985709010396
+        },
+        "visual_only": {
+          "inside_change": 0.11244037784204518,
+          "outside_change": 0.026912560798267263,
+          "change_energy_inside_fraction": 0.8737236875891133,
+          "region_fraction": 0.3315927933673469,
+          "screening_score": 0.09225595724334473
+        },
+        "bundle_swap": {
+          "inside_change": 0.12361638488788951,
+          "outside_change": 0.06243667801268837,
+          "change_energy_inside_fraction": 0.6349902836799265,
+          "region_fraction": 0.3315927933673469,
+          "screening_score": 0.07678887637837323
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.011967543512582779,
+        "semantic_only": 0.12778976559638977,
+        "visual_only": 0.20809213817119598,
+        "bundle_swap": 0.2414732277393341
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.797218517865986
+    },
+    {
+      "pair_id": "pizza_round_to_slice",
+      "target_image_id": 323151,
+      "target_slot": 0,
+      "donor_image_id": 84431,
+      "donor_slot": 0,
+      "category": "pizza",
+      "instruction": "Replace A's round pizza with B's pizza slice.",
+      "target_description": "A freshly baked pizza with a golden-brown crust, topped with melted cheese, black olives, and pieces of meat is placed on a white plate. The pizza has a diameter of approximately 10 inches.",
+      "target_category": "Pizza",
+      "target_prediction_label": 1,
+      "donor_description": "A slice of pizza with a golden-brown crust, topped with melted cheese and pieces of meat (possibly pepperoni), is placed on a plate. The cheese is melted and has a slightly browned appearance.",
+      "donor_category": "Pizza",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Pizza 1: A slice of pizza with a golden-brown crust, topped with melted cheese and pieces of meat (possibly pepperoni), is placed on a plate. The cheese is melted and has a slightly browned appearance. <ovt>. <thing> Cup 1: A glass cup filled with a golden liquid, possibly beer, with some foam on top is placed to the right of the pizza. The cup has a cylindrical shape and is approximately 6 inches tall. <ovt>. <thing> Person 1: There isn't any visible person in this image so we can't describe any actions or emotions associated with them. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 5.514023996511241e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 116230,
+      "donor_region_pixels": 103340,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.5121173469387755,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.010062958350629583,
+          "outside_change": 0.0059291298218633855,
+          "change_energy_inside_fraction": 0.6868802447992277,
+          "region_fraction": 0.5121173469387755,
+          "screening_score": 0.005616110984232044
+        },
+        "semantic_only": {
+          "inside_change": 0.03892114130832906,
+          "outside_change": 0.023481246529112734,
+          "change_energy_inside_fraction": 0.6374457997018268,
+          "region_fraction": 0.5121173469387755,
+          "screening_score": 0.021310206411494514
+        },
+        "visual_only": {
+          "inside_change": 0.12889720126323673,
+          "outside_change": 0.037254741765987434,
+          "change_energy_inside_fraction": 0.8956474032940941,
+          "region_fraction": 0.5121173469387755,
+          "screening_score": 0.10095614493874615
+        },
+        "bundle_swap": {
+          "inside_change": 0.13323621997574453,
+          "outside_change": 0.03692618223760093,
+          "change_energy_inside_fraction": 0.8980408209476881,
+          "region_fraction": 0.5121173469387755,
+          "screening_score": 0.10554158329754383
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.443180006377551,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.008847998433982578,
+          "outside_change": 0.007407922067379751,
+          "change_energy_inside_fraction": 0.47386056358238765,
+          "region_fraction": 0.443180006377551,
+          "screening_score": 0.0032920568834477653
+        },
+        "semantic_only": {
+          "inside_change": 0.03466524173189534,
+          "outside_change": 0.028780113164370465,
+          "change_energy_inside_fraction": 0.4383088188668913,
+          "region_fraction": 0.443180006377551,
+          "screening_score": 0.013080156858617492
+        },
+        "visual_only": {
+          "inside_change": 0.14141466513004144,
+          "outside_change": 0.03863776991283766,
+          "change_energy_inside_fraction": 0.8746349085750743,
+          "region_fraction": 0.443180006377551,
+          "screening_score": 0.1124363376954132
+        },
+        "bundle_swap": {
+          "inside_change": 0.14603400503371142,
+          "outside_change": 0.03866397078415699,
+          "change_energy_inside_fraction": 0.8740368374000396,
+          "region_fraction": 0.443180006377551,
+          "screening_score": 0.11703602694559367
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.012372471392154694,
+        "semantic_only": 0.0528329573571682,
+        "visual_only": 0.2726120352745056,
+        "bundle_swap": 0.2856581211090088
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.193602225976065
+    },
+    {
+      "pair_id": "bus_white_to_red",
+      "target_image_id": 243867,
+      "target_slot": 0,
+      "donor_image_id": 90208,
+      "donor_slot": 1,
+      "category": "bus",
+      "instruction": "Replace A's white bus with B's red double-decker bus.",
+      "target_description": "The bus is a large vehicle with a white body. It has tinted windows, making it difficult to see inside. The bus is parked on the road, its wheels touching the surface.",
+      "target_category": "Bus",
+      "target_prediction_label": 1,
+      "donor_description": "Another double-decker bus, red in color with a classic design is partially visible to the left of the green bus, appearing to be stationary.",
+      "donor_category": "Bus",
+      "donor_prediction_label": 2,
+      "cross_category": false,
+      "text_only_caption": "<thing> Bus 1: Another double-decker bus, red in color with a classic design is partially visible to the left of the green bus, appearing to be stationary. <ovt>. <thing> Car 1: This car is a silver sedan with a sleek design. Its body is shiny and well-maintained, reflecting the surrounding environment subtly. The car is positioned in front of the bus, occupying part of its path. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 5.697677806892898e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 97544,
+      "donor_region_pixels": 24018,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.41832748724489793,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.029893849234151337,
+          "outside_change": 0.0058474629030213715,
+          "change_energy_inside_fraction": 0.9243036120720035,
+          "region_fraction": 0.41832748724489793,
+          "screening_score": 0.025508252056885308
+        },
+        "semantic_only": {
+          "inside_change": 0.16877349002170347,
+          "outside_change": 0.028132567812752918,
+          "change_energy_inside_fraction": 0.8995381656703388,
+          "region_fraction": 0.41832748724489793,
+          "screening_score": 0.1476740641621388
+        },
+        "visual_only": {
+          "inside_change": 0.23776164809261802,
+          "outside_change": 0.04622029811947621,
+          "change_energy_inside_fraction": 0.9300349720238144,
+          "region_fraction": 0.41832748724489793,
+          "screening_score": 0.20309642450301085
+        },
+        "bundle_swap": {
+          "inside_change": 0.17556844684832804,
+          "outside_change": 0.0303164423447718,
+          "change_energy_inside_fraction": 0.9296099566054159,
+          "region_fraction": 0.41832748724489793,
+          "screening_score": 0.15283111508974917
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.372249681122449,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.03201088694749056,
+          "outside_change": 0.006357121128553862,
+          "change_energy_inside_fraction": 0.8800897193203772,
+          "region_fraction": 0.372249681122449,
+          "screening_score": 0.027243046101075162
+        },
+        "semantic_only": {
+          "inside_change": 0.17368810393129663,
+          "outside_change": 0.03554150341322635,
+          "change_energy_inside_fraction": 0.8350718056367127,
+          "region_fraction": 0.372249681122449,
+          "screening_score": 0.14703197637137688
+        },
+        "visual_only": {
+          "inside_change": 0.2581833718603621,
+          "outside_change": 0.04816983918887681,
+          "change_energy_inside_fraction": 0.9191869153857376,
+          "region_fraction": 0.372249681122449,
+          "screening_score": 0.2220559924687045
+        },
+        "bundle_swap": {
+          "inside_change": 0.18318017002282228,
+          "outside_change": 0.03646447932994604,
+          "change_energy_inside_fraction": 0.8709174813884909,
+          "region_fraction": 0.372249681122449,
+          "screening_score": 0.15583181052536274
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.01465531624853611,
+        "semantic_only": 0.191116064786911,
+        "visual_only": 0.29756787419319153,
+        "bundle_swap": 0.23071514070034027
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 4.79518877598457
+    },
+    {
+      "pair_id": "bus_green_to_white",
+      "target_image_id": 90208,
+      "target_slot": 0,
+      "donor_image_id": 243867,
+      "donor_slot": 0,
+      "category": "bus",
+      "instruction": "Replace A's green bus with B's white bus.",
+      "target_description": "A vintage green double-decker bus labeled \"GREEN LINE\" and \"BELHUS\" is parked. It has a shiny surface reflecting the surrounding environment, and the registration label is clearly visible.",
+      "target_category": "Bus",
+      "target_prediction_label": 1,
+      "donor_description": "The bus is a large vehicle with a white body. It has tinted windows, making it difficult to see inside. The bus is parked on the road, its wheels touching the surface.",
+      "donor_category": "Bus",
+      "donor_prediction_label": 1,
+      "cross_category": false,
+      "text_only_caption": "<thing> Bus 1: The bus is a large vehicle with a white body. It has tinted windows, making it difficult to see inside. The bus is parked on the road, its wheels touching the surface. <ovt>. <thing> Bus 2: Another double-decker bus, red in color with a classic design is partially visible to the left of the green bus, appearing to be stationary. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 5.839009190822253e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 133266,
+      "donor_region_pixels": 97544,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.5845224808673469,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.03560347707337336,
+          "outside_change": 0.020558497939077457,
+          "change_energy_inside_fraction": 0.8150249365210208,
+          "region_fraction": 0.5845224808673469,
+          "screening_score": 0.020184603619065267
+        },
+        "semantic_only": {
+          "inside_change": 0.06673000044347015,
+          "outside_change": 0.060245592616733616,
+          "change_energy_inside_fraction": 0.6155311129755339,
+          "region_fraction": 0.5845224808673469,
+          "screening_score": 0.021545805980919937
+        },
+        "visual_only": {
+          "inside_change": 0.2722477941817162,
+          "outside_change": 0.09234895633954322,
+          "change_energy_inside_fraction": 0.9261208421597209,
+          "region_fraction": 0.5845224808673469,
+          "screening_score": 0.20298607692705878
+        },
+        "bundle_swap": {
+          "inside_change": 0.24328518228071572,
+          "outside_change": 0.10245533047967592,
+          "change_energy_inside_fraction": 0.8895352640516052,
+          "region_fraction": 0.5845224808673469,
+          "screening_score": 0.16644368442095878
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.5086694834183674,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.03948098587996626,
+          "outside_change": 0.01886683904622301,
+          "change_energy_inside_fraction": 0.8103108367471735,
+          "region_fraction": 0.5086694834183674,
+          "screening_score": 0.025330856595299003
+        },
+        "semantic_only": {
+          "inside_change": 0.06602436505430576,
+          "outside_change": 0.06197721100906729,
+          "change_energy_inside_fraction": 0.5429038876909948,
+          "region_fraction": 0.5086694834183674,
+          "screening_score": 0.019541456797505283
+        },
+        "visual_only": {
+          "inside_change": 0.2984657437006068,
+          "outside_change": 0.09297907240073926,
+          "change_energy_inside_fraction": 0.9106553244801986,
+          "region_fraction": 0.5086694834183674,
+          "screening_score": 0.22873143940005236
+        },
+        "bundle_swap": {
+          "inside_change": 0.2584357720154498,
+          "outside_change": 0.1085117907139329,
+          "change_energy_inside_fraction": 0.8498952512526637,
+          "region_fraction": 0.5086694834183674,
+          "screening_score": 0.17705192898000016
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.0171499103307724,
+        "semantic_only": 0.09074630588293076,
+        "visual_only": 0.37999600172042847,
+        "bundle_swap": 0.3655780255794525
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 3.7838966900017112
+    },
+    {
+      "pair_id": "surfboard_to_snowboard",
+      "target_image_id": 554595,
+      "target_slot": 0,
+      "donor_image_id": 193429,
+      "donor_slot": 0,
+      "target_category": "Surfboard",
+      "donor_category": "Snowboard",
+      "instruction": "Replace A's star-patterned surfboard with B's snowboard.",
+      "target_description": "A white surfboard with a yellow star design lies on the sandy beach, its base partially covered in sand granules indicating recent contact.",
+      "target_prediction_label": 1,
+      "donor_description": "A white snowboard with black markings and text on it, it's positioned horizontally in the snow.",
+      "donor_prediction_label": 1,
+      "category": "Surfboard -> Snowboard",
+      "cross_category": true,
+      "text_only_caption": "<thing> Snowboard 1: A white snowboard with black markings and text on it, it's positioned horizontally in the snow. <ovt>. <thing> Person 1: A person is lying on the sand, partially submerged in it up to their head, wearing dark clothing that contrasts against the light background. <ovt>. <scene_end>",
+      "fingerprint": "7bd389c2704738301a330290194844bbb275f3b58ac8c92fa5f0425d7ded35bc",
+      "identity_relative_error": 7.363278655247996e-06,
+      "native_output_size": [
+        224,
+        224
+      ],
+      "target_region_pixels": 19253,
+      "donor_region_pixels": 34242,
+      "change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.14522879464285715,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.04364940340529423,
+          "outside_change": 0.014434555716634075,
+          "change_energy_inside_fraction": 0.560109565133003,
+          "region_fraction": 0.14522879464285715,
+          "screening_score": 0.03282348661781868
+        },
+        "semantic_only": {
+          "inside_change": 0.07359905857956375,
+          "outside_change": 0.01885176463273411,
+          "change_energy_inside_fraction": 0.6814528100629519,
+          "region_fraction": 0.14522879464285715,
+          "screening_score": 0.059460235105013165
+        },
+        "visual_only": {
+          "inside_change": 0.16098899374030748,
+          "outside_change": 0.04018819213665554,
+          "change_energy_inside_fraction": 0.6680081622369219,
+          "region_fraction": 0.14522879464285715,
+          "screening_score": 0.13084784963781582
+        },
+        "bundle_swap": {
+          "inside_change": 0.19497628061791478,
+          "outside_change": 0.03460024562569709,
+          "change_energy_inside_fraction": 0.76425423175265,
+          "region_fraction": 0.14522879464285715,
+          "screening_score": 0.16902609639864197
+        }
+      },
+      "target_only_change_diagnostics": {
+        "reconstruction": {
+          "inside_change": 0.0,
+          "outside_change": 0.0,
+          "change_energy_inside_fraction": 0.0,
+          "region_fraction": 0.07342155612244898,
+          "screening_score": 0.0
+        },
+        "text_only": {
+          "inside_change": 0.055669455621553725,
+          "outside_change": 0.015746162527645487,
+          "change_energy_inside_fraction": 0.39594257039882513,
+          "region_fraction": 0.07342155612244898,
+          "screening_score": 0.043859833725819614
+        },
+        "semantic_only": {
+          "inside_change": 0.09823117810280102,
+          "outside_change": 0.02114269149685742,
+          "change_energy_inside_fraction": 0.514252648924518,
+          "region_fraction": 0.07342155612244898,
+          "screening_score": 0.08237415948015796
+        },
+        "visual_only": {
+          "inside_change": 0.24896638351323158,
+          "outside_change": 0.042578637466056425,
+          "change_energy_inside_fraction": 0.5737242520076247,
+          "region_fraction": 0.07342155612244898,
+          "screening_score": 0.21703240541368926
+        },
+        "bundle_swap": {
+          "inside_change": 0.28363387338286744,
+          "outside_change": 0.040003761979712296,
+          "change_energy_inside_fraction": 0.586719518862942,
+          "region_fraction": 0.07342155612244898,
+          "screening_score": 0.2536310518980832
+        }
+      },
+      "reader_condition_mean_abs_change": {
+        "reconstruction": 0.0,
+        "text_only": 0.018762730062007904,
+        "semantic_only": 0.0489192008972168,
+        "visual_only": 0.0875198245048523,
+        "bundle_swap": 0.10588787496089935
+      },
+      "diagnostic_region": "union of target and donor predicted regions, plus separate target-only diagnostics",
+      "visual_success_verified": false,
+      "seconds": 3.998872177908197
+    }
+  ]
+}

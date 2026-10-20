@@ -1,0 +1,12 @@
+{
+  "checkpoint": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_refcoco_direct/checkpoint-5000",
+  "caption_mode": "external_original_referring_expression",
+  "structural_header": "Object 1",
+  "object_memory": 8,
+  "register_memory": 32,
+  "writer_prior": false,
+  "gt_class_input": false,
+  "gt_mask_input": false,
+  "gt_point_input": false,
+  "dtype": "fp32"
+}

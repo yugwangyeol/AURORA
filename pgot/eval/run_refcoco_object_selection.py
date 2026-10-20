@@ -37,6 +37,8 @@ def configuration(args):
             'llm2vec_adapter', 'embedding_max_length', 'selector_model',
             'selector_max_new_tokens', 'selector_max_input_tokens')
     config = {k: getattr(args, k) for k in keys}
+    if args.exclude_train_overlap:
+        config['exclude_train_overlap'] = True
     config.update(version=VERSION, checkpoint_signature=checkpoint_signature(args.model_path),
         annotation_hashes=[file_digest(p) for p in annotation_paths(args)],
         train_annotations_sha256=file_digest(args.train_annotations),
@@ -73,7 +75,13 @@ def prepare(args):
     instances = json.loads(instances_path.read_text())
     images = {int(i['id']): i for i in instances['images']}
     annotations = {int(a['id']): a for a in instances['annotations']}
+    train_ids = {int(r['image_id']) for r in jsonl(args.train_annotations)}
     queries = make_queries(selected_references(refs, args.splits, args.max_refs), args.max_samples)
+    excluded_overlap_queries = 0
+    if args.exclude_train_overlap:
+        before = len(queries)
+        queries = [query for query in queries if int(query['image_id']) not in train_ids]
+        excluded_overlap_queries = before - len(queries)
     samples = {}
     for query in queries:
         iid = query['image_id']
@@ -92,7 +100,6 @@ def prepare(args):
                      query_types=query_kinds(query['shared_text']))
         # The structural direct-conditioning caption is baseline compatibility
         # data only. It is NEVER fed into our DeOR extraction.
-    train_ids = {int(r['image_id']) for r in jsonl(args.train_annotations)}
     overlap = sorted(train_ids & samples.keys())
     protocol = dict(task='natural_language_retrieval_of_cached_object_representations',
         query_source='original RefCOCO raw expressions, unchanged; every selected sentence',
@@ -106,6 +113,8 @@ def prepare(args):
         oracle='fixed class-compatible one-to-one IoU correspondence diagnostic ONLY; not a deployable method',
         presence_iou=args.presence_iou, inference_gt_inputs='none',
         full_split_evaluated=not (args.max_refs or args.max_samples),
+        exclude_train_overlap=bool(args.exclude_train_overlap),
+        excluded_train_overlap_expressions=excluded_overlap_queries,
         train_image_overlap_count=len(overlap), train_image_overlap_ids=overlap,
         limits='No additional RefCOCO training. COCO training overlap and unequal mask supervision; NOT unseen-image zero-shot. CTRL-O released VG+COCO checkpoint is not paper Table 3 reproduction.')
     value = dict(config=config, fingerprint=digest(config), protocol=protocol,
@@ -262,9 +271,28 @@ def metrics(rows):
         target_coverage=len(present)/len(rows),
         selection_accuracy_present=sum(r['selection_correct'] for r in present)/len(present) if present else None,
         empty_masks=sum(r['empty_mask'] for r in rows))
+    if all('coverage_50' in r for r in rows):
+        covered_50 = [r for r in rows if r['coverage_50']]
+        result.update(
+            coverage_50=len(covered_50)/len(rows),
+            selector_accuracy_covered_50=(
+                sum(r['selector_correct_covered_50'] for r in covered_50)/len(covered_50)
+                if covered_50 else None
+            ),
+            omission_50=sum(r['omission_50'] for r in rows)/len(rows),
+            wrong_id_covered_50=sum(r['wrong_id_covered_50'] for r in rows)/len(rows),
+            correct_id_but_iou_below_50=(
+                sum(r['correct_id_but_iou_below_50'] for r in rows)/len(rows)
+            ),
+        )
     if all(r.get('condition')=='ctrlo' for r in rows):
         # CTRL-O has a fixed expression-bound slot, not DeOR candidate IDs.
-        result.update(target_coverage=None,selection_accuracy_present=None)
+        result.update(
+            target_coverage=None, selection_accuracy_present=None,
+            coverage_50=None, selector_accuracy_covered_50=None,
+            omission_50=None, wrong_id_covered_50=None,
+            correct_id_but_iou_below_50=None,
+        )
     return result
 
 
@@ -299,6 +327,16 @@ def score(args):
         prediction, mapping = diagnostics[iid]
         target = coco.annToMask(coco.anns[query['annotation_id']]).astype(bool)
         expected = mapping.get(str(query['annotation_id']))
+        candidate_scores = []
+        for candidate in sample['candidates']:
+            candidate_mask = selected_mask(
+                prediction, sample['candidates'], candidate['id']
+            )
+            candidate_scores.append(
+                (score_mask(candidate_mask, target)['iou'], candidate['id'])
+            )
+        best_iou_50, best_id_50 = max(candidate_scores, default=(0.0, None))
+        coverage_50 = bool(best_iou_50 >= 0.5)
         panels = []
         for condition in conditions:
             if condition == 'oracle_id':
@@ -322,7 +360,15 @@ def score(args):
                 image_id=iid,ref_id=query['ref_id'],sent_id=query['sent_id'],
                 annotation_id=query['annotation_id'],request=query['request'],
                 selected_id=chosen,status=status,expected_id=expected,target_present=expected is not None,
-                selection_correct=expected is not None and chosen==expected,**result)
+                selection_correct=expected is not None and chosen==expected,
+                best_id_50=best_id_50,best_candidate_iou=best_iou_50,
+                coverage_50=coverage_50,
+                selector_correct_covered_50=coverage_50 and chosen==best_id_50,
+                omission_50=not coverage_50,
+                wrong_id_covered_50=coverage_50 and chosen!=best_id_50,
+                correct_id_but_iou_below_50=(
+                    expected is not None and chosen==expected and result['iou']<0.5
+                ),**result)
             rows.append(row)
             if saved < args.save_examples:
                 with Image.open(sample['image_path']) as im:
@@ -384,6 +430,7 @@ def parse_args(argv=None):
     p.add_argument('--ar_max_new_tokens',type=int,default=2048)
     p.add_argument('--cache_bundles',action='store_true')
     p.add_argument('--presence_iou',type=float,default=.1)
+    p.add_argument('--exclude_train_overlap', action='store_true')
     p.add_argument('--cpu_threads',type=int,default=3)
     p.add_argument('--selector_model',default='/home/jovyan/.cache/huggingface/hub/models--Qwen--Qwen3-VL-4B-Instruct/snapshots/ebb281ec70b05090aa6165b016eac8ec08e71b17')
     p.add_argument('--selector_max_new_tokens',type=int,default=64)

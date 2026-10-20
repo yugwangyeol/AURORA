@@ -1,0 +1,92 @@
+{
+  "model_path": "checkpoints/pgot_oneshot_memorysoftmax_feature/checkpoint-5000",
+  "num_samples": 512,
+  "num_valid_objects": 2742,
+  "writer_object_memory_pairs": {
+    "attention_cosine": {
+      "mean": 0.4395752587837758,
+      "std": 0.2533036101514764,
+      "median": 0.41704660654067993,
+      "count": 16452
+    },
+    "attention_overlap": {
+      "mean": 0.4041334545071566,
+      "std": 0.18573227448244323,
+      "median": 0.39123669266700745,
+      "count": 16452
+    },
+    "attention_js": {
+      "mean": 0.279184669405122,
+      "std": 0.14297934706266777,
+      "median": 0.26870808005332947,
+      "count": 16452
+    },
+    "centroid_distance": {
+      "mean": 0.11956148573408308,
+      "std": 0.0991015915099414,
+      "median": 0.09302402660250664,
+      "count": 16452
+    },
+    "top32_jaccard": {
+      "mean": 0.35521239372490643,
+      "std": 0.2596520908092547,
+      "median": 0.3617021143436432,
+      "count": 16452
+    },
+    "value_cosine": {
+      "mean": 0.8563414661600052,
+      "std": 0.1300405496303562,
+      "median": 0.8960466086864471,
+      "count": 16452
+    }
+  },
+  "writer_memory_entropy": {
+    "mean": 3.3561106437889308,
+    "std": 1.146798169846883,
+    "median": 3.3425978422164917,
+    "count": 10968
+  },
+  "reader_within_object": {
+    "per_query_entropy": {
+      "mean": 0.7480491375934797,
+      "std": 0.311149468449131,
+      "median": 0.7097066640853882,
+      "count": 2635
+    },
+    "global_usage_entropy": {
+      "mean": 1.0382275524451348,
+      "std": 0.3316377654366136,
+      "median": 1.1514092683792114,
+      "count": 2635
+    },
+    "global_max_share": {
+      "mean": 0.5279545138524651,
+      "std": 0.18637212725976351,
+      "median": 0.4817667007446289,
+      "count": 2635
+    },
+    "mean_usage_by_memory_id": [
+      0.21497835218906403,
+      0.2810653746128082,
+      0.2794634997844696,
+      0.22449196875095367
+    ]
+  },
+  "object_4_to_mean_pool_1_ablation": {
+    "full_fixed_noise_diffusion_loss": 0.5851742611266673,
+    "pooled_fixed_noise_diffusion_loss": 0.5925250828731805,
+    "loss_delta": 0.0073508217465132475,
+    "condition_relative_l2": {
+      "mean": 0.15679262325102172,
+      "std": 0.062294414899276895,
+      "median": 0.15934880077838898,
+      "count": 512
+    },
+    "condition_cosine": {
+      "mean": 0.9857698739506304,
+      "std": 0.010059057728892377,
+      "median": 0.9873057305812836,
+      "count": 512
+    }
+  }
+}

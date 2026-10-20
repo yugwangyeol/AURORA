@@ -1,0 +1,17 @@
+{
+  "checkpoint": "/home/jovyan/baselines/ckpt/ctrlo/pretrained_model.ckpt",
+  "global_step": 71000,
+  "loaded_model_tensors": 272,
+  "strict": true,
+  "conditioning": "routed.ocl.conditioning.LangConditioning",
+  "query_protocol": "same generated AR description; NO GT text or coordinates",
+  "image_preprocessing": "shared 512 center-crop; official PIL bilinear 224 square resize + ImageNet normalize",
+  "slots": 7,
+  "seed": 0,
+  "dtype": "float32",
+  "point_input": "-1 sentinel as official visualization; LangConditioning ignores points",
+  "selection": "full split or fixed subset; no GT-quality selection",
+  "queries_per_pass": 6,
+  "all_queries_retained": true,
+  "released_training_shards": "${oc.env:DATASET_PREFIX}/vg_coco/train/shard-{000000..001100}.tar"
+}

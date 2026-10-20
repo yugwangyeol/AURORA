@@ -1,0 +1,24 @@
+{
+  "model": "xinlai/LISA-7B-v1",
+  "model_family": "LISA",
+  "repo": "/home/jovyan/baselines/LISA",
+  "repo_commit": "3cb2d4301f1af4691bd4f3938335ef06e76f155a",
+  "repo_has_runtime_patch": true,
+  "repo_diff_sha256": "a6d1156c1f8029bcbda765f1749d18d8bf258478c46a5449d654d53c6ae67440",
+  "subset": "nonoverlap",
+  "expressions": 18906,
+  "prompt_template": "What is {expression} in this image? Please output segmentation mask.",
+  "assistant_response": "[SEG].",
+  "expression_rewriting": false,
+  "gt_inputs": [],
+  "mask_threshold": 0.0,
+  "precision": "bf16",
+  "queries_per_pass": 4,
+  "splits": [
+    "val",
+    "testA",
+    "testB"
+  ],
+  "elapsed_seconds": 1143.1739879529923,
+  "completed_expressions": 18906
+}

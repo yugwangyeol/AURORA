@@ -1,0 +1,194 @@
+{
+  "layout": "2x2 sets; each set contains Image and two description-region panels",
+  "top_row_source": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e2_description_region_alignment/manifest_v3.json",
+  "bottom_row_source": "/home/jovyan/PGOT/outputs/paper_figures/deor_grounding_2x2_v3/manifest.json",
+  "input": "image-only autoregressive",
+  "caption_display": "verbatim generated first sentences",
+  "prediction_panels_modified": false,
+  "canvas_size": [
+    3184,
+    1676
+  ],
+  "sets": [
+    {
+      "origin": "description_region_alignment_v3",
+      "dataset": "coco",
+      "id": "22935",
+      "grid_position": [
+        0,
+        0
+      ],
+      "descriptions": [
+        "A focused female player in the foreground, wearing a blue jersey with white accents and \"ACRONIS\" written on it.",
+        "Another player in the background is partially visible, wearing a yellow jersey and seems to be watching the first player's actions."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/01_coco_22935/image.png",
+          "source_sha256": "a9ac02f9f1836ca1cddca700972b88f36eea20c392719ff918c2771fb7bfdb09",
+          "box": [
+            16,
+            300,
+            528,
+            812
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/01_coco_22935/object_01_overlay.png",
+          "source_sha256": "d14420405b84a849a447efe2413ddc99e101c2a21087ad6e02a7a5f1d6f7fd65",
+          "box": [
+            536,
+            300,
+            1048,
+            812
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix/01_coco_22935/object_02_overlay.png",
+          "source_sha256": "3c30f4e4095602219335e981ba8068ddfb48e5d88d84b60a5ed7af7675d44f79",
+          "box": [
+            1056,
+            300,
+            1568,
+            812
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "description_region_alignment_v3",
+      "dataset": "coco",
+      "id": "147745",
+      "grid_position": [
+        0,
+        1
+      ],
+      "descriptions": [
+        "The first truck is a white DAF truck with blue and green logos on its front.",
+        "The second truck is also a white DAF truck but with \"GRAB HIRE\" written on its side in blue and white colors."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/02_coco_147745/image.png",
+          "source_sha256": "a114485f68545248b6ab5ce902498263b0e820e683fcdd2ed4f02011d973509d",
+          "box": [
+            1616,
+            300,
+            2128,
+            812
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/02_coco_147745/object_01_overlay.png",
+          "source_sha256": "3f76c0289db1c94c49473ac6d4fc7cb7bc1ddb06e214ad546bfb057d6258473e",
+          "box": [
+            2136,
+            300,
+            2648,
+            812
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/appendix_v2_candidates_b/02_coco_147745/object_02_overlay.png",
+          "source_sha256": "e6ae804d58d7c753e84622ff8c0d8baa1cf4edf1f9063f0a7740aefcbbbc3aab",
+          "box": [
+            2656,
+            300,
+            3168,
+            812
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "deor_grounding_2x2_v3_bottom_row",
+      "dataset": "voc",
+      "id": "2010_004165",
+      "grid_position": [
+        1,
+        0
+      ],
+      "descriptions": [
+        "A person with glasses and a red jacket is smiling, holding a white fluffy dog in their arms.",
+        "The person is holding a white fluffy dog tightly, its fur appearing soft and well-groomed."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/10_voc_2010_004165/image.png",
+          "source_sha256": "2eab91ca27371c01ab09f60dc8251be80e2007fa763ea488c0b88d7b85e48d90",
+          "box": [
+            16,
+            1148,
+            528,
+            1660
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/10_voc_2010_004165/object_01_overlay.png",
+          "source_sha256": "28a6d7c395e7f5d7bb582d219b9b9424b61732cd6308e2fc5837f450935148d6",
+          "box": [
+            536,
+            1148,
+            1048,
+            1660
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/10_voc_2010_004165/object_02_overlay.png",
+          "source_sha256": "f5120026580dcc48394ebda31d88b073d2189f1f1f3f31257171f8fd84deb1bd",
+          "box": [
+            1056,
+            1148,
+            1568,
+            1660
+          ]
+        }
+      ]
+    },
+    {
+      "origin": "deor_grounding_2x2_v3_bottom_row",
+      "dataset": "coco",
+      "id": "339823",
+      "grid_position": [
+        1,
+        1
+      ],
+      "descriptions": [
+        "A black umbrella with intricate black lace patterns and a curved handle.",
+        "A person is visible from the waist up, wearing a vibrant orange dress adorned with white and blue patterns."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/04_coco_339823/image.png",
+          "source_sha256": "df565d548b51154b313081c81d1f2b9f7ccfa31171159910eab14db7398fab4b",
+          "box": [
+            1616,
+            1148,
+            2128,
+            1660
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/04_coco_339823/object_01_overlay.png",
+          "source_sha256": "bf1b2da989fe0814cb23f88021420cf87eab253936ae2869e2ffe25545d625c5",
+          "box": [
+            2136,
+            1148,
+            2648,
+            1660
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/figure_deor_ar_grounding/curated/04_coco_339823/object_02_overlay.png",
+          "source_sha256": "b771f6c70d20fe158ca784fab0eaf31402983a1f428caaac3d47f741a69e4a13",
+          "box": [
+            2656,
+            1148,
+            3168,
+            1660
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,302 @@
+{
+  "task": "coco_object_count_extraction",
+  "model": "AdaSlot",
+  "train_dataset": "COCO",
+  "dataset": "coco",
+  "split": "val2017",
+  "num_samples": 5000,
+  "seed": 0,
+  "batch_size": 4,
+  "device": "cuda",
+  "protocol": "COCO val2017 cache order; visible GT instance IDs after CODA 512 center crop and overlap exclusion; count-only inference with no segmentation metric",
+  "active_count_source": "official hard_keep_decision.sum",
+  "active_count_mean": 6.113,
+  "active_count_min": 1,
+  "active_count_max": 12,
+  "gt_count_mean": 5.7808,
+  "object_count_mae": 4.3222,
+  "active_count_distribution": {
+    "1": {
+      "n": 1,
+      "fraction": 0.0002
+    },
+    "2": {
+      "n": 13,
+      "fraction": 0.0026
+    },
+    "3": {
+      "n": 134,
+      "fraction": 0.0268
+    },
+    "4": {
+      "n": 566,
+      "fraction": 0.1132
+    },
+    "5": {
+      "n": 1079,
+      "fraction": 0.2158
+    },
+    "6": {
+      "n": 1302,
+      "fraction": 0.2604
+    },
+    "7": {
+      "n": 1023,
+      "fraction": 0.2046
+    },
+    "8": {
+      "n": 548,
+      "fraction": 0.1096
+    },
+    "9": {
+      "n": 242,
+      "fraction": 0.0484
+    },
+    "10": {
+      "n": 73,
+      "fraction": 0.0146
+    },
+    "11": {
+      "n": 16,
+      "fraction": 0.0032
+    },
+    "12": {
+      "n": 3,
+      "fraction": 0.0006
+    }
+  },
+  "gt_count_distribution": {
+    "0": {
+      "n": 54,
+      "fraction": 0.0108
+    },
+    "1": {
+      "n": 851,
+      "fraction": 0.1702
+    },
+    "2": {
+      "n": 1036,
+      "fraction": 0.2072
+    },
+    "3": {
+      "n": 565,
+      "fraction": 0.113
+    },
+    "4": {
+      "n": 420,
+      "fraction": 0.084
+    },
+    "5": {
+      "n": 304,
+      "fraction": 0.0608
+    },
+    "6": {
+      "n": 244,
+      "fraction": 0.0488
+    },
+    "7": {
+      "n": 209,
+      "fraction": 0.0418
+    },
+    "8": {
+      "n": 174,
+      "fraction": 0.0348
+    },
+    "9": {
+      "n": 171,
+      "fraction": 0.0342
+    },
+    "10": {
+      "n": 125,
+      "fraction": 0.025
+    },
+    "11": {
+      "n": 110,
+      "fraction": 0.022
+    },
+    "12": {
+      "n": 94,
+      "fraction": 0.0188
+    },
+    "13": {
+      "n": 99,
+      "fraction": 0.0198
+    },
+    "14": {
+      "n": 82,
+      "fraction": 0.0164
+    },
+    "15": {
+      "n": 81,
+      "fraction": 0.0162
+    },
+    "16": {
+      "n": 61,
+      "fraction": 0.0122
+    },
+    "17": {
+      "n": 56,
+      "fraction": 0.0112
+    },
+    "18": {
+      "n": 49,
+      "fraction": 0.0098
+    },
+    "19": {
+      "n": 28,
+      "fraction": 0.0056
+    },
+    "20": {
+      "n": 26,
+      "fraction": 0.0052
+    },
+    "21": {
+      "n": 25,
+      "fraction": 0.005
+    },
+    "22": {
+      "n": 26,
+      "fraction": 0.0052
+    },
+    "23": {
+      "n": 17,
+      "fraction": 0.0034
+    },
+    "24": {
+      "n": 18,
+      "fraction": 0.0036
+    },
+    "25": {
+      "n": 17,
+      "fraction": 0.0034
+    },
+    "26": {
+      "n": 8,
+      "fraction": 0.0016
+    },
+    "27": {
+      "n": 8,
+      "fraction": 0.0016
+    },
+    "28": {
+      "n": 10,
+      "fraction": 0.002
+    },
+    "29": {
+      "n": 4,
+      "fraction": 0.0008
+    },
+    "30": {
+      "n": 4,
+      "fraction": 0.0008
+    },
+    "31": {
+      "n": 7,
+      "fraction": 0.0014
+    },
+    "32": {
+      "n": 4,
+      "fraction": 0.0008
+    },
+    "33": {
+      "n": 2,
+      "fraction": 0.0004
+    },
+    "34": {
+      "n": 1,
+      "fraction": 0.0002
+    },
+    "35": {
+      "n": 2,
+      "fraction": 0.0004
+    },
+    "36": {
+      "n": 1,
+      "fraction": 0.0002
+    },
+    "37": {
+      "n": 1,
+      "fraction": 0.0002
+    },
+    "38": {
+      "n": 1,
+      "fraction": 0.0002
+    },
+    "39": {
+      "n": 1,
+      "fraction": 0.0002
+    },
+    "40": {
+      "n": 2,
+      "fraction": 0.0004
+    },
+    "45": {
+      "n": 1,
+      "fraction": 0.0002
+    },
+    "53": {
+      "n": 1,
+      "fraction": 0.0002
+    }
+  },
+  "by_gt_object_count": {
+    "0": {
+      "n": 54,
+      "gt_count_mean": 0.0,
+      "active_count_mean": 5.796296296296297,
+      "count_mae": 5.796296296296297
+    },
+    "1-3": {
+      "n": 2452,
+      "gt_count_mean": 1.8833605220228384,
+      "active_count_mean": 5.814437194127243,
+      "count_mae": 3.9310766721044046
+    },
+    "4-6": {
+      "n": 968,
+      "gt_count_mean": 4.818181818181818,
+      "active_count_mean": 6.299586776859504,
+      "count_mae": 1.7830578512396693
+    },
+    "7-10": {
+      "n": 679,
+      "gt_count_mean": 8.312223858615612,
+      "active_count_mean": 6.5022091310751104,
+      "count_mae": 2.1163475699558174
+    },
+    "11+": {
+      "n": 847,
+      "gt_count_mean": 16.502951593860686,
+      "active_count_mean": 6.472255017709563,
+      "count_mae": 10.030696576151122
+    }
+  },
+  "model_info": {
+    "checkpoint": "/home/jovyan/baselines/ckpt/adaslot-coco.ckpt",
+    "checkpoint_global_step": 500000,
+    "config": "/home/jovyan/baselines/AdaSlot/configs/experiment/projects/bridging/dinosaur/coco_feat_rec_dino_base16_adaslot_eval.yaml",
+    "repository_revision": "6a60387f4ee985e55b254274f41974e1aa5130e8",
+    "num_slots": 33,
+    "model_input_resolution": 224,
+    "decoder_patch_grid": [
+      14,
+      14
+    ],
+    "mask_source": "official object_decoder.masks_as_image (224x224), kept-slot masked alpha",
+    "preprocessing": "official COCO eval: tensor bicubic Resize(224), clamp, CenterCrop(224), ImageNet normalize",
+    "resize_antialias": false,
+    "slot_selection": "official stochastic random conditioning + hard Gumbel softmax (tau=1); no GT count",
+    "dtype": "float32",
+    "torch_version": "2.11.0+cu130",
+    "timm_version": "0.6.7",
+    "load_report": {
+      "strict": true,
+      "loaded_tensors": 188,
+      "missing": 0,
+      "unexpected": 0,
+      "frozen_backbone_included": true
+    }
+  },
+  "elapsed_sec": 170.98378324508667,
+  "peak_gpu_memory_GiB": 0.8013973236083984
+}

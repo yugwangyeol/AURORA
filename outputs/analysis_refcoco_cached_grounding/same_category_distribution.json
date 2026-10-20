@@ -1,0 +1,498 @@
+{
+  "source": "outputs/analysis_refcoco_cached_grounding/per_expression.jsonl",
+  "definition": "Number of other valid GT instances in the same image with the target COCO category. The target annotation itself is excluded.",
+  "subsets": {
+    "full": {
+      "val": {
+        "num_images": 1500,
+        "num_expressions": 10834,
+        "expressions_with_distractor": 10834,
+        "expressions_with_distractor_fraction": 1.0,
+        "mean_distractors": 3.9937234631714973,
+        "median_distractors": 3.0,
+        "max_distractors": 13,
+        "distribution": {
+          "1": {
+            "count": 3742,
+            "fraction": 0.3453941295920251
+          },
+          "2": {
+            "count": 1667,
+            "fraction": 0.15386745431050397
+          },
+          "3": {
+            "count": 1198,
+            "fraction": 0.110577810596271
+          },
+          "4": {
+            "count": 930,
+            "fraction": 0.08584087133099502
+          },
+          "5": {
+            "count": 571,
+            "fraction": 0.05270444895698726
+          },
+          "6": {
+            "count": 384,
+            "fraction": 0.03544397267860439
+          },
+          "7": {
+            "count": 334,
+            "fraction": 0.030828872069411112
+          },
+          "8": {
+            "count": 221,
+            "fraction": 0.0203987446926343
+          },
+          "9": {
+            "count": 291,
+            "fraction": 0.02685988554550489
+          },
+          "10": {
+            "count": 285,
+            "fraction": 0.026306073472401697
+          },
+          "11": {
+            "count": 397,
+            "fraction": 0.03664389883699465
+          },
+          "12": {
+            "count": 805,
+            "fraction": 0.07430311980801181
+          },
+          "13": {
+            "count": 9,
+            "fraction": 0.0008307181096547905
+          }
+        }
+      },
+      "testA": {
+        "num_images": 750,
+        "num_expressions": 5657,
+        "expressions_with_distractor": 5657,
+        "expressions_with_distractor_fraction": 1.0,
+        "mean_distractors": 4.299275234223087,
+        "median_distractors": 3.0,
+        "max_distractors": 12,
+        "distribution": {
+          "1": {
+            "count": 1529,
+            "fraction": 0.2702846031465441
+          },
+          "2": {
+            "count": 964,
+            "fraction": 0.17040834364504154
+          },
+          "3": {
+            "count": 788,
+            "fraction": 0.13929644687997172
+          },
+          "4": {
+            "count": 470,
+            "fraction": 0.08308290613399329
+          },
+          "5": {
+            "count": 316,
+            "fraction": 0.055859996464557186
+          },
+          "6": {
+            "count": 185,
+            "fraction": 0.03270284603146544
+          },
+          "7": {
+            "count": 156,
+            "fraction": 0.027576453950857345
+          },
+          "8": {
+            "count": 240,
+            "fraction": 0.04242531377054976
+          },
+          "9": {
+            "count": 224,
+            "fraction": 0.03959695951917978
+          },
+          "10": {
+            "count": 164,
+            "fraction": 0.028990631076542338
+          },
+          "11": {
+            "count": 190,
+            "fraction": 0.03358670673501856
+          },
+          "12": {
+            "count": 431,
+            "fraction": 0.07618879264627895
+          }
+        }
+      },
+      "testB": {
+        "num_images": 750,
+        "num_expressions": 5095,
+        "expressions_with_distractor": 5095,
+        "expressions_with_distractor_fraction": 1.0,
+        "mean_distractors": 3.292443572129539,
+        "median_distractors": 2.0,
+        "max_distractors": 12,
+        "distribution": {
+          "1": {
+            "count": 2182,
+            "fraction": 0.42826300294406283
+          },
+          "2": {
+            "count": 881,
+            "fraction": 0.17291462217860648
+          },
+          "3": {
+            "count": 547,
+            "fraction": 0.10736015701668303
+          },
+          "4": {
+            "count": 278,
+            "fraction": 0.05456329735034347
+          },
+          "5": {
+            "count": 233,
+            "fraction": 0.045731108930323845
+          },
+          "6": {
+            "count": 147,
+            "fraction": 0.02885181550539745
+          },
+          "7": {
+            "count": 106,
+            "fraction": 0.020804710500490677
+          },
+          "8": {
+            "count": 180,
+            "fraction": 0.03532875368007851
+          },
+          "9": {
+            "count": 115,
+            "fraction": 0.022571148184494603
+          },
+          "10": {
+            "count": 71,
+            "fraction": 0.01393523061825319
+          },
+          "11": {
+            "count": 156,
+            "fraction": 0.030618253189401375
+          },
+          "12": {
+            "count": 199,
+            "fraction": 0.039057899901864576
+          }
+        }
+      },
+      "all": {
+        "num_images": 3000,
+        "num_expressions": 21586,
+        "expressions_with_distractor": 21586,
+        "expressions_with_distractor_fraction": 1.0,
+        "mean_distractors": 3.908273881219309,
+        "median_distractors": 2.0,
+        "max_distractors": 13,
+        "distribution": {
+          "1": {
+            "count": 7453,
+            "fraction": 0.3452700824608543
+          },
+          "2": {
+            "count": 3512,
+            "fraction": 0.16269804502918558
+          },
+          "3": {
+            "count": 2533,
+            "fraction": 0.1173445751876216
+          },
+          "4": {
+            "count": 1678,
+            "fraction": 0.07773556935050496
+          },
+          "5": {
+            "count": 1120,
+            "fraction": 0.051885481330491985
+          },
+          "6": {
+            "count": 716,
+            "fraction": 0.03316964699342166
+          },
+          "7": {
+            "count": 596,
+            "fraction": 0.02761048827944038
+          },
+          "8": {
+            "count": 641,
+            "fraction": 0.02969517279718336
+          },
+          "9": {
+            "count": 630,
+            "fraction": 0.02918558324840174
+          },
+          "10": {
+            "count": 520,
+            "fraction": 0.024089687760585565
+          },
+          "11": {
+            "count": 743,
+            "fraction": 0.03442045770406745
+          },
+          "12": {
+            "count": 1435,
+            "fraction": 0.06647827295469286
+          },
+          "13": {
+            "count": 9,
+            "fraction": 0.0004169369035485963
+          }
+        }
+      }
+    },
+    "nonoverlap": {
+      "val": {
+        "num_images": 1309,
+        "num_expressions": 9530,
+        "expressions_with_distractor": 9530,
+        "expressions_with_distractor_fraction": 1.0,
+        "mean_distractors": 4.103672612801679,
+        "median_distractors": 3.0,
+        "max_distractors": 13,
+        "distribution": {
+          "1": {
+            "count": 3219,
+            "fraction": 0.33777544596012593
+          },
+          "2": {
+            "count": 1454,
+            "fraction": 0.15257082896117524
+          },
+          "3": {
+            "count": 1053,
+            "fraction": 0.11049317943336831
+          },
+          "4": {
+            "count": 816,
+            "fraction": 0.08562434417628541
+          },
+          "5": {
+            "count": 473,
+            "fraction": 0.049632738719832106
+          },
+          "6": {
+            "count": 353,
+            "fraction": 0.037040923399790135
+          },
+          "7": {
+            "count": 296,
+            "fraction": 0.0310598111227702
+          },
+          "8": {
+            "count": 203,
+            "fraction": 0.02130115424973767
+          },
+          "9": {
+            "count": 247,
+            "fraction": 0.02591815320041973
+          },
+          "10": {
+            "count": 235,
+            "fraction": 0.02465897166841553
+          },
+          "11": {
+            "count": 375,
+            "fraction": 0.039349422875131164
+          },
+          "12": {
+            "count": 797,
+            "fraction": 0.08363064008394544
+          },
+          "13": {
+            "count": 9,
+            "fraction": 0.000944386149003148
+          }
+        }
+      },
+      "testA": {
+        "num_images": 662,
+        "num_expressions": 5048,
+        "expressions_with_distractor": 5048,
+        "expressions_with_distractor_fraction": 1.0,
+        "mean_distractors": 4.484152139461172,
+        "median_distractors": 3.0,
+        "max_distractors": 12,
+        "distribution": {
+          "1": {
+            "count": 1282,
+            "fraction": 0.2539619651347068
+          },
+          "2": {
+            "count": 851,
+            "fraction": 0.16858161648177497
+          },
+          "3": {
+            "count": 682,
+            "fraction": 0.13510301109350237
+          },
+          "4": {
+            "count": 412,
+            "fraction": 0.08161648177496038
+          },
+          "5": {
+            "count": 293,
+            "fraction": 0.058042789223454835
+          },
+          "6": {
+            "count": 176,
+            "fraction": 0.03486529318541997
+          },
+          "7": {
+            "count": 148,
+            "fraction": 0.029318541996830427
+          },
+          "8": {
+            "count": 238,
+            "fraction": 0.04714738510301109
+          },
+          "9": {
+            "count": 215,
+            "fraction": 0.042591125198098254
+          },
+          "10": {
+            "count": 130,
+            "fraction": 0.025752773375594295
+          },
+          "11": {
+            "count": 190,
+            "fraction": 0.03763866877971474
+          },
+          "12": {
+            "count": 431,
+            "fraction": 0.08538034865293186
+          }
+        }
+      },
+      "testB": {
+        "num_images": 629,
+        "num_expressions": 4328,
+        "expressions_with_distractor": 4328,
+        "expressions_with_distractor_fraction": 1.0,
+        "mean_distractors": 3.4189001848428835,
+        "median_distractors": 2.0,
+        "max_distractors": 12,
+        "distribution": {
+          "1": {
+            "count": 1825,
+            "fraction": 0.4216728280961183
+          },
+          "2": {
+            "count": 719,
+            "fraction": 0.1661275415896488
+          },
+          "3": {
+            "count": 470,
+            "fraction": 0.10859519408502773
+          },
+          "4": {
+            "count": 217,
+            "fraction": 0.05013863216266174
+          },
+          "5": {
+            "count": 212,
+            "fraction": 0.048983364140480594
+          },
+          "6": {
+            "count": 139,
+            "fraction": 0.03211645101663586
+          },
+          "7": {
+            "count": 83,
+            "fraction": 0.019177449168207024
+          },
+          "8": {
+            "count": 148,
+            "fraction": 0.034195933456561925
+          },
+          "9": {
+            "count": 98,
+            "fraction": 0.02264325323475046
+          },
+          "10": {
+            "count": 71,
+            "fraction": 0.016404805914972273
+          },
+          "11": {
+            "count": 147,
+            "fraction": 0.03396487985212569
+          },
+          "12": {
+            "count": 199,
+            "fraction": 0.04597966728280961
+          }
+        }
+      },
+      "all": {
+        "num_images": 2600,
+        "num_expressions": 18906,
+        "expressions_with_distractor": 18906,
+        "expressions_with_distractor_fraction": 1.0,
+        "mean_distractors": 4.0485031207024225,
+        "median_distractors": 3.0,
+        "max_distractors": 13,
+        "distribution": {
+          "1": {
+            "count": 6326,
+            "fraction": 0.3346027716068973
+          },
+          "2": {
+            "count": 3024,
+            "fraction": 0.15994922246905743
+          },
+          "3": {
+            "count": 2205,
+            "fraction": 0.11662964138368771
+          },
+          "4": {
+            "count": 1445,
+            "fraction": 0.07643076272082937
+          },
+          "5": {
+            "count": 978,
+            "fraction": 0.05172960964773088
+          },
+          "6": {
+            "count": 668,
+            "fraction": 0.03533269861419655
+          },
+          "7": {
+            "count": 527,
+            "fraction": 0.027874748757008357
+          },
+          "8": {
+            "count": 589,
+            "fraction": 0.031154130963715224
+          },
+          "9": {
+            "count": 560,
+            "fraction": 0.029620226383158785
+          },
+          "10": {
+            "count": 436,
+            "fraction": 0.023061461969745053
+          },
+          "11": {
+            "count": 712,
+            "fraction": 0.03766000211573046
+          },
+          "12": {
+            "count": 1427,
+            "fraction": 0.07547868401565641
+          },
+          "13": {
+            "count": 9,
+            "fraction": 0.0004760393525864805
+          }
+        }
+      }
+    }
+  }
+}

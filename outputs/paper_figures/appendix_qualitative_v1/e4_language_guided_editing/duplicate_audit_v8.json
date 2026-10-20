@@ -1,0 +1,33 @@
+{
+  "status": "pass",
+  "criterion": "Selected source and donor COCO image IDs must not occur in any pre-v8 paper-figure manifest, request configuration, or candidate metadata.",
+  "selected_examples": [
+    {
+      "id": "appendix_v8_replace_bicycle_motorcycle",
+      "source_category": "bicycle",
+      "source_image_id": 274687,
+      "donor_category": "motorcycle",
+      "donor_image_id": 321557,
+      "prior_overlap": []
+    },
+    {
+      "id": "appendix_v8_replace_cup_vase",
+      "source_category": "cup",
+      "source_image_id": 331569,
+      "donor_category": "vase",
+      "donor_image_id": 298904,
+      "prior_overlap": []
+    },
+    {
+      "id": "appendix_v8_replace_horse_cow",
+      "source_category": "horse",
+      "source_image_id": 227686,
+      "donor_category": "cow",
+      "donor_image_id": 492992,
+      "prior_overlap": []
+    }
+  ],
+  "replacement_mode": "full_bundle",
+  "semantic_and_visual_bundle_replaced": true,
+  "result": "All six selected COCO images are new relative to the pre-v8 figure and candidate pool."
+}

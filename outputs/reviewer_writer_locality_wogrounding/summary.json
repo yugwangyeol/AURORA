@@ -1,0 +1,73 @@
+{
+  "model_path": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_wogrounding/checkpoint-5000",
+  "num_samples": 512,
+  "protocol": {
+    "caption": "teacher-forced training-format descriptions",
+    "object_metric_unit": "valid visual memory token",
+    "register_metric_unit": "valid register memory token",
+    "register_term": "annotated-object mass (neutral; COCO does not annotate all visual content)",
+    "enrichment": "inside-mask mass divided by mask area fraction; 1 means spatially uniform"
+  },
+  "metrics": {
+    "object_area_normalized_enrichment": {
+      "mean": 2.822014706983524,
+      "std": 10.420341153682648,
+      "ci95": [
+        2.6887044995965748,
+        2.9611857898686016
+      ],
+      "count": 21080
+    },
+    "object_background_mass": {
+      "mean": 0.6306974094672109,
+      "std": 0.3520907248091056,
+      "ci95": [
+        0.6259688724131881,
+        0.6354138496905016
+      ],
+      "count": 21080
+    },
+    "object_inside_mask_mass": {
+      "mean": 0.11195538788864343,
+      "std": 0.24058725773049547,
+      "ci95": [
+        0.10861278120979481,
+        0.11511427971661656
+      ],
+      "count": 21080
+    },
+    "object_other_object_mass": {
+      "mean": 0.2575427307973111,
+      "std": 0.31519273876739123,
+      "ci95": [
+        0.25338006717298234,
+        0.2615735028552474
+      ],
+      "count": 21080
+    },
+    "register_annotated_object_mass": {
+      "mean": 0.3688479264133546,
+      "std": 0.3985898363109832,
+      "ci95": [
+        0.3657495873687024,
+        0.37177277161464867
+      ],
+      "count": 65536
+    },
+    "register_background_mass": {
+      "mean": 0.6311520834074238,
+      "std": 0.39858983621083677,
+      "ci95": [
+        0.6282272380306112,
+        0.6342504221310747
+      ],
+      "count": 65536
+    }
+  },
+  "config": {
+    "reader_supervision_mode": "writer",
+    "owner_weight": 0.0,
+    "object_memories": 8,
+    "register_memories": 32
+  }
+}

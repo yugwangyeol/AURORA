@@ -1,0 +1,75 @@
+{
+  "passed": true,
+  "policy": "No displayed source/donor image is reused across revised figures or audited main-paper figures.",
+  "e3_status": "withdrawn by user; not rebuilt and excluded from revised-figure audit",
+  "figures": {
+    "E1": [
+      "coco:166478",
+      "coco:209613",
+      "coco:248631",
+      "coco:37740",
+      "coco:402473",
+      "coco:537506",
+      "coco:568710",
+      "coco:66926"
+    ],
+    "E2": [
+      "coco:147745",
+      "coco:157807",
+      "coco:22935",
+      "coco:409630",
+      "coco:481573",
+      "voc:2007_005845",
+      "voc:2007_007417",
+      "voc:2007_009346"
+    ],
+    "E4": [
+      "coco:112626",
+      "coco:170893",
+      "coco:243867",
+      "coco:245764",
+      "coco:32861",
+      "coco:350019",
+      "coco:357941",
+      "coco:482585",
+      "coco:566436"
+    ],
+    "E5": [
+      "coco:112997",
+      "coco:138819",
+      "coco:176778",
+      "coco:217425",
+      "coco:227482",
+      "coco:312213",
+      "coco:324715",
+      "coco:39480",
+      "coco:503755",
+      "coco:54931",
+      "coco:554735",
+      "coco:555705",
+      "coco:568690",
+      "coco:84431"
+    ]
+  },
+  "audited_main_figure_cases": [
+    "coco:193429",
+    "coco:205834",
+    "coco:243344",
+    "coco:261161",
+    "coco:323151",
+    "coco:339823",
+    "coco:449909",
+    "coco:450686",
+    "coco:52891",
+    "coco:552371",
+    "coco:554595",
+    "coco:559956",
+    "coco:802",
+    "coco:90208",
+    "voc:2007_005149",
+    "voc:2007_007795",
+    "voc:2010_004165"
+  ],
+  "appendix_conflicts": [],
+  "main_figure_conflicts": []
+}

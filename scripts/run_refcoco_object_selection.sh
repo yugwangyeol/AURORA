@@ -35,6 +35,7 @@ COMMON=(--output_dir "${OUTPUT_DIR}" --splits "${split_args[@]}"
     --llm2vec_adapter "${LLM2VEC_ADAPTER:-McGill-NLP/LLM2Vec-Meta-Llama-3-8B-Instruct-mntp-unsup-simcse}"
     --embedding_batch_size "${EMBEDDING_BATCH_SIZE:-4}"
     --embedding_max_length "${EMBEDDING_MAX_LENGTH:-1024}")
+if [[ "${EXCLUDE_TRAIN_OVERLAP:-0}" == 1 ]]; then COMMON+=(--exclude_train_overlap); fi
 if [[ "${WITH_CTRLO}" == 1 ]]; then COMMON+=(--with_ctrlo); fi
 if [[ "${CACHE_BUNDLES:-0}" == 1 ]]; then COMMON+=(--cache_bundles); fi
 run_stage() {

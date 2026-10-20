@@ -1,0 +1,910 @@
+{
+  "overlay_alpha": 0.65,
+  "background_colored": true,
+  "prediction_labels_modified": false,
+  "gt_matching": "display colors only",
+  "ignore_display": "neutral gray; excluded from color assignment",
+  "model_order": [
+    "AdaSlot",
+    "MetaSlot",
+    "CODA",
+    "Ours"
+  ],
+  "user_selections": {
+    "coco_over": {
+      "number": 1,
+      "id": "552371"
+    },
+    "coco_under": {
+      "number": 3,
+      "id": "559956"
+    },
+    "voc_over": {
+      "number": 5,
+      "id": "2007_005149"
+    },
+    "voc_under": {
+      "number": 7,
+      "id": "2007_007795"
+    }
+  },
+  "rendered_groups": [
+    "coco_under",
+    "voc_under"
+  ],
+  "coco_under": {
+    "id": "559956",
+    "strict_eligible": true,
+    "scores": {
+      "adaslot": {
+        "fARI": 0.5533467583231432,
+        "mIoU": 0.3146486567173019,
+        "mBO": 0.3361208029407665,
+        "pred_segments": 7,
+        "significant_gt_objects": 7,
+        "split_count": 1,
+        "merge_count": 3,
+        "split_gt_labels": [
+          1
+        ],
+        "merged_pred_labels": [
+          1,
+          12,
+          29
+        ],
+        "merge_gt_labels": {
+          "1": [
+            4,
+            7
+          ],
+          "12": [
+            1,
+            2
+          ],
+          "29": [
+            3,
+            8
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 1796667487,
+        "kept_slots": 7,
+        "slot_keep_probability_mean": 0.20811323821544647
+      },
+      "metaslot": {
+        "fARI": 0.5223513812001013,
+        "mIoU": 0.31062495282832114,
+        "mBO": 0.34912371157313365,
+        "pred_segments": 6,
+        "significant_gt_objects": 7,
+        "split_count": 0,
+        "merge_count": 1,
+        "split_gt_labels": [],
+        "merged_pred_labels": [
+          0
+        ],
+        "merge_gt_labels": {
+          "0": [
+            1,
+            2,
+            3
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 1796667487
+      },
+      "coda": {
+        "fARI": 0.5307093654691145,
+        "mIoU": 0.30509932189909617,
+        "mBO": 0.3784484085500429,
+        "pred_segments": 7,
+        "significant_gt_objects": 7,
+        "split_count": 0,
+        "merge_count": 2,
+        "split_gt_labels": [],
+        "merged_pred_labels": [
+          2,
+          3
+        ],
+        "merge_gt_labels": {
+          "2": [
+            1,
+            2
+          ],
+          "3": [
+            6,
+            7
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 1796667487
+      },
+      "ours": {
+        "fARI": 0.8387853681566274,
+        "mIoU": 0.7026685918526866,
+        "mBO": 0.6901184204796218,
+        "pred_segments": 10,
+        "significant_gt_objects": 7,
+        "split_count": 0,
+        "merge_count": 0,
+        "split_gt_labels": [],
+        "merged_pred_labels": [],
+        "merge_gt_labels": {},
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 9,
+        "caption_sha256": "2758e3890b72e9ea4f5023fd6e2a91ba801f3058e0edcd39eace2613369428c9"
+      }
+    },
+    "panels": {
+      "gt": {
+        "source_sha256": "0301761e212c9e43aba0d4f34795e60c99683c87fcee06737fb27df1bdca37b0",
+        "label_colors": {
+          "0": [
+            245,
+            55,
+            104
+          ],
+          "1": [
+            65,
+            235,
+            130
+          ],
+          "2": [
+            255,
+            211,
+            45
+          ],
+          "3": [
+            90,
+            110,
+            255
+          ],
+          "4": [
+            204,
+            65,
+            238
+          ],
+          "5": [
+            35,
+            223,
+            223
+          ],
+          "6": [
+            255,
+            131,
+            30
+          ],
+          "7": [
+            135,
+            55,
+            225
+          ],
+          "8": [
+            35,
+            165,
+            240
+          ]
+        },
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      },
+      "adaslot": {
+        "source_sha256": "963d7ad3f75f946838aac550a38842833f33ae125c57c905305ee6b01041c84e",
+        "label_colors": {
+          "21": [
+            245,
+            55,
+            104
+          ],
+          "28": [
+            65,
+            235,
+            130
+          ],
+          "12": [
+            255,
+            211,
+            45
+          ],
+          "22": [
+            255,
+            131,
+            30
+          ],
+          "1": [
+            135,
+            55,
+            225
+          ],
+          "29": [
+            35,
+            165,
+            240
+          ],
+          "30": [
+            212,
+            240,
+            55
+          ]
+        },
+        "unique_labels": [
+          1,
+          12,
+          21,
+          22,
+          28,
+          29,
+          30
+        ]
+      },
+      "metaslot": {
+        "source_sha256": "62f0a8b70c8dc9198259685d0952e39da3c2f2e41a28954b0e54d1ec40896e40",
+        "label_colors": {
+          "1": [
+            245,
+            55,
+            104
+          ],
+          "0": [
+            65,
+            235,
+            130
+          ],
+          "3": [
+            204,
+            65,
+            238
+          ],
+          "4": [
+            255,
+            131,
+            30
+          ],
+          "6": [
+            135,
+            55,
+            225
+          ],
+          "2": [
+            35,
+            165,
+            240
+          ]
+        },
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          6
+        ]
+      },
+      "coda": {
+        "source_sha256": "d19513aaeb1284d190c855a10fb51e4a79713671d1292d37764484aa08759c16",
+        "label_colors": {
+          "0": [
+            245,
+            55,
+            104
+          ],
+          "2": [
+            65,
+            235,
+            130
+          ],
+          "4": [
+            255,
+            211,
+            45
+          ],
+          "5": [
+            90,
+            110,
+            255
+          ],
+          "1": [
+            255,
+            131,
+            30
+          ],
+          "3": [
+            135,
+            55,
+            225
+          ],
+          "6": [
+            35,
+            165,
+            240
+          ]
+        },
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "ours": {
+        "source_sha256": "4257d749bcbfb3beb7e6556b6e0768393db27ea8941c0b5c3253e029cd4375b9",
+        "label_colors": {
+          "0": [
+            245,
+            55,
+            104
+          ],
+          "2": [
+            65,
+            235,
+            130
+          ],
+          "3": [
+            255,
+            211,
+            45
+          ],
+          "5": [
+            90,
+            110,
+            255
+          ],
+          "9": [
+            204,
+            65,
+            238
+          ],
+          "8": [
+            35,
+            223,
+            223
+          ],
+          "6": [
+            255,
+            131,
+            30
+          ],
+          "1": [
+            135,
+            55,
+            225
+          ],
+          "4": [
+            35,
+            165,
+            240
+          ],
+          "7": [
+            212,
+            240,
+            55
+          ]
+        },
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ]
+      }
+    }
+  },
+  "voc_under": {
+    "id": "2007_007795",
+    "strict_eligible": false,
+    "scores": {
+      "adaslot": {
+        "fARI": 0.5276150168151102,
+        "mIoU": 0.20368723048918672,
+        "mBO": 0.21149258642099408,
+        "pred_segments": 7,
+        "significant_gt_objects": 9,
+        "split_count": 2,
+        "merge_count": 3,
+        "split_gt_labels": [
+          1,
+          7
+        ],
+        "merged_pred_labels": [
+          11,
+          25,
+          28
+        ],
+        "merge_gt_labels": {
+          "11": [
+            8,
+            10
+          ],
+          "25": [
+            4,
+            5,
+            7
+          ],
+          "28": [
+            1,
+            2,
+            3
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3151868292,
+        "kept_slots": 7,
+        "slot_keep_probability_mean": 0.23190371692180634
+      },
+      "metaslot": {
+        "fARI": 0.4834380875218734,
+        "mIoU": 0.11580525777463552,
+        "mBO": 0.1620577380924015,
+        "pred_segments": 5,
+        "significant_gt_objects": 9,
+        "split_count": 0,
+        "merge_count": 3,
+        "split_gt_labels": [],
+        "merged_pred_labels": [
+          0,
+          2,
+          3
+        ],
+        "merge_gt_labels": {
+          "0": [
+            4,
+            5,
+            6
+          ],
+          "2": [
+            8,
+            10
+          ],
+          "3": [
+            1,
+            2,
+            3
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3151868292
+      },
+      "coda": {
+        "fARI": 0.7879814693134201,
+        "mIoU": 0.2695539842699715,
+        "mBO": 0.29488406245962623,
+        "pred_segments": 7,
+        "significant_gt_objects": 9,
+        "split_count": 2,
+        "merge_count": 3,
+        "split_gt_labels": [
+          6,
+          10
+        ],
+        "merged_pred_labels": [
+          1,
+          4,
+          6
+        ],
+        "merge_gt_labels": {
+          "1": [
+            4,
+            5,
+            6
+          ],
+          "4": [
+            8,
+            10
+          ],
+          "6": [
+            2,
+            3
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "image_seed": 3151868292
+      },
+      "ours": {
+        "fARI": 0.9230914599755159,
+        "mIoU": 0.724362169604888,
+        "mBO": 0.7221604850162722,
+        "pred_segments": 23,
+        "significant_gt_objects": 9,
+        "split_count": 2,
+        "merge_count": 1,
+        "split_gt_labels": [
+          3,
+          8
+        ],
+        "merged_pred_labels": [
+          2
+        ],
+        "merge_gt_labels": {
+          "2": [
+            2,
+            3
+          ]
+        },
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 24,
+        "caption_sha256": "7c4147c139ed65bc3ade6b7f8371670d89af139b49bfa0485738e2a063a56427"
+      }
+    },
+    "panels": {
+      "gt": {
+        "source_sha256": "2c5670d38cd7b8d555b88db43b0798a7758d8a04f40207d4a202a9d07ae0202d",
+        "label_colors": {
+          "0": [
+            245,
+            55,
+            104
+          ],
+          "1": [
+            65,
+            235,
+            130
+          ],
+          "2": [
+            255,
+            211,
+            45
+          ],
+          "3": [
+            90,
+            110,
+            255
+          ],
+          "4": [
+            204,
+            65,
+            238
+          ],
+          "5": [
+            35,
+            223,
+            223
+          ],
+          "6": [
+            255,
+            131,
+            30
+          ],
+          "7": [
+            135,
+            55,
+            225
+          ],
+          "8": [
+            35,
+            165,
+            240
+          ],
+          "9": [
+            212,
+            240,
+            55
+          ],
+          "10": [
+            242,
+            80,
+            194
+          ]
+        },
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ]
+      },
+      "adaslot": {
+        "source_sha256": "79b874b8f8f2c3d8c3353a46e2306cb62316835720bcc7c2cc8d48261dbebe58",
+        "label_colors": {
+          "11": [
+            245,
+            55,
+            104
+          ],
+          "12": [
+            65,
+            235,
+            130
+          ],
+          "28": [
+            255,
+            211,
+            45
+          ],
+          "25": [
+            35,
+            223,
+            223
+          ],
+          "9": [
+            255,
+            131,
+            30
+          ],
+          "7": [
+            135,
+            55,
+            225
+          ],
+          "3": [
+            25,
+            190,
+            120
+          ]
+        },
+        "unique_labels": [
+          3,
+          7,
+          9,
+          11,
+          12,
+          25,
+          28
+        ]
+      },
+      "metaslot": {
+        "source_sha256": "e5e85c9094f3adf069ad78654a3be701812f0a289df446a5d15a0907d9d8e704",
+        "label_colors": {
+          "1": [
+            245,
+            55,
+            104
+          ],
+          "3": [
+            65,
+            235,
+            130
+          ],
+          "0": [
+            35,
+            223,
+            223
+          ],
+          "5": [
+            135,
+            55,
+            225
+          ],
+          "2": [
+            35,
+            165,
+            240
+          ]
+        },
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3,
+          5
+        ]
+      },
+      "coda": {
+        "source_sha256": "3d93f95b81dfc1cce11fc2ef16bc103b695ee1f5bb39b2b7451d8f73a1700bd5",
+        "label_colors": {
+          "3": [
+            245,
+            55,
+            104
+          ],
+          "2": [
+            65,
+            235,
+            130
+          ],
+          "6": [
+            255,
+            211,
+            45
+          ],
+          "1": [
+            35,
+            223,
+            223
+          ],
+          "0": [
+            255,
+            131,
+            30
+          ],
+          "5": [
+            135,
+            55,
+            225
+          ],
+          "4": [
+            35,
+            165,
+            240
+          ]
+        },
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "ours": {
+        "source_sha256": "e31563e76e21fac314b4efca2c9af5e51229a19cd693e000522ac33d5d39bbf0",
+        "label_colors": {
+          "0": [
+            245,
+            55,
+            104
+          ],
+          "1": [
+            65,
+            235,
+            130
+          ],
+          "2": [
+            255,
+            211,
+            45
+          ],
+          "11": [
+            90,
+            110,
+            255
+          ],
+          "6": [
+            204,
+            65,
+            238
+          ],
+          "3": [
+            35,
+            223,
+            223
+          ],
+          "9": [
+            255,
+            131,
+            30
+          ],
+          "5": [
+            135,
+            55,
+            225
+          ],
+          "12": [
+            35,
+            165,
+            240
+          ],
+          "13": [
+            212,
+            240,
+            55
+          ],
+          "14": [
+            242,
+            80,
+            194
+          ],
+          "17": [
+            25,
+            190,
+            120
+          ],
+          "23": [
+            35,
+            247,
+            141
+          ],
+          "21": [
+            247,
+            79,
+            35
+          ],
+          "4": [
+            35,
+            53,
+            247
+          ],
+          "24": [
+            115,
+            247,
+            35
+          ],
+          "7": [
+            247,
+            35,
+            177
+          ],
+          "19": [
+            35,
+            239,
+            247
+          ],
+          "16": [
+            247,
+            194,
+            35
+          ],
+          "10": [
+            132,
+            35,
+            247
+          ],
+          "15": [
+            35,
+            247,
+            70
+          ],
+          "22": [
+            247,
+            35,
+            62
+          ],
+          "20": [
+            35,
+            124,
+            247
+          ]
+        },
+        "unique_labels": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24
+        ]
+      }
+    }
+  }
+}

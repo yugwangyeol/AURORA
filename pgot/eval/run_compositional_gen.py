@@ -59,12 +59,28 @@ def parse_args():
                    help="Images per batch; slots are mixed only within a batch (CODA protocol).")
     p.add_argument("--num_workers", type=int, default=4)
     p.add_argument("--max_samples", type=int, default=None)
+    p.add_argument(
+        "--expected_samples",
+        type=int,
+        default=0,
+        help="Fail unless the unsliced evaluation manifest has this many images.",
+    )
     p.add_argument("--grid_size", type=int, default=32)
     p.add_argument("--max_caption_tokens", type=int, default=1024)
     p.add_argument("--n_ovt_per_object", type=int, default=1)
     p.add_argument("--max_objects", type=int, default=50)
     p.add_argument("--image_preprocess_mode", default="coda_center_crop")
     p.add_argument("--coda_crop_size", type=int, default=512)
+    p.add_argument(
+        "--metric_resolution",
+        type=int,
+        default=0,
+        help=(
+            "0 scores at the decoder's native resolution. A positive size "
+            "bicubic-upsamples the native generated image and compares it "
+            "with an independently loaded CODA-cropped reference at that size."
+        ),
+    )
     p.add_argument("--dtype", choices=["fp32", "bf16"], default="fp32")
     p.add_argument("--guidance_scale", type=float, default=1.0)
     p.add_argument("--diffusion_inference_steps", type=int, default=10)
@@ -81,7 +97,17 @@ def parse_args():
                    help="Number of batches saved as [real | identity recon | composed] grids.")
     p.add_argument("--identity_tolerance", type=float, default=1e-3,
                    help="Max relative error between the rebuilt identity condition and the model's.")
-    return p.parse_args()
+    args = p.parse_args()
+    if args.metric_resolution < 0:
+        p.error("--metric_resolution must be non-negative")
+    if args.expected_samples < 0:
+        p.error("--expected_samples must be non-negative")
+    if args.metric_resolution and args.image_preprocess_mode != "coda_center_crop":
+        p.error(
+            "--metric_resolution requires --image_preprocess_mode "
+            "coda_center_crop so the reference preprocessing is explicit"
+        )
+    return args
 
 
 def build_condition(model, raw_rae, semantic, memory, object_valid, object_memories, register_memories):
@@ -215,7 +241,14 @@ def main():
         panoptic_categories_json="/home/jovyan/data/coco/annotations/panoptic_val2017.json",
         image_preprocess_mode=args.image_preprocess_mode,
         coda_crop_size=args.coda_crop_size,
+        metric_image_size=args.metric_resolution,
     )
+    dataset_total_samples = len(dataset)
+    if args.expected_samples and dataset_total_samples != args.expected_samples:
+        raise ValueError(
+            f"Compositional manifest must contain {args.expected_samples} images; "
+            f"found {dataset_total_samples}: {args.val_jsonl}"
+        )
     if args.max_samples is not None:
         dataset = torch.utils.data.Subset(dataset, list(range(min(args.max_samples, len(dataset)))))
     n_total = len(dataset)
@@ -240,12 +273,14 @@ def main():
     rae_rel_std = 0.0
     mixed_delta_sum, mixed_delta_batches = 0.0, 0
     n_objects_total = n_foreign = n_replacement = n_unmixed = 0
+    n_zero_object_sources = 0
     n_generated = n_real = 0
-    fake_hw = real_hw = None
+    native_generation_hw = metric_hw = real_hw = None
     global_index = 0
 
     for batch_idx, batch in enumerate(tqdm(loader, desc="compgen")):
         B = batch["images"].shape[0]
+        n_zero_object_sources += sum(int(count) == 0 for count in batch["n_objects_list"])
         indices = list(range(global_index, global_index + B))
         global_index += B
         out = pgot_forward_eval(
@@ -295,12 +330,35 @@ def main():
             mixed_delta_batches += 1
 
         x_end = seeded_noise(model, indices, args.seed, device)
-        fake = generate_images(model, rae_decoder, condition, x_end, args.guidance_scale, device)
-        real = denormalize_images(batch["target_images"].to(device).float(), t_mean, t_std)
+        fake_native = generate_images(
+            model, rae_decoder, condition, x_end, args.guidance_scale, device
+        )
+        native_generation_hw = tuple(fake_native.shape[-2:])
+        if args.metric_resolution:
+            if "metric_image" not in batch:
+                raise RuntimeError("High-resolution metric reference missing from batch")
+            real = batch["metric_image"].to(device=device, dtype=torch.float32)
+            fake = F.interpolate(
+                fake_native.float(),
+                size=(args.metric_resolution, args.metric_resolution),
+                mode="bicubic",
+                align_corners=False,
+                antialias=True,
+            ).clamp(0.0, 1.0)
+        else:
+            real = denormalize_images(
+                batch["target_images"].to(device).float(), t_mean, t_std
+            )
+            if real.shape[-2:] != fake_native.shape[-2:]:
+                real = F.interpolate(
+                    real,
+                    size=fake_native.shape[-2:],
+                    mode="bilinear",
+                    align_corners=False,
+                )
+            fake = fake_native
         real_hw = tuple(real.shape[-2:])
-        if real.shape[-2:] != fake.shape[-2:]:
-            real = F.interpolate(real, size=fake.shape[-2:], mode="bilinear", align_corners=False)
-        fake_hw = tuple(fake.shape[-2:])
+        metric_hw = tuple(fake.shape[-2:])
         fid_acc.add(real, fake)
         if kid_acc is not None:
             kid_acc.add(real, fake)
@@ -323,8 +381,19 @@ def main():
         if batch_idx < args.save_examples:
             from torchvision.utils import save_image
 
-            recon = fake if args.mix_mode == "identity" else generate_images(
+            recon_native = fake_native if args.mix_mode == "identity" else generate_images(
                 model, rae_decoder, identity_cond, x_end, args.guidance_scale, device)
+            recon = (
+                F.interpolate(
+                    recon_native.float(),
+                    size=(args.metric_resolution, args.metric_resolution),
+                    mode="bicubic",
+                    align_corners=False,
+                    antialias=True,
+                ).clamp(0.0, 1.0)
+                if args.metric_resolution
+                else recon_native
+            )
             grid_path = os.path.join(args.output_dir, "examples", f"batch{batch_idx:03d}_real_recon_composed.png")
             os.makedirs(os.path.dirname(grid_path), exist_ok=True)
             save_image(torch.cat([real, recon, fake]).cpu(), grid_path, nrow=B, padding=2)
@@ -345,6 +414,10 @@ def main():
                         "its visual memories) is drawn without replacement from the other images' "
                         "valid objects in the same batch; registers follow register_source"),
         "model_path": args.model_path,
+        "manifest_path": args.val_jsonl,
+        "dataset_total_samples": dataset_total_samples,
+        "full_split_evaluated": args.max_samples is None,
+        "includes_objectless_images": True,
         "one_shot_readout_mode": str(getattr(model.config, "pgot_one_shot_readout_mode", "")),
         "object_memories_per_owner": object_memories,
         "register_memories_per_owner": register_memories,
@@ -355,11 +428,23 @@ def main():
         "caption_mode": "teacher_forced",
         "diffusion_inference_steps": args.diffusion_inference_steps,
         "guidance_scale": args.guidance_scale,
-        "real_reference": "the same val images (CODA-512 center crop), one real per generated image",
-        "real_resolution_before_resize": list(real_hw) if real_hw else None,
-        "metric_resolution": list(fake_hw) if fake_hw else None,
+        "real_reference": (
+            "independently loaded CODA center crop at metric resolution"
+            if args.metric_resolution
+            else "native target-processor image, one real per generated image"
+        ),
+        "real_resolution": list(real_hw) if real_hw else None,
+        "native_generation_resolution": (
+            list(native_generation_hw) if native_generation_hw else None
+        ),
+        "metric_resolution": list(metric_hw) if metric_hw else None,
+        "generation_output_resampling": (
+            "bicubic_antialias" if args.metric_resolution else "none_native_decoder_output"
+        ),
+        "native_256_generation_claimed": False,
         "n_real": n_real,
         "n_generated": n_generated,
+        "zero_object_source_images": n_zero_object_sources,
         "FID": fid,
         "KID_x1e3_mean": kid_mean * 1e3,
         "KID_x1e3_std": kid_std * 1e3,

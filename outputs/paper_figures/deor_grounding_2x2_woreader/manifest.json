@@ -1,0 +1,173 @@
+{
+  "checkpoint": "/home/jovyan/PGOT/checkpoints/pgot_oneshot_memory8_register32_noprior_woreader/checkpoint-5000",
+  "layout": "2x2 fixed scenes; Image / generated-description region 1 / region 2",
+  "input": "image-only autoregressive generation; descriptions are outputs, not prompts",
+  "controlled_replay": true,
+  "prediction_panels_modified": false,
+  "sets": [
+    {
+      "dataset": "coco",
+      "id": "90208",
+      "caption_sha256": "fcf1e832af2b9ce3d245cc08a464ff425a1b16ce1e09dd109b7a61a3723475fc",
+      "descriptions": [
+        "A vintage green double-decker bus labeled \"GREEN LINE\" and \"BELHUS\" is parked, its surface reflecting the sunlight, showcasing its detailed design.",
+        "Another red double-decker bus but more colorful with a visible license plate CUV 230HC."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/deor_grounding_2x2_woreader/panels/01_coco_90208/image.png",
+          "sha256": "399e82afdf47dd81b35eea75d3cebf6785e926b3acd5493a5959e3a85039154d",
+          "box": [
+            16,
+            342,
+            528,
+            854
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/deor_grounding_2x2_woreader/panels/01_coco_90208/object_01_overlay.png",
+          "sha256": "d204a3a94160498bd5826a89869f7b5893b3a848bf4d5f3113b1b20d33e9c1d4",
+          "box": [
+            536,
+            342,
+            1048,
+            854
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/deor_grounding_2x2_woreader/panels/01_coco_90208/object_02_overlay.png",
+          "sha256": "f06f363894c9a0c7585fb439ea75db9ffd2d9c017615191c62ec06af46791c53",
+          "box": [
+            1056,
+            342,
+            1568,
+            854
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "coco",
+      "id": "450686",
+      "caption_sha256": "433e4765b9b1d07d7e8c7892dcb3ed4f7943e51104e1c776037d93cd48cec476",
+      "descriptions": [
+        "A person's hand is visible holding a cell phone.",
+        "A smartphone with a black case is held in the person's hand."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/deor_grounding_2x2_woreader/panels/02_coco_450686/image.png",
+          "sha256": "82dd636f73af627a9eb49a1d642461c711326912df517051781313a630cae627",
+          "box": [
+            1616,
+            342,
+            2128,
+            854
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/deor_grounding_2x2_woreader/panels/02_coco_450686/object_01_overlay.png",
+          "sha256": "27faf96e9639e25f376ebb46cff818326e43679f397e90c7c67f902ba9d063a1",
+          "box": [
+            2136,
+            342,
+            2648,
+            854
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/deor_grounding_2x2_woreader/panels/02_coco_450686/object_02_overlay.png",
+          "sha256": "ea6d14b2db4d9bc2b8dc8555de78da1024ab57586c0d793479f175ebfb38b0d9",
+          "box": [
+            2656,
+            342,
+            3168,
+            854
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "voc",
+      "id": "2010_004165",
+      "caption_sha256": "9bd23fd09bd0f215c5ad42393658dd0ae793d7aecae6b9bbd979465ecf5a8899",
+      "descriptions": [
+        "A person with glasses and hair pulled back is wearing a red jacket and holding a dog gently.",
+        "A small, white dog with smooth coat is being held by the person."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/deor_grounding_2x2_woreader/panels/03_voc_2010_004165/image.png",
+          "sha256": "2eab91ca27371c01ab09f60dc8251be80e2007fa763ea488c0b88d7b85e48d90",
+          "box": [
+            16,
+            1232,
+            528,
+            1744
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/deor_grounding_2x2_woreader/panels/03_voc_2010_004165/object_01_overlay.png",
+          "sha256": "48c8b49ecf92ba76225c5a31396693b14df5138868994b32c0d74faa3367a26b",
+          "box": [
+            536,
+            1232,
+            1048,
+            1744
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/deor_grounding_2x2_woreader/panels/03_voc_2010_004165/object_02_overlay.png",
+          "sha256": "34dd6ed4dbb480c18f34f087039dca2a55abf394a1a4192434ce762061850746",
+          "box": [
+            1056,
+            1232,
+            1568,
+            1744
+          ]
+        }
+      ]
+    },
+    {
+      "dataset": "coco",
+      "id": "339823",
+      "caption_sha256": "85604926c01d311f685b5068d1770fd2bad0580dcd06bbb5db4f3bfe09355f4b",
+      "descriptions": [
+        "A person is captured mid-motion, their body partially obscured by the umbrella they hold.",
+        "A large, black lace umbrella with multiple dark slats forming its structure."
+      ],
+      "panels": [
+        {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/deor_grounding_2x2_woreader/panels/04_coco_339823/image.png",
+          "sha256": "df565d548b51154b313081c81d1f2b9f7ccfa31171159910eab14db7398fab4b",
+          "box": [
+            1616,
+            1232,
+            2128,
+            1744
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/deor_grounding_2x2_woreader/panels/04_coco_339823/object_01_overlay.png",
+          "sha256": "82dd5139b27b7048e7b6a4dbc1e330062dba8584aca01e5aad5c410bc549b576",
+          "box": [
+            2136,
+            1232,
+            2648,
+            1744
+          ]
+        },
+        {
+          "source": "/home/jovyan/PGOT/outputs/paper_figures/deor_grounding_2x2_woreader/panels/04_coco_339823/object_02_overlay.png",
+          "sha256": "89abade4b81aaf41ed70bb59f9aadf6fc38f2a0373499132bd48e6966f01454c",
+          "box": [
+            2656,
+            1232,
+            3168,
+            1744
+          ]
+        }
+      ]
+    }
+  ]
+}

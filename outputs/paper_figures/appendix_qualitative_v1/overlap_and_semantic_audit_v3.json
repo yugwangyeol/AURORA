@@ -1,0 +1,229 @@
+{
+  "revision": "v3",
+  "passed": true,
+  "policy": "No displayed source/donor image is reused across E1/E2/E4/E5 or the audited main-paper figures.",
+  "figures": {
+    "E1": [
+      "coco:125129",
+      "coco:166478",
+      "coco:209613",
+      "coco:248631",
+      "coco:32334",
+      "coco:402473",
+      "coco:537506",
+      "coco:66926"
+    ],
+    "E2": [
+      "coco:112997",
+      "coco:147745",
+      "coco:157807",
+      "coco:22935",
+      "coco:409630",
+      "coco:481573",
+      "voc:2007_005845",
+      "voc:2007_007417"
+    ],
+    "E4": [
+      "coco:112626",
+      "coco:170893",
+      "coco:350019",
+      "coco:357941",
+      "coco:554735",
+      "coco:555705",
+      "coco:579321",
+      "coco:68765",
+      "coco:84431"
+    ],
+    "E5": [
+      "coco:138819",
+      "coco:176778",
+      "coco:210708",
+      "coco:217425",
+      "coco:227482",
+      "coco:25139",
+      "coco:263860",
+      "coco:312213",
+      "coco:324715",
+      "coco:364166",
+      "coco:39480",
+      "coco:503755",
+      "coco:54931",
+      "coco:568690"
+    ]
+  },
+  "appendix_conflicts": [],
+  "main_figure_conflicts": [],
+  "missing_outputs": [],
+  "e1_4_to_6_checks": [
+    {
+      "id": "125129",
+      "ours": {
+        "fARI": 0.8927410217291435,
+        "mIoU": 0.6948008232734901,
+        "mBO": 0.6850076825487259,
+        "pred_segments": 10,
+        "significant_gt_objects": 6,
+        "split_count": 1,
+        "merge_count": 0,
+        "split_gt_labels": [
+          1
+        ],
+        "merged_pred_labels": [],
+        "merge_gt_labels": {},
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 9,
+        "caption_sha256": "e45cb6e4342abdcb005a0a7e97cd382c329f7027387eef4f3a3af7e01e8f28e7"
+      }
+    },
+    {
+      "id": "32334",
+      "ours": {
+        "fARI": 0.879407135348357,
+        "mIoU": 0.6346013431386788,
+        "mBO": 0.6183433303556098,
+        "pred_segments": 8,
+        "significant_gt_objects": 6,
+        "split_count": 0,
+        "merge_count": 0,
+        "split_gt_labels": [],
+        "merged_pred_labels": [],
+        "merge_gt_labels": {},
+        "min_gt_pixels": 786,
+        "minimum_object_fraction": 0.2,
+        "generated_objects": 7,
+        "caption_sha256": "5aa01b1eb5fb950e1d5913dd20ee1c9b12f8766e604b7108c10f3ca771fb5eb1"
+      }
+    }
+  ],
+  "e2_description_mask_checks": [
+    {
+      "case": "coco:22935",
+      "object": 1,
+      "category": "Person",
+      "first_sentence": "A focused female player in the foreground, wearing a blue jersey with white accents and \"ACRONIS\" written on it.",
+      "mask_pixels": 97129,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "coco:22935",
+      "object": 2,
+      "category": "Person",
+      "first_sentence": "Another player in the background is partially visible, wearing a yellow jersey and seems to be watching the first player's actions.",
+      "mask_pixels": 54869,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "coco:147745",
+      "object": 1,
+      "category": "Truck",
+      "first_sentence": "The first truck is a white DAF truck with blue and green logos on its front.",
+      "mask_pixels": 94354,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "coco:147745",
+      "object": 2,
+      "category": "Truck",
+      "first_sentence": "The second truck is also a white DAF truck but with \"GRAB HIRE\" written on its side in blue and white colors.",
+      "mask_pixels": 48218,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "coco:481573",
+      "object": 1,
+      "category": "Skateboard",
+      "first_sentence": "A skateboard with a predominantly black surface and white curved stripes drawn along the edge.",
+      "mask_pixels": 118266,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "coco:481573",
+      "object": 2,
+      "category": "Person",
+      "first_sentence": "A young person with short hair, wearing a white t-shirt and dark pants, standing upright and looking forward.",
+      "mask_pixels": 33803,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "coco:409630",
+      "object": 1,
+      "category": "Keyboard",
+      "first_sentence": "This is a white keyboard with black lettering on the keys.",
+      "mask_pixels": 71624,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "coco:409630",
+      "object": 2,
+      "category": "Laptop",
+      "first_sentence": "A closed laptop with a silver color is present in the image.",
+      "mask_pixels": 65434,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "coco:112997",
+      "object": 1,
+      "category": "Cell phone",
+      "first_sentence": "The cell phone is a vintage model with a rounded edges and a small screen displaying numbers and some text.",
+      "mask_pixels": 110498,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "coco:112997",
+      "object": 2,
+      "category": "Person",
+      "first_sentence": "A person's hand is visible holding the cell phone upright.",
+      "mask_pixels": 49814,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "voc:2007_005845",
+      "object": 1,
+      "category": "Person",
+      "first_sentence": "A person with dark hair is visible from the side profile, wearing a maroon long-sleeve top and blue jeans.",
+      "mask_pixels": 92611,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "voc:2007_005845",
+      "object": 2,
+      "category": "Cat",
+      "first_sentence": "A brown cat with a striped pattern on its face is in the foreground of the image, its body partially visible as it faces towards the right side of the frame.",
+      "mask_pixels": 33061,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "voc:2007_007417",
+      "object": 1,
+      "category": "Couch",
+      "first_sentence": "The couch is dark grey, with a smooth texture and appears to be made of a soft, fabric material.",
+      "mask_pixels": 165425,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "voc:2007_007417",
+      "object": 2,
+      "category": "Dog",
+      "first_sentence": "The dog is lying on the left side of the couch, its body partially covering part of it.",
+      "mask_pixels": 63416,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "coco:157807",
+      "object": 1,
+      "category": "Cat",
+      "first_sentence": "A tabby cat with a mix of dark and light fur, consisting of stripes and spots, is standing on a toilet.",
+      "mask_pixels": 61563,
+      "manual_semantic_review": "pass"
+    },
+    {
+      "case": "coco:157807",
+      "object": 2,
+      "category": "Toilet",
+      "first_sentence": "The toilet is white and has a round shape with a closed lid that's not currently up.",
+      "mask_pixels": 38603,
+      "manual_semantic_review": "pass"
+    }
+  ]
+}

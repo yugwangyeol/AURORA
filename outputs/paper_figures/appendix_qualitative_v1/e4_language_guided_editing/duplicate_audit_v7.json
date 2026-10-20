@@ -1,0 +1,29 @@
+{
+  "status": "pass",
+  "criterion": "Selected source and donor COCO image IDs must not occur in any pre-v7 paper-figure manifest, editing request configuration, or candidate output metadata.",
+  "selected_examples": [
+    {
+      "id": "appendix_v7b_plane_white_to_blue",
+      "source_image_id": 497568,
+      "donor_image_id": 579158,
+      "prior_overlap": []
+    },
+    {
+      "id": "appendix_v7b_sheep_white_to_black",
+      "source_image_id": 278353,
+      "donor_image_id": 428562,
+      "prior_overlap": []
+    }
+  ],
+  "checked_roots": [
+    "/home/jovyan/PGOT/configs",
+    "/home/jovyan/PGOT/outputs/paper_figures"
+  ],
+  "excluded_from_prior_search": [
+    "appendix_language_object_editing_v7b_candidates.jsonl",
+    "_inference_v7b_candidates",
+    "manifest_v7.json",
+    "duplicate_audit_v7.json"
+  ],
+  "result": "All four selected COCO images are new relative to the earlier figure/candidate pool."
+}

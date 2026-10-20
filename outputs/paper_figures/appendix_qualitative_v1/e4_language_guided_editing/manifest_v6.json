@@ -1,0 +1,93 @@
+{
+  "revision": "v6",
+  "model": "Reader-supervised DeOR-B",
+  "selector": "Qwen3-VL-4B-Instruct (text-only)",
+  "selector_image_input": false,
+  "selector_gt_input": false,
+  "manual_plan_correction": false,
+  "layout": "three removal examples at left and three donor-guided edits at right",
+  "v6_change": "Replaced v5 right rows 1 and 2: the umbrella edit obscured the person and the jumping snowboard was too small at paper scale. Selected large phone and refrigerator edits after an eight-candidate enlarged visual audit.",
+  "examples": [
+    {
+      "side": "left",
+      "id": "appendix_v2_remove_tv",
+      "request": "Remove the television from image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v2",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "remove",
+        "target_id": "obj_46cffaf5f011",
+        "donor_id": null
+      },
+      "visual_review": "pass"
+    },
+    {
+      "side": "left",
+      "id": "appendix_v2_remove_dog",
+      "request": "Remove the dog from image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v2",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "remove",
+        "target_id": "obj_2a4ab63f4e7b",
+        "donor_id": null
+      },
+      "visual_review": "pass"
+    },
+    {
+      "side": "left",
+      "id": "appendix_v4_remove_bus",
+      "request": "Remove the bus from image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v4_candidates",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "remove",
+        "target_id": "obj_84c1e076ee30",
+        "donor_id": null
+      },
+      "visual_review": "pass"
+    },
+    {
+      "side": "right",
+      "id": "appendix_v6_transfer_phone_modern_vintage",
+      "request": "Transfer the vintage Motorola phone's appearance from image B to the modern smartphone in image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v6_candidates",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "transfer",
+        "target_id": "obj_4e63672fd939",
+        "donor_id": "obj_f0a7f80e1bfd"
+      },
+      "visual_review": "pass",
+      "replacement_mode": "transfer"
+    },
+    {
+      "side": "right",
+      "id": "appendix_v6_transfer_fridge_white_steel",
+      "request": "Transfer the stainless-steel refrigerator's appearance from image B to the white refrigerator in image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v6_candidates",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "transfer",
+        "target_id": "obj_1eb4b22d65ba",
+        "donor_id": "obj_866188538541"
+      },
+      "visual_review": "pass",
+      "replacement_mode": "transfer"
+    },
+    {
+      "side": "right",
+      "id": "appendix_v2_transfer_suitcase",
+      "request": "Transfer the patterned suitcase's appearance from image B to the suitcase in image A.",
+      "root": "/home/jovyan/PGOT/outputs/paper_figures/appendix_qualitative_v1/e4_language_guided_editing/_inference_v2",
+      "selector_status": "ok",
+      "actual_plan": {
+        "operation": "transfer",
+        "target_id": "obj_d5823714e95b",
+        "donor_id": "obj_ed0be774a9c7"
+      },
+      "visual_review": "pass",
+      "replacement_mode": "transfer"
+    }
+  ]
+}
