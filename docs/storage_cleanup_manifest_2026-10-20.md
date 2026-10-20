@@ -66,10 +66,50 @@ lightweight evaluation summaries and source code remain versioned.
 - Direct-RAE, contrastive, and DINO-value ablations
 - RefCOCO, GQA, VQAv2, and fixed-query revision checkpoints
 
-## Later phases (not removed in Phases 1-2)
+## Phase 3: deduplicate retained checkpoint weights
+
+For every retained experiment with both root-level model shards and a latest
+`checkpoint-*` directory, each corresponding safetensors file was compared
+byte-for-byte with `cmp` before modification.
+
+- Verified duplicate directories: 27
+- Verified duplicate safetensors files: 119
+- Verified duplicate bytes: 487,205,663,296 (453.7 GiB)
+- The complete file in the latest `checkpoint-*` directory was retained.
+- Each identical root-level shard was replaced with a relative symbolic link
+  to that retained file. Consequently, both the root model path and the
+  checkpoint path remain loadable without storing the weights twice.
+- Configs, tokenizer files, model indices, trainer state, and the nested
+  checkpoints were retained.
+
+## Phase 4: obsolete one-shot prototypes and intermediate checkpoint
+
+The following early one-shot implementation probes were removed after their
+lightweight summaries and implementation code had been preserved:
+
+- `pgot_oneshot_memorysoftmax_feature`
+- `pgot_oneshot_owner_masked`
+- `pgot_oneshot_owner_masked_15k`
+- `pgot_oneshot_ownergrad_feature`
+- `pgot_oneshot_pooled`
+- `pgot_oneshot_pooled_15k`
+
+The intermediate
+`pgot_oneshot_memory8_register32_noprior_refcoco_direct/checkpoint-4000`
+was also removed. RefCOCO evaluation metadata points to the retained final
+`checkpoint-5000` checkpoint. The total audited size was 112,453,633,088
+bytes (104.7 GiB).
+
+Empty directories left by failed or superseded launches were removed as
+well; they contained no checkpoint files.
+
+The only remaining Transformers resume state is approximately 87 MiB under
+the retained RefCOCO-direct `checkpoint-5000`. It was kept because this is a
+revision-facing fine-tuned model and the storage benefit would be negligible.
+
+## Later phases (not removed in Phases 1-4)
 
 - Legacy `pgot_main*`, early `pgot_e*`, and prototype checkpoints.
-- Duplicate final-model weights at experiment root and `checkpoint-5000/`.
 - Optimizer and scheduler state for experiments that will never be resumed.
 - Regenerable raw qualitative caches, embeddings, and rejected candidates.
 
